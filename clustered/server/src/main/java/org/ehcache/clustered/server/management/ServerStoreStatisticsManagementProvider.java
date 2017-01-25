@@ -46,7 +46,7 @@ class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManageme
   private static class ServerStoreExposedStatistics extends AbstractExposedStatistics<ServerStoreBinding> {
 
     ServerStoreExposedStatistics(Context context, ServerStoreBinding binding, StatisticRegistry statisticRegistry) {
-      super(context, binding, statisticRegistry);
+      super(context.with("type", "ServerStore"), binding, statisticRegistry);
 
       getRegistry().registerSize("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
       getRegistry().registerSize("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));
@@ -59,11 +59,6 @@ class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManageme
       getRegistry().registerCounter("RemovedSlotCount", descriptor("removedSlotCount", tags("tier", "Store")));
       getRegistry().registerSize("DataSize", descriptor("dataSize", tags("tier", "Store")));
       getRegistry().registerSize("TableCapacity", descriptor("tableCapacity", tags("tier", "Store")));
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ServerStore");
     }
 
   }

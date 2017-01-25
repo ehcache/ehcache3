@@ -52,12 +52,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
   private static class ExposedServerStoreBinding extends ExposedAliasBinding<ServerStoreBinding> {
 
     ExposedServerStoreBinding(Context context, ServerStoreBinding binding) {
-      super(context, binding);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ServerStore");
+      super(context.with("type", "ServerStore"), binding);
     }
 
     @Override

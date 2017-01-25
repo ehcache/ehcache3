@@ -75,13 +75,8 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
   private static class PoolExposedStatistics extends AbstractExposedStatistics<PoolBinding> {
 
     PoolExposedStatistics(Context context, PoolBinding binding, StatisticRegistry statisticRegistry) {
-      super(context, binding, statisticRegistry);
+      super(context.with("type", "Pool"), binding, statisticRegistry);
       getRegistry().registerSize("AllocatedSize", descriptor("allocatedSize", tags("tier", "Pool")));
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "Pool");
     }
 
   }

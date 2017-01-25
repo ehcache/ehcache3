@@ -192,7 +192,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("EHCACHE_SERVER_STORE_CREATED", "CACHE_ADDED");
+    assertThat(notificationTypes(messages)).containsOnly("EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
   }
 
   @Test
@@ -200,7 +200,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     cacheManager.removeCache("cache-2");
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("CACHE_REMOVED");
+    assertThat(notificationTypes(messages)).containsOnly("EHCACHE_SERVER_STORE_RELEASED", "CACHE_REMOVED");
   }
 
   @Test

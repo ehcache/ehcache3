@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
 import org.terracotta.management.entity.tms.TmsAgentConfig;
+import org.terracotta.management.entity.tms.client.DefaultTmsAgentService;
 import org.terracotta.management.entity.tms.client.TmsAgentEntity;
 import org.terracotta.management.entity.tms.client.TmsAgentEntityFactory;
 import org.terracotta.management.entity.tms.client.TmsAgentService;
@@ -94,7 +95,7 @@ public abstract class AbstractClusteringManagementTest {
     managementConnection = CLUSTER.newConnection();
     TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
     TmsAgentEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig());
-    tmsAgentService = new TmsAgentService(tmsAgentEntity);
+    tmsAgentService = new DefaultTmsAgentService(tmsAgentEntity);
     tmsAgentService.setOperationTimeout(5, TimeUnit.SECONDS);
 
     tmsServerEntityIdentifier = readTopology()

@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 @Named("ClientStateSettings")
-@RequiredContext({@Named("consumerId"), @Named("clientId"), @Named("type")})
+@RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ClientStateSettingsManagementProvider extends ClientBindingManagementProvider<ClientStateBinding> {
 
   ClientStateSettingsManagementProvider() {
@@ -44,12 +44,7 @@ class ClientStateSettingsManagementProvider extends ClientBindingManagementProvi
   private static class ExposedClientStateBinding extends ExposedClientBinding<ClientStateBinding> {
 
     ExposedClientStateBinding(Context context, ClientStateBinding clientBinding) {
-      super(context, clientBinding);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ClientState");
+      super(context.with("type", "ClientState"), clientBinding);
     }
 
     @Override

@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.providers;
+package org.ehcache.clustered.server.management;
 
-import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.terracotta.management.registry.Named;
-import org.terracotta.management.registry.RequiredContext;
-import org.terracotta.management.registry.collect.StatisticCollectorProvider;
-
-@RequiredContext(@Named("cacheManagerName"))
-public class EhcacheStatisticCollectorProvider extends StatisticCollectorProvider {
-  public EhcacheStatisticCollectorProvider(ManagementRegistryServiceConfiguration configuration) {
-    super(configuration.getContext());
-  }
+public enum Notification {
+  EHCACHE_CLIENT_RECONNECTED,
+  EHCACHE_RESOURCE_POOLS_CONFIGURED,
+  EHCACHE_CLIENT_VALIDATED,
+  EHCACHE_SERVER_STORE_CREATED,
+  EHCACHE_SERVER_STORE_ATTACHED,
+  EHCACHE_SERVER_STORE_RELEASED,
+  EHCACHE_SERVER_STORE_DESTROYED
 }

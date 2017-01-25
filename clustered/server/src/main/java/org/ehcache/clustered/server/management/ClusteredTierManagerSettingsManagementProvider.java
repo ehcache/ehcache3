@@ -41,12 +41,7 @@ public class ClusteredTierManagerSettingsManagementProvider extends AliasBinding
   private static class ExposedClusteredTierManagerBinding extends ExposedAliasBinding<ClusteredTierManagerBinding> {
 
     public ExposedClusteredTierManagerBinding(final Context context, final ClusteredTierManagerBinding binding) {
-      super(context, binding);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ClusteredTierManager");
+      super(context.with("type", "ClusteredTierManager"), binding);
     }
 
     @Override
