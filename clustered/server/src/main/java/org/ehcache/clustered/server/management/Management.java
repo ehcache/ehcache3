@@ -32,6 +32,9 @@ import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
 import static org.ehcache.clustered.server.management.Notification.*;
 
 public class Management {
@@ -99,13 +102,12 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("init()");
 
-      managementRegistry.register(generateClusteredTierManagerBinding());
-      // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
-      // this object is ignored from the stats and descriptors
-      managementRegistry.register(PoolBinding.ALL_SHARED);
-
-      // expose the management registry inside voltorn
-      managementRegistry.refresh();
+      CompletableFuture.allOf(
+        managementRegistry.register(generateClusteredTierManagerBinding()),
+        // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
+        // this object is ignored from the stats and descriptors
+        managementRegistry.register(PoolBinding.ALL_SHARED)
+      ).thenRun(managementRegistry::refresh);
     }
   }
 
@@ -127,7 +129,7 @@ public class Management {
   public void clientReconnected(ClientDescriptor clientDescriptor, ClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientReconnected({})", clientDescriptor);
-      managementRegistry.refresh();
+      managementRegistry.refresh(); // required because ClientState fields have been modified
       managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_CLIENT_RECONNECTED.name());
     }
   }
@@ -135,18 +137,22 @@ public class Management {
   public void sharedPoolsConfigured() {
     if (managementRegistry != null) {
       LOGGER.trace("sharedPoolsConfigured()");
-      ehcacheStateService.getSharedResourcePools()
+      CompletableFuture.allOf(ehcacheStateService.getSharedResourcePools()
         .entrySet()
-        .forEach(e -> managementRegistry.register(new PoolBinding(e.getKey(), e.getValue(), PoolBinding.AllocationType.SHARED)));
-      managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
+        .stream()
+        .map(e -> managementRegistry.register(new PoolBinding(e.getKey(), e.getValue(), PoolBinding.AllocationType.SHARED)))
+        .toArray(CompletableFuture<?>[]::new))
+        .thenRun(() -> {
+          managementRegistry.refresh();
+          managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
+        });
     }
   }
 
   public void clientValidated(ClientDescriptor clientDescriptor, ClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientValidated({})", clientDescriptor);
-      managementRegistry.refresh();
+      managementRegistry.refresh(); // required because ClientState fields have been modified
       managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_CLIENT_VALIDATED.name());
     }
   }
@@ -156,20 +162,22 @@ public class Management {
       LOGGER.trace("serverStoreCreated({})", name);
       ServerSideServerStore serverStore = ehcacheStateService.getStore(name);
       ServerStoreBinding serverStoreBinding = new ServerStoreBinding(name, serverStore);
-      managementRegistry.register(serverStoreBinding);
+      CompletableFuture<Void> registered = managementRegistry.register(serverStoreBinding);
       ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(name);
       if (pool != null) {
-        managementRegistry.register(new PoolBinding(name, pool, PoolBinding.AllocationType.DEDICATED));
+        registered = CompletableFuture.allOf(registered, managementRegistry.register(new PoolBinding(name, pool, PoolBinding.AllocationType.DEDICATED)));
       }
-      managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
+      registered.thenRun(() -> {
+        managementRegistry.refresh();
+        managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
+      });
     }
   }
 
   public void storeAttached(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
     if (managementRegistry != null) {
       LOGGER.trace("storeAttached({}, {})", clientDescriptor, storeName);
-      managementRegistry.refresh();
+      managementRegistry.refresh(); // required because ClientState fields have been modified
       managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_ATTACHED.name(), Context.create("storeName", storeName));
     }
   }
@@ -177,7 +185,7 @@ public class Management {
   public void storeReleased(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
     if (managementRegistry != null) {
       LOGGER.trace("storeReleased({}, {})", clientDescriptor, storeName);
-      managementRegistry.refresh();
+      managementRegistry.refresh(); // required because ClientState fields have been modified
       managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_RELEASED.name(), Context.create("storeName", storeName));
     }
   }
