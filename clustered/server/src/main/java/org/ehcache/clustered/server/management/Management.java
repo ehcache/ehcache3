@@ -141,7 +141,7 @@ public class Management {
         .entrySet()
         .stream()
         .map(e -> managementRegistry.register(new PoolBinding(e.getKey(), e.getValue(), PoolBinding.AllocationType.SHARED)))
-        .toArray(CompletableFuture<?>[]::new))
+        .toArray(CompletableFuture[]::new))
         .thenRun(() -> {
           managementRegistry.refresh();
           managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
