@@ -37,7 +37,6 @@ import java.util.Map;
  * @param <K> the key type processed by this loader-writer
  * @param <V> the value type processed by this loader-writer
  *
- * //These are already linked
  * @see CacheLoadingException
  * @see CacheWritingException
  * @see BulkCacheLoadingException
