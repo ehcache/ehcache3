@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -54,13 +53,13 @@ public class EhcacheClientEntityFactory {
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
-  private final EhcacheClientEntity.Timeouts entityTimeouts;
+  private final Timeouts entityTimeouts;
 
   public EhcacheClientEntityFactory(Connection connection) {
-    this(connection, EhcacheClientEntity.Timeouts.builder().build());
+    this(connection, Timeouts.builder().build());
   }
 
-  public EhcacheClientEntityFactory(Connection connection, EhcacheClientEntity.Timeouts entityTimeouts) {
+  public EhcacheClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
     this.connection = connection;
     this.entityTimeouts = entityTimeouts;
   }
@@ -114,12 +113,12 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         while (true) {
           ref.create(new ClusteredTierManagerConfiguration(identifier, config));
           try {
-            EhcacheClientEntity entity = ref.fetchEntity();
+            InternalEhcacheClientEntity entity = ref.fetchEntity();
             try {
               entity.setTimeouts(entityTimeouts);
               finished = true;
@@ -174,7 +173,7 @@ public class EhcacheClientEntityFactory {
 
     Hold fetchHold = createAccessLockFor(identifier).readLock();
 
-    EhcacheClientEntity entity;
+    InternalEhcacheClientEntity entity;
     try {
       entity = getEntityRef(identifier).fetchEntity();
     } catch (EntityVersionMismatchException e) {
@@ -219,7 +218,7 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       destroyAllClusteredTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -246,7 +245,7 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  private void destroyAllClusteredTiers(EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws EhcacheEntityNotFoundException, CachePersistenceException {
+  private void destroyAllClusteredTiers(EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws EhcacheEntityNotFoundException, CachePersistenceException {
     EhcacheClientEntity entity;
     try {
       entity = ref.fetchEntity();
@@ -295,9 +294,9 @@ public class EhcacheClientEntityFactory {
     return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
+  private EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(InternalEhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get clustered tier manager for id {}", identifier, e);
       throw new AssertionError(e);

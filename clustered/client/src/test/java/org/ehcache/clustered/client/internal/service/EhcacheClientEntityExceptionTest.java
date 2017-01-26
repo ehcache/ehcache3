@@ -20,14 +20,12 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -41,14 +39,13 @@ import org.junit.Test;
 
 import java.net.URI;
 
-import static org.ehcache.clustered.client.internal.service.TestServiceProvider.providerContaining;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to
- * {@link EhcacheClientEntity} messages are wrapped before being re-thrown.  This class
+ * {@link SimpleEhcacheClientEntity} messages are wrapped before being re-thrown.  This class
  * relies on {@link DefaultClusteringService} to set up conditions for the test and
  * is placed accordingly.
  */

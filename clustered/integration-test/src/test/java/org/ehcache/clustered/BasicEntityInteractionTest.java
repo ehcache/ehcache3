@@ -18,6 +18,7 @@ package org.ehcache.clustered;
 import java.io.File;
 import java.util.Collections;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
@@ -210,6 +211,6 @@ public class BasicEntityInteractionTest {
   }
 
   private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(Connection client) throws org.terracotta.exception.EntityNotProvidedException {
-    return client.getEntityRef(EhcacheClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testName.getMethodName());
+    return client.getEntityRef(SimpleEhcacheClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testName.getMethodName());
   }
 }

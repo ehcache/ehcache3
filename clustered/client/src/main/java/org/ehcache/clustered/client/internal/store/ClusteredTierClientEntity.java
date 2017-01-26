@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusteredTierException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -82,7 +82,7 @@ public class ClusteredTierClientEntity implements Entity {
       // No op
     }
   };
-  private EhcacheClientEntity.Timeouts timeouts = EhcacheClientEntity.Timeouts.builder().build();
+  private Timeouts timeouts = Timeouts.builder().build();
   private String storeIdentifier;
   private volatile boolean connected = true;
 
@@ -115,7 +115,7 @@ public class ClusteredTierClientEntity implements Entity {
     });
   }
 
-  public void setTimeouts(EhcacheClientEntity.Timeouts timeouts) {
+  public void setTimeouts(Timeouts timeouts) {
     this.timeouts = timeouts;
   }
 

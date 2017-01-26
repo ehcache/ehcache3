@@ -25,6 +25,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.Timeouts;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
@@ -76,7 +77,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final URI clusterUri;
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
-  private final EhcacheClientEntity.Timeouts operationTimeouts;
+  private final Timeouts operationTimeouts;
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
@@ -91,7 +92,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
 
-    EhcacheClientEntity.Timeouts.Builder timeoutsBuilder = EhcacheClientEntity.Timeouts.builder();
+    Timeouts.Builder timeoutsBuilder = Timeouts.builder();
     timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
     if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
       ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;

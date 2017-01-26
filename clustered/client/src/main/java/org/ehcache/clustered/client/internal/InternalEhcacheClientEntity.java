@@ -17,20 +17,8 @@
 package org.ehcache.clustered.client.internal;
 
 /**
- * Thrown to reflect a failure in an operation against an {@link SimpleEhcacheClientEntity}.
+ * InternalEhcacheClientEntity
  */
-public class EhcacheEntityOperationException extends Exception {
-  private static final long serialVersionUID = -6513646132049237825L;
-
-  public EhcacheEntityOperationException(String message) {
-    super(message);
-  }
-
-  public EhcacheEntityOperationException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public EhcacheEntityOperationException(Throwable cause) {
-    super(cause);
-  }
+public interface InternalEhcacheClientEntity extends EhcacheClientEntity {
+  void setTimeouts(Timeouts timeouts);
 }
