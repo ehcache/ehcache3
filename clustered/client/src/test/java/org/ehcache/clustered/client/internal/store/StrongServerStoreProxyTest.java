@@ -62,7 +62,7 @@ public class StrongServerStoreProxyTest {
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
-  private static ClusteredTierClientEntity clientEntity1;
+  private static SimpleClusteredTierClientEntity clientEntity1;
   private static ClusteredTierClientEntity clientEntity2;
   private static StrongServerStoreProxy serverStoreProxy1;
   private static StrongServerStoreProxy serverStoreProxy2;
@@ -90,7 +90,7 @@ public class StrongServerStoreProxyTest {
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.STRONG);
 
-    clientEntity1 = entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity1 = (SimpleClusteredTierClientEntity) entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
     // required to attach the store to the client
     clientEntity1.validate(serverStoreConfiguration);

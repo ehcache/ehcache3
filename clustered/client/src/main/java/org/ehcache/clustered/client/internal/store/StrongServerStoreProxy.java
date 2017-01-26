@@ -48,7 +48,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
     this.delegate = new CommonServerStoreProxy(messageFactory, entity);
     this.entity = entity;
-    this.reconnectListener = new ClusteredTierClientEntity.ReconnectListener() {
+    this.reconnectListener = new SimpleClusteredTierClientEntity.ReconnectListener() {
       @Override
       public void onHandleReconnect(ReconnectMessage reconnectMessage) {
         Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
@@ -60,7 +60,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     };
     entity.setReconnectListener(reconnectListener);
 
-    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new ClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -75,7 +75,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new ClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.AllInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -100,7 +100,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       }
     });
 
-    this.disconnectionListener = new ClusteredTierClientEntity.DisconnectionListener() {
+    this.disconnectionListener = new SimpleClusteredTierClientEntity.DisconnectionListener() {
       @Override
       public void onDisconnection() {
         for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {

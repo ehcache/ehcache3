@@ -41,13 +41,13 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private final ClusteredTierClientEntity entity;
 
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
-  private final Map<Class<? extends EhcacheEntityResponse>, ClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
-      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, ClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
+  private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
+      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
 
   CommonServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
     this.messageFactory = messageFactory;
     this.entity = entity;
-    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new ClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -61,7 +61,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new ClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final String cacheId = response.getCacheId();
@@ -86,7 +86,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new ClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
         final String cacheId = response.getCacheId();
@@ -116,9 +116,9 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   @SuppressWarnings("unchecked")
   private void addResponseListenersToEntity() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, ClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
         this.responseListeners.entrySet()) {
-      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (ClusteredTierClientEntity.ResponseListener)classResponseListenerEntry.getValue());
+      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (SimpleClusteredTierClientEntity.ResponseListener)classResponseListenerEntry.getValue());
     }
   }
 
@@ -137,7 +137,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     return invalidationListeners.remove(listener);
   }
 
-  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, ClusteredTierClientEntity.ResponseListener<T> listener) {
+  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, SimpleClusteredTierClientEntity.ResponseListener<T> listener) {
     this.responseListeners.put(listenerClass, listener);
     this.entity.addResponseListener(listenerClass, listener);
   }

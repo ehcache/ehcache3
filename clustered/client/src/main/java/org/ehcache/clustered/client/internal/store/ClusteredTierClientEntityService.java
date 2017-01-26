@@ -39,7 +39,7 @@ public class ClusteredTierClientEntityService implements EntityClientService<Clu
 
   @Override
   public boolean handlesEntityType(Class<ClusteredTierClientEntity> cls) {
-    return ClusteredTierClientEntity.class.isAssignableFrom(cls);
+    return InternalClusterTierClientEntity.class.isAssignableFrom(cls);
   }
 
   @Override
@@ -54,7 +54,7 @@ public class ClusteredTierClientEntityService implements EntityClientService<Clu
 
   @Override
   public ClusteredTierClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
-    return new ClusteredTierClientEntity(endpoint);
+    return new SimpleClusteredTierClientEntity(endpoint);
   }
 
   @Override
