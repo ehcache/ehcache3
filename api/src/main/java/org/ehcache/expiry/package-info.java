@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.expiry.Expiry Expiry} API of a {@link org.ehcache.Cache Cache}.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.expiry;
+
+import org.osgi.annotation.versioning.Version;

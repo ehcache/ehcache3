@@ -18,4 +18,7 @@
  * {@link org.ehcache.config.Configuration CacheManager configuration},
  * {@link org.ehcache.config.CacheConfiguration Cache configuration} and other configuration classes.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.config;
+
+import org.osgi.annotation.versioning.Version;

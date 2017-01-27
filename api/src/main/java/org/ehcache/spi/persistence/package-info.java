@@ -18,4 +18,7 @@
  * {@link org.ehcache.spi.persistence.PersistableResourceService PersistableResourceService} and other persistence
  * related SPI.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.spi.persistence;
+
+import org.osgi.annotation.versioning.Version;
