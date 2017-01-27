@@ -127,7 +127,7 @@ public class EhcachePassiveEntityTest {
       new EhcachePassiveEntity(configuration, ehcacheStateService, management);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
-      assertThat(e.getMessage(), containsString("Unable to create"));
+      assertThat(e.getMessage(), containsString("server side resource"));
     }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -192,7 +192,7 @@ public class EhcachePassiveEntityTest {
       new EhcachePassiveEntity(configuration, ehcacheStateService, management);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
-      assertThat(e.getMessage(), containsString("Unable to create shared resource pools"));
+      assertThat(e.getMessage(), containsString("resources to allocate"));
     }
 
     final Set<String> poolIds = registry.getStoreManagerService().getSharedResourcePoolIds();

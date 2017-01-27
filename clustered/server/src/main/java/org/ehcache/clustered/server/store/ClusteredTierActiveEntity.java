@@ -139,9 +139,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       exception = e;
       LOGGER.debug("Got exception during creation - most likely failover is happening", e);
       store = stateService.getStore(entityConfiguration.getStoreIdentifier());
-    } catch (ClusterException e) {
-      // TODO move the method above to throw ConfigurationException directly
-      throw new ConfigurationException("ClusteredTier creation failed: " + e.getMessage(), e);
     }
     creationException = exception;
     store.setEvictionListener(this::invalidateHashAfterEviction);

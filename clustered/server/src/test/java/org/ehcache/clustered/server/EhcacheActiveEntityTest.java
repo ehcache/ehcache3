@@ -243,7 +243,7 @@ public class EhcacheActiveEntityTest {
       new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
-      assertThat(e.getCause().getMessage(), containsString("Non-existent server side resource"));
+      assertThat(e.getMessage(), containsString("Non-existent server side resource"));
     }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -305,7 +305,7 @@ public class EhcacheActiveEntityTest {
       new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
-      assertThat(e.getMessage(), containsString("Unable to create shared resource pools"));
+      assertThat(e.getMessage(), containsString("resources to allocate"));
     }
 
     final Set<String> poolIds = registry.getStoreManagerService().getSharedResourcePoolIds();
