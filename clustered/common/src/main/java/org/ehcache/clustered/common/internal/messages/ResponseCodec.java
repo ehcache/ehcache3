@@ -17,13 +17,19 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
+import org.terracotta.runnel.decoding.ArrayDecoder;
 import org.terracotta.runnel.decoding.Enm;
 import org.terracotta.runnel.decoding.StructDecoder;
+import org.terracotta.runnel.encoding.ArrayEncoder;
+import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Set;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
@@ -40,6 +46,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType
 import static org.ehcache.clustered.common.internal.messages.ExceptionCodec.EXCEPTION_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class ResponseCodec {
 
@@ -47,6 +54,7 @@ public class ResponseCodec {
   private static final String INVALIDATION_ID_FIELD = "invalidationId";
   private static final String CHAIN_FIELD = "chain";
   private static final String MAP_VALUE_FIELD = "mapValue";
+  private static final String STORES_FIELD = "stores";
 
   private static final Struct SUCCESS_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
@@ -87,6 +95,10 @@ public class ResponseCodec {
   private static final Struct MAP_VALUE_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
     .byteBuffer(MAP_VALUE_FIELD, 20)
+    .build();
+  private static final Struct PREPARE_FOR_DESTROY_RESPONSE_STRUCT = newStructBuilder()
+    .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
+    .strings(STORES_FIELD, 20)
     .build();
 
   public byte[] encode(EhcacheEntityResponse response) {
@@ -155,6 +167,17 @@ public class ResponseCodec {
           .byteBuffer(MAP_VALUE_FIELD, wrap(encodedMapValue))
           .encode().array();
       }
+      case PREPARE_FOR_DESTROY: {
+        PrepareForDestroy prepare = (PrepareForDestroy) response;
+        StructEncoder<Void> encoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.encoder()
+          .enm(RESPONSE_TYPE_FIELD_NAME, prepare.getResponseType());
+        ArrayEncoder<String, StructEncoder<Void>> storesEncoder = encoder.strings(STORES_FIELD);
+        for (String storeName : prepare.getStores()) {
+          storesEncoder.value(storeName);
+        }
+        return encoder
+          .encode().array();
+      }
       default:
         throw new UnsupportedOperationException("The operation is not supported : " + response.getResponseType());
     }
@@ -218,6 +241,15 @@ public class ResponseCodec {
       case MAP_VALUE: {
         decoder = MAP_VALUE_RESPONSE_STRUCT.decoder(buffer);
         return EhcacheEntityResponse.mapValue(Util.unmarshall(decoder.byteBuffer(MAP_VALUE_FIELD)));
+      }
+      case PREPARE_FOR_DESTROY: {
+        decoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.decoder(buffer);
+        ArrayDecoder<String, StructDecoder<Void>> storesDecoder = decoder.strings(STORES_FIELD);
+        Set<String> stores = new HashSet<String>();
+        for (int i = 0; i < storesDecoder.length(); i++) {
+          stores.add(storesDecoder.value());
+        }
+        return new PrepareForDestroy(stores);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);

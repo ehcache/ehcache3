@@ -65,60 +65,6 @@ public class LifeCycleMessageCodecTest {
   }
 
   @Test
-  public void testCreateServerStoreDedicated() throws Exception {
-    PoolAllocation.Dedicated dedicated = new PoolAllocation.Dedicated("dedicate", 420000L);
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(dedicated, "java.lang.Long", "java.lang.String", null, null,
-      "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
-      Consistency.STRONG);
-    LifecycleMessage message = factory.createServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.CreateServerStore decodedMessage = (LifecycleMessage.CreateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.CREATE_SERVER_STORE));
-    validateCommonServerStoreConfig(decodedMessage, configuration);
-    PoolAllocation.Dedicated decodedPoolAllocation = (PoolAllocation.Dedicated) decodedMessage.getStoreConfiguration().getPoolAllocation();
-    assertThat(decodedPoolAllocation.getResourceName(), is(dedicated.getResourceName()));
-    assertThat(decodedPoolAllocation.getSize(), is(dedicated.getSize()));
-  }
-
-  @Test
-  public void testCreateServerStoreShared() throws Exception {
-    PoolAllocation.Shared shared = new PoolAllocation.Shared("shared");
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(shared, "java.lang.Long", "java.lang.String", null, null,
-      "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
-      Consistency.STRONG);
-    LifecycleMessage message = factory.createServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.CreateServerStore decodedMessage = (LifecycleMessage.CreateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.CREATE_SERVER_STORE));
-    validateCommonServerStoreConfig(decodedMessage, configuration);
-    PoolAllocation.Shared decodedPoolAllocation = (PoolAllocation.Shared) decodedMessage.getStoreConfiguration().getPoolAllocation();
-    assertThat(decodedPoolAllocation.getResourcePoolName(), is(shared.getResourcePoolName()));
-  }
-
-  @Test
-  public void testCreateServerStoreUnknown() throws Exception {
-    PoolAllocation.Unknown unknown = new PoolAllocation.Unknown();
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(unknown, "java.lang.Long", "java.lang.String", null, null,
-      "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
-      Consistency.STRONG);
-    LifecycleMessage message = factory.createServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.CreateServerStore decodedMessage = (LifecycleMessage.CreateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.CREATE_SERVER_STORE));
-    validateCommonServerStoreConfig(decodedMessage, configuration);
-    assertThat(decodedMessage.getStoreConfiguration().getPoolAllocation(), instanceOf(PoolAllocation.Unknown.class));
-  }
-
-  @Test
   public void testValidateServerStoreDedicated() throws Exception {
     PoolAllocation.Dedicated dedicated = new PoolAllocation.Dedicated("dedicate", 420000L);
     ServerStoreConfiguration configuration = new ServerStoreConfiguration(dedicated, "java.lang.Long", "java.lang.String", null, null,
@@ -170,34 +116,6 @@ public class LifeCycleMessageCodecTest {
     assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.VALIDATE_SERVER_STORE));
     validateCommonServerStoreConfig(decodedMessage, configuration);
     assertThat(decodedMessage.getStoreConfiguration().getPoolAllocation(), instanceOf(PoolAllocation.Unknown.class));
-  }
-
-  @Test
-  public void testReleaseServerStore() throws Exception {
-    LifecycleMessage message = factory.releaseServerStore("store1");
-    message.setId(MESSAGE_ID);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.ReleaseServerStore decodedMessage = (LifecycleMessage.ReleaseServerStore) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.RELEASE_SERVER_STORE));
-    assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
-    assertThat(decodedMessage.getId(), is(MESSAGE_ID));
-    assertThat(decodedMessage.getName(), is("store1"));
-  }
-
-  @Test
-  public void testDestroyServerStore() throws Exception {
-    LifecycleMessage message = factory.destroyServerStore("store1");
-    message.setId(MESSAGE_ID);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.DestroyServerStore decodedMessage = (LifecycleMessage.DestroyServerStore) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.DESTROY_SERVER_STORE));
-    assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
-    assertThat(decodedMessage.getId(), is(MESSAGE_ID));
-    assertThat(decodedMessage.getName(), is("store1"));
   }
 
   private void validateCommonServerStoreConfig(LifecycleMessage.BaseServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {

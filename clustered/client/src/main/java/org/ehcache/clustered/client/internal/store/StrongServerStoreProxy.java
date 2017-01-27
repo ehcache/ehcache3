@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
@@ -42,14 +41,14 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final Lock invalidateAllLock = new ReentrantLock();
   private volatile CountDownLatch invalidateAllLatch;
-  private final EhcacheClientEntity entity;
-  private final EhcacheClientEntity.ReconnectListener reconnectListener;
-  private final EhcacheClientEntity.DisconnectionListener disconnectionListener;
+  private final ClusteredTierClientEntity entity;
+  private final ClusteredTierClientEntity.ReconnectListener reconnectListener;
+  private final ClusteredTierClientEntity.DisconnectionListener disconnectionListener;
 
-  public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+  public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
     this.delegate = new CommonServerStoreProxy(messageFactory, entity);
     this.entity = entity;
-    this.reconnectListener = new EhcacheClientEntity.ReconnectListener() {
+    this.reconnectListener = new SimpleClusteredTierClientEntity.ReconnectListener() {
       @Override
       public void onHandleReconnect(ReconnectMessage reconnectMessage) {
         Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
@@ -59,9 +58,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     };
-    entity.addReconnectListener(reconnectListener);
+    entity.setReconnectListener(reconnectListener);
 
-    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -76,7 +75,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.AllInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -101,7 +100,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       }
     });
 
-    this.disconnectionListener = new EhcacheClientEntity.DisconnectionListener() {
+    this.disconnectionListener = new SimpleClusteredTierClientEntity.DisconnectionListener() {
       @Override
       public void onDisconnection() {
         for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {
@@ -119,7 +118,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     };
-    entity.addDisconnectionListener(disconnectionListener);
+    entity.setDisconnectionListener(disconnectionListener);
   }
 
   private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException, TimeoutException {
@@ -226,8 +225,6 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void close() {
-    this.entity.removeDisconnectionListener(this.disconnectionListener);
-    this.entity.removeReconnectListener(this.reconnectListener);
     delegate.close();
   }
 

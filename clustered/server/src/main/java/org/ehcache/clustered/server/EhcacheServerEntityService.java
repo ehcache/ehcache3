@@ -40,9 +40,9 @@ import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.ServiceRegistry;
-
-import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
+
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierManagerConcurrency;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -50,7 +50,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
 
-  private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
+  private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(CONFIG_CODEC);
 
   @Override
   public long getVersion() {
@@ -59,7 +59,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.InternalEhcacheClientEntity".equals(typeName);
   }
 
   @Override
@@ -78,12 +78,12 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
     EhcacheStateService ehcacheStateService =
       registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
     Management management = new Management(registry, ehcacheStateService, false);
-    return new EhcachePassiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
+    return new EhcachePassiveEntity(clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
-    return defaultConcurrency(DEFAULT_MAPPER);
+    return clusterTierManagerConcurrency();
   }
 
   @Override

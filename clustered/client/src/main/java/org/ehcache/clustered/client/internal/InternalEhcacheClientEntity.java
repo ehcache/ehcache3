@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.clustered.client.internal;
 
 /**
- * @author Ludovic Orban
+ * InternalEhcacheClientEntity
  */
-public class EhcacheClientEntityHelper {
-
-  public static void fireDisconnectionEvent(EhcacheClientEntity entity) {
-    entity.fireDisconnectionEvent();
-  }
-
-  public static void setConnected(EhcacheClientEntity entity, boolean connected) {
-    entity.setConnected(connected);
-  }
-
+public interface InternalEhcacheClientEntity extends EhcacheClientEntity {
+  void setTimeouts(Timeouts timeouts);
 }

@@ -88,22 +88,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
   }
 
   /**
-   * Message directing the <i>creation</i> of a new {@code ServerStore}.
-   */
-  public static class CreateServerStore extends BaseServerStore {
-    private static final long serialVersionUID = -5832725455629624613L;
-
-    CreateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
-      super(name, storeConfiguration, clientId);
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CREATE_SERVER_STORE;
-    }
-  }
-
-  /**
    * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
    */
   public static class ValidateServerStore extends BaseServerStore {
@@ -119,49 +103,10 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     }
   }
 
-  /**
-   * Message disconnecting a client from a {@code ServerStore}.
-   */
-  public static class ReleaseServerStore extends LifecycleMessage {
-    private static final long serialVersionUID = 6486779694089287953L;
-
-    private final String name;
-
-    ReleaseServerStore(String name, UUID clientId) {
-      this.name = name;
-      this.clientId = clientId;
-    }
-
+  public static class PrepareForDestroy extends LifecycleMessage {
     @Override
     public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.RELEASE_SERVER_STORE;
-    }
-
-    public String getName() {
-      return name;
-    }
-  }
-
-  /**
-   * Message directing the <i>destruction</i> of a {@code ServerStore}.
-   */
-  public static class DestroyServerStore extends LifecycleMessage {
-    private static final long serialVersionUID = -1772028546913171535L;
-
-    private final String name;
-
-    DestroyServerStore(String name, UUID clientId) {
-      this.name = name;
-      this.clientId = clientId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.DESTROY_SERVER_STORE;
-    }
-
-    public String getName() {
-      return name;
+      return EhcacheMessageType.PREPARE_FOR_DESTROY;
     }
   }
 }

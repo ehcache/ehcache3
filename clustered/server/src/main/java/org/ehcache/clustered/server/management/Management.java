@@ -15,16 +15,13 @@
  */
 package org.ehcache.clustered.server.management;
 
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.server.ClientState;
-import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.model.context.Context;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
@@ -35,7 +32,9 @@ import org.terracotta.monitoring.IMonitoringProducer;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static org.ehcache.clustered.server.management.Notification.*;
+import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_RECONNECTED;
+import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_VALIDATED;
+import static org.ehcache.clustered.server.management.Notification.EHCACHE_RESOURCE_POOLS_CONFIGURED;
 
 public class Management {
 
@@ -69,13 +68,9 @@ public class Management {
 
 
       registerClusteredTierManagerSettingsProvider();
-      // expose settings about server stores
-      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
-      // expose stats about server stores
-      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider());
       // expose stats about pools
       managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService));
     }
@@ -154,54 +149,6 @@ public class Management {
       LOGGER.trace("clientValidated({})", clientDescriptor);
       managementRegistry.refresh(); // required because ClientState fields have been modified
       managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_CLIENT_VALIDATED.name());
-    }
-  }
-
-  public void serverStoreCreated(String name) {
-    if (managementRegistry != null) {
-      LOGGER.trace("serverStoreCreated({})", name);
-      ServerSideServerStore serverStore = ehcacheStateService.getStore(name);
-      ServerStoreBinding serverStoreBinding = new ServerStoreBinding(name, serverStore);
-      CompletableFuture<Void> registered = managementRegistry.register(serverStoreBinding);
-      ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(name);
-      if (pool != null) {
-        registered = CompletableFuture.allOf(registered, managementRegistry.register(new PoolBinding(name, pool, PoolBinding.AllocationType.DEDICATED)));
-      }
-      registered.thenRun(() -> {
-        managementRegistry.refresh();
-        managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
-      });
-    }
-  }
-
-  public void storeAttached(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
-    if (managementRegistry != null) {
-      LOGGER.trace("storeAttached({}, {})", clientDescriptor, storeName);
-      managementRegistry.refresh(); // required because ClientState fields have been modified
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_ATTACHED.name(), Context.create("storeName", storeName));
-    }
-  }
-
-  public void storeReleased(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
-    if (managementRegistry != null) {
-      LOGGER.trace("storeReleased({}, {})", clientDescriptor, storeName);
-      managementRegistry.refresh(); // required because ClientState fields have been modified
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_RELEASED.name(), Context.create("storeName", storeName));
-    }
-  }
-
-  public void serverStoreDestroyed(String name) {
-    ServerSideServerStore serverStore = ehcacheStateService.getStore(name);
-    if (managementRegistry != null && serverStore != null) {
-      LOGGER.trace("serverStoreDestroyed({})", name);
-      ServerStoreBinding managedObject = new ServerStoreBinding(name, serverStore);
-      managementRegistry.pushServerEntityNotification(managedObject, Notification.EHCACHE_SERVER_STORE_DESTROYED.name());
-      managementRegistry.unregister(managedObject);
-      ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(name);
-      if (pool != null) {
-        managementRegistry.unregister(new PoolBinding(name, pool, PoolBinding.AllocationType.DEDICATED));
-      }
-      managementRegistry.refresh();
     }
   }
 

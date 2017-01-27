@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.config;
 
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
 import org.ehcache.config.Builder;
 
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Extends {@link ClusteringServiceConfiguration} to add timeouts for
- * {@link org.ehcache.clustered.client.internal.EhcacheClientEntity EhcacheClientEntity}
+ * {@link SimpleEhcacheClientEntity EhcacheClientEntity}
  * operation timeouts.
  */
 public class TestClusteringServiceConfiguration extends ClusteringServiceConfiguration

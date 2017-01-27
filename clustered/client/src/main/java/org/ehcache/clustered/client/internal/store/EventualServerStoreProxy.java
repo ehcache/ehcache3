@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 
@@ -26,7 +25,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
 
-  public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+  public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
     this.delegate = new CommonServerStoreProxy(messageFactory, entity);
   }
 

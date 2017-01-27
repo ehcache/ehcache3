@@ -28,6 +28,7 @@ import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.cluster.Cluster;
+import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.stats.ContextualStatistics;
@@ -104,41 +105,54 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_D_server_capabilities_exposed() throws Exception {
-    Capability[] capabilities = readTopology().getSingleStripe().getActiveServerEntity(ehcacheServerEntityIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    Capability[] managerCapabilities = readTopology().getSingleStripe().getActiveServerEntity(clusterTierManagerEntityIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
 
-    assertThat(capabilities.length).isEqualTo(6);
+    assertThat(managerCapabilities).hasSize(4);
 
-    assertThat(capabilities[0].getName()).isEqualTo("ClientStateSettings");
-    assertThat(capabilities[1].getName()).isEqualTo("ClusteredTierManagerSettings");
-    assertThat(capabilities[2].getName()).isEqualTo("PoolSettings");
-    assertThat(capabilities[3].getName()).isEqualTo("PoolStatistics");
-    assertThat(capabilities[4].getName()).isEqualTo("ServerStoreSettings");
-    assertThat(capabilities[5].getName()).isEqualTo("ServerStoreStatistics");
+    assertThat(managerCapabilities[0].getName()).isEqualTo("ClientStateSettings");
+    assertThat(managerCapabilities[1].getName()).isEqualTo("ClusteredTierManagerSettings");
+    assertThat(managerCapabilities[2].getName()).isEqualTo("PoolSettings");
+    assertThat(managerCapabilities[3].getName()).isEqualTo("PoolStatistics");
 
-    assertThat(capabilities[4].getDescriptors()).hasSize(4); // time descriptor + 3 dedicated store
+    ServerEntityIdentifier ehcacheClusterTierIdentifier = readTopology()
+      .activeServerEntityStream()
+      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1dedicated-cache-1"))
+      .findFirst()
+      .get() // throws if not found
+      .getServerEntityIdentifier();
+
+    Capability[] tierCapabilities = readTopology().getSingleStripe().getActiveServerEntity(ehcacheClusterTierIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    assertThat(tierCapabilities).hasSize(5);
+
+    assertThat(tierCapabilities[0].getName()).isEqualTo("ClusteredTierClientStateSettings");
+    assertThat(tierCapabilities[1].getName()).isEqualTo("PoolSettings");
+    assertThat(tierCapabilities[2].getName()).isEqualTo("PoolStatistics");
+    assertThat(tierCapabilities[3].getName()).isEqualTo("ServerStoreSettings");
+    assertThat(tierCapabilities[4].getName()).isEqualTo("ServerStoreStatistics");
 
     // stats
 
-    assertThat(capabilities[5].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
-    assertThat(capabilities[3].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[4].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
+    assertThat(managerCapabilities[3].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[2].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
 
     // ClientStateSettings
 
-    assertThat(capabilities[0].getDescriptors()).hasSize(1);
-    Settings settings = (Settings) capabilities[0].getDescriptors().iterator().next();
-    assertThat((String[]) settings.get("attachedStores")).containsOnly("dedicated-cache-1", "shared-cache-2", "shared-cache-3");
+    assertThat(managerCapabilities[0].getDescriptors()).hasSize(1);
+    Settings settings = (Settings) managerCapabilities[0].getDescriptors().iterator().next();
+    assertThat((boolean) settings.get("attached")).isTrue();
 
     // ClusteredTierManagerStateSettings
 
-    assertThat(capabilities[1].getDescriptors()).hasSize(1);
-    settings = (Settings) capabilities[1].getDescriptors().iterator().next();
+    assertThat(managerCapabilities[1].getDescriptors()).hasSize(1);
+    settings = (Settings) managerCapabilities[1].getDescriptors().iterator().next();
     assertThat(settings.get("type")).isEqualTo("ClusteredTierManager");
     assertThat(settings.get("defaultServerResource")).isEqualTo("primary-server-resource");
 
-    // PoolSettings
+    // Shared PoolSettings
 
-    List<Descriptor> descriptors = new ArrayList<>(capabilities[2].getDescriptors());
-    assertThat(descriptors).hasSize(3);
+    List<Descriptor> descriptors = new ArrayList<>(managerCapabilities[2].getDescriptors());
+    assertThat(descriptors).hasSize(2);
 
     settings = (Settings) descriptors.get(0);
     assertThat(settings.get("alias")).isEqualTo("resource-pool-b");
@@ -154,7 +168,19 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
-    settings = (Settings) descriptors.get(2);
+    // ClusteredTierStateSettings
+
+    assertThat(tierCapabilities[0].getDescriptors()).hasSize(1);
+    settings = (Settings) tierCapabilities[0].getDescriptors().iterator().next();
+    assertThat((boolean) settings.get("attached")).isTrue();
+    assertThat((String) settings.get("store")).isEqualTo("dedicated-cache-1");
+
+    // Dedicated PoolSettings
+
+    List<Descriptor> tierDescriptors = new ArrayList<>(tierCapabilities[1].getDescriptors());
+    assertThat(tierDescriptors).hasSize(1);
+
+    settings = (Settings) tierDescriptors.get(0);
     assertThat(settings.get("alias")).isEqualTo("dedicated-cache-1");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("primary-server-resource");
@@ -163,16 +189,16 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // tms entity
 
-    capabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
-    assertThat(capabilities.length).isEqualTo(3);
+    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    assertThat(managerCapabilities.length).isEqualTo(3);
 
-    assertThat(capabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
-    assertThat(capabilities[1].getName()).isEqualTo("OffHeapResourceStatistics");
-    assertThat(capabilities[2].getName()).isEqualTo("StatisticCollectorCapability");
+    assertThat(managerCapabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
+    assertThat(managerCapabilities[1].getName()).isEqualTo("OffHeapResourceStatistics");
+    assertThat(managerCapabilities[2].getName()).isEqualTo("StatisticCollectorCapability");
 
-    assertThat(capabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
+    assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(capabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test
@@ -192,7 +218,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
+    assertThat(notificationTypes(messages)).containsOnly("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
   }
 
   @Test
@@ -200,7 +226,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     cacheManager.removeCache("cache-2");
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("EHCACHE_SERVER_STORE_RELEASED", "CACHE_REMOVED");
+    assertThat(notificationTypes(messages)).containsOnly("CACHE_REMOVED", "EHCACHE_SERVER_STORE_RELEASED", "SERVER_ENTITY_UNFETCHED");
   }
 
   @Test

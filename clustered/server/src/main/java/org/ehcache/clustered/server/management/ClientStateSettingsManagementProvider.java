@@ -50,10 +50,8 @@ class ClientStateSettingsManagementProvider extends ClientBindingManagementProvi
     @Override
     public Collection<? extends Descriptor> getDescriptors() {
       ClientState clientState = getClientBinding().getValue();
-      Set<String> attachedStores = clientState.getAttachedStores();
       return Collections.singleton(new Settings(getContext())
         .set("attached", clientState.isAttached())
-        .set("attachedStores", new TreeSet<>(attachedStores).toArray(new String[attachedStores.size()]))
       );
     }
   }

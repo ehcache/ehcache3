@@ -27,7 +27,7 @@ import org.terracotta.entity.ExecutionStrategy;
 /**
  * EhcacheExecutionStrategy
  */
-class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
+public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
   @Override
   public Location getExecutionLocation(EhcacheEntityMessage message) {
     if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage || message instanceof ServerStoreOpMessage.ClearMessage) {
@@ -38,13 +38,9 @@ class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage
       return Location.ACTIVE;
     } else if (message instanceof LifecycleMessage.ValidateStoreManager) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.CreateServerStore) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.ValidateServerStore) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.ReleaseServerStore) {
-      return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.DestroyServerStore) {
+    } else if (message instanceof LifecycleMessage.PrepareForDestroy) {
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage.PutIfAbsentMessage) {
       // State repository operation needing replication

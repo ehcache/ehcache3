@@ -21,7 +21,10 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
@@ -129,5 +132,19 @@ public class ResponseCodecTest {
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
     assertThat(decodedResponse.getCacheId(), is(STORE_ID));
     assertThat(decodedResponse.getKey(), is(KEY));
+  }
+
+  @Test
+  public void testPrepareForDestroy() throws Exception {
+    Set<String> storeIdentifiers = new HashSet<String>();
+    storeIdentifiers.add("store1");
+    storeIdentifiers.add("anotherStore");
+    EhcacheEntityResponse.PrepareForDestroy response = new EhcacheEntityResponse.PrepareForDestroy(storeIdentifiers);
+
+    byte[] encoded = RESPONSE_CODEC.encode(response);
+    EhcacheEntityResponse.PrepareForDestroy decodedResponse = (EhcacheEntityResponse.PrepareForDestroy) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.PREPARE_FOR_DESTROY));
+    assertThat(decodedResponse.getStores(), is(storeIdentifiers));
   }
 }

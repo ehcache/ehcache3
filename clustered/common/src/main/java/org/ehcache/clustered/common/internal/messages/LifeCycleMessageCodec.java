@@ -47,26 +47,19 @@ public class LifeCycleMessageCodec {
     .bool(CONFIG_PRESENT_FIELD, 30);
   private static final int CONFIGURE_MESSAGE_NEXT_INDEX = 40;
 
-  private final StructBuilder CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
+  private final StructBuilder VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
     .int64(LSB_UUID_FIELD, 21)
     .string(SERVER_STORE_NAME_FIELD, 30);
-  private static final int CREATE_STORE_NEXT_INDEX = 40;
+  private static final int VALIDATE_STORE_NEXT_INDEX = 40;
 
-  private static final Struct DESTROY_STORE_MESSAGE_STRUCT = newStructBuilder()
+  private final Struct PREPARE_FOR_DESTROY_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .string(SERVER_STORE_NAME_FIELD, 30)
     .build();
 
-  private final Struct RELEASE_STORE_MESSAGE_STRUCT = DESTROY_STORE_MESSAGE_STRUCT;
-
   private final Struct validateMessageStruct;
-  private final Struct createStoreMessageStruct;
   private final Struct validateStoreMessageStruct;
 
   private final MessageCodecUtils messageCodecUtils;
@@ -78,47 +71,27 @@ public class LifeCycleMessageCodec {
     validateMessageStruct = this.configCodec.injectServerSideConfiguration(
       VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
 
-    createStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
-      CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, CREATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
-    validateStoreMessageStruct = createStoreMessageStruct;
+    validateStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
+      VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
   }
 
   public byte[] encode(LifecycleMessage message) {
     switch (message.getMessageType()) {
       case VALIDATE:
         return encodeTierManagerValidateMessage((LifecycleMessage.ValidateStoreManager) message);
-      case CREATE_SERVER_STORE:
-        return encodeCreateStoreMessage((LifecycleMessage.CreateServerStore) message);
       case VALIDATE_SERVER_STORE:
         return encodeValidateStoreMessage((LifecycleMessage.ValidateServerStore) message);
-      case DESTROY_SERVER_STORE:
-        return encodeDestroyStoreMessage((LifecycleMessage.DestroyServerStore) message);
-      case RELEASE_SERVER_STORE:
-        return encodeReleaseStoreMessage((LifecycleMessage.ReleaseServerStore) message);
+      case PREPARE_FOR_DESTROY:
+        return encodePrepareForDestroyMessage(message);
       default:
         throw new IllegalArgumentException("Unknown lifecycle message: " + message.getClass());
     }
   }
 
-  private byte[] encodeReleaseStoreMessage(LifecycleMessage.ReleaseServerStore message) {
-    StructEncoder<Void> encoder = RELEASE_STORE_MESSAGE_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
-    return encoder.encode().array();
-  }
-
-  private byte[] encodeDestroyStoreMessage(LifecycleMessage.DestroyServerStore message) {
-    StructEncoder<Void> encoder = DESTROY_STORE_MESSAGE_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
-    return encoder.encode().array();
-  }
-
-  private byte[] encodeCreateStoreMessage(LifecycleMessage.CreateServerStore message) {
-    StructEncoder<Void> encoder = createStoreMessageStruct.encoder();
-    return encodeBaseServerStoreMessage(message, encoder);
+  private byte[] encodePrepareForDestroyMessage(LifecycleMessage message) {
+    return PREPARE_FOR_DESTROY_STRUCT.encoder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+      .encode().array();
   }
 
   private byte[] encodeValidateStoreMessage(LifecycleMessage.ValidateServerStore message) {
@@ -153,42 +126,16 @@ public class LifeCycleMessageCodec {
     switch (messageType) {
       case VALIDATE:
         return decodeValidateMessage(messageBuffer);
-      case CREATE_SERVER_STORE:
-        return decodeCreateServerStoreMessage(messageBuffer);
       case VALIDATE_SERVER_STORE:
         return decodeValidateServerStoreMessage(messageBuffer);
-      case DESTROY_SERVER_STORE:
-        return decodeDestroyServerStoreMessage(messageBuffer);
-      case RELEASE_SERVER_STORE:
-        return decodeReleaseServerStoreMessage(messageBuffer);
+      case PREPARE_FOR_DESTROY:
+        return decodePrepareForDestroyMessage();
     }
     throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
   }
 
-  private LifecycleMessage.ReleaseServerStore decodeReleaseServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = RELEASE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
-
-    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-
-    LifecycleMessage.ReleaseServerStore message = new LifecycleMessage.ReleaseServerStore(storeName, cliendId);
-    message.setId(msgId);
-    return message;
-  }
-
-  private LifecycleMessage.DestroyServerStore decodeDestroyServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = DESTROY_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
-
-    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-
-    LifecycleMessage.DestroyServerStore message = new LifecycleMessage.DestroyServerStore(storeName, cliendId);
-    message.setId(msgId);
-    return message;
+  private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {
+    return new LifecycleMessage.PrepareForDestroy();
   }
 
   private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
@@ -201,20 +148,6 @@ public class LifeCycleMessageCodec {
     ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
 
     LifecycleMessage.ValidateServerStore message = new LifecycleMessage.ValidateServerStore(storeName, config, cliendId);
-    message.setId(msgId);
-    return message;
-  }
-
-  private LifecycleMessage.CreateServerStore decodeCreateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = createStoreMessageStruct.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
-
-    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-    ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
-
-    LifecycleMessage.CreateServerStore message = new LifecycleMessage.CreateServerStore(storeName, config, cliendId);
     message.setId(msgId);
     return message;
   }

@@ -25,7 +25,9 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.Timeouts;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -35,7 +37,6 @@ import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
@@ -76,11 +77,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final URI clusterUri;
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
-  private final EhcacheClientEntity.Timeouts operationTimeouts;
+  private final Timeouts operationTimeouts;
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
   EhcacheClientEntity entity;
+  private final ConcurrentMap<String, ClusteredTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusteredTierClientEntity>();
 
   private volatile boolean inMaintenance = false;
 
@@ -90,7 +92,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
 
-    EhcacheClientEntity.Timeouts.Builder timeoutsBuilder = EhcacheClientEntity.Timeouts.builder();
+    Timeouts.Builder timeoutsBuilder = Timeouts.builder();
     timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
     if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
       ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;
@@ -229,6 +231,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     entityFactory = null;
     inMaintenance = false;
 
+    clusterTierEntities.clear();
     entity = null;
 
     closeConnection();
@@ -291,7 +294,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     if(currentRepo != null) {
       return currentRepo;
     } else {
-      ClusteredStateRepository newRepo = new ClusteredStateRepository(clusterCacheIdentifier, name, entity);
+      ClusteredStateRepository newRepo = new ClusteredStateRepository(clusterCacheIdentifier, name, clusterTierEntities.get(clusterCacheIdentifier.getId()));
       currentRepo = stateRepositories.putIfAbsent(name, newRepo);
       if (currentRepo == null) {
         return newRepo;
@@ -325,13 +328,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     try {
       if (entity != null) {
-        entity.destroyCache(name);
+        entityFactory.destroyClusteredStoreEntity(entityIdentifier, name);
       }
-    } catch (ClusteredTierDestructionException e) {
-      throw new CachePersistenceException(e.getMessage() + " (on " + clusterUri + ")", e);
-    } catch (TimeoutException e) {
-      throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
-          + "; destroy operation timed out" + clusterUri, e);
+    } catch (EntityNotFoundException e) {
+      // Ignore - does not exist, nothing to destroy
+      LOGGER.debug("Destruction of clustered tier {} failed as it does not exist", name);
     }
   }
 
@@ -366,19 +367,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
-    ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
-    switch (configuredConsistency) {
-      case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, entity);
-        break;
-      case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(messageFactory, entity);
-        break;
-      default:
-        throw new AssertionError("Unknown consistency : " + configuredConsistency);
-    }
-
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
@@ -390,20 +378,31 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         configuredConsistency
     );
 
+    ClusteredTierClientEntity storeClientEntity;
     try {
-      if (configuration.isAutoCreate()) {
-        try {
-          entity.createCache(cacheId, clientStoreConfiguration);
-        } catch (ClusteredTierCreationException e) {
-          // An InvalidStoreException means the cache already exists. That's fine, the validateCache will then work
-          if (!(e.getCause() instanceof InvalidStoreException)) {
-            throw e;
-          }
-          entity.validateCache(cacheId, clientStoreConfiguration);
-        }
-      } else {
-        entity.validateCache(cacheId, clientStoreConfiguration);
-      }
+      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entity.getClientId(), entityIdentifier, cacheId,
+        clientStoreConfiguration, configuration.isAutoCreate());
+      clusterTierEntities.put(cacheId, storeClientEntity);
+    } catch (EntityNotFoundException e) {
+      throw new CachePersistenceException("Clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "' does not exist.", e);
+    }
+
+
+    ServerStoreProxy serverStoreProxy;
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
+    switch (configuredConsistency) {
+      case STRONG:
+        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, storeClientEntity);
+        break;
+      case EVENTUAL:
+        serverStoreProxy = new EventualServerStoreProxy(messageFactory, storeClientEntity);
+        break;
+      default:
+        throw new AssertionError("Unknown consistency : " + configuredConsistency);
+    }
+
+    try {
+      storeClientEntity.validate(clientStoreConfiguration);
     } catch (ClusteredTierException e) {
       serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
@@ -419,20 +418,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void releaseServerStoreProxy(ServerStoreProxy storeProxy) {
-    final String cacheId = storeProxy.getCacheId();
-
-    try {
-      this.entity.releaseCache(cacheId);
-    } catch (ClusteredTierReleaseException e) {
-      throw new IllegalStateException(e);
-    } catch (TimeoutException e) {
-      /*
-       * A delayed ServerStore release is simply logged. If due to a disconnection, the server-side
-       * release will take place when the server recognizes the client is disconnected.  If the
-       * communication is only delayed, the message will eventually be presented and acted upon.
-       */
-      LOGGER.warn("Timed out trying to release clustered tier proxy for '{}'", cacheId, e);
-    }
+    clusterTierEntities.remove(storeProxy.getCacheId());
+    storeProxy.close();
   }
 
   private void closeConnection() {

@@ -31,13 +31,13 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class EhcacheClientEntityService implements EntityClientService<EhcacheClientEntity, ClusteredTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
+public class EhcacheClientEntityService implements EntityClientService<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
   @Override
-  public boolean handlesEntityType(Class<EhcacheClientEntity> cls) {
-    return EhcacheClientEntity.class.isAssignableFrom(cls);
+  public boolean handlesEntityType(Class<InternalEhcacheClientEntity> cls) {
+    return InternalEhcacheClientEntity.class.isAssignableFrom(cls);
   }
 
   @Override
@@ -51,8 +51,8 @@ public class EhcacheClientEntityService implements EntityClientService<EhcacheCl
   }
 
   @Override
-  public EhcacheClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
-    return new EhcacheClientEntity(endpoint);
+  public InternalEhcacheClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+    return new SimpleEhcacheClientEntity(endpoint);
   }
 
   @Override
