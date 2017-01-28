@@ -99,6 +99,11 @@ public class SimpleEhcacheClientEntity implements InternalEhcacheClientEntity {
   }
 
   @Override
+  public void setClientId(UUID clientId) {
+    this.clientId = clientId;
+  }
+
+  @Override
   public void close() {
     endpoint.close();
   }
@@ -106,14 +111,20 @@ public class SimpleEhcacheClientEntity implements InternalEhcacheClientEntity {
   @Override
   public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
     try {
+      boolean clientIdGenerated = false;
       while (true) {
         try {
-          clientId = UUID.randomUUID();
+          if (clientIdGenerated || clientId == null) {
+            clientId = UUID.randomUUID();
+            clientIdGenerated = true;
+          }
           this.messageFactory.setClientId(clientId);
           invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
-          break;
+          return;
         } catch (InvalidClientIdException e) {
-          //nothing to do - loop again since the earlier generated UUID is being already tracked by the server
+          if (!clientIdGenerated) {
+            throw new AssertionError("Injected ClientID refused by server - " + clientId);
+          }
         }
       }
     } catch (ClusterException e) {
