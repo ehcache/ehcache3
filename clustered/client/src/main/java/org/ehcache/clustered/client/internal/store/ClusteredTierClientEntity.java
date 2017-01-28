@@ -19,9 +19,11 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.internal.service.ClusteredTierException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
@@ -40,9 +42,11 @@ public interface ClusteredTierClientEntity extends Entity {
 
   void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusteredTierException, TimeoutException;
 
-  EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean replicate) throws ClusterException, TimeoutException;
+  EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate) throws ClusterException, TimeoutException;
 
-  InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate) throws MessageCodecException;
+  void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate) throws MessageCodecException;
+
+  EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) throws ClusterException, TimeoutException;
 
   <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener);
 
