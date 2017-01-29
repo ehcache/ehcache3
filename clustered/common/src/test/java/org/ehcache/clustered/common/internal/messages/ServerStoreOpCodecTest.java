@@ -129,7 +129,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testClientInvalidationAckMessageCodec() throws Exception {
-    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(123);
+    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(42L,123);
     invalidationAckMessage.setId(456L);
 
     byte[] encoded = STORE_OP_CODEC.encode(invalidationAckMessage);
@@ -137,6 +137,7 @@ public class ServerStoreOpCodecTest {
     ServerStoreOpMessage.ClientInvalidationAck decodedInvalidationAckMessage = (ServerStoreOpMessage.ClientInvalidationAck)decodedMsg;
 
     assertThat(decodedInvalidationAckMessage.getCacheId(), is("test"));
+    assertThat(decodedInvalidationAckMessage.getKey(), is(42L));
     assertThat(decodedInvalidationAckMessage.getInvalidationId(), is(123));
     assertThat(decodedInvalidationAckMessage.getId(), is(456L));
     assertThat(decodedInvalidationAckMessage.getMessageType(), is(EhcacheMessageType.CLIENT_INVALIDATION_ACK));

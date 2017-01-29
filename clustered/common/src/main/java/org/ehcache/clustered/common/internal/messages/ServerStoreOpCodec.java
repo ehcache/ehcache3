@@ -19,6 +19,7 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
@@ -42,10 +43,11 @@ import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.L
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class ServerStoreOpCodec {
 
-  private static final Struct GET_AND_APPEND_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct GET_AND_APPEND_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -55,7 +57,7 @@ public class ServerStoreOpCodec {
     .byteBuffer("payload", 50)
     .build();
 
-  private static final Struct APPEND_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct APPEND_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -65,7 +67,7 @@ public class ServerStoreOpCodec {
     .byteBuffer("payload", 50)
     .build();
 
-  private static final Struct REPLACE_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct REPLACE_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -76,14 +78,21 @@ public class ServerStoreOpCodec {
     .struct("update", 60, CHAIN_STRUCT)
     .build();
 
-  private static final Struct CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
+    .int64(KEY_FIELD, 20)
     .string(SERVER_STORE_NAME_FIELD, 30)
     .int32("invalidationId", 40)
     .build();
 
-  private static final Struct CLEAR_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64(MSG_ID_FIELD, 15)
+    .int32("invalidationId", 40)
+    .build();
+
+  private static final Struct CLEAR_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -91,7 +100,7 @@ public class ServerStoreOpCodec {
     .string(SERVER_STORE_NAME_FIELD, 30)
     .build();
 
-  private static final Struct GET_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
+  private static final Struct GET_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .string(SERVER_STORE_NAME_FIELD, 30)
@@ -151,10 +160,19 @@ public class ServerStoreOpCodec {
         return encoder
           .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
           .int64(MSG_ID_FIELD, message.getId())
+          .int64(KEY_FIELD, clientInvalidationAckMessage.getKey())
           .string(SERVER_STORE_NAME_FIELD, clientInvalidationAckMessage.getCacheId())
           .int32("invalidationId", clientInvalidationAckMessage.getInvalidationId())
           .encode()
           .array();
+      case CLIENT_INVALIDATION_ALL_ACK:
+        ClientInvalidationAllAck clientInvalidationAllAckMessage = (ClientInvalidationAllAck) message;
+        encoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT.encoder();
+        return encoder
+          .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+          .int64(MSG_ID_FIELD, message.getId())
+          .int32("invalidationId", clientInvalidationAllAckMessage.getInvalidationId())
+          .encode().array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage) message;
         encoder = CLEAR_MESSAGE_STRUCT.encoder();
@@ -217,9 +235,19 @@ public class ServerStoreOpCodec {
       case CLIENT_INVALIDATION_ACK: {
         decoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
         Long msgId = decoder.int64(MSG_ID_FIELD);
+        Long key = decoder.int64(KEY_FIELD);
         String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         Integer invalidationId = decoder.int32("invalidationId");
-        ClientInvalidationAck message = new ClientInvalidationAck(cacheId, invalidationId);
+        ClientInvalidationAck message = new ClientInvalidationAck(cacheId, key, invalidationId);
+        message.setId(msgId);
+        return message;
+      }
+      case CLIENT_INVALIDATION_ALL_ACK: {
+        decoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT
+          .decoder(messageBuffer);
+        Long msgId = decoder.int64(MSG_ID_FIELD);
+        Integer invalidationId = decoder.int32("invalidationId");
+        ClientInvalidationAllAck message = new ClientInvalidationAllAck(null, invalidationId);
         message.setId(msgId);
         return message;
       }

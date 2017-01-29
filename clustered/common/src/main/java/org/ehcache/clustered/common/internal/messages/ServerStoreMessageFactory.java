@@ -47,8 +47,12 @@ public class ServerStoreMessageFactory {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(this.cacheId, key, expect, update, clientId);
   }
 
-  public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(int invalidationId) {
-    return new ServerStoreOpMessage.ClientInvalidationAck(this.cacheId, invalidationId);
+  public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(long key, int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidationAck(this.cacheId, key, invalidationId);
+  }
+
+  public ServerStoreOpMessage.ClientInvalidationAllAck clientInvalidationAllAck(int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidationAllAck(this.cacheId, invalidationId);
   }
 
   public ServerStoreOpMessage.ClearMessage clearOperation() {

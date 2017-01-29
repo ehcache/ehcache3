@@ -76,7 +76,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-            entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(invalidationId), false);
+            entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false);
           } catch (Exception e) {
             //TODO: what should be done here?
             LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
@@ -100,7 +100,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-            entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(invalidationId), false);
+            entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false);
           } catch (Exception e) {
             //TODO: what should be done here?
             LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);

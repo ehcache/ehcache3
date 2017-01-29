@@ -250,7 +250,7 @@ public class ClusteredTierActiveEntityTest {
 
     // client 2 acks
     assertSuccess(
-        activeEntity.invoke(client2, messageFactory.clientInvalidationAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invoke(client2, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that client 2 is not waited for anymore
@@ -262,7 +262,7 @@ public class ClusteredTierActiveEntityTest {
 
     // client 3 acks
     assertSuccess(
-        activeEntity.invoke(client3, messageFactory.clientInvalidationAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invoke(client3, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that the invalidation request is done since all clients disconnected
@@ -313,7 +313,7 @@ public class ClusteredTierActiveEntityTest {
 
     // client 2 acks
     assertSuccess(
-        activeEntity.invoke(client2, messageFactory.clientInvalidationAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invoke(client2, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that client 2 is not waited for anymore
@@ -325,7 +325,7 @@ public class ClusteredTierActiveEntityTest {
 
     // client 3 acks
     assertSuccess(
-        activeEntity.invoke(client3, messageFactory.clientInvalidationAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invoke(client3, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that the invalidation request is done since all clients disconnected

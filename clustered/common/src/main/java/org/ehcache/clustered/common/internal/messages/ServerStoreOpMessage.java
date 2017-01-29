@@ -153,12 +153,12 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     }
   }
 
-  public static class ClientInvalidationAck extends ServerStoreOpMessage {
+  public static class ClientInvalidationAck extends KeyBasedServerStoreOpMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAck(String cacheId, int invalidationId) {
-      super(cacheId);
+    ClientInvalidationAck(String cacheId, long key, int invalidationId) {
+      super(cacheId, key);
       this.invalidationId = invalidationId;
     }
 
@@ -169,6 +169,25 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CLIENT_INVALIDATION_ACK;
+    }
+  }
+
+  public static class ClientInvalidationAllAck extends ServerStoreOpMessage {
+
+    private final int invalidationId;
+
+    ClientInvalidationAllAck(String cacheId, int invalidationId) {
+      super(cacheId);
+      this.invalidationId = invalidationId;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLIENT_INVALIDATION_ALL_ACK;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
     }
   }
 

@@ -249,7 +249,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
-    ServerSideServerStore cacheStore = stateService.getStore(message.getCacheId());
+    ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
@@ -333,6 +333,14 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
         ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck = (ServerStoreOpMessage.ClientInvalidationAck) message;
         String cacheId = message.getCacheId();
         int invalidationId = clientInvalidationAck.getInvalidationId();
+        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
+        clientInvalidated(clientDescriptor, invalidationId);
+        return responseFactory.success();
+      }
+      case CLIENT_INVALIDATION_ALL_ACK: {
+        ServerStoreOpMessage.ClientInvalidationAllAck clientInvalidationAllAck = (ServerStoreOpMessage.ClientInvalidationAllAck) message;
+        String cacheId = message.getCacheId();
+        int invalidationId = clientInvalidationAllAck.getInvalidationId();
         LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
         clientInvalidated(clientDescriptor, invalidationId);
         return responseFactory.success();

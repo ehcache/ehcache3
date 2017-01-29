@@ -81,8 +81,9 @@ public class ServerStoreMessageFactoryTest {
   @Test
   public void testClientInvalidationAckMessage() throws Exception {
     ServerStoreOpMessage.ClientInvalidationAck invalidationAck =
-        (ServerStoreOpMessage.ClientInvalidationAck) MESSAGE_FACTORY.clientInvalidationAck(1234);
+        (ServerStoreOpMessage.ClientInvalidationAck) MESSAGE_FACTORY.clientInvalidationAck(42L,1234);
     assertThat(invalidationAck.getCacheId(), is("test"));
+    assertThat(invalidationAck.getKey(), is(42L));
     assertThat(invalidationAck.getInvalidationId(), is(1234));
   }
 }
