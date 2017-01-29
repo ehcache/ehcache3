@@ -371,8 +371,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
         storeConfig.getValueType().getName(),
-        null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
-        null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
         (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
         configuredConsistency
