@@ -91,7 +91,7 @@ public class ClusteredTierServerEntityService implements EntityServerService<Ehc
 
   @Override
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
-    return new EhcacheSyncMessageCodec(CONFIG_CODEC);
+    return new EhcacheSyncMessageCodec();
   }
 
   @Override

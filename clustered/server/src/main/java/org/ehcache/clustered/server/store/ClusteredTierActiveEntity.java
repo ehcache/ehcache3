@@ -536,13 +536,13 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
           }
           mappingsToSend.get().put(key, chain);
           if (size.get() > dataSizeThreshold) {
-            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(storeIdentifier, mappingsToSend.get()));
+            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
             mappingsToSend.set(new HashMap<>());
             size.set(0);
           }
         });
       if (!mappingsToSend.get().isEmpty()) {
-        syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(storeIdentifier, mappingsToSend.get()));
+        syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
         mappingsToSend.set(new HashMap<>());
         size.set(0);
       }

@@ -127,7 +127,7 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
     switch (message.getMessageType()) {
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
-        ServerSideServerStore store = stateService.getStore(dataSyncMessage.getCacheId());
+        ServerSideServerStore store = stateService.getStore(storeIdentifier);
         dataSyncMessage.getChainMap().entrySet().forEach(entry -> {
           store.put(entry.getKey(), entry.getValue());
 
