@@ -168,10 +168,10 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
   }
 
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
-    ServerSideServerStore cacheStore = stateService.getStore(message.getCacheId());
+    ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
+      throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
     }
 
     switch (message.getMessageType()) {

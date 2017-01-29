@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.PoolAllocation.Shared;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -220,7 +219,7 @@ public class ClusteredTierActiveEntityTest {
     UUID client2Id = UUID.randomUUID();
     UUID client3Id = UUID.randomUUID();
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
@@ -283,7 +282,7 @@ public class ClusteredTierActiveEntityTest {
     UUID client2Id = UUID.randomUUID();
     UUID client3Id = UUID.randomUUID();
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
@@ -360,7 +359,7 @@ public class ClusteredTierActiveEntityTest {
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // perform an append
     assertSuccess(
@@ -405,7 +404,7 @@ public class ClusteredTierActiveEntityTest {
     UUID client2Id = UUID.randomUUID();
     UUID client3Id = UUID.randomUUID();
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
@@ -469,7 +468,7 @@ public class ClusteredTierActiveEntityTest {
     UUID client2Id = UUID.randomUUID();
     UUID client3Id = UUID.randomUUID();
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
@@ -523,7 +522,7 @@ public class ClusteredTierActiveEntityTest {
     UUID client2Id = UUID.randomUUID();
     UUID client3Id = UUID.randomUUID();
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
@@ -565,7 +564,7 @@ public class ClusteredTierActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
@@ -580,7 +579,7 @@ public class ClusteredTierActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
     // attach to the store
     assertSuccess(
@@ -904,7 +903,7 @@ public class ClusteredTierActiveEntityTest {
 
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
@@ -929,7 +928,7 @@ public class ClusteredTierActiveEntityTest {
 
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
@@ -1003,7 +1002,7 @@ public class ClusteredTierActiveEntityTest {
 
     reset(entityMessenger);
 
-    ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory(CLIENT_ID);
     EhcacheEntityResponseFactory entityResponseFactory = new EhcacheEntityResponseFactory();
     applied.forEach(y -> {
       EhcacheEntityMessage message = serverStoreMessageFactory.appendOperation(y, createPayload(y));
@@ -1027,7 +1026,7 @@ public class ClusteredTierActiveEntityTest {
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     reset(entityMessenger);
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(defaultStoreName, CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
     EhcacheEntityMessage getAndAppend = messageFactory.getAndAppendOperation(1L, createPayload(1L));
     activeEntity.invoke(client, getAndAppend);
 

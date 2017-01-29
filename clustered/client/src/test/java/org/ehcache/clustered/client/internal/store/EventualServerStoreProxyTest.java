@@ -103,8 +103,8 @@ public class EventualServerStoreProxyTest {
     clientEntity1.validate(serverStoreConfiguration);
     clientEntity2.validate(serverStoreConfiguration);
 
-    serverStoreProxy1 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
-    serverStoreProxy2 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
+    serverStoreProxy1 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity1.getClientId()), clientEntity1);
+    serverStoreProxy2 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity2.getClientId()), clientEntity2);
   }
 
   @AfterClass

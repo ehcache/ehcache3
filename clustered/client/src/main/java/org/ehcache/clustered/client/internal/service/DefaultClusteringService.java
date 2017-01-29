@@ -389,13 +389,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, storeClientEntity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(messageFactory, storeClientEntity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);

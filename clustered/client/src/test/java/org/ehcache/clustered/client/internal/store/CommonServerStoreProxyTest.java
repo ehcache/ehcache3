@@ -74,7 +74,7 @@ public class CommonServerStoreProxyTest {
       .getName(), null);
     ClusteredTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
-    serverStoreProxy = new CommonServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId()), clientEntity);
+    serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity);
   }
 
   @AfterClass

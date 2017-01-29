@@ -100,8 +100,8 @@ public class ClusteredStoreTest {
     );
     ClusteredTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
-    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId());
-    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(factory, clientEntity);
+    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(clientEntity.getClientId());
+    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, factory, clientEntity);
 
     TestTimeSource testTimeSource = new TestTimeSource();
 

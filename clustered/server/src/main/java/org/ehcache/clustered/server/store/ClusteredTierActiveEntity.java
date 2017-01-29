@@ -252,13 +252,13 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
+      throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
     }
 
     Boolean connectedClient = connectedClients.get(clientDescriptor);
     if (connectedClient == null || !connectedClient) {
       // An operation on a store should never happen from client no attached onto that store
-      throw new LifecycleException("Client not attached to clustered tier '" + message.getCacheId() + "'");
+      throw new LifecycleException("Client not attached to clustered tier '" + storeIdentifier + "'");
     }
 
     // This logic totally counts on the fact that invokes will only happen
@@ -331,17 +331,15 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       }
       case CLIENT_INVALIDATION_ACK: {
         ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck = (ServerStoreOpMessage.ClientInvalidationAck) message;
-        String cacheId = message.getCacheId();
         int invalidationId = clientInvalidationAck.getInvalidationId();
-        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
+        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", storeIdentifier, clientDescriptor, invalidationId);
         clientInvalidated(clientDescriptor, invalidationId);
         return responseFactory.success();
       }
       case CLIENT_INVALIDATION_ALL_ACK: {
         ServerStoreOpMessage.ClientInvalidationAllAck clientInvalidationAllAck = (ServerStoreOpMessage.ClientInvalidationAllAck) message;
-        String cacheId = message.getCacheId();
         int invalidationId = clientInvalidationAllAck.getInvalidationId();
-        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
+        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", storeIdentifier, clientDescriptor, invalidationId);
         clientInvalidated(clientDescriptor, invalidationId);
         return responseFactory.success();
       }
@@ -455,7 +453,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
   private void sendMessageToSelfAndDeferRetirement(KeyBasedServerStoreOpMessage message, Chain result) {
     try {
-      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(message.getCacheId(), message.getKey(), result, message.getId(), message.getClientId()));
+      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(storeIdentifier, message.getKey(), result, message.getId(), message.getClientId()));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
