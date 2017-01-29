@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
@@ -39,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PassiveReplicationMessageCodecTest {
 
-  private PassiveReplicationMessageCodec codec = new PassiveReplicationMessageCodec(new CommonConfigCodec());
+  private PassiveReplicationMessageCodec codec = new PassiveReplicationMessageCodec();
 
   @Test
   public void testClientIDTrackerMessageCodec() {
@@ -55,12 +54,11 @@ public class PassiveReplicationMessageCodecTest {
   @Test
   public void testChainReplicationMessageCodec() {
     Chain chain = getChain(false, createPayload(2L), createPayload(20L));
-    ChainReplicationMessage chainReplicationMessage = new ChainReplicationMessage("test", 2L, chain, 200L, UUID.randomUUID());
+    ChainReplicationMessage chainReplicationMessage = new ChainReplicationMessage(2L, chain, 200L, UUID.randomUUID());
 
     byte[] encoded = codec.encode(chainReplicationMessage);
     ChainReplicationMessage decodedMsg = (ChainReplicationMessage) codec.decode(EhcacheMessageType.CHAIN_REPLICATION_OP, wrap(encoded));
 
-    assertThat(decodedMsg.getCacheId(), is(chainReplicationMessage.getCacheId()));
     assertThat(decodedMsg.getClientId(), is(chainReplicationMessage.getClientId()));
     assertThat(decodedMsg.getId(), is(chainReplicationMessage.getId()));
     assertThat(decodedMsg.getKey(), is(chainReplicationMessage.getKey()));
@@ -70,26 +68,24 @@ public class PassiveReplicationMessageCodecTest {
 
   @Test
   public void testClearInvalidationCompleteMessage() {
-    ClearInvalidationCompleteMessage clearInvalidationCompleteMessage = new ClearInvalidationCompleteMessage("test");
+    ClearInvalidationCompleteMessage clearInvalidationCompleteMessage = new ClearInvalidationCompleteMessage();
 
     byte[] encoded = codec.encode(clearInvalidationCompleteMessage);
     ClearInvalidationCompleteMessage decoded = (ClearInvalidationCompleteMessage) codec.decode(EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE, wrap(encoded));
 
     assertThat(decoded.getMessageType(), is(EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE));
-    assertThat(decoded.getCacheId(), is(clearInvalidationCompleteMessage.getCacheId()));
 
   }
 
   @Test
   public void testInvalidationCompleteMessage() {
 
-    InvalidationCompleteMessage invalidationCompleteMessage = new InvalidationCompleteMessage("test", 20L);
+    InvalidationCompleteMessage invalidationCompleteMessage = new InvalidationCompleteMessage(20L);
 
     byte[] encoded = codec.encode(invalidationCompleteMessage);
     InvalidationCompleteMessage decoded = (InvalidationCompleteMessage) codec.decode(EhcacheMessageType.INVALIDATION_COMPLETE, wrap(encoded));
 
     assertThat(decoded.getMessageType(), is(EhcacheMessageType.INVALIDATION_COMPLETE));
-    assertThat(decoded.getCacheId(), equalTo(invalidationCompleteMessage.getCacheId()));
     assertThat(decoded.getKey(), equalTo(invalidationCompleteMessage.getKey()));
   }
 

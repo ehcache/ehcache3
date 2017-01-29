@@ -65,13 +65,16 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     }
   }
 
-  public abstract static class BaseServerStore extends LifecycleMessage {
+  /**
+   * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
+   */
+  public static class ValidateServerStore extends LifecycleMessage {
     private static final long serialVersionUID = 4879477027919589726L;
 
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    BaseServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
+    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
       this.clientId = clientId;
@@ -83,18 +86,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
 
     public ServerStoreConfiguration getStoreConfiguration() {
       return storeConfiguration;
-    }
-
-  }
-
-  /**
-   * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
-   */
-  public static class ValidateServerStore extends BaseServerStore {
-    private static final long serialVersionUID = 8762670006846832185L;
-
-    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
-      super(name, storeConfiguration, clientId);
     }
 
     @Override

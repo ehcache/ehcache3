@@ -88,7 +88,6 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 
 /**
@@ -152,7 +151,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
       LOGGER.debug("SERVER: eviction happened; asking client {} to invalidate hash {} from cache {}", clientDescriptorThatHasToInvalidate, key, storeIdentifier);
       try {
-        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(storeIdentifier, key));
+        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(key));
       } catch (MessageCodecException mce) {
         throw new AssertionError("Codec error", mce);
       }
@@ -374,7 +373,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
       LOGGER.debug("SERVER: asking client {} to invalidate all from cache {} (ID {})", clientDescriptorThatHasToInvalidate, storeIdentifier, invalidationId);
       try {
-        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateAll(storeIdentifier, invalidationId));
+        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateAll(invalidationId));
       } catch (MessageCodecException mce) {
         throw new AssertionError("Codec error", mce);
       }
@@ -401,17 +400,17 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
           boolean isStrong = stateService.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG;
           if (key == null) {
             if (isStrong) {
-              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, allInvalidationDone(invalidationHolder.cacheId));
+              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, allInvalidationDone());
               LOGGER.debug("SERVER: notifying originating client that all other clients invalidated all in cache {} from {} (ID {})", invalidationHolder.cacheId, clientDescriptor, invalidationId);
             } else {
-              entityMessenger.messageSelf(new ClearInvalidationCompleteMessage(invalidationHolder.cacheId));
+              entityMessenger.messageSelf(new ClearInvalidationCompleteMessage());
             }
           } else {
             if (isStrong) {
-              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, hashInvalidationDone(invalidationHolder.cacheId, key));
+              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, hashInvalidationDone(key));
               LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
             } else {
-              entityMessenger.messageSelf(new InvalidationCompleteMessage(invalidationHolder.cacheId, key));
+              entityMessenger.messageSelf(new InvalidationCompleteMessage(key));
             }
           }
         } catch (MessageCodecException mce) {
@@ -436,7 +435,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
       LOGGER.debug("SERVER: asking client {} to invalidate hash {} from cache {} (ID {})", clientDescriptorThatHasToInvalidate, key, storeIdentifier, invalidationId);
       try {
-        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(storeIdentifier, key, invalidationId));
+        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(key, invalidationId));
       } catch (MessageCodecException mce) {
         throw new AssertionError("Codec error", mce);
       }
@@ -453,7 +452,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
   private void sendMessageToSelfAndDeferRetirement(KeyBasedServerStoreOpMessage message, Chain result) {
     try {
-      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(storeIdentifier, message.getKey(), result, message.getId(), message.getClientId()));
+      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(message.getKey(), result, message.getId(), message.getClientId()));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
@@ -518,34 +517,32 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
     LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
-    if (concurrencyKey != DEFAULT_KEY) {
-      Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
-      AtomicLong size = new AtomicLong(0);
-      ServerSideServerStore store = stateService.getStore(storeIdentifier);
-      final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
-      store.getSegmentKeySets().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET)
-        .forEach(key -> {
-          final Chain chain;
-          try {
-            chain = store.get(key);
-          } catch (TimeoutException e) {
-            throw new AssertionError("Server side store is not expected to throw timeout exception");
-          }
-          for (Element element : chain) {
-            size.addAndGet(element.getPayload().remaining());
-          }
-          mappingsToSend.get().put(key, chain);
-          if (size.get() > dataSizeThreshold) {
-            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-            mappingsToSend.set(new HashMap<>());
-            size.set(0);
-          }
-        });
-      if (!mappingsToSend.get().isEmpty()) {
-        syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-        mappingsToSend.set(new HashMap<>());
-        size.set(0);
-      }
+    Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
+    AtomicLong size = new AtomicLong(0);
+    ServerSideServerStore store = stateService.getStore(storeIdentifier);
+    final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
+    store.getSegmentKeySets().get(concurrencyKey - DEFAULT_KEY)
+      .forEach(key -> {
+        final Chain chain;
+        try {
+          chain = store.get(key);
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception");
+        }
+        for (Element element : chain) {
+          size.addAndGet(element.getPayload().remaining());
+        }
+        mappingsToSend.get().put(key, chain);
+        if (size.get() > dataSizeThreshold) {
+          syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
+          mappingsToSend.set(new HashMap<>());
+          size.set(0);
+        }
+      });
+    if (!mappingsToSend.get().isEmpty()) {
+      syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
+      mappingsToSend.set(new HashMap<>());
+      size.set(0);
     }
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }

@@ -118,7 +118,7 @@ public class LifeCycleMessageCodecTest {
     assertThat(decodedMessage.getStoreConfiguration().getPoolAllocation(), instanceOf(PoolAllocation.Unknown.class));
   }
 
-  private void validateCommonServerStoreConfig(LifecycleMessage.BaseServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {
+  private void validateCommonServerStoreConfig(LifecycleMessage.ValidateServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {
     assertThat(decodedMessage.getId(), is(MESSAGE_ID));
     assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
     assertThat(decodedMessage.getName(), is("store1"));

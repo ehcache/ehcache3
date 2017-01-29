@@ -54,7 +54,6 @@ public final class ConcurrencyStrategies {
   };
 
   public static class DefaultConcurrencyStrategy implements ConcurrencyStrategy<EhcacheEntityMessage> {
-    public static final int DATA_CONCURRENCY_KEY_OFFSET = DEFAULT_KEY + 1;
 
     private final KeySegmentMapper mapper;
 
@@ -68,7 +67,7 @@ public final class ConcurrencyStrategies {
         return UNIVERSAL_KEY;
       } else if (entityMessage instanceof ConcurrentEntityMessage) {
         ConcurrentEntityMessage concurrentEntityMessage = (ConcurrentEntityMessage) entityMessage;
-        return DATA_CONCURRENCY_KEY_OFFSET + mapper.getSegmentForKey(concurrentEntityMessage.concurrencyKey());
+        return DEFAULT_KEY + mapper.getSegmentForKey(concurrentEntityMessage.concurrencyKey());
       } else {
         return DEFAULT_KEY;
       }
@@ -77,7 +76,7 @@ public final class ConcurrencyStrategies {
     @Override
     public Set<Integer> getKeysForSynchronization() {
       Set<Integer> result = new LinkedHashSet<>();
-      for (int i = 0; i <= mapper.getSegments(); i++) {
+      for (int i = 0; i < mapper.getSegments(); i++) {
         result.add(DEFAULT_KEY + i);
       }
       return Collections.unmodifiableSet(result);

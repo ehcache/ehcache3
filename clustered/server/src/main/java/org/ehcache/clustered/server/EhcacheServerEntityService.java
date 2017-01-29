@@ -90,7 +90,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
     EhcacheCodec ehcacheCodec = new EhcacheCodec(new ServerStoreOpCodec(),
       new LifeCycleMessageCodec(CONFIG_CODEC), new StateRepositoryOpCodec(), new ResponseCodec());
-    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec(CONFIG_CODEC));
+    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec());
   }
 
   @Override

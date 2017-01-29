@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,7 +50,7 @@ public class DefaultConcurrencyStrategyTest {
     assertThat(strategy.concurrencyKey(new NonConcurrentTestEntityMessage()), is(DEFAULT_KEY));
 
     for (int i = -1024; i < 1024; i++) {
-      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
+      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DEFAULT_KEY, concurrency));
     }
   }
 
@@ -70,7 +69,7 @@ public class DefaultConcurrencyStrategyTest {
     Set<Integer> visitedConcurrencyKeys = new HashSet<>();
     for (int i = -1024; i < 1024; i++) {
       int concurrencyKey = strategy.concurrencyKey(new ConcurrentTestEntityMessage(i));
-      assertThat(concurrencyKey, withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
+      assertThat(concurrencyKey, withinRange(DEFAULT_KEY, concurrency));
       visitedConcurrencyKeys.add(concurrencyKey);
     }
     Set<Integer> keysForSynchronization = strategy.getKeysForSynchronization();

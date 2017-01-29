@@ -913,7 +913,7 @@ public class ClusteredTierActiveEntityTest {
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-    activeEntity.synchronizeKeyToPassive(syncChannel, 3);
+    activeEntity.synchronizeKeyToPassive(syncChannel, 2);
 
     verify(syncChannel).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
   }
@@ -941,7 +941,7 @@ public class ClusteredTierActiveEntityTest {
     try {
       @SuppressWarnings("unchecked")
       PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-      activeEntity.synchronizeKeyToPassive(syncChannel, 3);
+      activeEntity.synchronizeKeyToPassive(syncChannel, 2);
 
       verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
     } finally {

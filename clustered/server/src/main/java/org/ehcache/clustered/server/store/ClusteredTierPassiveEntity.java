@@ -144,10 +144,10 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
       case CHAIN_REPLICATION_OP:
         LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage) message;
-        ServerSideServerStore cacheStore = stateService.getStore(retirementMessage.getCacheId());
+        ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client
-          throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
+          throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         applyMessage(message);
