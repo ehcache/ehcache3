@@ -50,13 +50,13 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.2.0-pre10'
+  terracottaPlatformVersion = '5.2.0-pre11'
   managementVersion = terracottaPlatformVersion
   terracottaApisVersion = '1.2.0-pre9'
-  terracottaCoreVersion = '5.2.0-pre10'
+  terracottaCoreVersion = '5.2.0-pre11'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.2.0-pre10'
+  terracottaPassthroughTestingVersion = '1.2.0-pre11'
   entityTestLibVersion = terracottaPassthroughTestingVersion
 
   // Tools
