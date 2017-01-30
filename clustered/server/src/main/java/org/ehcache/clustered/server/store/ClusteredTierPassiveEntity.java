@@ -181,6 +181,7 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
         break;
       }
       case CLEAR: {
+        LOGGER.info("Clearing cluster tier {}", storeIdentifier);
         try {
           cacheStore.clear();
         } catch (TimeoutException e) {

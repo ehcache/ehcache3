@@ -344,6 +344,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       }
       case CLEAR: {
         if (!isMessageDuplicate(message)) {
+          LOGGER.info("Clearing cluster tier {}", storeIdentifier);
           try {
             cacheStore.clear();
           } catch (TimeoutException e) {
