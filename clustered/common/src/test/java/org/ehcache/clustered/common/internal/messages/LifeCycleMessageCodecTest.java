@@ -67,7 +67,7 @@ public class LifeCycleMessageCodecTest {
   @Test
   public void testValidateServerStoreDedicated() throws Exception {
     PoolAllocation.Dedicated dedicated = new PoolAllocation.Dedicated("dedicate", 420000L);
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(dedicated, "java.lang.Long", "java.lang.String", null, null,
+    ServerStoreConfiguration configuration = new ServerStoreConfiguration(dedicated, "java.lang.Long", "java.lang.String",
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
@@ -86,7 +86,7 @@ public class LifeCycleMessageCodecTest {
   @Test
   public void testValidateServerStoreShared() throws Exception {
     PoolAllocation.Shared shared = new PoolAllocation.Shared("shared");
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(shared, "java.lang.Long", "java.lang.String", null, null,
+    ServerStoreConfiguration configuration = new ServerStoreConfiguration(shared, "java.lang.Long", "java.lang.String",
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
@@ -104,7 +104,7 @@ public class LifeCycleMessageCodecTest {
   @Test
   public void testValidateServerStoreUnknown() throws Exception {
     PoolAllocation.Unknown unknown = new PoolAllocation.Unknown();
-    ServerStoreConfiguration configuration = new ServerStoreConfiguration(unknown, "java.lang.Long", "java.lang.String", null, null,
+    ServerStoreConfiguration configuration = new ServerStoreConfiguration(unknown, "java.lang.Long", "java.lang.String",
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
@@ -118,14 +118,12 @@ public class LifeCycleMessageCodecTest {
     assertThat(decodedMessage.getStoreConfiguration().getPoolAllocation(), instanceOf(PoolAllocation.Unknown.class));
   }
 
-  private void validateCommonServerStoreConfig(LifecycleMessage.BaseServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {
+  private void validateCommonServerStoreConfig(LifecycleMessage.ValidateServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {
     assertThat(decodedMessage.getId(), is(MESSAGE_ID));
     assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
     assertThat(decodedMessage.getName(), is("store1"));
     assertThat(decodedMessage.getStoreConfiguration().getStoredKeyType(), is(initialConfiguration.getStoredKeyType()));
     assertThat(decodedMessage.getStoreConfiguration().getStoredValueType(), is(initialConfiguration.getStoredValueType()));
-    assertThat(decodedMessage.getStoreConfiguration().getActualKeyType(), nullValue());
-    assertThat(decodedMessage.getStoreConfiguration().getActualValueType(), nullValue());
     assertThat(decodedMessage.getStoreConfiguration().getConsistency(), is(initialConfiguration.getConsistency()));
     assertThat(decodedMessage.getStoreConfiguration().getKeySerializerType(), is(initialConfiguration.getKeySerializerType()));
     assertThat(decodedMessage.getStoreConfiguration().getValueSerializerType(), is(initialConfiguration.getValueSerializerType()));

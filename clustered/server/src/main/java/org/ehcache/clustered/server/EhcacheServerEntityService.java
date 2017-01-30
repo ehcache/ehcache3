@@ -28,7 +28,6 @@ import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
 import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
-import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessageCodec;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -39,6 +38,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
+import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
@@ -90,12 +90,22 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
     EhcacheCodec ehcacheCodec = new EhcacheCodec(new ServerStoreOpCodec(),
       new LifeCycleMessageCodec(CONFIG_CODEC), new StateRepositoryOpCodec(), new ResponseCodec());
-    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec(CONFIG_CODEC));
+    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec());
   }
 
   @Override
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
-    return new EhcacheSyncMessageCodec(CONFIG_CODEC);
+    return new SyncMessageCodec<EhcacheEntityMessage>() {
+      @Override
+      public byte[] encode(int concurrencyKey, EhcacheEntityMessage response) throws MessageCodecException {
+        throw new UnsupportedOperationException("This entity does not have sync messages");
+      }
+
+      @Override
+      public EhcacheEntityMessage decode(int concurrencyKey, byte[] payload) throws MessageCodecException {
+        throw new UnsupportedOperationException("This entity does not have sync messages");
+      }
+    };
   }
 
   @Override

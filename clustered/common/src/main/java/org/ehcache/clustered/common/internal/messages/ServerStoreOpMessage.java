@@ -44,22 +44,15 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     this.id = id;
   }
 
-  private final String cacheId;
-
-  private ServerStoreOpMessage(String cacheId) {
-    this.cacheId = cacheId;
-  }
-
-  public String getCacheId() {
-    return cacheId;
+  private ServerStoreOpMessage() {
   }
 
   public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
 
     private final long key;
 
-    KeyBasedServerStoreOpMessage(final String cacheId, final long key) {
-      super(cacheId);
+    KeyBasedServerStoreOpMessage(final long key) {
+      super();
       this.key = key;
     }
 
@@ -75,8 +68,8 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   public static class GetMessage extends KeyBasedServerStoreOpMessage {
 
-    GetMessage(String cacheId, long key) {
-      super(cacheId, key);
+    GetMessage(long key) {
+      super(key);
     }
 
     @Override
@@ -89,8 +82,8 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
-      super(cacheId, key);
+    GetAndAppendMessage(long key, ByteBuffer payload, UUID clientId) {
+      super(key);
       this.payload = payload;
       this.clientId = clientId;
     }
@@ -110,8 +103,8 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    AppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
-      super(cacheId, key);
+    AppendMessage(long key, ByteBuffer payload, UUID clientId) {
+      super(key);
       this.payload = payload;
       this.clientId = clientId;
     }
@@ -132,8 +125,8 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(String cacheId, long key, Chain expect, Chain update, UUID clientId) {
-      super(cacheId, key);
+    ReplaceAtHeadMessage(long key, Chain expect, Chain update, UUID clientId) {
+      super(key);
       this.expect = expect;
       this.update = update;
       this.clientId = clientId;
@@ -153,12 +146,12 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     }
   }
 
-  public static class ClientInvalidationAck extends ServerStoreOpMessage {
+  public static class ClientInvalidationAck extends KeyBasedServerStoreOpMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAck(String cacheId, int invalidationId) {
-      super(cacheId);
+    ClientInvalidationAck(long key, int invalidationId) {
+      super(key);
       this.invalidationId = invalidationId;
     }
 
@@ -172,10 +165,29 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     }
   }
 
+  public static class ClientInvalidationAllAck extends ServerStoreOpMessage {
+
+    private final int invalidationId;
+
+    ClientInvalidationAllAck(int invalidationId) {
+      super();
+      this.invalidationId = invalidationId;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLIENT_INVALIDATION_ALL_ACK;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
+    }
+  }
+
   public static class ClearMessage extends ServerStoreOpMessage {
 
-    ClearMessage(String cacheId, UUID clientId) {
-      super(cacheId);
+    ClearMessage(UUID clientId) {
+      super();
       this.clientId = clientId;
     }
 

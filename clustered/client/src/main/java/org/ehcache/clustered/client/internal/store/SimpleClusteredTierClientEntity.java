@@ -31,6 +31,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.EndpointDelegate;
@@ -202,13 +204,26 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
   }
 
   @Override
-  public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean replicate)
+  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate) throws ClusterException, TimeoutException {
+    return invoke(message, replicate);
+  }
+
+  @Override
+  public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) throws ClusterException, TimeoutException {
+    return invoke(message, true);
+  }
+
+  @Override
+  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate)
+      throws MessageCodecException {
+    internalInvokeAsync(message, replicate);
+  }
+
+  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate)
       throws ClusterException, TimeoutException {
     TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
-    if (message instanceof EhcacheOperationMessage) {
-      if (GET_STORE_OPS.contains(((EhcacheOperationMessage) message).getMessageType())) {
-        timeLimit = timeouts.getReadOperationTimeout();
-      }
+    if (GET_STORE_OPS.contains(message.getMessageType())) {
+      timeLimit = timeouts.getReadOperationTimeout();
     }
     return invokeInternal(timeLimit, message, replicate);
   }
@@ -217,7 +232,7 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
       throws ClusterException, TimeoutException {
 
     try {
-      EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
+      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, replicate));
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
@@ -236,9 +251,8 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
     }
   }
 
-  @Override
-  public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
-      throws MessageCodecException {
+  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean replicate)
+        throws MessageCodecException {
     getClientId();
     if (replicate) {
       message.setId(sequenceGenerator.getAndIncrement());

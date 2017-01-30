@@ -77,21 +77,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static HashInvalidationDone hashInvalidationDone(String cacheId, long key) {
-    return new HashInvalidationDone(cacheId, key);
+  public static HashInvalidationDone hashInvalidationDone(long key) {
+    return new HashInvalidationDone(key);
   }
 
   public static class HashInvalidationDone extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
 
-    HashInvalidationDone(String cacheId, long key) {
-      this.cacheId = cacheId;
+    HashInvalidationDone(long key) {
       this.key = key;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -104,19 +98,13 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static AllInvalidationDone allInvalidationDone(String cacheId) {
-    return new AllInvalidationDone(cacheId);
+  public static AllInvalidationDone allInvalidationDone() {
+    return new AllInvalidationDone();
   }
 
   public static class AllInvalidationDone extends EhcacheEntityResponse {
-    private final String cacheId;
 
-    AllInvalidationDone(String cacheId) {
-      this.cacheId = cacheId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
+    AllInvalidationDone() {
     }
 
     @Override
@@ -125,21 +113,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ServerInvalidateHash serverInvalidateHash(String cacheId, long key) {
-    return new ServerInvalidateHash(cacheId, key);
+  public static ServerInvalidateHash serverInvalidateHash(long key) {
+    return new ServerInvalidateHash(key);
   }
 
   public static class ServerInvalidateHash extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
 
-    public ServerInvalidateHash(String cacheId, long key) {
-      this.cacheId = cacheId;
+    public ServerInvalidateHash(long key) {
       this.key = key;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -152,23 +134,17 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ClientInvalidateHash clientInvalidateHash(String cacheId, long key, int invalidationId) {
-    return new ClientInvalidateHash(cacheId, key, invalidationId);
+  public static ClientInvalidateHash clientInvalidateHash(long key, int invalidationId) {
+    return new ClientInvalidateHash(key, invalidationId);
   }
 
   public static class ClientInvalidateHash extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
     private final int invalidationId;
 
-    public ClientInvalidateHash(String cacheId, long key, int invalidationId) {
-      this.cacheId = cacheId;
+    public ClientInvalidateHash(long key, int invalidationId) {
       this.key = key;
       this.invalidationId = invalidationId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -185,21 +161,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ClientInvalidateAll clientInvalidateAll(String cacheId, int invalidationId) {
-    return new ClientInvalidateAll(cacheId, invalidationId);
+  public static ClientInvalidateAll clientInvalidateAll(int invalidationId) {
+    return new ClientInvalidateAll(invalidationId);
   }
 
   public static class ClientInvalidateAll extends EhcacheEntityResponse {
-    private final String cacheId;
     private final int invalidationId;
 
-    public ClientInvalidateAll(String cacheId, int invalidationId) {
-      this.cacheId = cacheId;
+    public ClientInvalidateAll(int invalidationId) {
       this.invalidationId = invalidationId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public int getInvalidationId() {

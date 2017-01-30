@@ -371,8 +371,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
         storeConfig.getValueType().getName(),
-        null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
-        null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
         (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
         configuredConsistency
@@ -389,13 +387,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, storeClientEntity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(messageFactory, storeClientEntity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);
