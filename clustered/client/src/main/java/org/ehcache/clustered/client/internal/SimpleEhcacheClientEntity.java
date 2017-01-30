@@ -27,7 +27,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Fail
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class SimpleEhcacheClientEntity implements InternalEhcacheClientEntity {
 
       @Override
       public byte[] createExtendedReconnectData() {
-        ReconnectMessage reconnectMessage = new ReconnectMessage(clientId);
+        ClusterTierManagerReconnectMessage reconnectMessage = new ClusterTierManagerReconnectMessage(clientId);
         return reconnectMessageCodec.encode(reconnectMessage);
       }
 

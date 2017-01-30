@@ -19,13 +19,11 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.internal.service.ClusteredTierException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 
 import java.util.UUID;
@@ -63,6 +61,6 @@ public interface ClusteredTierClientEntity extends Entity {
   }
 
   interface ReconnectListener {
-    void onHandleReconnect(ReconnectMessage reconnectMessage);
+    void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage);
   }
 }

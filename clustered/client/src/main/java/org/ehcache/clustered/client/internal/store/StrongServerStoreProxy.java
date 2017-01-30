@@ -15,8 +15,8 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
@@ -50,11 +50,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     this.entity = entity;
     this.reconnectListener = new SimpleClusteredTierClientEntity.ReconnectListener() {
       @Override
-      public void onHandleReconnect(ReconnectMessage reconnectMessage) {
+      public void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage) {
         Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
-        reconnectMessage.addInvalidationsInProgress(delegate.getCacheId(), inflightInvalidations);
+        reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
         if (invalidateAllLatch != null) {
-          reconnectMessage.addClearInProgress(delegate.getCacheId());
+          reconnectMessage.clearInProgress();
         }
       }
     };
