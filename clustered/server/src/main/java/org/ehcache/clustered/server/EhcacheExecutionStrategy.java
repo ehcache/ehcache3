@@ -41,7 +41,7 @@ public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntity
     } else if (message instanceof LifecycleMessage.ValidateServerStore) {
       return Location.ACTIVE;
     } else if (message instanceof LifecycleMessage.PrepareForDestroy) {
-      return Location.BOTH;
+      return Location.ACTIVE;
     } else if (message instanceof StateRepositoryOpMessage.PutIfAbsentMessage) {
       // State repository operation needing replication
       return Location.BOTH;
