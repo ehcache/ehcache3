@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.internal.service.ClusteredTierException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
@@ -29,7 +30,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
@@ -42,7 +42,6 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
   private UUID clientId;
   private ReconnectListener reconnectListener = new ReconnectListener() {
     @Override
-    public void onHandleReconnect(ReconnectMessage reconnectMessage) {
+    public void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage) {
       // No op
     }
   };
@@ -103,7 +102,7 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ReconnectMessage reconnectMessage = new ReconnectMessage(clientId, Collections.<String>emptySet());
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(clientId);
           reconnectListener.onHandleReconnect(reconnectMessage);
           return reconnectMessageCodec.encode(reconnectMessage);
         }

@@ -23,6 +23,7 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidOperationExceptio
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
@@ -30,7 +31,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBasedServerStoreOpMessage;
@@ -495,7 +495,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     if (!connectedClients.replace(clientDescriptor, false, true)) {
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
-    ReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
+    ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
     ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
     addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
 
@@ -506,12 +506,12 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     management.clientReconnected(clientDescriptor);
   }
 
-  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
+  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
     if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
-      Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress(storeIdentifier);
+      Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
       LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", reconnectMessage.getClientId(), storeIdentifier, invalidationsInProgress
           .size());
-      inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress(storeIdentifier)));
+      inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
     }
   }
 
