@@ -295,7 +295,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return pageSource;
   }
 
-  private void registerStoreStatistics(ServerStoreImpl store, String storeName) throws InvalidStoreException {
+  private void registerStoreStatistics(ServerStoreImpl store, String storeName) {
     STAT_STORE_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
       registerStatistic(store, storeName, entry.getKey(), STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> entry.getValue().apply(store) ));
   }
@@ -388,9 +388,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
   }
 
-  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws InvalidStoreException, ConfigurationException {
+  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ConfigurationException {
     if (this.stores.containsKey(name)) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
+      throw new ConfigurationException("Clustered tier '" + name + "' already exists");
     }
 
     ServerStoreImpl serverStore;

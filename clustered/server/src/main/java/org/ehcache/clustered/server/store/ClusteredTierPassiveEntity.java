@@ -17,7 +17,9 @@
 package org.ehcache.clustered.server.store;
 
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -61,26 +63,28 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
   private final EhcacheStateService stateService;
   private final String storeIdentifier;
   private final ClusterTierManagement management;
+  private final ServerStoreConfiguration configuration;
 
   public ClusteredTierPassiveEntity(ServiceRegistry registry, ClusteredTierEntityConfiguration config, KeySegmentMapper defaultMapper) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }
     storeIdentifier = config.getStoreIdentifier();
+    configuration = config.getConfiguration();
     stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
     if (stateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
-    try {
-      stateService.createStore(config.getStoreIdentifier(), config.getConfiguration());
-      if(config.getConfiguration().getConsistency() == Consistency.EVENTUAL) {
-        stateService.addInvalidationtracker(storeIdentifier);
-      }
-    } catch (ClusterException e) {
-      // TODO move the method above to throw ConfigurationException directly
-      throw new ConfigurationException("ClusteredTier creation failed: " + e.getMessage(), e);
-    }
     management = new ClusterTierManagement(registry, stateService, false, storeIdentifier);
+  }
+
+  @Override
+  public void createNew() throws ConfigurationException {
+    stateService.createStore(storeIdentifier, configuration);
+    if(configuration.getConsistency() == Consistency.EVENTUAL) {
+      stateService.addInvalidationtracker(storeIdentifier);
+    }
+    management.init();
   }
 
   @Override
@@ -243,11 +247,6 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
   @Override
   public void endSyncConcurrencyKey(int concurrencyKey) {
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
-  }
-
-  @Override
-  public void createNew() {
-    management.init();
   }
 
   @Override

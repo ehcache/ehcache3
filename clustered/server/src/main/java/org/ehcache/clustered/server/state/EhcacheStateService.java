@@ -54,7 +54,7 @@ public interface EhcacheStateService {
 
   void configure() throws ConfigurationException;
 
-  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws InvalidStoreException, ConfigurationException;
+  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ConfigurationException;
 
   void destroyServerStore(String name) throws ClusterException;
 

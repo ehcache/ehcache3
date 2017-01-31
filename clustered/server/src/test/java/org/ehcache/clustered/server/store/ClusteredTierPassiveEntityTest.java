@@ -88,7 +88,8 @@ public class ClusteredTierPassiveEntityTest {
 
   @Test
   public void testCreateDedicatedServerStore() throws Exception {
-    new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(MemoryUnit.MEGABYTES.toBytes(1L)));
@@ -99,8 +100,9 @@ public class ClusteredTierPassiveEntityTest {
   public void testCreateSharedServerStore() throws Exception {
     defaultRegistry.addSharedPool(defaultSharedPool, MemoryUnit.MEGABYTES.toBytes(2), defaultResource);
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder().shared(defaultSharedPool).build();
-    new ClusteredTierPassiveEntity(defaultRegistry,
+    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    passiveEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
     assertThat(defaultRegistry.getStoreManagerService()
@@ -112,6 +114,7 @@ public class ClusteredTierPassiveEntityTest {
   @Test
   public void testDestroyServerStore() throws Exception {
     ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
 
     passiveEntity.destroy();
 
