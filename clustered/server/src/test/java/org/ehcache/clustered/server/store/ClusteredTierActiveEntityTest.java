@@ -42,7 +42,6 @@ import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusteredTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.terracotta.entity.ClientCommunicator;
@@ -70,7 +69,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -1107,8 +1105,6 @@ public class ClusteredTierActiveEntityTest {
     private PoolAllocation poolAllocation;
     private String storedKeyType = "java.lang.Long";
     private String storedValueType = "java.lang.String";
-    private String actualKeyType;
-    private String actualValueType;
     private String keySerializerType;
     private String valueSerializerType;
     private Consistency consistency = Consistency.EVENTUAL;
@@ -1141,16 +1137,6 @@ public class ClusteredTierActiveEntityTest {
 
     ServerStoreConfigBuilder setStoredValueType(Class<?> storedValueType) {
       this.storedValueType = storedValueType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualKeyType(Class<?> actualKeyType) {
-      this.actualKeyType = actualKeyType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualValueType(Class<?> actualValueType) {
-      this.actualValueType = actualValueType.getName();
       return this;
     }
 

@@ -147,8 +147,6 @@ public class ClusteredTierPassiveEntityTest {
     private PoolAllocation poolAllocation;
     private String storedKeyType;
     private String storedValueType;
-    private String actualKeyType;
-    private String actualValueType;
     private String keySerializerType;
     private String valueSerializerType;
     private Consistency consistency;
@@ -181,16 +179,6 @@ public class ClusteredTierPassiveEntityTest {
 
     ServerStoreConfigBuilder setStoredValueType(Class<?> storedValueType) {
       this.storedValueType = storedValueType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualKeyType(Class<?> actualKeyType) {
-      this.actualKeyType = actualKeyType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualValueType(Class<?> actualValueType) {
-      this.actualValueType = actualValueType.getName();
       return this;
     }
 
