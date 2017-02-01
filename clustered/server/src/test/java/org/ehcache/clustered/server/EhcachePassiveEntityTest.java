@@ -16,11 +16,8 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.management.Management;
@@ -49,7 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -274,76 +270,6 @@ public class EhcachePassiveEntityTest {
       } else {
         return new ServerSideConfiguration(defaultServerResource, pools);
       }
-    }
-  }
-
-  /**
-   * Builder for {@link ServerStoreConfiguration} instances.
-   */
-  private static final class ServerStoreConfigBuilder {
-    private PoolAllocation poolAllocation;
-    private String storedKeyType;
-    private String storedValueType;
-    private String actualKeyType;
-    private String actualValueType;
-    private String keySerializerType;
-    private String valueSerializerType;
-    private Consistency consistency;
-
-
-    ServerStoreConfigBuilder consistency(Consistency consistency) {
-      this.consistency = consistency;
-      return this;
-    }
-
-    ServerStoreConfigBuilder dedicated(String resourceName, int size, MemoryUnit unit) {
-      this.poolAllocation = new PoolAllocation.Dedicated(resourceName, unit.toBytes(size));
-      return this;
-    }
-
-    ServerStoreConfigBuilder shared(String resourcePoolName) {
-      this.poolAllocation = new PoolAllocation.Shared(resourcePoolName);
-      return this;
-    }
-
-    ServerStoreConfigBuilder unknown() {
-      this.poolAllocation = new PoolAllocation.Unknown();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setStoredKeyType(Class<?> storedKeyType) {
-      this.storedKeyType = storedKeyType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setStoredValueType(Class<?> storedValueType) {
-      this.storedValueType = storedValueType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualKeyType(Class<?> actualKeyType) {
-      this.actualKeyType = actualKeyType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualValueType(Class<?> actualValueType) {
-      this.actualValueType = actualValueType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setKeySerializerType(Class<?> keySerializerType) {
-      this.keySerializerType = keySerializerType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setValueSerializerType(Class<?> valueSerializerType) {
-      this.valueSerializerType = valueSerializerType.getName();
-      return this;
-    }
-
-    ServerStoreConfiguration build() {
-      return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
     }
   }
 

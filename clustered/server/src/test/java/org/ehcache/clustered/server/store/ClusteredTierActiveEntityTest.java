@@ -42,7 +42,6 @@ import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusteredTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.terracotta.entity.ClientCommunicator;
@@ -70,7 +69,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -208,6 +206,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testAppendInvalidationAcksTakenIntoAccount() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -271,6 +270,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testClearInvalidationAcksTakenIntoAccount() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -334,6 +334,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testAppendInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -393,6 +394,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testClearInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -457,6 +459,7 @@ public class ClusteredTierActiveEntityTest {
         .build();
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -511,6 +514,7 @@ public class ClusteredTierActiveEntityTest {
         .build();
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
@@ -560,6 +564,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testConnectedButNotAttachedClientFailsInvokingServerStoreOperation() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -575,6 +580,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testWithAttachmentSucceedsInvokingServerStoreOperation() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -599,6 +605,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testCreateDedicatedServerStore() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
 
@@ -628,21 +635,23 @@ public class ClusteredTierActiveEntityTest {
   }
 
   @Test
-  @Ignore("Enable back and update when we can differentiate between creation and load existing")
   public void testCreateDedicatedServerStoreExisting() throws Exception {
-    new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
+    ClusteredTierActiveEntity otherEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     try {
-      new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+      otherEntity.createNew();
       fail("Duplicate creation should fail with an exception");
     } catch (ConfigurationException e) {
-      assertThat(e.getMessage(), both(containsString("creation failed")).and(containsString("already exists")));
+      assertThat(e.getMessage(), containsString("already exists"));
     }
   }
 
   @Test
   public void testValidateDedicatedServerStore() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -669,6 +678,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testValidateDedicatedServerStoreBad() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -685,6 +695,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testValidateUnknown() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -699,8 +710,9 @@ public class ClusteredTierActiveEntityTest {
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .shared(defaultSharedPool)
       .build();
-    new ClusteredTierActiveEntity(defaultRegistry,
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
 
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
@@ -713,21 +725,22 @@ public class ClusteredTierActiveEntityTest {
   }
 
   @Test
-  @Ignore("Enable back and update when we can differentiate between creation and load existing")
   public void testCreateSharedServerStoreExisting() throws Exception {
     defaultRegistry.addSharedPool(defaultSharedPool, MemoryUnit.MEGABYTES.toBytes(2), defaultResource);
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .shared(defaultSharedPool)
       .build();
-    new ClusteredTierActiveEntity(defaultRegistry,
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
+    ClusteredTierActiveEntity otherEntity = new ClusteredTierActiveEntity(defaultRegistry,
+      new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     try {
-      new ClusteredTierActiveEntity(defaultRegistry,
-        new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      otherEntity.createNew();
       fail("Duplicate creation should fail with an exception");
     } catch (ConfigurationException e) {
-      assertThat(e.getMessage(), both(containsString("creation failed")).and(containsString("already exists")));
+      assertThat(e.getMessage(), containsString("already exists"));
     }
   }
 
@@ -739,6 +752,7 @@ public class ClusteredTierActiveEntityTest {
       .build();
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -751,6 +765,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testValidateServerStore_DedicatedStoresDifferentSizes() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -773,6 +788,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testValidateServerStore_DedicatedStoreResourceNamesDifferent() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -800,6 +816,7 @@ public class ClusteredTierActiveEntityTest {
       .build();
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
       new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -823,6 +840,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testDestroyServerStore() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     activeEntity.destroy();
 
@@ -842,6 +860,7 @@ public class ClusteredTierActiveEntityTest {
     defaultRegistry.addSharedPool(defaultStoreName, MemoryUnit.MEGABYTES.toBytes(2), defaultResource);
 
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getSharedResourcePoolIds(), contains(defaultStoreName));
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), contains(defaultStoreName));
@@ -853,9 +872,11 @@ public class ClusteredTierActiveEntityTest {
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .shared(defaultSharedPool)
       .build();
+
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
+      new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     try {
-      new ClusteredTierActiveEntity(defaultRegistry,
-        new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      activeEntity.createNew();
       fail("Creation with non-existent shared pool should have failed");
     } catch (ConfigurationException e) {
       assertThat(e.getMessage(), containsString("undefined"));
@@ -867,9 +888,10 @@ public class ClusteredTierActiveEntityTest {
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .dedicated("unknown", 2, MemoryUnit.MEGABYTES)
       .build();
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry,
+      new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     try {
-      new ClusteredTierActiveEntity(defaultRegistry,
-        new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      activeEntity.createNew();
       fail("Creation with non-existent shared pool should have failed");
     } catch (ConfigurationException e) {
       assertThat(e.getMessage(), containsString("Non-existent server side resource"));
@@ -879,6 +901,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testSyncToPassiveNoData() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -896,6 +919,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testSyncToPassiveBatchedByDefault() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -921,6 +945,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testDataSyncToPassiveCustomBatchSize() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -952,6 +977,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testLoadExistingRecoversInflightInvalidationsForEventualCache() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -975,6 +1001,7 @@ public class ClusteredTierActiveEntityTest {
   @Test
   public void testPromotedActiveIgnoresDuplicateMessages() throws Exception {
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
 
@@ -1017,6 +1044,7 @@ public class ClusteredTierActiveEntityTest {
   public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws Exception {
 
     ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
 
     IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
 
@@ -1077,8 +1105,6 @@ public class ClusteredTierActiveEntityTest {
     private PoolAllocation poolAllocation;
     private String storedKeyType = "java.lang.Long";
     private String storedValueType = "java.lang.String";
-    private String actualKeyType;
-    private String actualValueType;
     private String keySerializerType;
     private String valueSerializerType;
     private Consistency consistency = Consistency.EVENTUAL;
@@ -1111,16 +1137,6 @@ public class ClusteredTierActiveEntityTest {
 
     ServerStoreConfigBuilder setStoredValueType(Class<?> storedValueType) {
       this.storedValueType = storedValueType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualKeyType(Class<?> actualKeyType) {
-      this.actualKeyType = actualKeyType.getName();
-      return this;
-    }
-
-    ServerStoreConfigBuilder setActualValueType(Class<?> actualValueType) {
-      this.actualValueType = actualValueType.getName();
       return this;
     }
 

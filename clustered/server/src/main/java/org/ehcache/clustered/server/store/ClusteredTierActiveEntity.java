@@ -110,7 +110,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
-  private final InvalidStoreException creationException;
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
 
@@ -129,19 +128,33 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
-    InvalidStoreException exception = null;
-    ServerSideServerStore store;
-    try {
-      store = stateService.createStore(entityConfiguration.getStoreIdentifier(), entityConfiguration
-        .getConfiguration());
-    } catch (InvalidStoreException e) {
-      exception = e;
-      LOGGER.debug("Got exception during creation - most likely failover is happening", e);
-      store = stateService.getStore(entityConfiguration.getStoreIdentifier());
-    }
-    creationException = exception;
-    store.setEvictionListener(this::invalidateHashAfterEviction);
     management = new ClusterTierManagement(registry, stateService, true, storeIdentifier);
+  }
+
+  @Override
+  public void createNew() throws ConfigurationException {
+    ServerSideServerStore store = stateService.createStore(storeIdentifier, configuration);
+    store.setEvictionListener(this::invalidateHashAfterEviction);
+    management.init();
+  }
+
+  @Override
+  public void loadExisting() {
+    ServerSideServerStore store = stateService.getStore(storeIdentifier);
+    if (store != null) {
+      try {
+        storeCompatibility.verify(store.getStoreConfiguration(), configuration);
+      } catch (InvalidServerStoreConfigurationException e) {
+        throw new AssertionError("Configuration mismatch", e);
+      }
+    } else {
+      throw new AssertionError("Clustered tier '" + storeIdentifier + "' does not exist");
+    }
+    LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
+    inflightInvalidations = synchronizedList(new ArrayList<>());
+    addInflightInvalidationsForEventualCaches();
+    reconnectComplete.set(false);
+    management.init();
   }
 
   private void invalidateHashAfterEviction(long key) {
@@ -459,25 +472,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     }
   }
 
-  @Override
-  public void loadExisting() {
-    ServerSideServerStore store = stateService.getStore(storeIdentifier);
-    if (store != null) {
-      try {
-        storeCompatibility.verify(store.getStoreConfiguration(), configuration);
-      } catch (InvalidServerStoreConfigurationException e) {
-        throw new AssertionError("Configuration mismatch", e);
-      }
-    } else {
-      throw new AssertionError("Clustered tier '" + storeIdentifier + "' does not exist");
-    }
-    LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
-    inflightInvalidations = synchronizedList(new ArrayList<>());
-    addInflightInvalidationsForEventualCaches();
-    reconnectComplete.set(false);
-    management.init();
-  }
-
   private void addInflightInvalidationsForEventualCaches() {
     InvalidationTracker invalidationTracker = stateService.removeInvalidationtracker(storeIdentifier);
     if (invalidationTracker != null) {
@@ -546,14 +540,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       size.set(0);
     }
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
-  }
-
-  @Override
-  public void createNew() {
-    if (creationException != null) {
-      throw new AssertionError("Store conflict", creationException);
-    }
-    management.init();
   }
 
   @Override
