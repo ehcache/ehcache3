@@ -116,7 +116,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     ServerEntityIdentifier ehcacheClusterTierIdentifier = readTopology()
       .activeServerEntityStream()
-      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1dedicated-cache-1"))
+      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1$dedicated-cache-1"))
       .findFirst()
       .get() // throws if not found
       .getServerEntityIdentifier();
