@@ -75,7 +75,7 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
     if (stateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
-    management = new ClusterTierManagement(registry, stateService, false, storeIdentifier);
+    management = new ClusterTierManagement(registry, stateService, false, storeIdentifier, config.getManagerIdentifier());
   }
 
   @Override

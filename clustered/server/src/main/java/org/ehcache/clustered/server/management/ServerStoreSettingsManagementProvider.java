@@ -31,8 +31,11 @@ import java.util.Collections;
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvider<ServerStoreBinding> {
 
-  ServerStoreSettingsManagementProvider() {
+  private final String clusterTierManagerIdentifier;
+
+  ServerStoreSettingsManagementProvider(String clusterTierManagerIdentifier) {
     super(ServerStoreBinding.class);
+    this.clusterTierManagerIdentifier = clusterTierManagerIdentifier;
   }
 
   @Override
@@ -40,6 +43,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
     Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(new Settings()
       .set("type", getCapabilityName())
+      .set("clusterTierManager", clusterTierManagerIdentifier)
       .set("time", System.currentTimeMillis()));
     return descriptors;
   }

@@ -46,7 +46,7 @@ public class ClusterTierManagement {
   private final EhcacheStateService ehcacheStateService;
   private final String storeIdentifier;
 
-  public ClusterTierManagement(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String storeIdentifier) {
+  public ClusterTierManagement(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String storeIdentifier, String clusterTierManagerIdentifier) {
     this.ehcacheStateService = ehcacheStateService;
     this.storeIdentifier = storeIdentifier;
 
@@ -71,7 +71,7 @@ public class ClusterTierManagement {
       }
 
       // expose settings about server stores
-      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
+      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider(clusterTierManagerIdentifier));
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
