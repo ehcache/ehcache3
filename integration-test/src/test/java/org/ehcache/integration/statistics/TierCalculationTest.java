@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.data.MapEntry;
 import org.ehcache.Cache;
@@ -28,11 +29,16 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 /**
  * Check that calculations are accurate according to specification. Each cache method have a different impact on the statistics
@@ -51,7 +57,10 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
   @Before
   public void before() throws Exception {
     CacheConfiguration<Integer, String> cacheConfiguration =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, resources).build();
+      CacheConfigurationBuilder
+        .newCacheConfigurationBuilder(Integer.class, String.class, resources)
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(100, TimeUnit.MILLISECONDS)))
+        .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();
 
@@ -266,5 +275,61 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
 
     tierStatistics.clear();
     changesOf(-1, -4, -3, -2, -1);
+  }
+
+  @Test
+  public void testMappingCount() {
+    assertThat(tierStatistics.getMappings()).isEqualTo(0);
+    cache.put(1, "a");
+    assertThat(tierStatistics.getMappings()).isEqualTo(1);
+  }
+
+  @Test
+  public void testMaxMappingCount() {
+    assertThat(tierStatistics.getMaxMappings()).isEqualTo(-1); // FIXME Shouldn't it be 0?
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.remove(1);
+    assertThat(tierStatistics.getMappings()).isEqualTo(1); // FIXME: I was expecting 2
+  }
+
+  @Test
+  public void testAllocatedByteSize() {
+    assumeFalse(tierName.equals("OnHeap")); // FIXME: Not calculated for OnHeap when a size is allocated
+
+    long size = tierStatistics.getAllocatedByteSize();
+    cache.put(1, "a");
+    assertThat(tierStatistics.getAllocatedByteSize()).isGreaterThan(size); // FIXME: Why is allocated growing?
+  }
+
+  @Test
+  public void testOccupiedByteSize() {
+    assertThat(tierStatistics.getOccupiedByteSize()).isEqualTo(0);
+    cache.put(1, "a");
+    assertThat(tierStatistics.getOccupiedByteSize()).isGreaterThan(0);
+  }
+
+  @Test
+  public void testEviction() {
+    String payload = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    // Wait until we reach the maximum that we can fit in to make sure that are indeed evictions calculated
+    int i = 0;
+    long evictions;
+    do {
+      cache.put(i++, payload);
+      evictions = tierStatistics.getEvictions();
+    }
+    while(evictions == 0 && i < 100_000); // The 100 000 threshold is to prevent an infinite loop in case of a bug
+
+    assertThat(evictions).isGreaterThan(0);
+  }
+
+  @Test
+  public void testExpiration() throws InterruptedException {
+    cache.put(1, "a");
+    Thread.sleep(100);
+    assertThat(cache.get(1)).isNull();
+    assertThat(tierStatistics.getExpirations()).isEqualTo(1);
   }
 }
