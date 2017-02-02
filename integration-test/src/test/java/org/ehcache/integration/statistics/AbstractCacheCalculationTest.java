@@ -17,19 +17,10 @@ package org.ehcache.integration.statistics;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
-import org.assertj.core.api.AbstractBooleanAssert;
-import org.assertj.core.api.AbstractCharSequenceAssert;
-import org.assertj.core.api.AbstractMapAssert;
-import org.assertj.core.api.AbstractObjectAssert;
-import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.statistics.CacheStatistics;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -43,20 +34,19 @@ import static org.ehcache.config.units.MemoryUnit.MB;
  * of an Ehcache call on the counters.
  */
 @RunWith(Parameterized.class)
-public abstract class AbstractCacheCalculationTest {
-
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
-
-  protected final ResourcePools resources;
-
-  protected CacheStatistics cacheStatistics;
+public abstract class AbstractCacheCalculationTest extends AbstractCalculationTest {
 
   private int hitCount = 0;
   private int missCount = 0;
   private int putCount = 0;
   private int removalCount = 0;
   private int updateCount = 0;
+
+  protected CacheStatistics cacheStatistics;
+
+  protected AbstractCacheCalculationTest(ResourcePoolsBuilder poolBuilder) {
+    super(poolBuilder);
+  }
 
   /**
    * The tiers setup shouldn't change anything. But to make sure, we test with different permutations
@@ -80,15 +70,6 @@ public abstract class AbstractCacheCalculationTest {
     });
   }
 
-  public AbstractCacheCalculationTest(ResourcePoolsBuilder poolBuilder) {
-    this.resources = poolBuilder.build();
-  }
-
-
-  protected static Set<Integer> asSet(Integer... ints) {
-    return new HashSet<Integer>(Arrays.asList(ints));
-  }
-
   /**
    * Make sure the stat moved only of the expected delta
    *
@@ -99,11 +80,11 @@ public abstract class AbstractCacheCalculationTest {
    * @param update how many updates should have happened
    */
   protected void changesOf(long hit, long miss, long put, long remove, long update) {
-    assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits" + counters()).isEqualTo(hit);
-    assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses" + counters()).isEqualTo(miss);
-    assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts" + counters()).isEqualTo(put);
-    assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals" + counters()).isEqualTo(remove);
-    assertThat(cacheStatistics.getCacheUpdates() - updateCount).as("Updates" + counters()).isEqualTo(update);
+    assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits").isEqualTo(hit);
+    assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses").isEqualTo(miss);
+    assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts").isEqualTo(put);
+    assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals").isEqualTo(remove);
+    assertThat(cacheStatistics.getCacheUpdates() - updateCount).as("Updates").isEqualTo(update);
     hitCount += hit;
     missCount += miss;
     putCount += put;
@@ -111,7 +92,8 @@ public abstract class AbstractCacheCalculationTest {
     updateCount += update;
   }
 
-  private String counters() {
+  @Override
+  protected String counters() {
     long hits = cacheStatistics.getCacheHits() - hitCount;
     long misses = cacheStatistics.getCacheMisses() - missCount;
     long puts = cacheStatistics.getCachePuts() - putCount;
@@ -121,49 +103,5 @@ public abstract class AbstractCacheCalculationTest {
     long expirations = cacheStatistics.getCacheExpirations();
     return String.format(" (H=%d M=%d P=%d R=%d U=%d Ev=%d Ex=%d)", hits, misses, puts, removals,
       updates, evictions, expirations);
-  }
-
-  /**
-   * A little wrapper over {@code assertThat} that just mention that this what we expect from the test. So if the
-   * expectation fails, it's probably the test that is wrong, not the implementation.
-   *
-   * @param actual actual value
-   * @return an AssertJ assertion
-   */
-  protected static <T> AbstractObjectAssert<?, T> expect(T actual) {
-    return assertThat(actual);
-  }
-
-  /**
-   * A little wrapper over {@code assertThat} that just mention that this what we expect from the test. So if the
-   * expectation fails, it's probably the test that is wrong, not the implementation.
-   *
-   * @param actual actual value
-   * @return an AssertJ assertion
-   */
-  protected static AbstractCharSequenceAssert<?, String> expect(String actual) {
-    return assertThat(actual);
-  }
-
-  /**
-   * A little wrapper over {@code assertThat} that just mention that this what we expect from the test. So if the
-   * expectation fails, it's probably the test that is wrong, not the implementation.
-   *
-   * @param actual actual value
-   * @return an AssertJ assertion
-   */
-  protected static AbstractBooleanAssert<?> expect(boolean actual) {
-    return assertThat(actual);
-  }
-
-  /**
-   * A little wrapper over {@code assertThat} that just mention that this what we expect from the test. So if the
-   * expectation fails, it's probably the test that is wrong, not the implementation.
-   *
-   * @param actual actual value
-   * @return an AssertJ assertion
-   */
-  protected static <K, V> AbstractMapAssert<?, ? extends Map<K, V>, K, V> expect(Map<K, V> actual) {
-    return assertThat(actual);
   }
 }
