@@ -30,6 +30,7 @@ import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.ehcache.clustered.server.state.InvalidationTrackerManagerImpl;
 import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.ehcache.clustered.server.state.DefaultClientMessageTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.TreeNode;
@@ -110,7 +111,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
-  private final ClientMessageTracker messageTracker = new ClientMessageTracker();
+  private final ClientMessageTracker messageTracker = new DefaultClientMessageTracker();
   private volatile InvalidationTrackerManager invalidationTrackerManager;
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;

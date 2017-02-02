@@ -16,116 +16,106 @@
 
 package org.ehcache.clustered.server.state;
 
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.LongStream;
 
+
+/**
+ * Message Tracker keeps track of messages seen so far in efficient way by keeping track of contiguous and non-contiguous message ids.
+ *
+ * Assumption: message ids are generated in contiguous fashion in the increment on 1, starting from 0.
+ */
 public class MessageTracker {
 
-  private final ConcurrentHashMap<Long, Boolean> inProgressMessages = new ConcurrentHashMap<>();
+  // keeping track of highest contiguous message id seen
+  private volatile long highestContiguousMsgId;
 
-  private long lowerWaterMark = -1L;
-  private final AtomicLong higherWaterMark = new AtomicLong(-1L);
-  private final ReadWriteLock lwmLock = new ReentrantReadWriteLock();
+  // Keeping track of non contiguous message Ids higher than highestContiguousMsgId.
+  private final Set<Long> nonContiguousMsgIds;
+
+  // Lock used for reconciliation.
+  private final Lock reconciliationLock;
+
+  public MessageTracker() {
+    this.highestContiguousMsgId = -1L;
+    this.nonContiguousMsgIds = ConcurrentHashMap.newKeySet();
+    this.reconciliationLock = new ReentrantLock();
+  }
 
   /**
-   * This method is only meant to be called by the Active Entity.
-   * This needs to be thread safe.
-   * This tells whether the message should be applied or not
-   * As and when messages are checked for deduplication, which is only
-   * done on newly promoted active, the non duplicate ones are cleared from
-   * inProgressMessages.
+   * Track the given message Id.
    *
-   * @param msgId
-   * @return whether the entity should apply the message or not
+   * @param msgId Message Id to be checked.
    */
-  boolean shouldApply(long msgId) {
-    Lock lock = lwmLock.readLock();
-    try {
-      lock.lock();
-      if (msgId < lowerWaterMark) {
-        return false;
-      }
-    } finally {
-      lock.unlock();
-    }
-    if (msgId > higherWaterMark.get()) {
-      return true;
-    }
-    final AtomicBoolean shouldApply = new AtomicBoolean(false);
-    inProgressMessages.computeIfPresent(msgId, (id, state) -> {
-      if (!state) {
-        shouldApply.set(true);
-      }
-      return true;
-    });
-    updateLowerWaterMark();
-    return shouldApply.get();
+  public void track(long msgId) {
+    nonContiguousMsgIds.add(msgId);
+    tryReconcile();
   }
 
   /**
-   * Only to be invoked on Passive Entity
-   * @param msgId
+   * Check wheather the given message id is already seen by track call.
+   *
+   * @param msgId Message Identifier to be checked.
+   * @return true if the given msgId is already tracked otherwise false.
    */
-  @Deprecated
-  void track(long msgId) {
-    //TODO: remove this once we move to CACHE as ENTITY model.
-    inProgressMessages.put(msgId, false);
-    updateHigherWaterMark(msgId);
+  public boolean seen(long msgId) {
+    boolean seen = (msgId <= highestContiguousMsgId) || nonContiguousMsgIds.contains(msgId);
+    tryReconcile();
+    return seen;
   }
 
   /**
-   * Only to be invoked on Passive Entity
-   * Assumes there are no message loss &
-   * message ids are ever increasing
-   * @param msgId
+   * Checks weather non-contiguous message ids set is empty.
+   *
+   * @return true if the there is no non contiguous message ids otherwise false
    */
-  void applied(long msgId) {
-    inProgressMessages.computeIfPresent(msgId, ((id, state) -> state = true));
-    updateLowerWaterMark();
+  public boolean isEmpty() {
+    return nonContiguousMsgIds.isEmpty();
   }
 
-  boolean isEmpty() {
-    return inProgressMessages.isEmpty();
-  }
+  /**
+   * Remove the contiguous seen msgIds from the nonContiguousMsgIds and update highestContiguousMsgId
+   */
+  private void reconcile() {
+    // Keeping track of contiguous message ids.
+    List<Long> contiguousMsgIds = new ArrayList<>();
 
-  private void updateHigherWaterMark(long msgId) {
-    while(true) {
-      long old = higherWaterMark.get();
-      if (msgId < old) {
-        return;
-      }
-      if (higherWaterMark.compareAndSet(old, msgId)) {
+    // Generate msgIds in sequence from current highestContiguousMsgId and add contiguous msg ids to contiguousMsgIds
+    for (long msgId : (Iterable<Long>) () -> LongStream.iterate(highestContiguousMsgId + 1, id -> id + 1).iterator()) {
+      if (!nonContiguousMsgIds.contains(msgId)) {
         break;
       }
+      contiguousMsgIds.add(msgId);
+    };
+
+    // Return right away, as no new higher contiguous MsgId found.
+    if (contiguousMsgIds.isEmpty()) {
+      return;
+    }
+
+    // Update the current highestContiguousMsgId based on last element in the contiguousMsgIds sequence.
+    highestContiguousMsgId = contiguousMsgIds.get(contiguousMsgIds.size() - 1);
+
+    // Remove all contiguous message ids from nonContiguousMsgIds
+    nonContiguousMsgIds.removeAll(contiguousMsgIds);
+  }
+
+  /**
+   * Try to reconcile, if the lock is available otherwise just return as other thread would have hold the lock and performing reconcile.
+   */
+  private void tryReconcile() {
+    if (!this.reconciliationLock.tryLock()) {
+      return;
+    }
+
+    try {
+      reconcile();
+    } finally {
+      this.reconciliationLock.unlock();
     }
   }
 
-  private void updateLowerWaterMark() {
-    Lock lock = lwmLock.writeLock();
-    if (lock.tryLock()) {
-      try {
-        for (long i = lowerWaterMark + 1; i <= higherWaterMark.get(); i++) {
-          final AtomicBoolean removed = new AtomicBoolean(false);
-          inProgressMessages.computeIfPresent(i, (id, state) -> {
-            if (state) {
-              removed.set(true);
-              return null;
-            }
-            return state;
-          });
-          if (removed.get()) {
-            lowerWaterMark ++;
-          } else {
-            break;
-          }
-        }
-      } finally {
-        lock.unlock();
-      }
-    }
-  }
 }

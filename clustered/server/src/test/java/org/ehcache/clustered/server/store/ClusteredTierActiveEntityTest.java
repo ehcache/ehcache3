@@ -1014,7 +1014,6 @@ public class ClusteredTierActiveEntityTest {
     Set<Long> msgIds = new HashSet<>();
     random.longs(100).distinct().forEach(x -> {
       msgIds.add(x);
-      clientMessageTracker.track(x, CLIENT_ID);
     });
 
     Set<Long> applied = new HashSet<>();

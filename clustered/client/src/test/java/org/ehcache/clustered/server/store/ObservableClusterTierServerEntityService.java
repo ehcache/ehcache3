@@ -145,7 +145,7 @@ public class ObservableClusterTierServerEntityService
     }
 
     public Map getMessageTrackerMap() throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("messageTrackers");
+      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("clientUUIDMessageTrackerMap");
       field.setAccessible(true);
       return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
     }
