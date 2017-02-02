@@ -59,7 +59,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     CacheConfiguration<Integer, String> cacheConfiguration =
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(100, TimeUnit.MILLISECONDS)))
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(300, TimeUnit.MILLISECONDS)))
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();
@@ -328,7 +328,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
   @Test
   public void testExpiration() throws InterruptedException {
     cache.put(1, "a");
-    Thread.sleep(100);
+    Thread.sleep(300);
     assertThat(cache.get(1)).isNull();
     assertThat(tierStatistics.getExpirations()).isEqualTo(1);
   }
