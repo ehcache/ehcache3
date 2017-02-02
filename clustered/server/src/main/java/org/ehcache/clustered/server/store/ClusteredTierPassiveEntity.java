@@ -40,6 +40,7 @@ import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,10 +82,14 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration);
-    if(configuration.getConsistency() == Consistency.EVENTUAL) {
-      stateService.addInvalidationtracker(storeIdentifier);
+    if(isEventual()) {
+      stateService.getInvalidationTrackerManager().addInvalidationTracker(storeIdentifier);
     }
     management.init();
+  }
+
+  private boolean isEventual() {
+    return configuration.getConsistency() == Consistency.EVENTUAL;
   }
 
   @Override
@@ -144,6 +149,8 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
 
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
 
+    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
+    InvalidationTracker invalidationTracker = null;
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
         LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
@@ -155,13 +162,20 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         applyMessage(message);
-        trackHashInvalidationForEventualCache(retirementMessage);
+        if (isEventual()) {
+          invalidationTrackerManager.getInvalidationTracker(storeIdentifier).trackHashInvalidation(retirementMessage.getKey());
+        }
         break;
       case INVALIDATION_COMPLETE:
-        untrackHashInvalidationForEventualCache((InvalidationCompleteMessage)message);
+        if (isEventual()) {
+          InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage) message;
+          invalidationTrackerManager.getInvalidationTracker(storeIdentifier).untrackHashInvalidation(invalidationCompleteMessage.getKey());
+        }
         break;
       case CLEAR_INVALIDATION_COMPLETE:
-        stateService.getInvalidationTracker(storeIdentifier).setClearInProgress(false);
+        if (isEventual()) {
+          invalidationTrackerManager.getInvalidationTracker(storeIdentifier).setClearInProgress(false);
+        }
         break;
       case CLIENT_ID_TRACK_OP:
         stateService.getClientMessageTracker().remove(message.getClientId());
@@ -191,36 +205,13 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
         } catch (TimeoutException e) {
           throw new AssertionError("Server side store is not expected to throw timeout exception");
         }
-        InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
-        if (invalidationTracker != null) {
-          invalidationTracker.setClearInProgress(true);
+        if (isEventual()) {
+          stateService.getInvalidationTrackerManager().getInvalidationTracker(storeIdentifier).setClearInProgress(true);
         }
         break;
       }
       default:
         throw new AssertionError("Unsupported ServerStore operation : " + message.getMessageType());
-    }
-  }
-
-  private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {
-    stateService.getInvalidationTracker(storeIdentifier).getInvalidationMap().computeIfPresent(message.getKey(), (key, count) -> {
-      if (count == 1) {
-        return null;
-      }
-      return count - 1;
-    });
-  }
-
-  private void trackHashInvalidationForEventualCache(ChainReplicationMessage retirementMessage) {
-    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
-    if (invalidationTracker != null) {
-      invalidationTracker.getInvalidationMap().compute(retirementMessage.getKey(), (key, count) -> {
-        if (count == null) {
-          return 1;
-        } else {
-          return count + 1;
-        }
-      });
     }
   }
 
@@ -254,9 +245,11 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
     LOGGER.info("Destroying clustered tier '{}'", storeIdentifier);
     try {
       stateService.destroyServerStore(storeIdentifier);
-      stateService.removeInvalidationtracker(storeIdentifier);
     } catch (ClusterException e) {
       throw new AssertionError(e);
+    }
+    if (isEventual()) {
+      stateService.getInvalidationTrackerManager().removeInvalidationTracker(storeIdentifier);
     }
   }
 }

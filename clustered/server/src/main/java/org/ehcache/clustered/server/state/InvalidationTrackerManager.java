@@ -18,21 +18,15 @@ package org.ehcache.clustered.server.state;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-
 @CommonComponent
-public interface InvalidationTracker {
+public interface InvalidationTrackerManager {
 
-  boolean isClearInProgress();
+  InvalidationTracker getInvalidationTracker(String cacheId);
 
-  void setClearInProgress(boolean clearInProgress);
+  void addInvalidationTracker(String cacheId);
 
-  void trackHashInvalidation(long chainKey);
-
-  void untrackHashInvalidation(long chainKey);
-
-  Set<Long> getTrackedKeys();
+  void removeInvalidationTracker(String cacheId);
 
   void clear();
+
 }

@@ -61,6 +61,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class EhcacheActiveEntityTest {
 
@@ -78,6 +79,16 @@ public class EhcacheActiveEntityTest {
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
     new EhcacheActiveEntity(null, null, null, null);
+  }
+
+  @Test
+  public void testInvalidationTrackerManagerInstantiationOnInstantiation() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    EhcacheStateService stateService = mock(EhcacheStateService.class);
+    ClusteredTierManagerConfiguration config = mock(ClusteredTierManagerConfiguration.class);
+    Management management = mock(Management.class);
+    new EhcacheActiveEntity(registry, config, stateService, management);
+    verify(stateService).createInvalidationTrackerManager(true);
   }
 
   /**

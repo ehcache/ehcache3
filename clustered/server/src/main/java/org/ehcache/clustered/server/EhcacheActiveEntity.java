@@ -102,6 +102,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       ehcacheStateService.destroy();
       throw e;
     }
+    ehcacheStateService.createInvalidationTrackerManager(true);
   }
 
   /**

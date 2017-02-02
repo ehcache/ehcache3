@@ -53,6 +53,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class EhcachePassiveEntityTest {
 
@@ -68,6 +69,15 @@ public class EhcachePassiveEntityTest {
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
     new EhcachePassiveEntity(null, null, null);
+  }
+
+  @Test
+  public void testInvalidationTrackerManagerInteractionsOnInstantiation() throws Exception {
+    EhcacheStateService stateService = mock(EhcacheStateService.class);
+    ClusteredTierManagerConfiguration config = mock(ClusteredTierManagerConfiguration.class);
+    Management management = mock(Management.class);
+    new EhcachePassiveEntity(config, stateService, management);
+    verify(stateService).createInvalidationTrackerManager(false);
   }
 
   /**
