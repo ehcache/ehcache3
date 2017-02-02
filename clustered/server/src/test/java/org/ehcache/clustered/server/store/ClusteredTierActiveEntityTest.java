@@ -1258,9 +1258,8 @@ public class ClusteredTierActiveEntityTest {
         }
         return (T) this.clientCommunicator;
       } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
-        EhcacheStoreStateServiceConfig config = (EhcacheStoreStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(config.getManagerIdentifier(), new OffHeapResources() {
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
             @Override
             public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
               return pools.keySet();

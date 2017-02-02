@@ -116,21 +116,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private final ServerSideConfiguration configuration;
   private final KeySegmentMapper mapper;
   private final EhcacheStateServiceProvider.DestroyCallback destroyCallback;
-  private final String identifier;
 
-  public EhcacheStateServiceImpl(String identifier, OffHeapResources offHeapResources, ServerSideConfiguration configuration,
+  public EhcacheStateServiceImpl(OffHeapResources offHeapResources, ServerSideConfiguration configuration,
                                  final KeySegmentMapper mapper, EhcacheStateServiceProvider.DestroyCallback destroyCallback) {
-    this.identifier = identifier;
     this.offHeapResources = offHeapResources;
     this.configuration = configuration;
     this.mapper = mapper;
     this.destroyCallback = destroyCallback;
     this.stateRepositoryManager = new StateRepositoryManager();
-  }
-
-  @Override
-  public String getClusteredTierManagerIdentifier() {
-    return this.identifier;
   }
 
   public ServerStoreImpl getStore(String name) {

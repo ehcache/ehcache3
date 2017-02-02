@@ -41,8 +41,9 @@ public class Management {
 
   private final ConsumerManagementRegistry managementRegistry;
   private final EhcacheStateService ehcacheStateService;
+  private final String clusterTierManagerIdentifier;
 
-  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active) {
+  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String clusterTierManagerIdentifier) {
     this.ehcacheStateService = ehcacheStateService;
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
@@ -73,6 +74,7 @@ public class Management {
       // expose stats about pools
       managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService));
     }
+    this.clusterTierManagerIdentifier = clusterTierManagerIdentifier;
   }
 
   protected EhcacheStateService getEhcacheStateService() {
@@ -84,7 +86,7 @@ public class Management {
   }
 
   protected ClusteredTierManagerBinding generateClusteredTierManagerBinding() {
-    return new ClusteredTierManagerBinding(getEhcacheStateService().getClusteredTierManagerIdentifier(), getEhcacheStateService());
+    return new ClusteredTierManagerBinding(clusterTierManagerIdentifier, getEhcacheStateService());
   }
 
   protected void registerClusteredTierManagerSettingsProvider() {

@@ -752,7 +752,7 @@ public class EhcacheActiveEntityTest {
       } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         EhcacheStateServiceConfig config = (EhcacheStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(config.getConfig().getIdentifier(), new OffHeapResources() {
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
             @Override
             public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
               return pools.keySet();

@@ -68,7 +68,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
       configCodec.decodeClusteredTierManagerConfiguration(configuration);
     EhcacheStateService ehcacheStateService =
       registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, true);
+    Management management = new Management(registry, ehcacheStateService, true, clusteredTierManagerConfiguration.getIdentifier());
     return new EhcacheActiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
@@ -77,7 +77,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
     ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
     EhcacheStateService ehcacheStateService =
       registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, clusteredTierManagerConfiguration.getIdentifier());
     return new EhcachePassiveEntity(clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
