@@ -27,7 +27,7 @@ public class EhcacheStateServiceImplTest {
 
   @Test
   public void getInvalidationTrackerManagerForActive() throws Exception {
-    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null, null);
+    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
     stateService.createInvalidationTrackerManager(true);
     InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
     assertThat(invalidationTrackerManager, nullValue());
@@ -35,7 +35,7 @@ public class EhcacheStateServiceImplTest {
 
   @Test
   public void getInvalidationTrackerManagerForPassive() throws Exception {
-    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null, null);
+    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
     stateService.createInvalidationTrackerManager(false);
     InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
     assertThat(invalidationTrackerManager, notNullValue());

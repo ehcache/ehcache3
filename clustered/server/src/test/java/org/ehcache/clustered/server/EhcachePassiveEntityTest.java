@@ -97,7 +97,7 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(configuration, ehcacheStateService, management);
 
     assertThat(registry.getStoreManagerService()
@@ -126,7 +126,7 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     try {
       new EhcachePassiveEntity(configuration, ehcacheStateService, management);
       fail("Entity creation should have failed");
@@ -159,7 +159,7 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     try {
       new EhcachePassiveEntity(configuration, ehcacheStateService, management);
       fail("Entity creation should have failed");
@@ -191,7 +191,7 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     try {
       new EhcachePassiveEntity(configuration, ehcacheStateService, management);
       fail("Entity creation should have failed");
@@ -221,7 +221,7 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(configuration, ehcacheStateService, management);
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
@@ -245,7 +245,7 @@ public class EhcachePassiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", new ServerSideConfigBuilder()
       .build());
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(configuration, ehcacheStateService, management);
 
     try {
@@ -349,7 +349,7 @@ public class EhcachePassiveEntityTest {
       if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         EhcacheStateServiceConfig config = (EhcacheStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(config.getConfig().getIdentifier(), new OffHeapResources() {
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
             @Override
             public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
               return pools.keySet();

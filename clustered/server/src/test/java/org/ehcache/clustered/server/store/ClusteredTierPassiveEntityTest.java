@@ -269,9 +269,8 @@ public class ClusteredTierPassiveEntityTest {
     @Override
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
       if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
-        EhcacheStoreStateServiceConfig config = (EhcacheStoreStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(config.getManagerIdentifier(), new OffHeapResources() {
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
             @Override
             public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
               return pools.keySet();
