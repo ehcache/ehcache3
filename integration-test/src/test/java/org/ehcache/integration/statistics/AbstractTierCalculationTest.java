@@ -92,16 +92,28 @@ public abstract class AbstractTierCalculationTest {
    * @param update how many updates should have happened
    */
   protected void changesOf(long hit, long miss, long put, long remove, long update) {
-    assertThat(tierStatistics.getHits() - hitCount).as("Hits").isEqualTo(hit);
-    assertThat(tierStatistics.getMisses() - missCount).as("Misses").isEqualTo(miss);
-    assertThat(tierStatistics.getPuts() - putCount).as("Puts").isEqualTo(put);
-    assertThat(tierStatistics.getRemovals() - removalCount).as("Removals").isEqualTo(remove);
-    assertThat(tierStatistics.getUpdates() - updateCount).as("Updates").isEqualTo(update);
+    assertThat(tierStatistics.getHits() - hitCount).as("Hits" + counters()).isEqualTo(hit);
+    assertThat(tierStatistics.getMisses() - missCount).as("Misses" + counters()).isEqualTo(miss);
+    assertThat(tierStatistics.getPuts() - putCount).as("Puts" + counters()).isEqualTo(put);
+    assertThat(tierStatistics.getRemovals() - removalCount).as("Removals" + counters()).isEqualTo(remove);
+    assertThat(tierStatistics.getUpdates() - updateCount).as("Updates" + counters()).isEqualTo(update);
     hitCount += hit;
     missCount += miss;
     putCount += put;
     removalCount += remove;
     updateCount += update;
+  }
+
+  private String counters() {
+    long hits = tierStatistics.getHits() - hitCount;
+    long misses = tierStatistics.getMisses() - missCount;
+    long puts = tierStatistics.getPuts() - putCount;
+    long removals = tierStatistics.getRemovals() - removalCount;
+    long updates = tierStatistics.getUpdates() - updateCount;
+    long evictions = tierStatistics.getEvictions();
+    long expirations = tierStatistics.getExpirations();
+    return String.format(" (H=%d M=%d P=%d R=%d U=%d Ev=%d Ex=%d)", hits, misses, puts, removals,
+      updates, evictions, expirations);
   }
 
   /**

@@ -99,16 +99,28 @@ public abstract class AbstractCacheCalculationTest {
    * @param update how many updates should have happened
    */
   protected void changesOf(long hit, long miss, long put, long remove, long update) {
-    assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits").isEqualTo(hit);
-    assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses").isEqualTo(miss);
-    assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts").isEqualTo(put);
-    assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals").isEqualTo(remove);
-    assertThat(cacheStatistics.getCacheUpdates() - updateCount).as("Updates").isEqualTo(update);
+    assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits" + counters()).isEqualTo(hit);
+    assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses" + counters()).isEqualTo(miss);
+    assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts" + counters()).isEqualTo(put);
+    assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals" + counters()).isEqualTo(remove);
+    assertThat(cacheStatistics.getCacheUpdates() - updateCount).as("Updates" + counters()).isEqualTo(update);
     hitCount += hit;
     missCount += miss;
     putCount += put;
     removalCount += remove;
     updateCount += update;
+  }
+
+  private String counters() {
+    long hits = cacheStatistics.getCacheHits() - hitCount;
+    long misses = cacheStatistics.getCacheMisses() - missCount;
+    long puts = cacheStatistics.getCachePuts() - putCount;
+    long removals = cacheStatistics.getCacheRemovals() - removalCount;
+    long updates = cacheStatistics.getCacheUpdates() - updateCount;
+    long evictions = cacheStatistics.getCacheEvictions();
+    long expirations = cacheStatistics.getCacheExpirations();
+    return String.format(" (H=%d M=%d P=%d R=%d U=%d Ev=%d Ex=%d)", hits, misses, puts, removals,
+      updates, evictions, expirations);
   }
 
   /**
