@@ -30,7 +30,6 @@ import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServi
 import org.terracotta.monitoring.IMonitoringProducer;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_RECONNECTED;
 import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_VALIDATED;

@@ -116,7 +116,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     ServerEntityIdentifier ehcacheClusterTierIdentifier = readTopology()
       .activeServerEntityStream()
-      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1dedicated-cache-1"))
+      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1$dedicated-cache-1"))
       .findFirst()
       .get() // throws if not found
       .getServerEntityIdentifier();
@@ -168,7 +168,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
-    // ClusteredTierStateSettings
+    // ClusteredTierClientStateSettings
 
     assertThat(tierCapabilities[0].getDescriptors()).hasSize(1);
     settings = (Settings) tierCapabilities[0].getDescriptors().iterator().next();
@@ -186,6 +186,21 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("serverResource")).isEqualTo("primary-server-resource");
     assertThat(settings.get("size")).isEqualTo(4 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("dedicated");
+
+    // ServerStoreSettings
+
+    tierDescriptors = new ArrayList<>(tierCapabilities[3].getDescriptors());
+    assertThat(tierDescriptors).hasSize(2);
+
+    settings = (Settings) tierDescriptors.get(0);
+    assertThat(settings.get("alias")).isEqualTo("dedicated-cache-1");
+    assertThat(settings.get("type")).isEqualTo("ServerStore");
+    assertThat(settings.get("resourcePoolType")).isEqualTo("dedicated");
+    assertThat(settings.get("resourcePoolDedicatedResourceName")).isEqualTo("primary-server-resource");
+
+    settings = (Settings) tierDescriptors.get(1);
+    assertThat(settings.get("type")).isEqualTo("ServerStoreSettings");
+    assertThat(settings.get("clusterTierManager")).isEqualTo("my-server-entity-1");
 
     // tms entity
 

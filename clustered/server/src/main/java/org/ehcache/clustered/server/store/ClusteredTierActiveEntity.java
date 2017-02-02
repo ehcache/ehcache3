@@ -128,7 +128,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
-    management = new ClusterTierManagement(registry, stateService, true, storeIdentifier);
+    management = new ClusterTierManagement(registry, stateService, true, storeIdentifier, entityConfiguration.getManagerIdentifier());
   }
 
   @Override
