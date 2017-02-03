@@ -32,7 +32,9 @@ import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.integration.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,9 +48,13 @@ import static org.junit.Assume.assumeFalse;
  */
 public class TierCalculationTest extends AbstractTierCalculationTest {
 
+  private static final int TIME_TO_EXPIRATION = 100;
+
   private CacheManager cacheManager;
 
   private Cache<Integer, String> cache;
+
+  private TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
 
   public TierCalculationTest(String tierName, ResourcePoolsBuilder poolBuilder) {
     super(tierName, poolBuilder);
@@ -59,7 +65,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     CacheConfiguration<Integer, String> cacheConfiguration =
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(300, TimeUnit.MILLISECONDS)))
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();
@@ -68,6 +74,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
       .withCache("cache", cacheConfiguration)
       .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
       .using(statisticsService)
+      .using(new TimeSourceConfiguration(timeSource))
       .build(true);
 
     cache = cacheManager.getCache("cache", Integer.class, String.class);
@@ -328,7 +335,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
   @Test
   public void testExpiration() throws InterruptedException {
     cache.put(1, "a");
-    Thread.sleep(300);
+    timeSource.advanceTime(TIME_TO_EXPIRATION); // push the current time after expiration
     assertThat(cache.get(1)).isNull();
     assertThat(tierStatistics.getExpirations()).isEqualTo(1);
   }
