@@ -72,11 +72,12 @@ public class EhcachePassiveEntityTest {
   }
 
   @Test
-  public void testInvalidationTrackerManagerInteractionsOnInstantiation() throws Exception {
+  public void testInvalidationTrackerManagerInteractionsOnCreateNew() throws Exception {
     EhcacheStateService stateService = mock(EhcacheStateService.class);
     ClusteredTierManagerConfiguration config = mock(ClusteredTierManagerConfiguration.class);
     Management management = mock(Management.class);
-    new EhcachePassiveEntity(config, stateService, management);
+    EhcachePassiveEntity entity = new EhcachePassiveEntity(config, stateService, management);
+    entity.createNew();
     verify(stateService).createInvalidationTrackerManager(false);
   }
 
