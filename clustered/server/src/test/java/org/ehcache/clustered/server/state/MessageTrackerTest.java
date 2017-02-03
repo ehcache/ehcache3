@@ -22,18 +22,12 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.LongStream;
 
 import static org.hamcrest.Matchers.is;
@@ -50,14 +44,13 @@ public class MessageTrackerTest {
 
     for (int i = 0; i < input.length; i++) {
       messageTracker.track(input[i]);
-      messageTracker.applied(input[i]);
     }
 
-    assertLowerWaterMark(messageTracker, 19);
+    assertHighestContiguousMsgId(messageTracker, 19);
 
     assertThat(messageTracker.isEmpty(), is(true));
 
-    LongStream.of(input).forEach(msg -> assertThat(messageTracker.shouldApply(msg), is(false)));
+    LongStream.of(input).forEach(msg -> assertThat(messageTracker.seen(msg), is(true)));
 
   }
 
@@ -77,7 +70,6 @@ public class MessageTrackerTest {
       results.add(executorService.submit(() -> {
         for (int j = start; j < end; j++) {
           messageTracker.track(input[j]);
-          messageTracker.applied(input[j]);
         }
         return null;
       }));
@@ -87,11 +79,13 @@ public class MessageTrackerTest {
       f.get();
     }
 
-    assertLowerWaterMark(messageTracker, 999);
+    assertThat(messageTracker.seen(22), is(true));
+
+    assertHighestContiguousMsgId(messageTracker, 999);
 
     assertThat(messageTracker.isEmpty(), is(true));
 
-    LongStream.of(input).forEach(msg -> assertThat(messageTracker.shouldApply(msg), is(false)));
+    LongStream.of(input).forEach(msg -> assertThat(messageTracker.seen(msg), is(true)));
 
   }
 
@@ -102,7 +96,7 @@ public class MessageTrackerTest {
     long[] input = getInputFor(0, 1000);
     final MessageTracker messageTracker = new MessageTracker();
 
-    Set<Long> nonAppliedMsgs = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
+    Set<Long> nonTrackedMsgs = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
 
     ExecutorService executorService = Executors.newWorkStealingPool();
 
@@ -114,11 +108,10 @@ public class MessageTrackerTest {
       int randomBreakingPoint = end - 1 - random.nextInt(5);
       results.add(executorService.submit(() -> {
         for (int j = start; j < end; j++) {
-          messageTracker.track(input[j]);
           if (j < randomBreakingPoint) {
-            messageTracker.applied(input[j]);
+            messageTracker.track(input[j]);
           } else {
-            nonAppliedMsgs.add(input[j]);
+            nonTrackedMsgs.add(input[j]);
           }
         }
         return null;
@@ -129,14 +122,8 @@ public class MessageTrackerTest {
       f.get();
     }
 
-    assertThat(messageTracker.isEmpty(), is(false));
-
-    nonAppliedMsgs.forEach(x -> assertThat(messageTracker.shouldApply(x), is(true)));
-
-    assertThat(messageTracker.isEmpty(), is(true));
-
-    LongStream.of(input).filter(x -> !nonAppliedMsgs.contains(x)).forEach(x -> assertThat(messageTracker.shouldApply(x), is(false)));
-
+    nonTrackedMsgs.forEach(x -> assertThat(messageTracker.seen(x), is(false)));
+    LongStream.of(input).filter(x -> !nonTrackedMsgs.contains(x)).forEach(x -> assertThat(messageTracker.seen(x), is(true)));
   }
 
   /**
@@ -150,10 +137,10 @@ public class MessageTrackerTest {
     return random.longs(start, end).unordered().distinct().limit(end - start).toArray();
   }
 
-  private static void assertLowerWaterMark(MessageTracker messageTracker, long lwm) throws NoSuchFieldException, IllegalAccessException {
-    Field entity = messageTracker.getClass().getDeclaredField("lowerWaterMark");
+  private static void assertHighestContiguousMsgId(MessageTracker messageTracker, long highestContiguousMsgId) throws NoSuchFieldException, IllegalAccessException {
+    Field entity = messageTracker.getClass().getDeclaredField("highestContiguousMsgId");
     entity.setAccessible(true);
-    assertThat((Long)entity.get(messageTracker), is(lwm));
+    assertThat((Long)entity.get(messageTracker), is(highestContiguousMsgId));
   }
 
 }

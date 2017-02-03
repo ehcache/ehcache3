@@ -31,7 +31,7 @@ public class ClientMessageTrackerTest {
   @Test
   public void testReconcilationOfClients() throws Exception {
 
-    ClientMessageTracker clientMessageTracker = new ClientMessageTracker();
+    ClientMessageTracker clientMessageTracker = new DefaultClientMessageTracker();
     UUID clientId = UUID.randomUUID();
     clientMessageTracker.applied(20L, clientId);
 
@@ -49,7 +49,7 @@ public class ClientMessageTrackerTest {
   @Test
   public void testClientsAreTrackedLazily() throws Exception {
 
-    ClientMessageTracker clientMessageTracker = new ClientMessageTracker();
+    ClientMessageTracker clientMessageTracker = new DefaultClientMessageTracker();
     Map messageTracker = getMessageTracker(clientMessageTracker);
     assertThat(messageTracker.size(), is(0));
     clientMessageTracker.applied(20L, UUID.randomUUID());
@@ -58,7 +58,7 @@ public class ClientMessageTrackerTest {
   }
 
   private Map getMessageTracker(ClientMessageTracker clientMessageTracker) throws Exception {
-    Field field = clientMessageTracker.getClass().getDeclaredField("messageTrackers");
+    Field field = clientMessageTracker.getClass().getDeclaredField("clientUUIDMessageTrackerMap");
     field.setAccessible(true);
     return (Map)field.get(clientMessageTracker);
   }
