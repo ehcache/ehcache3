@@ -131,6 +131,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return stores.get(name);
   }
 
+  @Override
+  public void loadStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    if (getStore(name) == null) {
+      LOGGER.warn("Clustered Tier {} not properly recovered on fail over.", name);
+    }
+  }
+
   public Set<String> getStores() {
     return Collections.unmodifiableSet(stores.keySet());
   }
