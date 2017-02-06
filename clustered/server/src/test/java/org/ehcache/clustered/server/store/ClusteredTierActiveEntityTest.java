@@ -34,12 +34,13 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
+import org.ehcache.clustered.server.ServerSideServerStore;
+import org.ehcache.clustered.server.ServerStoreEvictionListener;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
-import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusteredTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +54,7 @@ import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -78,7 +80,6 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -88,6 +89,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class ClusteredTierActiveEntityTest {
 
@@ -201,6 +203,20 @@ public class ClusteredTierActiveEntityTest {
     Set<ClientDescriptor> connectedClients = activeEntity.getConnectedClients();
     assertThat(connectedClients, hasSize(1));
     assertThat(connectedClients, hasItem(client2));
+  }
+
+  @Test
+  public void testLoadExistingRegistersEvictionListener() throws Exception {
+    EhcacheStateService stateService = mock(EhcacheStateService.class);
+
+    ServerSideServerStore store = mock(ServerSideServerStore.class);
+    when(stateService.getStore(defaultStoreName)).thenReturn(store);
+
+    IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
+    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null);
+    ClusteredTierActiveEntity activeEntity = new ClusteredTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.loadExisting();
+    verify(store).setEvictionListener(any(ServerStoreEvictionListener.class));
   }
 
   @Test
@@ -1096,6 +1112,27 @@ public class ClusteredTierActiveEntityTest {
     Exception cause = ((EhcacheEntityResponse.Failure) response).getCause();
     assertThat(cause, is(instanceOf(expectedException)));
     assertThat(cause.getMessage(), containsString(expectedMessageContent));
+  }
+
+  @SuppressWarnings("unchecked")
+  ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
+                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService) {
+    return new ServiceRegistry() {
+      @Override
+      public <T> T getService(final ServiceConfiguration<T> configuration) {
+        Class<T> serviceType = configuration.getServiceType();
+        if (serviceType.isAssignableFrom(ClientCommunicator.class)) {
+          return (T) clientCommunicator;
+        } else if (serviceType.isAssignableFrom(IEntityMessenger.class)) {
+          return (T) entityMessenger;
+        } else if (serviceType.isAssignableFrom(EhcacheStateService.class)) {
+          return (T) stateService;
+        } else if (serviceType.isAssignableFrom(EntityMonitoringService.class)) {
+          return (T) entityMonitoringService;
+        }
+        throw new AssertionError("Unknown service configuration of type: " + serviceType);
+      }
+    };
   }
 
   /**

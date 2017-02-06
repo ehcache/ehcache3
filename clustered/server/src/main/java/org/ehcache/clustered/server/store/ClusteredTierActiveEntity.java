@@ -147,6 +147,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
   @Override
   public void loadExisting() {
     stateService.loadStore(storeIdentifier, configuration);
+    stateService.getStore(storeIdentifier).setEvictionListener(this::invalidateHashAfterEviction);
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = synchronizedList(new ArrayList<>());
     if (!isStrong()) {
@@ -523,7 +524,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
     addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
 
-    serverStore.setEvictionListener(this::invalidateHashAfterEviction);
     attachStore(clientDescriptor, storeIdentifier);
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
