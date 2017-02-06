@@ -20,7 +20,6 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
@@ -147,16 +146,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
   @Override
   public void loadExisting() {
-    ServerSideServerStore store = stateService.getStore(storeIdentifier);
-    if (store != null) {
-      try {
-        storeCompatibility.verify(store.getStoreConfiguration(), configuration);
-      } catch (InvalidServerStoreConfigurationException e) {
-        throw new AssertionError("Configuration mismatch", e);
-      }
-    } else {
-      throw new AssertionError("Clustered tier '" + storeIdentifier + "' does not exist");
-    }
+    stateService.loadStore(storeIdentifier, configuration);
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = synchronizedList(new ArrayList<>());
     if (!isStrong()) {
@@ -514,8 +504,10 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
     if (invalidationTrackerManager != null) {
       InvalidationTracker invalidationTracker = stateService.getInvalidationTrackerManager().getInvalidationTracker(storeIdentifier);
-      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
-      invalidationTracker.clear();
+      if (invalidationTracker != null) {
+        inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
+        invalidationTracker.clear();
+      }
     }
   }
 
