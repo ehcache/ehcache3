@@ -48,6 +48,8 @@ public interface EhcacheStateService {
 
   Set<String> getStores();
 
+  void prepareForDestroy();
+
   void destroy();
 
   void validate(ServerSideConfiguration configuration) throws ClusterException;

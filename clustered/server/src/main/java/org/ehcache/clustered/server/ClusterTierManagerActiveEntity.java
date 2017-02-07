@@ -197,10 +197,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    validateClientConnected(clientDescriptor, clientState);
-  }
-
-  private static void validateClientConnected(ClientDescriptor clientDescriptor, ClientState clientState) throws LifecycleException {
     if (clientState == null) {
       throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
@@ -220,8 +216,10 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   }
 
   private EhcacheEntityResponse prepareForDestroy() {
-    // TODO toggle a destroy in progress flag
-    return new EhcacheEntityResponse.PrepareForDestroy(ehcacheStateService.getStores());
+    EhcacheEntityResponse.PrepareForDestroy response = new EhcacheEntityResponse.PrepareForDestroy(ehcacheStateService
+      .getStores());
+    ehcacheStateService.prepareForDestroy();
+    return response;
   }
 
   /**

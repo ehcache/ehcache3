@@ -18,6 +18,7 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -644,6 +645,42 @@ public class ClusterTierManagerActiveEntityTest {
     }
   }
 
+  @Test
+  public void testPrepareForDestroy() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    activeEntity.invoke(client, MESSAGE_FACTORY.prepareForDestroy());
+
+    try {
+      ehcacheStateService.validate(null);
+      fail("DestroyInProgressException expected");
+    } catch (DestroyInProgressException e) {
+      assertThat(e.getMessage(), containsString("in progress for destroy"));
+    }
+  }
+
+  @Test
+  public void testPrepareForDestroyInProgress() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    ehcacheStateService.prepareForDestroy();
+
+    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(null)), DestroyInProgressException.class, "in progress for destroy");
+  }
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
