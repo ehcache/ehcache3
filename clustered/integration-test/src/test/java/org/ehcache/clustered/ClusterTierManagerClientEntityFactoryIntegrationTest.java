@@ -149,12 +149,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest {
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
-    try {
-      factory.destroy("testDestroyWhenNotExisting");
-      fail("Expected ClusterTierManagerNotFoundException");
-    } catch (ClusterTierManagerNotFoundException e) {
-      //expected
-    }
+    factory.destroy("testDestroyWhenNotExisting");
   }
 
   @Test

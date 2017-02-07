@@ -178,12 +178,8 @@ public class ClusterTierManagerClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
-    try {
-      factory.destroy("test");
-      fail("Expected ClusterTierManagerNotFoundException");
-    } catch (ClusterTierManagerNotFoundException e) {
-      //expected
-    }
+    factory.destroy("test");
+    verify(entityRef).destroy();
   }
 
   private static void addMockUnlockedLock(Connection connection, String lockname) throws Exception {

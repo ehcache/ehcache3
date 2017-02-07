@@ -37,6 +37,7 @@ import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
@@ -61,6 +62,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
@@ -147,6 +149,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } else {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
+        } catch (DestroyInProgressException e) {
+          throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
+              + " Please review your configuration.", e);
         } catch (EntityNotFoundException e) {
           throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
@@ -208,12 +213,32 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       }
       try {
         return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
+      } catch (DestroyInProgressException e) {
+        silentDestroy();
       } catch (EntityNotFoundException e) {
         //ignore - loop and try to create
       } catch (TimeoutException e) {
         throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
             + "'; retrieve operation timed out", e);
       }
+    }
+  }
+
+  private void silentDestroy() {
+    LOGGER.debug("Found a broken ClusterTierManager - trying to clean it up");
+    try {
+      // Random sleep to enable racing clients to have a window to do the cleanup
+      Thread.sleep(new Random().nextInt(1000));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    try {
+      entityFactory.destroy(entityIdentifier);
+    } catch (ClusterTierManagerNotFoundException e) {
+      // Ignore - was removed by a racing client
+    } catch (EntityBusyException e) {
+      // Ignore - we have a racy client
+      LOGGER.debug("ClusterTierManager {} marked busy when trying to clean it up", entityIdentifier);
     }
   }
 
@@ -323,6 +348,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } catch (TimeoutException e) {
         throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
                                             + "'; retrieve operation timed out", e);
+      } catch (DestroyInProgressException e) {
+        silentDestroy();
+        // Nothing left to do
+        return;
       }
     }
 

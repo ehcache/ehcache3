@@ -26,6 +26,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +171,7 @@ public class ClusterTierManagerClientEntityFactory {
    *        lifecycle operation timeout
    */
   public ClusterTierManagerClientEntity retrieve(String identifier, ServerSideConfiguration config)
-    throws EntityNotFoundException, ClusterTierManagerValidationException, TimeoutException {
+    throws DestroyInProgressException, EntityNotFoundException, ClusterTierManagerValidationException, TimeoutException {
 
     Hold fetchHold = createAccessLockFor(identifier).readLock();
 
@@ -183,17 +184,14 @@ public class ClusterTierManagerClientEntityFactory {
       throw new AssertionError(e);
     }
 
-    /*
-     * Currently entities are never closed as doing so can stall the client
-     * when the server is dead.  Instead the connection is forcibly closed,
-     * which suits our purposes since that will unlock the fetchHold too.
-     */
+    entity.setTimeouts(entityTimeouts);
     boolean validated = false;
     try {
-      entity.setTimeouts(entityTimeouts);
       entity.validate(config);
       validated = true;
       return entity;
+    } catch (DestroyInProgressException e) {
+      throw e;
     } catch (ClusterException e) {
       throw new ClusterTierManagerValidationException("Unable to validate clustered tier manager for id " + identifier, e);
     } finally {
@@ -204,7 +202,7 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws ClusterTierManagerNotFoundException, EntityBusyException, CachePersistenceException {
+  public void destroy(final String identifier) throws ClusterTierManagerNotFoundException, EntityBusyException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
 
@@ -230,7 +228,7 @@ public class ClusterTierManagerClientEntityFactory {
         LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityNotFoundException e) {
-        throw new ClusterTierManagerNotFoundException(e);
+        // Ignore - entity does not exist
       } catch (PermanentEntityException e) {
         LOGGER.error("Unable to destroy entity - server says it is permanent", e);
         throw new AssertionError(e);
@@ -246,17 +244,11 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException, CachePersistenceException {
-    ClusterTierManagerClientEntity entity;
+  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException {
+    InternalClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity();
-      try {
-        entity.validate(null);
-      } catch (ClusterException e) {
-        throw new ClusterTierManagerNotFoundException("Existing entity configuration does not match provided one", e);
-      } catch (TimeoutException e) {
-        // TODO handle this
-      }
+      entity.setClientId(UUID.randomUUID());
     } catch (EntityNotFoundException e) {
       // Ignore - means entity does not exist
       return;
@@ -270,6 +262,8 @@ public class ClusterTierManagerClientEntityFactory {
         destroyClusteredStoreEntity(identifier, storeIdentifier);
       } catch (EntityNotFoundException e) {
         // Ignore - assume it was deleted already
+      } catch (CachePersistenceException e) {
+        throw new AssertionError("Unable to destroy cluster tier - in use: " + e.getMessage());
       }
     }
     entity.close();

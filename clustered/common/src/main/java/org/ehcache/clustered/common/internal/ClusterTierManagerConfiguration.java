@@ -38,4 +38,24 @@ public class ClusterTierManagerConfiguration {
   public String getIdentifier() {
     return identifier;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    ClusterTierManagerConfiguration that = (ClusterTierManagerConfiguration) o;
+
+    if (!identifier.equals(that.identifier)) {
+      return false;
+    }
+    return configuration.equals(that.configuration);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = identifier.hashCode();
+    result = 31 * result + configuration.hashCode();
+    return result;
+  }
 }
