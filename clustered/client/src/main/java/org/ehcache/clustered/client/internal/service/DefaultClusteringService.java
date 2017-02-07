@@ -81,7 +81,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
-  EhcacheClientEntity entity;
+  private EhcacheClientEntity entity;
   private final ConcurrentMap<String, ClusteredTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusteredTierClientEntity>();
 
   private volatile boolean inMaintenance = false;

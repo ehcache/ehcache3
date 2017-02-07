@@ -18,7 +18,6 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 
@@ -28,7 +27,6 @@ import java.nio.ByteBuffer;
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @CommonComponent
 public class ServerStoreImpl implements ServerSideServerStore {

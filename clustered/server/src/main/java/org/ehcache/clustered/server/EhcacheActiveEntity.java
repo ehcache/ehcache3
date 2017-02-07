@@ -58,7 +58,6 @@ import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.Va
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
-  static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -67,11 +66,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
    */
   private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
 
-  private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
-      new ConcurrentHashMap<>();
-
   private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
-  private final Set<UUID> trackedClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
@@ -149,7 +144,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       } catch (MessageCodecException mce) {
         throw new AssertionError("Codec error", mce);
       }
-      trackedClients.remove(clientId);
       ehcacheStateService.getClientMessageTracker().remove(clientId);
     }
   }
@@ -179,7 +173,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
     if (!reconnectComplete.get()) {
       if (reconnectComplete.compareAndSet(false, true)) {
-        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(trackedClients);
+        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(clientIdMap.values());
       }
     }
 
@@ -264,20 +258,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
    */
   @Override
   public void destroy() {
-    /*
-     * Ensure the allocated stores are closed out.
-     */
-    for (String store : ehcacheStateService.getStores()) {
-      final Set<ClientDescriptor> attachedClients = storeClientMap.get(store);
-      if (attachedClients != null && !attachedClients.isEmpty()) {
-        // This is logically an AssertionError; logging and continuing destroy
-        LOGGER.error("Clustered tier '{}' has {} clients attached during clustered tier manager destroy", store);
-      }
-
-      LOGGER.info("Destroying clustered tier '{}' for clustered tier manager destroy", store);
-      storeClientMap.remove(store);
-    }
-
     ehcacheStateService.destroy();
 
   }
@@ -294,7 +274,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     validateClientConnected(clientDescriptor);
     if (clientIdMap.get(clientDescriptor) != null) {
       throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
-    } else if (trackedClients.contains(message.getClientId())) {
+    } else if (clientIdMap.values().contains(message.getClientId())) {
       throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
     }
 
@@ -307,7 +287,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
     LOGGER.info("Adding Client {} with client ID : {} ", clientDescriptor, clientId);
     clientIdMap.put(clientDescriptor, clientId);
-    trackedClients.add(clientId);
   }
 
 }

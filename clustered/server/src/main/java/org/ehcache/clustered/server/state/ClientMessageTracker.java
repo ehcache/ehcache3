@@ -18,6 +18,7 @@ package org.ehcache.clustered.server.state;
 
 import com.tc.classloader.CommonComponent;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,27 +34,27 @@ public interface ClientMessageTracker {
    * @param msgId Message Id to be checked.
    * @param clientId client identifier
    */
-  public void applied(long msgId, UUID clientId);
+  void applied(long msgId, UUID clientId);
 
   /**
    * Check that the message is already seen by the server.
    * @param msgId Message Id to be checked.
    * @param clientId client identifier
-   * @return
+   * @return {@code true} if the message is a duplicate, {@code false} otherwise
    */
-  public boolean isDuplicate(long msgId, UUID clientId);
+  boolean isDuplicate(long msgId, UUID clientId);
 
   /**
    * Remove the given clientId and associated state.
    * @param clientId Client Identifier
    */
-  public void remove(UUID clientId);
+  void remove(UUID clientId);
 
 
   /**
    * Reconcile the clientId with the caller.
    * @param trackedClients Client Identifiers to be reconciled.
    */
-  public void reconcileTrackedClients(Set<UUID> trackedClients);
+  void reconcileTrackedClients(Collection<UUID> trackedClients);
 
 }
