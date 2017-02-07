@@ -17,7 +17,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.Consistency;
@@ -77,8 +77,8 @@ public class StrongServerStoreProxyTest {
     Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
     Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
-    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
+    ClusterTierManagerClientEntityFactory entityFactory1 = new ClusterTierManagerClientEntityFactory(connection1);
+    ClusterTierManagerClientEntityFactory entityFactory2 = new ClusterTierManagerClientEntityFactory(connection2);
 
     entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));

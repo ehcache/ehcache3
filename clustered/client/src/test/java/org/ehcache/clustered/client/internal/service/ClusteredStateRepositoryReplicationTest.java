@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
@@ -27,7 +27,7 @@ import org.ehcache.clustered.client.internal.store.SimpleClusteredTierClientEnti
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -61,8 +61,8 @@ public class ClusteredStateRepositoryReplicationTest {
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
       server -> {
-        server.registerServerEntityService(new EhcacheServerEntityService());
-        server.registerClientEntityService(new EhcacheClientEntityService());
+        server.registerServerEntityService(new ClusterTierManagerServerEntityService());
+        server.registerClientEntityService(new ClusterTierManagerClientEntityService());
         server.registerServerEntityService(new ClusteredTierServerEntityService());
         server.registerClientEntityService(new ClusteredTierClientEntityService());
         server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());

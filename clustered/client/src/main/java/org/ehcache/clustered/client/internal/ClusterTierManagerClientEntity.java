@@ -29,9 +29,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
- * EhcacheClientEntity
+ * ClusterTierManagerClientEntity
  */
-public interface EhcacheClientEntity extends Entity {
+public interface ClusterTierManagerClientEntity extends Entity {
   UUID getClientId();
 
   void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException;

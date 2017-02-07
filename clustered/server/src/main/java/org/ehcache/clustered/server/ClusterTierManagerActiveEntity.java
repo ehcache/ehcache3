@@ -55,9 +55,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 
-public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierManagerActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerActiveEntity.class);
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -75,8 +75,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
 
-  public EhcacheActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config,
-                             EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
+  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config,
+                                        EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }
@@ -264,7 +264,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   /**
    * Handles the {@link ValidateStoreManager ValidateStoreManager} message.  This message is used by a client to
-   * connect to an established {@code EhcacheActiveEntity}.  This method validates the client-provided configuration
+   * connect to an established {@code ClusterTierManagerActiveEntity}.  This method validates the client-provided configuration
    * against the existing configuration to ensure compatibility.
    *
    * @param clientDescriptor the client identifier requesting attachment to a configured store manager

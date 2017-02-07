@@ -16,21 +16,15 @@
 
 package org.ehcache.clustered.client.internal;
 
+import java.util.UUID;
+
 /**
- * Thrown to reflect a failure in an operation against an {@link SimpleEhcacheClientEntity}.
+ * InternalClusterTierManagerClientEntity
  */
-public class EhcacheEntityOperationException extends Exception {
-  private static final long serialVersionUID = -6513646132049237825L;
+public interface InternalClusterTierManagerClientEntity extends ClusterTierManagerClientEntity {
 
-  public EhcacheEntityOperationException(String message) {
-    super(message);
-  }
+  void setTimeouts(Timeouts timeouts);
 
-  public EhcacheEntityOperationException(String message, Throwable cause) {
-    super(message, cause);
-  }
+  void setClientId(UUID clientId);
 
-  public EhcacheEntityOperationException(Throwable cause) {
-    super(cause);
-  }
 }

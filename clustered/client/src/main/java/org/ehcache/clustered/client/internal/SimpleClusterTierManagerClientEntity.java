@@ -47,12 +47,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
- * An instance of this class is created by the {@link EhcacheClientEntityService}.
+ * An instance of this class is created by the {@link ClusterTierManagerClientEntityService}.
  * The server-side partner is the {@code EhcacheActiveEntity}.
  */
-public class SimpleEhcacheClientEntity implements InternalEhcacheClientEntity {
+public class SimpleClusterTierManagerClientEntity implements InternalClusterTierManagerClientEntity {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleEhcacheClientEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
 
   private final AtomicLong sequenceGenerator = new AtomicLong(0L);
 
@@ -63,7 +63,7 @@ public class SimpleEhcacheClientEntity implements InternalEhcacheClientEntity {
 
   private Timeouts timeouts = Timeouts.builder().build();
 
-  public SimpleEhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate() {

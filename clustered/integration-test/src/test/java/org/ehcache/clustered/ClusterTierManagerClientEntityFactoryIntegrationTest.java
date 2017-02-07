@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
-import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
-import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
+import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.junit.AfterClass;
@@ -41,7 +41,7 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public class EhcacheClientEntityFactoryIntegrationTest {
+public class ClusterTierManagerClientEntityFactoryIntegrationTest {
 
   private static final Map<String, Pool> EMPTY_RESOURCE_MAP = Collections.emptyMap();
 
@@ -70,14 +70,14 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreate() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
 
     factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
     try {
       factory.create("testCreateWhenExisting",
@@ -90,12 +90,12 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreateWithBadConfigCleansUp() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
 
     try {
       factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
-      fail("Expected EhcacheEntityCreationException");
-    } catch (EhcacheEntityCreationException e) {
+      fail("Expected ClusterTierManagerCreationException");
+    } catch (ClusterTierManagerCreationException e) {
       try {
         factory.retrieve("testCreateWithBadConfigCleansUp", null);
         fail("Expected EntityNotFoundException");
@@ -107,7 +107,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWithGoodConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
         new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
@@ -116,21 +116,21 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
         new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))));
     try {
       factory.retrieve("testRetrieveWithBadConfig",
           new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))));
-      fail("Expected EhcacheEntityValidationException");
-    } catch (EhcacheEntityValidationException e) {
+      fail("Expected ClusterTierManagerValidationException");
+    } catch (ClusterTierManagerValidationException e) {
       //expected
     }
   }
 
   @Test
   public void testRetrieveWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     try {
       factory.retrieve("testRetrieveWhenNotExisting", null);
       fail("Expected EntityNotFoundException");
@@ -141,25 +141,25 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testDestroy() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testDestroy", new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     factory.destroy("testDestroy");
   }
 
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     try {
       factory.destroy("testDestroyWhenNotExisting");
-      fail("Expected EhcacheEntityNotFoundException");
-    } catch (EhcacheEntityNotFoundException e) {
+      fail("Expected ClusterTierManagerNotFoundException");
+    } catch (ClusterTierManagerNotFoundException e) {
       //expected
     }
   }
 
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     try {
       factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
       fail("Expected IllegalMonitorStateException");
@@ -170,18 +170,18 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipWhenAlone() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     assertThat(factory.acquireLeadership("testAcquireLeadershipWhenAlone"), is(true));
   }
 
   @Test
   public void testAcquireLeadershipWhenTaken() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
     } finally {
       clientB.close();
@@ -190,13 +190,13 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipAfterAbandoned() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
+    ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
     factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned");
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipAfterAbandoned"), is(true));
     } finally {
       clientB.close();

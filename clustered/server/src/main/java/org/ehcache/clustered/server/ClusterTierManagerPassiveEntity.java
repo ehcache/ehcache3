@@ -35,9 +35,9 @@ import org.terracotta.entity.PassiveServerEntity;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 
-public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhcachePassiveEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerPassiveEntity.class);
 
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
@@ -69,8 +69,8 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
     }
   }
 
-  public EhcachePassiveEntity(ClusteredTierManagerConfiguration config,
-                              EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
+  public ClusterTierManagerPassiveEntity(ClusteredTierManagerConfiguration config,
+                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }

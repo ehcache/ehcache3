@@ -18,23 +18,15 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
-import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.service.MaintainableService;
 import org.junit.After;
 import org.junit.Before;
@@ -96,7 +88,7 @@ public class BasicLifeCyclePassiveReplicationTest {
 
     service.start(null);
 
-    EhcacheClientEntity clientEntity = getEntity(service);
+    ClusterTierManagerClientEntity clientEntity = getEntity(service);
 
     CLUSTER.getClusterControl().terminateActive();
 
@@ -148,10 +140,10 @@ public class BasicLifeCyclePassiveReplicationTest {
     hold1.unlock();
   }
 
-  private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  private static ClusterTierManagerClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
+    return (ClusterTierManagerClientEntity)entity.get(clusteringService);
   }
 
   private void cleanUpCluster(ClusteringService service) throws CachePersistenceException {

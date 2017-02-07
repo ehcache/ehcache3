@@ -20,8 +20,8 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
-import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
+import org.ehcache.clustered.client.internal.SimpleClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -45,11 +45,11 @@ import static org.junit.Assert.*;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to
- * {@link SimpleEhcacheClientEntity} messages are wrapped before being re-thrown.  This class
+ * {@link SimpleClusterTierManagerClientEntity} messages are wrapped before being re-thrown.  This class
  * relies on {@link DefaultClusteringService} to set up conditions for the test and
  * is placed accordingly.
  */
-public class EhcacheClientEntityExceptionTest {
+public class ClusterTierManagerClientEntityExceptionTest {
   private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
 
   @Before
@@ -97,17 +97,17 @@ public class EhcacheClientEntityExceptionTest {
     try {
       accessService.start(null);
 
-      fail("Expecting EhcacheEntityValidationException");
-    } catch (EhcacheEntityValidationException e) {
+      fail("Expecting ClusterTierManagerValidationException");
+    } catch (ClusterTierManagerValidationException e) {
 
       /*
-       * Find the last EhcacheClientEntity involved exception in the causal chain.  This
+       * Find the last ClusterTierManagerClientEntity involved exception in the causal chain.  This
        * is where the server-side exception should have entered the client.
        */
       Throwable clientSideException = null;
       for (Throwable t = e; t.getCause() != null && t.getCause() != t; t = t.getCause()) {
         for (StackTraceElement element : t.getStackTrace()) {
-          if (element.getClassName().endsWith("EhcacheClientEntity")) {
+          if (element.getClassName().endsWith("ClusterTierManagerClientEntity")) {
             clientSideException = t;
           }
         }
@@ -124,7 +124,7 @@ public class EhcacheClientEntityExceptionTest {
       serverCheckLoop:
       {
         for (StackTraceElement element : clientSideCause.getStackTrace()) {
-          if (element.getClassName().endsWith("EhcacheActiveEntity")) {
+          if (element.getClassName().endsWith("ClusterTierManagerActiveEntity")) {
             break serverCheckLoop;
           }
         }

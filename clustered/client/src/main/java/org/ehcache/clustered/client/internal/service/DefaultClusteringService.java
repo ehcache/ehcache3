@@ -20,11 +20,11 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
-import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
-import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
+import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.Timeouts;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
@@ -80,8 +80,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final Timeouts operationTimeouts;
 
   private volatile Connection clusterConnection;
-  private EhcacheClientEntityFactory entityFactory;
-  private EhcacheClientEntity entity;
+  private ClusterTierManagerClientEntityFactory entityFactory;
+  private ClusterTierManagerClientEntity entity;
   private final ConcurrentMap<String, ClusteredTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusteredTierClientEntity>();
 
   private volatile boolean inMaintenance = false;
@@ -177,7 +177,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   private void createEntityFactory() {
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, operationTimeouts);
   }
 
   private void initClusterConnection() {
@@ -192,11 +192,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
-  private EhcacheClientEntity autoCreateEntity() throws EhcacheEntityValidationException, IllegalStateException {
+  private ClusterTierManagerClientEntity autoCreateEntity() throws ClusterTierManagerValidationException, IllegalStateException {
     while (true) {
       try {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
-      } catch (EhcacheEntityCreationException e) {
+      } catch (ClusterTierManagerCreationException e) {
         throw new IllegalStateException("Could not create the clustered tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException e) {
         //ignore - entity already exists - try to retrieve
@@ -246,7 +246,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (EhcacheEntityNotFoundException e) {
+    } catch (ClusterTierManagerNotFoundException e) {
       throw new CachePersistenceException("Clustered tiers on " + this.clusterUri + " not found", e);
     } catch (EntityBusyException e) {
       throw new CachePersistenceException("Can not delete clustered tiers on " + this.clusterUri, e);

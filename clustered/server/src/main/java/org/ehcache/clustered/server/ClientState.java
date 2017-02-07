@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server;
 
 /**
- * Represents a client's state against an {@link EhcacheActiveEntity}.
+ * Represents a client's state against an {@link ClusterTierManagerActiveEntity}.
  */
 public class ClientState {
   /**

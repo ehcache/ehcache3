@@ -18,7 +18,7 @@ package org.ehcache.clustered.server.store;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.server.EhcacheActiveEntity;
+import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
@@ -105,7 +105,7 @@ public class ObservableClusterTierServerEntityService
   }
 
   /**
-   * Provides access to unit test state methods in an {@link EhcacheActiveEntity} instance.
+   * Provides access to unit test state methods in an {@link ClusterTierManagerActiveEntity} instance.
    */
   public static final class ObservableClusterTierActiveEntity {
     private final ClusteredTierActiveEntity activeEntity;

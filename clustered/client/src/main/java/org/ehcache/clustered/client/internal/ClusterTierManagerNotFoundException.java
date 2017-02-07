@@ -17,19 +17,21 @@
 package org.ehcache.clustered.client.internal;
 
 /**
- * Thrown to indicate a failure in validating an {@code Entity} supporting clustered operations.
+ * Thrown to indicate that the server-side {@code EhcacheActiveEntity} for a clustered
+ * cache operation is not found.
  */
-public class EhcacheEntityValidationException extends RuntimeException {
+public class ClusterTierManagerNotFoundException extends Exception {
+  private static final long serialVersionUID = -8806099086689843869L;
 
-  public EhcacheEntityValidationException(String message) {
+  public ClusterTierManagerNotFoundException(String message) {
     super(message);
   }
 
-  public EhcacheEntityValidationException(String message, Throwable cause) {
+  public ClusterTierManagerNotFoundException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public EhcacheEntityValidationException(Throwable cause) {
+  public ClusterTierManagerNotFoundException(Throwable cause) {
     super(cause);
   }
 }

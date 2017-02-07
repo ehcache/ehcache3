@@ -33,8 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.InternalEhcacheClientEntity;
-import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
+import org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
@@ -80,14 +79,14 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @Test
   public void testAutoCreatedCacheManager() throws Exception {
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
             .build();
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
     try {
-      assertEntityExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     } finally {
       manager.close();
     }
@@ -99,10 +98,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     PersistentCacheManager manager = (PersistentCacheManager) newCacheManager(new XmlConfiguration(substitutedXml));
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     manager.init();
     try {
-      assertEntityExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     } finally {
       manager.close();
     }
@@ -110,7 +109,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @Test
   public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
@@ -124,7 +123,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       }
     };
 
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -135,7 +134,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       for (Future<PersistentCacheManager> result : results) {
         result.get().close();
       }
-      assertEntityExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
     } finally {
       executor.shutdown();
     }

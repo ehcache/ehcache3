@@ -47,20 +47,20 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 
-public class EhcacheClientEntityFactory {
+public class ClusterTierManagerClientEntityFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntityFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerClientEntityFactory.class);
 
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
   private final Timeouts entityTimeouts;
 
-  public EhcacheClientEntityFactory(Connection connection) {
+  public ClusterTierManagerClientEntityFactory(Connection connection) {
     this(connection, Timeouts.builder().build());
   }
 
-  public EhcacheClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
+  public ClusterTierManagerClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
     this.connection = connection;
     this.entityTimeouts = entityTimeouts;
   }
@@ -93,14 +93,14 @@ public class EhcacheClientEntityFactory {
    * @param config the {@code EhcacheActiveEntity} configuration to use for creation
    *
    * @throws EntityAlreadyExistsException if the {@code EhcacheActiveEntity} for {@code identifier} already exists
-   * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
+   * @throws ClusterTierManagerCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
    * @throws EntityBusyException if another client holding operational leadership prevented this client
    *        from becoming leader and creating the {@code EhcacheActiveEntity} instance
    * @throws TimeoutException if the creation and configuration of the {@code EhcacheActiveEntity} exceed the
    *        lifecycle operation timeout
    */
   public void create(final String identifier, final ServerSideConfiguration config)
-    throws EntityAlreadyExistsException, EhcacheEntityCreationException, EntityBusyException, TimeoutException {
+    throws EntityAlreadyExistsException, ClusterTierManagerCreationException, EntityBusyException, TimeoutException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
     if (existingMaintenance == null) {
@@ -114,12 +114,12 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         while (true) {
           ref.create(new ClusteredTierManagerConfiguration(identifier, config));
           try {
-            InternalEhcacheClientEntity entity = ref.fetchEntity();
+            InternalClusterTierManagerClientEntity entity = ref.fetchEntity();
             try {
               entity.setTimeouts(entityTimeouts);
               finished = true;
@@ -136,7 +136,7 @@ public class EhcacheClientEntityFactory {
           }
         }
       } catch (EntityConfigurationException e) {
-        throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
+        throw new ClusterTierManagerCreationException("Unable to configure clustered tier manager for id " + identifier, e);
       } catch (EntityNotProvidedException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
@@ -161,7 +161,7 @@ public class EhcacheClientEntityFactory {
    * @param identifier the instance identifier for the {@code EhcacheActiveEntity}
    * @param config the {@code EhcacheActiveEntity} configuration to use for access checking
    *
-   * @return an {@code EhcacheClientEntity} providing access to the {@code EhcacheActiveEntity} identified by
+   * @return an {@code ClusterTierManagerClientEntity} providing access to the {@code EhcacheActiveEntity} identified by
    *      {@code identifier}
    *
    * @throws EntityNotFoundException if the {@code EhcacheActiveEntity} identified as {@code identifier} does not exist
@@ -169,12 +169,12 @@ public class EhcacheClientEntityFactory {
    * @throws TimeoutException if the creation and configuration of the {@code EhcacheActiveEntity} exceed the
    *        lifecycle operation timeout
    */
-  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config)
-    throws EntityNotFoundException, EhcacheEntityValidationException, TimeoutException {
+  public ClusterTierManagerClientEntity retrieve(String identifier, ServerSideConfiguration config)
+    throws EntityNotFoundException, ClusterTierManagerValidationException, TimeoutException {
 
     Hold fetchHold = createAccessLockFor(identifier).readLock();
 
-    InternalEhcacheClientEntity entity;
+    InternalClusterTierManagerClientEntity entity;
     try {
       entity = getEntityRef(identifier).fetchEntity();
     } catch (EntityVersionMismatchException e) {
@@ -195,7 +195,7 @@ public class EhcacheClientEntityFactory {
       validated = true;
       return entity;
     } catch (ClusteredTierManagerValidationException e) {
-      throw new EhcacheEntityValidationException("Unable to validate clustered tier manager for id " + identifier, e);
+      throw new ClusterTierManagerValidationException("Unable to validate clustered tier manager for id " + identifier, e);
     } finally {
       if (!validated) {
         silentlyClose(entity, identifier);
@@ -204,7 +204,7 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException, CachePersistenceException {
+  public void destroy(final String identifier) throws ClusterTierManagerNotFoundException, EntityBusyException, CachePersistenceException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
 
@@ -219,7 +219,7 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       destroyAllClusteredTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -230,7 +230,7 @@ public class EhcacheClientEntityFactory {
         LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityNotFoundException e) {
-        throw new EhcacheEntityNotFoundException(e);
+        throw new ClusterTierManagerNotFoundException(e);
       } catch (PermanentEntityException e) {
         LOGGER.error("Unable to destroy entity - server says it is permanent", e);
         throw new AssertionError(e);
@@ -246,14 +246,14 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  private void destroyAllClusteredTiers(EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws EhcacheEntityNotFoundException, CachePersistenceException {
-    EhcacheClientEntity entity;
+  private void destroyAllClusteredTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException, CachePersistenceException {
+    ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity();
       try {
         entity.validate(null);
       } catch (ClusteredTierManagerValidationException e) {
-        throw new EhcacheEntityNotFoundException("Existing entity configuration does not match provided one", e);
+        throw new ClusterTierManagerNotFoundException("Existing entity configuration does not match provided one", e);
       } catch (TimeoutException e) {
         // TODO handle this
       }
@@ -275,7 +275,7 @@ public class EhcacheClientEntityFactory {
     entity.close();
   }
 
-  private void silentlyClose(EhcacheClientEntity entity, String identifier) {
+  private void silentlyClose(ClusterTierManagerClientEntity entity, String identifier) {
     try {
       entity.close();
     } catch (Exception e) {
@@ -292,12 +292,12 @@ public class EhcacheClientEntityFactory {
   }
 
   private VoltronReadWriteLock createAccessLockFor(String entityIdentifier) {
-    return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
+    return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
+  private EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(InternalEhcacheClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get clustered tier manager for id {}", identifier, e);
       throw new AssertionError(e);
