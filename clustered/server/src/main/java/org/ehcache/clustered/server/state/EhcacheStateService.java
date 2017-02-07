@@ -44,7 +44,7 @@ public interface EhcacheStateService {
 
   ServerSideServerStore getStore(String name);
 
-  void loadStore(String name, ServerStoreConfiguration serverStoreConfiguration);
+  ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration);
 
   Set<String> getStores();
 

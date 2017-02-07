@@ -83,6 +83,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -210,7 +211,7 @@ public class ClusterTierActiveEntityTest {
     EhcacheStateService stateService = mock(EhcacheStateService.class);
 
     ServerSideServerStore store = mock(ServerSideServerStore.class);
-    when(stateService.getStore(defaultStoreName)).thenReturn(store);
+    when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
     IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null);
