@@ -16,13 +16,9 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.entity.InvokeFuture;
-import org.terracotta.entity.MessageCodecException;
 
 import java.util.Set;
 import java.util.UUID;
@@ -34,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 public interface ClusterTierManagerClientEntity extends Entity {
   UUID getClientId();
 
-  void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException;
+  void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException;
 
   Set<String> prepareForDestroy();
 

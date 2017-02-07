@@ -17,15 +17,15 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,7 +194,7 @@ public class ClusterTierManagerClientEntityFactory {
       entity.validate(config);
       validated = true;
       return entity;
-    } catch (ClusteredTierManagerValidationException e) {
+    } catch (ClusterException e) {
       throw new ClusterTierManagerValidationException("Unable to validate clustered tier manager for id " + identifier, e);
     } finally {
       if (!validated) {
@@ -252,7 +252,7 @@ public class ClusterTierManagerClientEntityFactory {
       entity = ref.fetchEntity();
       try {
         entity.validate(null);
-      } catch (ClusteredTierManagerValidationException e) {
+      } catch (ClusterException e) {
         throw new ClusterTierManagerNotFoundException("Existing entity configuration does not match provided one", e);
       } catch (TimeoutException e) {
         // TODO handle this

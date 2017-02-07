@@ -17,17 +17,16 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,26 +108,22 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   }
 
   @Override
-  public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
-    try {
-      boolean clientIdGenerated = false;
-      while (true) {
-        try {
-          if (clientIdGenerated || clientId == null) {
-            clientId = UUID.randomUUID();
-            clientIdGenerated = true;
-          }
-          this.messageFactory.setClientId(clientId);
-          invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
-          return;
-        } catch (InvalidClientIdException e) {
-          if (!clientIdGenerated) {
-            throw new AssertionError("Injected ClientID refused by server - " + clientId);
-          }
+  public void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException {
+    boolean clientIdGenerated = false;
+    while (true) {
+      try {
+        if (clientIdGenerated || clientId == null) {
+          clientId = UUID.randomUUID();
+          clientIdGenerated = true;
+        }
+        this.messageFactory.setClientId(clientId);
+        invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
+        return;
+      } catch (InvalidClientIdException e) {
+        if (!clientIdGenerated) {
+          throw new AssertionError("Injected ClientID refused by server - " + clientId);
         }
       }
-    } catch (ClusterException e) {
-      throw new ClusteredTierManagerValidationException("Error validating server clustered tier manager", e);
     }
   }
 
