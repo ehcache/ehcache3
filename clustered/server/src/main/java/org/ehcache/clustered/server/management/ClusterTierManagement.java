@@ -60,7 +60,7 @@ public class ClusterTierManagement {
     }
 
     // create a management registry for this entity to handle exposed objects and stats
-    // if management-server distribution is on the classpath
+    // if mnm-server distribution is on the classpath
     managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService));
 
     if (managementRegistry != null) {

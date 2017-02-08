@@ -61,7 +61,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = tmsAgentService.readTopology();
+    Cluster cluster = nmsService.readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     //System.out.println(json);
   }
@@ -86,7 +86,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     Capability[] capabilities = readTopology().getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(capabilities.length).isEqualTo(5);
     assertThat(capabilities[0].getName()).isEqualTo("ActionsCapability");
-    assertThat(capabilities[1].getName()).isEqualTo("ManagementAgentService");
+    assertThat(capabilities[1].getName()).isEqualTo("NmsAgentService");
     assertThat(capabilities[2].getName()).isEqualTo("SettingsCapability");
     assertThat(capabilities[3].getName()).isEqualTo("StatisticCollectorCapability");
     assertThat(capabilities[4].getName()).isEqualTo("StatisticsCapability");
