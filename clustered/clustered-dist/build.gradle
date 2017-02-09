@@ -31,6 +31,8 @@ ext {
 dependencies {
   compile project(':clustered:client')
   compile project(':clustered:common')
+  // Needed because declared as provided in the different projects
+  compile "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 apply plugin: 'distribution'
@@ -42,8 +44,8 @@ configurations {
 }
 
 dependencies {
-  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
-  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion" changing true
+  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -52,9 +54,12 @@ dependencies {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
+  // Needed because declared as provided in the different projects
+  serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
+
+  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
 }
 
@@ -99,7 +104,7 @@ distributions {
         from project(':dist').javadocJar.archivePath.getPath()
       }
       into ('client/lib') {
-        from configurations.shadow
+        from configurations.shadowCompile
       }
       into ('') {
         from 'src/assemble'

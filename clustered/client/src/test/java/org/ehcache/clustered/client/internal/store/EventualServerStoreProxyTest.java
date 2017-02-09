@@ -19,13 +19,17 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
+import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.AfterClass;
@@ -37,6 +41,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -55,41 +60,50 @@ public class EventualServerStoreProxyTest {
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
+
   private static EhcacheClientEntity clientEntity1;
   private static EhcacheClientEntity clientEntity2;
   private static EventualServerStoreProxy serverStoreProxy1;
   private static EventualServerStoreProxy serverStoreProxy2;
+  private static ObservableEhcacheServerEntityService observableEhcacheServerEntityService = new ObservableEhcacheServerEntityService();
 
   @BeforeClass
   public static void setUp() throws Exception {
     UnitTestConnectionService.add(CLUSTER_URI,
         new PassthroughServerBuilder()
+            .serverEntityService(observableEhcacheServerEntityService)
+            .clientEntityService(new EhcacheClientEntityService())
+            .serverEntityService(new VoltronReadWriteLockServerEntityService())
+            .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)
             .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+    UnitTestConnectionService unitTestConnectionService = new UnitTestConnectionService();
+    Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
+    Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
+    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
 
-    entityFactory.create("TestCacheManager",
+    entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity1 = entityFactory.retrieve("TestCacheManager",
+    clientEntity1 = entityFactory1.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity2 = entityFactory.retrieve("TestCacheManager",
+    clientEntity2 = entityFactory2.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG);
+        .getName(), Consistency.EVENTUAL);
     clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
     // required to attach the store to the client
     clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
-    serverStoreProxy1 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
-    serverStoreProxy2 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
+    serverStoreProxy1 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
+    serverStoreProxy2 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
   }
 
   @AfterClass
@@ -164,6 +178,8 @@ public class EventualServerStoreProxyTest {
     // test that each time the server evicted, the other client got notified on top of normal invalidations
     assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + evictionCount));
 
+    assertThatClientsWaitingForInvalidationIsEmpty();
+
     serverStoreProxy1.removeInvalidationListener(listener1);
     serverStoreProxy2.removeInvalidationListener(listener2);
   }
@@ -191,6 +207,7 @@ public class EventualServerStoreProxyTest {
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
+    assertThatClientsWaitingForInvalidationIsEmpty();
     serverStoreProxy1.removeInvalidationListener(listener);
   }
 
@@ -217,6 +234,7 @@ public class EventualServerStoreProxyTest {
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
+    assertThatClientsWaitingForInvalidationIsEmpty();
     serverStoreProxy1.removeInvalidationListener(listener);
   }
 
@@ -243,7 +261,23 @@ public class EventualServerStoreProxyTest {
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedAll.get(), is(true));
+    assertThatClientsWaitingForInvalidationIsEmpty();
     serverStoreProxy1.removeInvalidationListener(listener);
+  }
+
+  private static void assertThatClientsWaitingForInvalidationIsEmpty() throws Exception {
+    ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity activeEntity = observableEhcacheServerEntityService.getServedActiveEntities().get(0);
+    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+      while (true) {
+      try {
+        if (activeEntity.getClientsWaitingForInvalidation().size() == 0) {
+          return true;
+        }
+      } catch (Exception e) {
+      }
+    }
+    });
+    assertThat(future.get(5, TimeUnit.SECONDS), is(true));
   }
 
 }

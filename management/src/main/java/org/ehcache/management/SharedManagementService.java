@@ -44,6 +44,6 @@ public interface SharedManagementService extends CapabilityManagementSupport, Se
    *
    * @return a map of capabilities, where the key is the alias of the cache manager
    */
-  Map<Context, Collection<Capability>> getCapabilities();
+  Map<Context, Collection<? extends Capability>> getCapabilitiesByContext();
 
 }

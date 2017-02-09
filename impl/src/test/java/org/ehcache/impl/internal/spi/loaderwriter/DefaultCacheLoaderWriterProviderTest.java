@@ -24,6 +24,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -108,13 +109,17 @@ public class DefaultCacheLoaderWriterProviderTest {
     configuration.addLoaderFor("cache", MyLoader.class);
     DefaultCacheLoaderWriterProvider loaderWriterProvider = new DefaultCacheLoaderWriterProvider(configuration);
 
-    loaderWriterProvider.start(mock(ServiceProvider.class));
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    loaderWriterProvider.start(serviceProvider);
+    @SuppressWarnings("unchecked")
+    CacheConfiguration<Object, Object> cacheConfiguration = mock(CacheConfiguration.class);
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
 
     loaderWriterProvider.stop();
-    loaderWriterProvider.start(mock(ServiceProvider.class));
+    loaderWriterProvider.start(serviceProvider);
 
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {
@@ -140,7 +145,7 @@ public class DefaultCacheLoaderWriterProviderTest {
 
     @Override
     public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+      lastWritten = value;
     }
 
     @Override
@@ -177,7 +182,7 @@ public class DefaultCacheLoaderWriterProviderTest {
 
     @Override
     public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+      lastWritten = value;
     }
 
   }

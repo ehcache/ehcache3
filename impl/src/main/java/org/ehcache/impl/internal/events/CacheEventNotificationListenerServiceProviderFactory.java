@@ -35,7 +35,7 @@ public class CacheEventNotificationListenerServiceProviderFactory implements Ser
   }
 
   @Override
-  public Class<CacheEventDispatcherFactory> getServiceType() {
-    return CacheEventDispatcherFactory.class;
+  public Class<? extends CacheEventDispatcherFactory> getServiceType() {
+    return CacheEventDispatcherFactoryImpl.class;
   }
 }

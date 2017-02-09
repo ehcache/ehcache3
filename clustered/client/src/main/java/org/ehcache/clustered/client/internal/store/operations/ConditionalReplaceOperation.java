@@ -53,16 +53,17 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     }
     this.timeStamp = buffer.getLong();
     int keySize = buffer.getInt();
+    int maxLimit = buffer.limit();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
     buffer.position(buffer.limit());
-    buffer.limit(buffer.capacity());
+    buffer.limit(maxLimit);
 
     int oldValueSize = buffer.getInt();
     buffer.limit(buffer.position() + oldValueSize);
     ByteBuffer oldValueBlob = buffer.slice();
     buffer.position(buffer.limit());
-    buffer.limit(buffer.capacity());
+    buffer.limit(maxLimit);
 
     ByteBuffer valueBlob = buffer.slice();
 
@@ -146,7 +147,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
       return false;
     }
 
-    ConditionalReplaceOperation<K, V> other = (ConditionalReplaceOperation)obj;
+    @SuppressWarnings("unchecked")
+    ConditionalReplaceOperation<K, V> other = (ConditionalReplaceOperation) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }

@@ -17,7 +17,10 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
@@ -32,11 +35,18 @@ import static org.mockito.Mockito.verify;
 
 public class LazyValueHolderTest {
 
+  @Mock
+  private Serializer<Date> serializer;
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
+
   @Test
   public void testGetValueDecodeOnlyOnce() throws Exception {
     Date date = mock(Date.class);
     ByteBuffer buffer = mock(ByteBuffer.class);
-    Serializer<Date> serializer = mock(Serializer.class);
     doReturn(date).when(serializer).read(buffer);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(buffer, serializer);
@@ -51,7 +61,6 @@ public class LazyValueHolderTest {
   public void testEncodeEncodesOnlyOnce() throws Exception {
     Date date = mock(Date.class);
     ByteBuffer buffer = mock(ByteBuffer.class);
-    Serializer<Date> serializer = mock(Serializer.class);
     doReturn(buffer).when(serializer).serialize(date);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(date);
@@ -65,7 +74,6 @@ public class LazyValueHolderTest {
   @Test
   public void testEncodeDoesNotEncodeAlreadyEncodedValue() throws Exception {
     ByteBuffer buffer = mock(ByteBuffer.class);
-    Serializer<Date> serializer = mock(Serializer.class);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(buffer, serializer);
     ByteBuffer encoded = valueHolder.encode(serializer);

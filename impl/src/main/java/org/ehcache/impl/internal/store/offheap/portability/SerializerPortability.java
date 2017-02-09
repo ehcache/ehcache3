@@ -51,7 +51,9 @@ public class SerializerPortability<T> implements Portability<T> {
   @Override
   public boolean equals(Object o, ByteBuffer byteBuffer) {
     try {
-      return serializer.equals((T)o, byteBuffer);
+      @SuppressWarnings("unchecked")
+      T otherValue = (T) o;
+      return serializer.equals(otherValue, byteBuffer);
     } catch (ClassNotFoundException e) {
       throw new SerializerException(e);
     }

@@ -43,6 +43,7 @@ public class ObservableEhcacheServerEntityService
   private final EhcacheServerEntityService delegate = new EhcacheServerEntityService();
 
   private final List<EhcacheActiveEntity> servedActiveEntities = new ArrayList<EhcacheActiveEntity>();
+  private final List<EhcachePassiveEntity> servedPassiveEntities = new ArrayList<>();
 
   /**
    * Gets a list of {@link ObservableEhcacheActiveEntity} instances wrapping the
@@ -54,6 +55,14 @@ public class ObservableEhcacheServerEntityService
     List<ObservableEhcacheActiveEntity> observables = new ArrayList<ObservableEhcacheActiveEntity>(servedActiveEntities.size());
     for (EhcacheActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableEhcacheActiveEntity(servedActiveEntity));
+    }
+    return Collections.unmodifiableList(observables);
+  }
+
+  public List<ObservableEhcachePassiveEntity> getServedPassiveEntities() throws Exception {
+    List<ObservableEhcachePassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
+    for (EhcachePassiveEntity servedPassiveEntity : servedPassiveEntities) {
+      observables.add(new ObservableEhcachePassiveEntity(servedPassiveEntity));
     }
     return Collections.unmodifiableList(observables);
   }
@@ -76,8 +85,10 @@ public class ObservableEhcacheServerEntityService
   }
 
   @Override
-  public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return delegate.createPassiveEntity(registry, configuration);
+  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
+    EhcachePassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
+    servedPassiveEntities.add(passiveEntity);
+    return passiveEntity;
   }
 
   @Override
@@ -136,5 +147,30 @@ public class ObservableEhcacheServerEntityService
     public Set<String> getDedicatedResourcePoolIds() {
       return ehcacheStateService.getDedicatedResourcePoolIds();
     }
+
+    public Map getClientsWaitingForInvalidation() throws Exception {
+      Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
+      field.setAccessible(true);
+      return (Map)field.get(activeEntity);
+    }
+  }
+
+  public static final class ObservableEhcachePassiveEntity {
+    private final EhcachePassiveEntity passiveEntity;
+    private final EhcacheStateServiceImpl ehcacheStateService;
+
+    private ObservableEhcachePassiveEntity(EhcachePassiveEntity passiveEntity) throws Exception {
+      this.passiveEntity = passiveEntity;
+      Field field = passiveEntity.getClass().getDeclaredField("ehcacheStateService");
+      field.setAccessible(true);
+      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
+    }
+
+    public Map getMessageTrackerMap() throws Exception {
+      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("messageTrackers");
+      field.setAccessible(true);
+      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
+    }
+
   }
 }

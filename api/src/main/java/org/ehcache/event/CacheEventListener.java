@@ -38,6 +38,6 @@ public interface CacheEventListener<K, V> {
    *
    * @param event the actual {@code CacheEvent}
    */
-  void onEvent(CacheEvent<K, V> event);
+  void onEvent(CacheEvent<? extends K, ? extends V> event);
 
 }

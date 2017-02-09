@@ -22,6 +22,11 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
@@ -31,20 +36,15 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -371,11 +371,11 @@ public class XmlConfigurationTest {
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
-    assertThat(factoryConfiguration.getTransientSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getTransientSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().size(), is(4));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
@@ -675,6 +675,30 @@ public class XmlConfigurationTest {
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
+  }
+
+  @Test
+  public void testSysPropReplace() {
+    System.getProperties().setProperty("ehcache.match", Number.class.getName());
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/systemprops.xml"));
+
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
+
+    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)xmlConfig.getServiceCreationConfigurations().iterator().next();
+    assertThat(persistenceConfiguration.getRootDirectory(), is(new File(System.getProperty("user.home") + "/ehcache")));
+  }
+
+  @Test
+  public void testSysPropReplaceRegExp() {
+    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}", System.getProperties()), equalTo("foo" + File.separator));
+    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}", System.getProperties()), equalTo(File.separator + "foo" + File.separator));
+    try {
+      ConfigurationParser.replaceProperties("${bar}foo", System.getProperties());
+      fail("Should have thrown!");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage().contains("${bar}"), is(true));
+    }
+    assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

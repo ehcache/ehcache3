@@ -22,7 +22,6 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -37,7 +36,7 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.model.context.ContextContainer;
-import org.terracotta.management.registry.AbstractManagementRegistry;
+import org.terracotta.management.registry.DefaultManagementRegistry;
 import org.terracotta.management.registry.ManagementProvider;
 import org.terracotta.statistics.StatisticsManager;
 
@@ -48,8 +47,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class})
-public class DefaultManagementRegistryService extends AbstractManagementRegistry implements ManagementRegistryService, CacheManagerListener {
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
+public class DefaultManagementRegistryService extends DefaultManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile ScheduledExecutorService statisticsExecutor;
@@ -61,6 +60,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   }
 
   public DefaultManagementRegistryService(ManagementRegistryServiceConfiguration configuration) {
+    super(null); // context container creation is overriden here
     this.configuration = configuration == null ? new DefaultManagementRegistryConfiguration() : configuration;
   }
 
@@ -104,13 +104,11 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     StatisticsManager.associate(cache).withParent(cacheManager);
 
-    register(cache);
     register(new CacheBinding(alias, cache));
   }
 
   @Override
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
-    unregister(cache);
     unregister(new CacheBinding(alias, cache));
 
     StatisticsManager.dissociate(cache).fromParent(cacheManager);

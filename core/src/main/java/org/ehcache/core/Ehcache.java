@@ -45,7 +45,6 @@ import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
@@ -71,6 +70,8 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -102,6 +103,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
+  private final OperationObserver<ClearOutcome> clearObserver = operation(ClearOutcome.class).named("clear").of(this).tag("cache").build();
 
   /**
    * Creates a new {@code Ehcache} based on the provided parameters.
@@ -120,6 +122,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
+
     if (store instanceof RecoveryCache) {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
     } else {
@@ -168,10 +171,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -293,10 +296,13 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    */
   @Override
   public void clear() {
+    this.clearObserver.begin();
     statusTransitioner.checkAvailable();
     try {
       store.clear();
+        this.clearObserver.end(ClearOutcome.SUCCESS);
     } catch (StoreAccessException e) {
+      this.clearObserver.end(ClearOutcome.FAILURE);
       resilienceStrategy.clearFailure(e);
     }
   }
@@ -735,9 +741,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             if (mappedValue == null) {
-              getObserver.end(GetOutcome.MISS_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
             } else {
-              getObserver.end(GetOutcome.HIT_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
             }
 
             V newValue = computeFunction.apply(mappedKey, mappedValue);
@@ -786,17 +792,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           }
         });
       } catch (StoreAccessException e) {
-        getObserver.end(GetOutcome.FAILURE);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
         throw new RuntimeException(e);
       }
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
       }
       return returnValue;
     }
@@ -821,17 +827,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           }
         });
       } catch (StoreAccessException e) {
-        getObserver.end(GetOutcome.FAILURE);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
         throw new RuntimeException(e);
       }
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         putObserver.end(PutOutcome.UPDATED);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
         putObserver.end(PutOutcome.PUT);
       }
       return returnValue;
@@ -902,12 +908,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       if (!quiet) getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
+        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<K, V>(current);
       } else {
-        if (!quiet) getObserver.end(GetOutcome.FAILURE);
+        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         StoreAccessException cae = nextException;
         nextException = null;
         return resilienceStrategy.iteratorFailure(cae);

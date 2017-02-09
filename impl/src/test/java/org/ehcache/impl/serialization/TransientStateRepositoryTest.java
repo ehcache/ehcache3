@@ -16,10 +16,8 @@
 
 package org.ehcache.impl.serialization;
 
+import org.ehcache.spi.persistence.StateHolder;
 import org.junit.Test;
-
-import java.io.Serializable;
-import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
@@ -32,10 +30,10 @@ public class TransientStateRepositoryTest {
   @Test
   public void testRemembersCreatedMaps() throws Exception {
     TransientStateRepository repository = new TransientStateRepository();
-    ConcurrentMap<Long, String> test = repository.getPersistentConcurrentMap("test", Long.class, String.class);
-    test.put(42L, "Again??");
+    StateHolder<Long, String> test = repository.getPersistentStateHolder("test", Long.class, String.class);
+    test.putIfAbsent(42L, "Again??");
 
-    test = repository.getPersistentConcurrentMap("test", Long.class, String.class);
+    test = repository.getPersistentStateHolder("test", Long.class, String.class);
     assertThat(test.get(42L), is("Again??"));
   }
 

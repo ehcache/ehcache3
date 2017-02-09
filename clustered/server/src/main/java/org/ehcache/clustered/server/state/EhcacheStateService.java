@@ -16,36 +16,56 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
-import org.ehcache.clustered.server.ServerStoreImpl;
+import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 
 import com.tc.classloader.CommonComponent;
 
+import java.util.Map;
 import java.util.Set;
 
 @CommonComponent
 public interface EhcacheStateService {
 
-  ServerStoreImpl getStore(String name);
+  String getDefaultServerResource();
+
+  Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();
+
+  ResourcePageSource getSharedResourcePageSource(String name);
+
+  ServerSideConfiguration.Pool getDedicatedResourcePool(String name);
+
+  ResourcePageSource getDedicatedResourcePageSource(String name);
+
+  ServerSideServerStore getStore(String name);
 
   Set<String> getStores();
 
   void destroy();
 
-  void validate(ValidateStoreManager message) throws ClusterException;
+  void validate(ServerSideConfiguration configuration) throws ClusterException;
 
-  void configure(ConfigureStoreManager message) throws ClusterException;
+  void configure(ServerSideConfiguration configuration) throws ClusterException;
 
-  ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException;
+  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException;
 
   void destroyServerStore(String name) throws ClusterException;
 
   boolean isConfigured();
 
   StateRepositoryManager getStateRepositoryManager() throws ClusterException;
+
+  ClientMessageTracker getClientMessageTracker();
+
+  InvalidationTracker getInvalidationTracker(String cacheId);
+
+  void addInvalidationtracker(String cacheId);
+
+  InvalidationTracker removeInvalidationtracker(String cacheId);
+
+  void loadExisting();
 
 }

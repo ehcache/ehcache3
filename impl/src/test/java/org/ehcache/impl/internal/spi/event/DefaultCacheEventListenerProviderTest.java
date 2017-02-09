@@ -86,7 +86,7 @@ public class DefaultCacheEventListenerProviderTest {
     };
 
     @Override
-    public void onEvent(CacheEvent<Object, Object> event) {
+    public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
       //noop
     }
   }

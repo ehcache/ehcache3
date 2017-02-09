@@ -24,6 +24,7 @@ import org.ehcache.core.HumanReadable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -100,25 +101,41 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
    * @param pools the resource pools to validate
    */
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
-    EnumMap<ResourceType.Core, SizedResourcePool> coreResources = new EnumMap<ResourceType.Core, SizedResourcePool>(ResourceType.Core.class);
-    for (ResourcePool pool : pools) {
-      if (pool.getType() instanceof ResourceType.Core) {
-        coreResources.put((ResourceType.Core)pool.getType(), (SizedResourcePool)pool);
+    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(pools.size());
+    for(ResourcePool pool : pools) {
+      if (pool instanceof SizedResourcePool) {
+        ordered.add((SizedResourcePool)pool);
       }
     }
+    Collections.sort(ordered, new Comparator<SizedResourcePool>() {
+      @Override
+      public int compare(final SizedResourcePool o1, final SizedResourcePool o2) {
+        int retVal = o2.getType().getTierHeight() - o1.getType().getTierHeight();
+        if(retVal == 0) {
+          return o1.toString().compareTo(o2.toString());
+        } else {
+          return retVal;
+        }
+      }
+    });
 
-    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(coreResources.values());
     for (int i = 0; i < ordered.size(); i++) {
       for (int j = 0; j < i; j++) {
         SizedResourcePool upper = ordered.get(j);
         SizedResourcePool lower = ordered.get(i);
 
         boolean inversion;
+        boolean ambiguity;
         try {
+          ambiguity = upper.getType().getTierHeight() == lower.getType().getTierHeight();
           inversion = (upper.getUnit().compareTo(upper.getSize(), lower.getSize(), lower.getUnit()) >= 0)
-                  || (lower.getUnit().compareTo(lower.getSize(), upper.getSize(), upper.getUnit()) <= 0);
+                      || (lower.getUnit().compareTo(lower.getSize(), upper.getSize(), upper.getUnit()) <= 0);
         } catch (IllegalArgumentException e) {
+          ambiguity = false;
           inversion = false;
+        }
+        if (ambiguity) {
+          throw new IllegalArgumentException("Tiering Ambiguity: '" + upper + "' has the same tier height as '" + lower + "'");
         }
         if (inversion) {
           throw new IllegalArgumentException("Tiering Inversion: '" + upper + "' is not smaller than '" + lower + "'");

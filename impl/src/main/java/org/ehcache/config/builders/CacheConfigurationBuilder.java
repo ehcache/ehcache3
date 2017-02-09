@@ -63,8 +63,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
-  private Class<? super K> keyType;
-  private Class<? super V> valueType;
+  private Class<K> keyType;
+  private Class<V> valueType;
 
   /**
    * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type
@@ -96,13 +96,32 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  /**
+   * Creates a new instance ready to produce a {@link CacheConfiguration} functionally equivalent to the supplied configuration.
+   *
+   * @param configuration seed configuration
+   * @param <K> the key type
+   * @param <V> the value type
+   * @return a {@code CacheConfigurationBuilder}
+   */
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(CacheConfiguration<K, V> configuration) {
+    CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), configuration.getResourcePools())
+      .withClassLoader(configuration.getClassLoader())
+      .withEvictionAdvisor(configuration.getEvictionAdvisor())
+      .withExpiry(configuration.getExpiry());
+    for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
+      builder = builder.add(serviceConfig);
+    }
+    return builder;
+  }
+
   private CacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.resourcePools = resourcePools;
   }
 
-  private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
+  private CacheConfigurationBuilder(CacheConfigurationBuilder<K, V> other) {
     this.keyType = other.keyType;
     this.valueType = other.valueType;
     this.expiry = other.expiry;
@@ -342,7 +361,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -356,7 +375,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 

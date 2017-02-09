@@ -16,14 +16,10 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourceType;
-import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.spi.serialization.SerializerException;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -32,23 +28,25 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.SerializerException;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class CacheConfigurationBuilderTest {
 
@@ -65,7 +63,10 @@ public class CacheConfigurationBuilderTest {
         .withEvictionAdvisor(evictionAdvisor)
         .build();
 
-    assertThat(evictionAdvisor, (Matcher)sameInstance(cacheConfiguration.getEvictionAdvisor()));
+    @SuppressWarnings("unchecked")
+    Matcher<EvictionAdvisor<Object, Object>> evictionAdvisorMatcher = (Matcher) sameInstance(cacheConfiguration
+      .getEvictionAdvisor());
+    assertThat(evictionAdvisor, evictionAdvisorMatcher);
   }
 
   @Test
@@ -278,5 +279,34 @@ public class CacheConfigurationBuilderTest {
     sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
+  }
+
+  @Test
+  public void testCopyingOfExistingConfiguration() {
+    Class<Integer> keyClass = Integer.class;
+    Class<String> valueClass = String.class;
+    ClassLoader loader = mock(ClassLoader.class);
+    @SuppressWarnings("unchecked")
+    EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
+    @SuppressWarnings("unchecked")
+    Expiry<Integer, String> expiry = mock(Expiry.class);
+    ServiceConfiguration<?> service = mock(ServiceConfiguration.class);
+
+    CacheConfiguration<Integer, String> configuration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, heap(10))
+      .withClassLoader(loader)
+      .withEvictionAdvisor(eviction)
+      .withExpiry(expiry)
+      .add(service)
+      .build();
+
+    CacheConfiguration<Integer, String> copy = CacheConfigurationBuilder.newCacheConfigurationBuilder(configuration).build();
+
+    assertThat(copy.getKeyType(), equalTo(keyClass));
+    assertThat(copy.getValueType(), equalTo(valueClass));
+    assertThat(copy.getClassLoader(), equalTo(loader));
+
+    assertThat(copy.getEvictionAdvisor(), IsSame.<EvictionAdvisor<?, ?>>sameInstance(eviction));
+    assertThat(copy.getExpiry(), IsSame.<Expiry<?, ?>>sameInstance(expiry));
+    assertThat(copy.getServiceConfigurations(), containsInAnyOrder(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
   }
 }

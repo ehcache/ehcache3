@@ -33,7 +33,6 @@ import org.terracotta.testing.rules.Cluster;
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
 import static org.junit.Assert.fail;
 
-@Ignore
 public class VoltronReadWriteLockPassiveIntegrationTest {
 
   @ClassRule

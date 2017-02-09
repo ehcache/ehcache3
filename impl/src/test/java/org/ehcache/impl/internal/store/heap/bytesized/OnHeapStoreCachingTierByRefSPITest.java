@@ -40,6 +40,7 @@ import org.junit.Before;
 import java.util.Arrays;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<String, String> {
 
@@ -51,6 +52,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   }
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
@@ -124,7 +126,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        return new ServiceLocator();
+        return dependencySet().build();
       }
 
     };

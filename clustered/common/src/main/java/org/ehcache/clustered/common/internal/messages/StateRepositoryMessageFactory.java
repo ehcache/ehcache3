@@ -16,26 +16,30 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import java.util.UUID;
+
 public class StateRepositoryMessageFactory {
 
   private final String cacheId;
   private final String mapId;
+  private final UUID clientId;
 
-  public StateRepositoryMessageFactory(String cacheId, String mapId) {
+  public StateRepositoryMessageFactory(String cacheId, String mapId, UUID clientId) {
     this.cacheId = cacheId;
     this.mapId = mapId;
+    this.clientId = clientId;
   }
 
   public StateRepositoryOpMessage getMessage(Object key) {
-    return new StateRepositoryOpMessage.GetMessage(cacheId, mapId, key);
+    return new StateRepositoryOpMessage.GetMessage(cacheId, mapId, key, clientId);
   }
 
   public StateRepositoryOpMessage putIfAbsentMessage(Object key, Object value) {
-    return new StateRepositoryOpMessage.PutIfAbsentMessage(cacheId, mapId, key, value);
+    return new StateRepositoryOpMessage.PutIfAbsentMessage(cacheId, mapId, key, value, clientId);
   }
 
   public StateRepositoryOpMessage entrySetMessage() {
-    return new StateRepositoryOpMessage.EntrySetMessage(cacheId, mapId);
+    return new StateRepositoryOpMessage.EntrySetMessage(cacheId, mapId, clientId);
   }
 
 }

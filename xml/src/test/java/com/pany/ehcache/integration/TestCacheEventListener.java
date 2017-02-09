@@ -24,9 +24,9 @@ import org.ehcache.event.CacheEventListener;
  */
 public class TestCacheEventListener implements CacheEventListener<Number, String> {
 
-  public static CacheEvent<Number, String> FIRED_EVENT;
+  public static CacheEvent<? extends Number, ? extends String> FIRED_EVENT;
   @Override
-  public void onEvent(CacheEvent<Number, String> event) {
+  public void onEvent(CacheEvent<? extends Number, ? extends String> event) {
     FIRED_EVENT = event;
   }
 }

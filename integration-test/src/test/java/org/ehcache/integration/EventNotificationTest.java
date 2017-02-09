@@ -404,7 +404,7 @@ public class EventNotificationTest {
     private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<EventType, Integer>();
 
     @Override
-    public void onEvent(CacheEvent<Object, Object> event) {
+    public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
       Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
@@ -440,7 +440,7 @@ public class EventNotificationTest {
     }
 
     @Override
-    public void onEvent(final CacheEvent<Object, Object> event) {
+    public void onEvent(final CacheEvent<? extends Object, ? extends Object> event) {
       Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       if(event.getType() == EventType.EVICTED){
