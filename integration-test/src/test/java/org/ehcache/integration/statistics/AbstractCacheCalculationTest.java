@@ -57,6 +57,7 @@ public abstract class AbstractCacheCalculationTest extends AbstractCalculationTe
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
       //1 tier
+      { newResourcePoolsBuilder().heap(1, MB) },
       { newResourcePoolsBuilder().offheap(1, MB) },
       { newResourcePoolsBuilder().disk(1, MB) },
 
