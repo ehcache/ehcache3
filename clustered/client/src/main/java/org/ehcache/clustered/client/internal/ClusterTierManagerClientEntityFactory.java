@@ -19,14 +19,14 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -114,10 +114,10 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         while (true) {
-          ref.create(new ClusteredTierManagerConfiguration(identifier, config));
+          ref.create(new ClusterTierManagerConfiguration(identifier, config));
           try {
             InternalClusterTierManagerClientEntity entity = ref.fetchEntity();
             try {
@@ -219,8 +219,8 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
-      destroyAllClusteredTiers(ref, identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref = getEntityRef(identifier);
+      destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
           throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
@@ -246,7 +246,7 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusteredTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException, CachePersistenceException {
+  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException, CachePersistenceException {
     ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity();
@@ -295,7 +295,7 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
+  private EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
@@ -304,10 +304,10 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public ClusteredTierClientEntity fetchOrCreateClusteredStoreEntity(UUID clientId, String clusterTierManagerIdentifier,
-                                                                           String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
-                                                                           boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusteredTierEntityConfiguration> entityRef;
+  public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(UUID clientId, String clusterTierManagerIdentifier,
+                                                                   String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
+                                                                   boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -317,7 +317,7 @@ public class ClusterTierManagerClientEntityFactory {
     if (autoCreate) {
       while (true) {
         try {
-          entityRef.create(new ClusteredTierEntityConfiguration(clusterTierManagerIdentifier, storeIdentifier, clientStoreConfiguration));
+          entityRef.create(new ClusterTierEntityConfiguration(clusterTierManagerIdentifier, storeIdentifier, clientStoreConfiguration));
         } catch (EntityAlreadyExistsException e) {
           // Ignore - entity exists
         } catch (EntityConfigurationException e) {
@@ -353,7 +353,7 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   public void destroyClusteredStoreEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusteredTierEntityConfiguration> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
       if (!entityRef.destroy()) {

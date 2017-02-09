@@ -26,7 +26,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
@@ -53,20 +53,20 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 
 /**
- * ClusteredTierPassiveEntity
+ * ClusterTierPassiveEntity
  */
-public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusteredTierPassiveEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierPassiveEntity.class);
 
   private final EhcacheStateService stateService;
   private final String storeIdentifier;
   private final ClusterTierManagement management;
   private final ServerStoreConfiguration configuration;
 
-  public ClusteredTierPassiveEntity(ServiceRegistry registry, ClusteredTierEntityConfiguration config, KeySegmentMapper defaultMapper) throws ConfigurationException {
+  public ClusterTierPassiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration config, KeySegmentMapper defaultMapper) throws ConfigurationException {
     if (config == null) {
-      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+      throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     storeIdentifier = config.getStoreIdentifier();
     configuration = config.getConfiguration();

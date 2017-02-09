@@ -17,7 +17,7 @@
 package org.ehcache.clustered.server.state;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.junit.Before;
@@ -51,7 +51,7 @@ public class EhcacheStateServiceProviderTest {
 
   private PlatformConfiguration platformConfiguration;
   private ServiceProviderConfiguration serviceProviderConfiguration;
-  private ClusteredTierManagerConfiguration tierManagerConfiguration;
+  private ClusterTierManagerConfiguration tierManagerConfiguration;
 
   @Before
   public void setUp() {
@@ -80,7 +80,7 @@ public class EhcacheStateServiceProviderTest {
 
     serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
 
-    tierManagerConfiguration = new ClusteredTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
+    tierManagerConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
   }
 
   @Test
@@ -102,7 +102,7 @@ public class EhcacheStateServiceProviderTest {
 
     assertSame(ehcacheStateService, sameStateService);
 
-    ClusteredTierManagerConfiguration otherConfiguration = new ClusteredTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
+    ClusterTierManagerConfiguration otherConfiguration = new ClusterTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
     EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(otherConfiguration, null, DEFAULT_MAPPER));
 
     assertNotNull(anotherStateService);
@@ -128,7 +128,7 @@ public class EhcacheStateServiceProviderTest {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
     serviceProvider.initialize(serviceProviderConfiguration, platformConfiguration);
 
-    ClusteredTierManagerConfiguration otherConfiguration = new ClusteredTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
+    ClusterTierManagerConfiguration otherConfiguration = new ClusterTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
 
     EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER));
     EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(otherConfiguration, null, DEFAULT_MAPPER));

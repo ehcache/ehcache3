@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
@@ -75,10 +75,10 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
 
-  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config,
+  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
-      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+      throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     this.configuration = config.getConfiguration();
     this.responseFactory = new EhcacheEntityResponseFactory();

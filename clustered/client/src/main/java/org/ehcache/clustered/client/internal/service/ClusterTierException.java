@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate an error while destroying a clustered cache.
+ * Root class of all {@code ClusteredStore} failures.
  */
-public class ClusteredTierDestructionException extends ClusteredTierException {
+public abstract class ClusterTierException extends Exception {
 
-  public ClusteredTierDestructionException(String message, Throwable cause) {
+  public ClusterTierException(String message, Throwable cause) {
     super(message, cause);
   }
 

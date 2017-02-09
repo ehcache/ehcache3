@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -31,7 +31,7 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class ClusterTierManagerClientEntityService implements EntityClientService<InternalClusterTierManagerClientEntity, ClusteredTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierManagerClientEntityService implements EntityClientService<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
@@ -41,13 +41,13 @@ public class ClusterTierManagerClientEntityService implements EntityClientServic
   }
 
   @Override
-  public byte[] serializeConfiguration(ClusteredTierManagerConfiguration configuration) {
+  public byte[] serializeConfiguration(ClusterTierManagerConfiguration configuration) {
     return configCodec.encode(configuration);
   }
 
   @Override
-  public ClusteredTierManagerConfiguration deserializeConfiguration(byte[] configuration) {
-    return configCodec.decodeClusteredTierManagerConfiguration(configuration);
+  public ClusterTierManagerConfiguration deserializeConfiguration(byte[] configuration) {
+    return configCodec.decodeClusterTierManagerConfiguration(configuration);
   }
 
   @Override

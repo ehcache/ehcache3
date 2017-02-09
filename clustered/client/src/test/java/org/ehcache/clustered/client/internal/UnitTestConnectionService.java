@@ -36,11 +36,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
-import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
+import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -352,8 +352,8 @@ public class UnitTestConnectionService implements ConnectionService {
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
         newServer.registerServerEntityService(new ClusterTierManagerServerEntityService());
         newServer.registerClientEntityService(new ClusterTierManagerClientEntityService());
-        newServer.registerServerEntityService(new ClusteredTierServerEntityService());
-        newServer.registerClientEntityService(new ClusteredTierClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }

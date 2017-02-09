@@ -62,8 +62,8 @@ public class EventualServerStoreProxyTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
 
-  private static ClusteredTierClientEntity clientEntity1;
-  private static ClusteredTierClientEntity clientEntity2;
+  private static ClusterTierClientEntity clientEntity1;
+  private static ClusterTierClientEntity clientEntity2;
   private static EventualServerStoreProxy serverStoreProxy1;
   private static EventualServerStoreProxy serverStoreProxy2;
   private static ObservableClusterTierServerEntityService observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
@@ -75,7 +75,7 @@ public class EventualServerStoreProxyTest {
             .serverEntityService(new ClusterTierManagerServerEntityService())
             .clientEntityService(new ClusterTierManagerClientEntityService())
             .serverEntityService(observableClusterTierServerEntityService)
-            .clientEntityService(new ClusteredTierClientEntityService())
+            .clientEntityService(new ClusterTierClientEntityService())
             .serverEntityService(new VoltronReadWriteLockServerEntityService())
             .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)

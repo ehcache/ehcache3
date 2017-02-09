@@ -27,7 +27,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -115,7 +115,7 @@ public class DefaultClusteringServiceTest {
             .serverEntityService(observableEhcacheServerEntityService)
             .clientEntityService(new ClusterTierManagerClientEntityService())
             .serverEntityService(observableClusterTierServerEntityService)
-            .clientEntityService(new ClusteredTierClientEntityService())
+            .clientEntityService(new ClusterTierClientEntityService())
             .serverEntityService(new VoltronReadWriteLockServerEntityService())
             .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)

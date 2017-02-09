@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * Thrown to indicate an configuration error while connecting to a cluster.
  */
-public class ClusteredTierCreationException extends ClusteredTierException {
+public class ClusterTierManagerConfigurationException extends ClusterTierException {
 
-  public ClusteredTierCreationException(String message, Throwable cause) {
+  public ClusterTierManagerConfigurationException(String message, Throwable cause) {
     super(message, cause);
   }
 

@@ -21,14 +21,14 @@ import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurati
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.SimpleClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.store.SimpleClusterTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
-import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
+import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
@@ -51,7 +51,7 @@ import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class ClusteredStateRepositoryReplicationTest {
+public class ClusterStateRepositoryReplicationTest {
 
   private PassthroughClusterControl clusterControl;
   private static String STRIPENAME = "stripe";
@@ -63,8 +63,8 @@ public class ClusteredStateRepositoryReplicationTest {
       server -> {
         server.registerServerEntityService(new ClusterTierManagerServerEntityService());
         server.registerClientEntityService(new ClusterTierManagerClientEntityService());
-        server.registerServerEntityService(new ClusteredTierServerEntityService());
-        server.registerClientEntityService(new ClusteredTierClientEntityService());
+        server.registerServerEntityService(new ClusterTierServerEntityService());
+        server.registerClientEntityService(new ClusterTierClientEntityService());
         server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
         server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
@@ -101,9 +101,9 @@ public class ClusteredStateRepositoryReplicationTest {
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
 
-    SimpleClusteredTierClientEntity clientEntity = getEntity(serverStoreProxy);
+    SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 
-    ClusteredStateRepository stateRepository = new ClusteredStateRepository(spaceIdentifier, "test", clientEntity);
+    ClusterStateRepository stateRepository = new ClusterStateRepository(spaceIdentifier, "test", clientEntity);
 
     StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
     testHolder.putIfAbsent("One", "One");
@@ -118,10 +118,10 @@ public class ClusteredStateRepositoryReplicationTest {
     service.stop();
   }
 
-  private static SimpleClusteredTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  private static SimpleClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (SimpleClusteredTierClientEntity)entity.get(clusteringService);
+    return (SimpleClusterTierClientEntity)entity.get(clusteringService);
   }
 
 }

@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -69,10 +69,10 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
     }
   }
 
-  public ClusterTierManagerPassiveEntity(ClusteredTierManagerConfiguration config,
+  public ClusterTierManagerPassiveEntity(ClusterTierManagerConfiguration config,
                                          EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
-      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+      throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {

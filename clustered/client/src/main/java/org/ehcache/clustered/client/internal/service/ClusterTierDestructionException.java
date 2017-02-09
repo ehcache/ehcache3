@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.server.management;
+package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
+/**
+ * Thrown to indicate an error while destroying a clustered cache.
+ */
+public class ClusterTierDestructionException extends ClusterTierException {
 
-public class ClusteredTierManagerBinding extends AliasBinding {
-
-  public ClusteredTierManagerBinding(final String alias, final EhcacheStateService value) {
-    super(alias, value);
+  public ClusterTierDestructionException(String message, Throwable cause) {
+    super(message, cause);
   }
 
-  @Override
-  public EhcacheStateService getValue() {
-    return (EhcacheStateService) super.getValue();
-  }
 }

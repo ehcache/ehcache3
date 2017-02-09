@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.EhcacheEntityVersion;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
@@ -64,21 +64,21 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
 
   @Override
   public ClusterTierManagerActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration =
-      configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    ClusterTierManagerConfiguration clusterTierManagerConfiguration =
+      configCodec.decodeClusterTierManagerConfiguration(configuration);
     EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, true, clusteredTierManagerConfiguration.getIdentifier());
-    return new ClusterTierManagerActiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
+      registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    Management management = new Management(registry, ehcacheStateService, true, clusterTierManagerConfiguration.getIdentifier());
+    return new ClusterTierManagerActiveEntity(registry, clusterTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override
   public ClusterTierManagerPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    ClusterTierManagerConfiguration clusterTierManagerConfiguration = configCodec.decodeClusterTierManagerConfiguration(configuration);
     EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false, clusteredTierManagerConfiguration.getIdentifier());
-    return new ClusterTierManagerPassiveEntity(clusteredTierManagerConfiguration, ehcacheStateService, management);
+      registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    Management management = new Management(registry, ehcacheStateService, false, clusterTierManagerConfiguration.getIdentifier());
+    return new ClusterTierManagerPassiveEntity(clusterTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override

@@ -67,7 +67,7 @@ public class ClusterTierManagement {
 
       if (active) {
         // expose settings about attached stores
-        managementRegistry.addManagementProvider(new ClusteredTierStateSettingsManagementProvider());
+        managementRegistry.addManagementProvider(new ClusterTierStateSettingsManagementProvider());
       }
 
       // expose settings about server stores

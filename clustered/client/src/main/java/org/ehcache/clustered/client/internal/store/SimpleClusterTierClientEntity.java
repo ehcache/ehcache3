@@ -18,8 +18,8 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.internal.Timeouts;
-import org.ehcache.clustered.client.internal.service.ClusteredTierException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierValidationException;
+import org.ehcache.clustered.client.internal.service.ClusterTierException;
+import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
@@ -54,11 +54,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * ClusteredTierClientEntity
+ * ClusterTierClientEntity
  */
-public class SimpleClusteredTierClientEntity implements InternalClusterTierClientEntity {
+public class SimpleClusterTierClientEntity implements InternalClusterTierClientEntity {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusteredTierClientEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierClientEntity.class);
   private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
@@ -87,7 +87,7 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
   private volatile boolean connected = true;
 
 
-  public SimpleClusteredTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate() {
@@ -185,11 +185,11 @@ public class SimpleClusteredTierClientEntity implements InternalClusterTierClien
   }
 
   @Override
-  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusteredTierException, TimeoutException {
+  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
-      throw new ClusteredTierValidationException("Error validating clustered tier '" + storeIdentifier + "'", e);
+      throw new ClusterTierValidationException("Error validating clustered tier '" + storeIdentifier + "'", e);
     }
   }
 

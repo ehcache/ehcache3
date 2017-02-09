@@ -25,36 +25,36 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
 /**
- * ClusteredTierClientEntityService
+ * ClusterTierClientEntityService
  */
-public class ClusteredTierClientEntityService implements EntityClientService<ClusteredTierClientEntity, ClusteredTierEntityConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierClientEntityService implements EntityClientService<ClusterTierClientEntity, ClusterTierEntityConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
   @Override
-  public boolean handlesEntityType(Class<ClusteredTierClientEntity> cls) {
+  public boolean handlesEntityType(Class<ClusterTierClientEntity> cls) {
     return InternalClusterTierClientEntity.class.isAssignableFrom(cls);
   }
 
   @Override
-  public byte[] serializeConfiguration(ClusteredTierEntityConfiguration configuration) {
+  public byte[] serializeConfiguration(ClusterTierEntityConfiguration configuration) {
     return configCodec.encode(configuration);
   }
 
   @Override
-  public ClusteredTierEntityConfiguration deserializeConfiguration(byte[] configuration) {
+  public ClusterTierEntityConfiguration deserializeConfiguration(byte[] configuration) {
     return configCodec.decodeClusteredStoreConfiguration(configuration);
   }
 
   @Override
-  public ClusteredTierClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
-    return new SimpleClusteredTierClientEntity(endpoint);
+  public ClusterTierClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+    return new SimpleClusterTierClientEntity(endpoint);
   }
 
   @Override

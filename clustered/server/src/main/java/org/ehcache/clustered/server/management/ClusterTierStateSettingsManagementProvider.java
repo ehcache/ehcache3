@@ -26,22 +26,22 @@ import org.terracotta.management.service.monitoring.registry.provider.ClientBind
 import java.util.Collection;
 import java.util.Collections;
 
-@Named("ClusteredTierClientStateSettings")
+@Named("ClusterTierClientStateSettings")
 @RequiredContext({@Named("consumerId"), @Named("clientId"), @Named("type")})
-class ClusteredTierStateSettingsManagementProvider extends ClientBindingManagementProvider<ClusterTierClientStateBinding> {
+class ClusterTierStateSettingsManagementProvider extends ClientBindingManagementProvider<ClusterTierClientStateBinding> {
 
-  ClusteredTierStateSettingsManagementProvider() {
+  ClusterTierStateSettingsManagementProvider() {
     super(ClusterTierClientStateBinding.class);
   }
 
   @Override
-  protected ExposedClusteredTierStateBinding internalWrap(Context context, ClusterTierClientStateBinding managedObject) {
-    return new ExposedClusteredTierStateBinding(context, managedObject);
+  protected ExposedClusterTierStateBinding internalWrap(Context context, ClusterTierClientStateBinding managedObject) {
+    return new ExposedClusterTierStateBinding(context, managedObject);
   }
 
-  private static class ExposedClusteredTierStateBinding extends ExposedClientBinding<ClusterTierClientStateBinding> {
+  private static class ExposedClusterTierStateBinding extends ExposedClientBinding<ClusterTierClientStateBinding> {
 
-    ExposedClusteredTierStateBinding(Context context, ClusterTierClientStateBinding clientBinding) {
+    ExposedClusterTierStateBinding(Context context, ClusterTierClientStateBinding clientBinding) {
       super(context, clientBinding);
     }
 

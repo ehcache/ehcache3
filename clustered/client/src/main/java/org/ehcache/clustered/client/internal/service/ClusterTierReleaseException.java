@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate an configuration error while connecting to a cluster.
+ * Thrown to indicate an error while disconnecting from a clustered cache.
  */
-public class ClusteredTierManagerConfigurationException extends ClusteredTierException {
+public class ClusterTierReleaseException extends ClusterTierException {
 
-  public ClusteredTierManagerConfigurationException(String message, Throwable cause) {
+  public ClusterTierReleaseException(String message, Throwable cause) {
     super(message, cause);
   }
 

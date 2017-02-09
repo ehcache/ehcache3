@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.internal.store.ClusteredStateHolder;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
@@ -25,15 +25,15 @@ import org.ehcache.spi.persistence.StateRepository;
 import java.io.Serializable;
 
 /**
- * ClusteredStateRepository
+ * ClusterStateRepository
  */
-class ClusteredStateRepository implements StateRepository {
+class ClusterStateRepository implements StateRepository {
 
   private final ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier;
-  private final ClusteredTierClientEntity clientEntity;
+  private final ClusterTierClientEntity clientEntity;
   private final String composedId;
 
-  ClusteredStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, ClusteredTierClientEntity clientEntity) {
+  ClusterStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, ClusterTierClientEntity clientEntity) {
     this.clusterCacheIdentifier = clusterCacheIdentifier;
     this.composedId = clusterCacheIdentifier.getId() + "-" + id;
     this.clientEntity = clientEntity;

@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.service.ClusteredTierException;
+import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
@@ -30,15 +30,15 @@ import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
- * ClusteredTierClientEntity
+ * ClusterTierClientEntity
  */
-public interface ClusteredTierClientEntity extends Entity {
+public interface ClusterTierClientEntity extends Entity {
 
   UUID getClientId();
 
   boolean isConnected();
 
-  void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusteredTierException, TimeoutException;
+  void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException;
 
   EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate) throws ClusterException, TimeoutException;
 

@@ -27,7 +27,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.Timeouts;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -82,7 +82,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
   private ClusterTierManagerClientEntity entity;
-  private final ConcurrentMap<String, ClusteredTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusteredTierClientEntity>();
+  private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusterTierClientEntity>();
 
   private volatile boolean inMaintenance = false;
 
@@ -289,12 +289,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     if (clusteredSpace == null) {
       throw new CachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
     }
-    ConcurrentMap<String, ClusteredStateRepository> stateRepositories = clusteredSpace.stateRepositories;
-    ClusteredStateRepository currentRepo = stateRepositories.get(name);
+    ConcurrentMap<String, ClusterStateRepository> stateRepositories = clusteredSpace.stateRepositories;
+    ClusterStateRepository currentRepo = stateRepositories.get(name);
     if(currentRepo != null) {
       return currentRepo;
     } else {
-      ClusteredStateRepository newRepo = new ClusteredStateRepository(clusterCacheIdentifier, name, clusterTierEntities.get(clusterCacheIdentifier.getId()));
+      ClusterStateRepository newRepo = new ClusterStateRepository(clusterCacheIdentifier, name, clusterTierEntities.get(clusterCacheIdentifier.getId()));
       currentRepo = stateRepositories.putIfAbsent(name, newRepo);
       if (currentRepo == null) {
         return newRepo;
@@ -376,7 +376,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         configuredConsistency
     );
 
-    ClusteredTierClientEntity storeClientEntity;
+    ClusterTierClientEntity storeClientEntity;
     try {
       storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entity.getClientId(), entityIdentifier, cacheId,
         clientStoreConfiguration, configuration.isAutoCreate());
@@ -401,7 +401,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     try {
       storeClientEntity.validate(clientStoreConfiguration);
-    } catch (ClusteredTierException e) {
+    } catch (ClusterTierException e) {
       serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     } catch (TimeoutException e) {
@@ -462,11 +462,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private static class ClusteredSpace {
 
     private final ClusteredCacheIdentifier identifier;
-    private final ConcurrentMap<String, ClusteredStateRepository> stateRepositories;
+    private final ConcurrentMap<String, ClusterStateRepository> stateRepositories;
 
     ClusteredSpace(final ClusteredCacheIdentifier identifier) {
       this.identifier = identifier;
-      this.stateRepositories = new ConcurrentHashMap<String, ClusteredStateRepository>();
+      this.stateRepositories = new ConcurrentHashMap<String, ClusterStateRepository>();
     }
   }
 

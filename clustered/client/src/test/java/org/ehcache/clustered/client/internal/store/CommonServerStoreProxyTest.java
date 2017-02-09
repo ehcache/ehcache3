@@ -49,7 +49,7 @@ public class CommonServerStoreProxyTest {
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
-  private static ClusteredTierClientEntity clientEntity;
+  private static ClusterTierClientEntity clientEntity;
   private static CommonServerStoreProxy serverStoreProxy;
 
   @BeforeClass
@@ -72,7 +72,7 @@ public class CommonServerStoreProxyTest {
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
       .getName(), null);
-    ClusteredTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
     serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity);
   }

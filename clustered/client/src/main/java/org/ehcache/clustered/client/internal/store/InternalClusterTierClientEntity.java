@@ -23,7 +23,7 @@ import java.util.UUID;
 /**
  * InternalClusterTierClientEntity
  */
-public interface InternalClusterTierClientEntity extends ClusteredTierClientEntity {
+public interface InternalClusterTierClientEntity extends ClusterTierClientEntity {
 
   void setTimeouts(Timeouts timeouts);
 

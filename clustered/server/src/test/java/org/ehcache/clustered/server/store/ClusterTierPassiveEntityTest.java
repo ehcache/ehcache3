@@ -22,11 +22,10 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +56,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-public class ClusteredTierPassiveEntityTest {
+public class ClusterTierPassiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final UUID CLIENT_ID = UUID.randomUUID();
@@ -69,7 +68,7 @@ public class ClusteredTierPassiveEntityTest {
   private String identifier = "identifier";
   private OffHeapIdentifierRegistry defaultRegistry;
   private ServerStoreConfiguration defaultStoreConfiguration;
-  private ClusteredTierEntityConfiguration defaultConfiguration;
+  private ClusterTierEntityConfiguration defaultConfiguration;
 
   @Before
   public void setUp() {
@@ -77,18 +76,18 @@ public class ClusteredTierPassiveEntityTest {
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
     defaultStoreConfiguration = new ServerStoreConfigBuilder().dedicated(defaultResource, 1024, MemoryUnit.KILOBYTES).build();
-    defaultConfiguration = new ClusteredTierEntityConfiguration(identifier, defaultStoreName,
+    defaultConfiguration = new ClusterTierEntityConfiguration(identifier, defaultStoreName,
       defaultStoreConfiguration);
   }
 
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
-    new ClusteredTierPassiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
+    new ClusterTierPassiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
   }
 
   @Test
   public void testCreateDedicatedServerStore() throws Exception {
-    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
@@ -100,8 +99,8 @@ public class ClusteredTierPassiveEntityTest {
   public void testCreateSharedServerStore() throws Exception {
     defaultRegistry.addSharedPool(defaultSharedPool, MemoryUnit.MEGABYTES.toBytes(2), defaultResource);
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder().shared(defaultSharedPool).build();
-    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry,
-      new ClusteredTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry,
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     passiveEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
@@ -113,7 +112,7 @@ public class ClusteredTierPassiveEntityTest {
 
   @Test
   public void testDestroyServerStore() throws Exception {
-    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
     defaultRegistry.getStoreManagerService().createInvalidationTrackerManager(false);
 
@@ -127,7 +126,7 @@ public class ClusteredTierPassiveEntityTest {
 
   @Test
   public void testInvalidMessageThrowsError() throws Exception {
-    ClusteredTierPassiveEntity passiveEntity = new ClusteredTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
 
     try {
       passiveEntity.invoke(new InvalidMessage());

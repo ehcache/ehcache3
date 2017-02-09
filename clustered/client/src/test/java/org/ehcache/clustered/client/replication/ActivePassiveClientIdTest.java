@@ -22,7 +22,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityServi
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
@@ -70,7 +70,7 @@ public class ActivePassiveClientIdTest {
           server.registerServerEntityService(observableEhcacheServerEntityService);
           server.registerClientEntityService(new ClusterTierManagerClientEntityService());
           server.registerServerEntityService(observableClusterTierServerEntityService);
-          server.registerClientEntityService(new ClusteredTierClientEntityService());
+          server.registerClientEntityService(new ClusterTierClientEntityService());
           server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
           server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
           server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));

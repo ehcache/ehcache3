@@ -19,15 +19,15 @@ package org.ehcache.clustered.common.internal.store;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
 /**
- * ClusteredTierEntityConfiguration
+ * ClusterTierEntityConfiguration
  */
-public class ClusteredTierEntityConfiguration {
+public class ClusterTierEntityConfiguration {
 
   private final String managerIdentifier;
   private final String storeIdentifier;
   private final ServerStoreConfiguration configuration;
 
-  public ClusteredTierEntityConfiguration(String managerIdentifier, String storeIdentifier, ServerStoreConfiguration configuration) {
+  public ClusterTierEntityConfiguration(String managerIdentifier, String storeIdentifier, ServerStoreConfiguration configuration) {
     this.managerIdentifier = managerIdentifier;
     this.storeIdentifier = storeIdentifier;
     this.configuration = configuration;

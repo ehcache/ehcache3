@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.junit.Before;
@@ -68,7 +68,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
     factory.create("test", null);
-    verify(entityRef).create(isA(ClusteredTierManagerConfiguration.class));
+    verify(entityRef).create(isA(ClusterTierManagerConfiguration.class));
     verify(entity).close();
   }
 

@@ -14,15 +14,28 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.common.internal;
+
+import org.ehcache.clustered.common.ServerSideConfiguration;
 
 /**
- * Root class of all {@code ClusteredStore} failures.
+ * ClusterTierManagerConfiguration
  */
-public abstract class ClusteredTierException extends Exception {
+public class ClusterTierManagerConfiguration {
 
-  public ClusteredTierException(String message, Throwable cause) {
-    super(message, cause);
+  private final String identifier;
+  private final ServerSideConfiguration configuration;
+
+  public ClusterTierManagerConfiguration(String identifier, ServerSideConfiguration configuration) {
+    this.identifier = identifier;
+    this.configuration = configuration;
   }
 
+  public ServerSideConfiguration getConfiguration() {
+    return configuration;
+  }
+
+  public String getIdentifier() {
+    return identifier;
+  }
 }

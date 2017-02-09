@@ -26,7 +26,7 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.EhcacheExecutionStrategy;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
@@ -44,9 +44,9 @@ import org.terracotta.entity.SyncMessageCodec;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
 
 /**
- * ClusteredTierServerEntityService
+ * ClusterTierServerEntityService
  */
-public class ClusteredTierServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final long ENTITY_VERSION = 10L;
   private static final int DEFAULT_CONCURRENCY = 16;
@@ -66,15 +66,15 @@ public class ClusteredTierServerEntityService implements EntityServerService<Ehc
   }
 
   @Override
-  public ClusteredTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
-    return new ClusteredTierActiveEntity(registry, clusteredTierEntityConfiguration, DEFAULT_MAPPER);
+  public ClusterTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierEntityConfiguration clusterTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
+    return new ClusterTierActiveEntity(registry, clusterTierEntityConfiguration, DEFAULT_MAPPER);
   }
 
   @Override
-  public ClusteredTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
-    return new ClusteredTierPassiveEntity(registry, clusteredTierEntityConfiguration, DEFAULT_MAPPER);
+  public ClusterTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierEntityConfiguration clusterTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
+    return new ClusterTierPassiveEntity(registry, clusterTierEntityConfiguration, DEFAULT_MAPPER);
   }
 
   @Override

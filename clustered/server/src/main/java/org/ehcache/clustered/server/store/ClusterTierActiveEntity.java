@@ -35,7 +35,7 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBasedServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.CommunicatorServiceConfiguration;
 import org.ehcache.clustered.server.KeySegmentMapper;
@@ -91,11 +91,11 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 
 /**
- * ClusteredTierActiveEntity
+ * ClusterTierActiveEntity
  */
-public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusteredTierActiveEntity.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierActiveEntity.class);
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
   private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
 
@@ -115,7 +115,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
   private volatile List<InvalidationTuple> inflightInvalidations;
 
-  public ClusteredTierActiveEntity(ServiceRegistry registry, ClusteredTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
+  public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
     if (entityConfiguration == null) {
       throw new ConfigurationException("ClusteredStoreEntityConfiguration cannot be null");
     }

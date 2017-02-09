@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.server.management;
 
-/**
- * Thrown to indicate an error while disconnecting from a clustered cache.
- */
-public class ClusteredTierReleaseException extends ClusteredTierException {
+import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
 
-  public ClusteredTierReleaseException(String message, Throwable cause) {
-    super(message, cause);
+public class ClusterTierManagerBinding extends AliasBinding {
+
+  public ClusterTierManagerBinding(final String alias, final EhcacheStateService value) {
+    super(alias, value);
   }
 
+  @Override
+  public EhcacheStateService getValue() {
+    return (EhcacheStateService) super.getValue();
+  }
 }

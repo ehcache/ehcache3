@@ -25,23 +25,23 @@ import org.terracotta.management.service.monitoring.registry.provider.AliasBindi
 import java.util.Collection;
 import java.util.Collections;
 
-@Named("ClusteredTierManagerSettings")
+@Named("ClusterTierManagerSettings")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
-public class ClusteredTierManagerSettingsManagementProvider extends AliasBindingManagementProvider<ClusteredTierManagerBinding> {
+public class ClusterTierManagerSettingsManagementProvider extends AliasBindingManagementProvider<ClusterTierManagerBinding> {
 
-  public ClusteredTierManagerSettingsManagementProvider() {
-    super(ClusteredTierManagerBinding.class);
+  public ClusterTierManagerSettingsManagementProvider() {
+    super(ClusterTierManagerBinding.class);
   }
 
   @Override
-  protected ExposedAliasBinding<ClusteredTierManagerBinding> internalWrap(final Context context, final ClusteredTierManagerBinding managedObject) {
-    return new ExposedClusteredTierManagerBinding(context, managedObject);
+  protected ExposedAliasBinding<ClusterTierManagerBinding> internalWrap(final Context context, final ClusterTierManagerBinding managedObject) {
+    return new ExposedClusterTierManagerBinding(context, managedObject);
   }
 
-  private static class ExposedClusteredTierManagerBinding extends ExposedAliasBinding<ClusteredTierManagerBinding> {
+  private static class ExposedClusterTierManagerBinding extends ExposedAliasBinding<ClusterTierManagerBinding> {
 
-    public ExposedClusteredTierManagerBinding(final Context context, final ClusteredTierManagerBinding binding) {
-      super(context.with("type", "ClusteredTierManager"), binding);
+    public ExposedClusterTierManagerBinding(final Context context, final ClusterTierManagerBinding binding) {
+      super(context.with("type", "ClusterTierManager"), binding);
     }
 
     @Override
