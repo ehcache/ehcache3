@@ -18,44 +18,97 @@ package org.ehcache.clustered.server.state;
 
 import org.junit.Test;
 
-import java.util.concurrent.ConcurrentMap;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class InvalidationTrackerImplTest {
 
+  private final InvalidationTrackerImpl tracker = new InvalidationTrackerImpl();
+
   @Test
-  public void trackHashInvalidation() throws Exception {
-    InvalidationTrackerImpl tracker = new InvalidationTrackerImpl();
+  public void clearInProgress() {
+    assertThat(tracker.isClearInProgress()).isFalse();
+    tracker.setClearInProgress(true);
+    assertThat(tracker.isClearInProgress()).isTrue();
+    tracker.setClearInProgress(false);
+    assertThat(tracker.isClearInProgress()).isFalse();
+  }
+
+  @Test
+  public void trackHashInvalidation_incrementOnsameValue() throws Exception {
+    tracker.trackHashInvalidation(5L);
+    tracker.trackHashInvalidation(5L);
+    tracker.trackHashInvalidation(5L);
+
+    assertInvalidationCount(5L, 3);
+  }
+
+  @Test
+  public void trackHashInvalidation_differentKeysCreateDifferentCounts() throws Exception {
+    tracker.trackHashInvalidation(5L);
+    tracker.trackHashInvalidation(2L);
+    tracker.trackHashInvalidation(2L);
+
+    assertInvalidationCount(5L, 1);
+    assertInvalidationCount(2L, 2);
+  }
+
+  @Test
+  public void untrackHashInvalidation_untrackWhenNotTracked() throws Exception {
+    tracker.untrackHashInvalidation(5L);
+    assertInvalidationCount(5L, 0);
+  }
+
+  @Test
+  public void untrackHashInvalidation_untrackDecrementCount() throws Exception {
+    tracker.trackHashInvalidation(5L);
+    tracker.trackHashInvalidation(5L);
+    tracker.trackHashInvalidation(5L);
+
+    tracker.untrackHashInvalidation(5L);
+    assertInvalidationCount(5L, 2);
+
+    tracker.untrackHashInvalidation(5L);
+    assertInvalidationCount(5L, 1);
+
+    tracker.untrackHashInvalidation(5L);
+    assertInvalidationCount(5L, 0);
+  }
+
+  @Test
+  public void untrackHashInvalidation_rightKeyIsDecremented() throws Exception {
     tracker.trackHashInvalidation(5L);
     tracker.trackHashInvalidation(5L);
     tracker.trackHashInvalidation(5L);
     tracker.trackHashInvalidation(2L);
-    tracker.trackHashInvalidation(4L);
-    tracker.trackHashInvalidation(4L);
-    ConcurrentMap<Long, Integer> invalidationMap = tracker.invalidationMap;
-    assertThat(invalidationMap.get(5L), is(3));
-    assertThat(invalidationMap.get(2L), is(1));
-    assertThat(invalidationMap.get(4L), is(2));
+
+    tracker.untrackHashInvalidation(5L);
+    assertInvalidationCount(5L, 2);
+    assertInvalidationCount(2L, 1);
   }
 
   @Test
-  public void untrackHashInvalidation() throws Exception {
-    InvalidationTrackerImpl tracker = new InvalidationTrackerImpl();
+  public void getTrackedKeys() {
     tracker.trackHashInvalidation(5L);
-    tracker.trackHashInvalidation(5L);
-    tracker.trackHashInvalidation(5L);
-    ConcurrentMap<Long, Integer> invalidationMap = tracker.invalidationMap;
-    assertThat(invalidationMap.get(5L), is(3));
+    tracker.trackHashInvalidation(2L);
+    assertThat(tracker.getTrackedKeys()).containsOnly(5L, 2L);
+  }
 
+  @Test
+  public void getTrackedKeys_notReturnedWhenUntracked() {
+    tracker.trackHashInvalidation(5L);
     tracker.untrackHashInvalidation(5L);
-    assertThat(invalidationMap.get(5L), is(2));
-    tracker.untrackHashInvalidation(5L);
-    assertThat(invalidationMap.get(5L), is(1));
-    tracker.untrackHashInvalidation(5L);
-    assertThat(invalidationMap.get(5L), nullValue());
+    assertThat(tracker.getTrackedKeys()).isEmpty();
+  }
+
+  @Test
+  public void clear() {
+    tracker.trackHashInvalidation(5L);
+    tracker.clear();
+    assertInvalidationCount(5L, 0);
+  }
+
+  private void assertInvalidationCount(long chainKey, int times) {
+    assertThat(tracker.getInvalidationCount(chainKey)).isEqualTo(times);
   }
 
 }
