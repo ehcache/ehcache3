@@ -25,12 +25,12 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
+import org.ehcache.clustered.server.state.DefaultClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.ehcache.clustered.server.state.InvalidationTrackerManagerImpl;
 import org.ehcache.clustered.server.state.ResourcePageSource;
-import org.ehcache.clustered.server.state.DefaultClientMessageTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.TreeNode;
@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
@@ -94,14 +93,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private volatile String defaultServerResource;
 
   /**
-   * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
+   * The clustered shared resource pools specified by the CacheManager creating this {@code ClusterTierManagerActiveEntity}.
    * The index is the name assigned to the shared resource pool in the cache manager configuration.
    */
   private final Map<String, ResourcePageSource> sharedResourcePools = new ConcurrentHashMap<>();
 
   /**
    * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
-   * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
+   * {@code ClusterTierManagerActiveEntity}.  The index is the cache identifier (alias).
    */
   private final Map<String, ResourcePageSource> dedicatedResourcePools = new ConcurrentHashMap<>();
 
@@ -449,7 +448,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       }
     } else if (allocation instanceof PoolAllocation.Shared) {
       /*
-       * Shared allocation pools are created during EhcacheActiveEntity configuration.
+       * Shared allocation pools are created during ClusterTierManagerActiveEntity configuration.
        */
       PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
       resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());

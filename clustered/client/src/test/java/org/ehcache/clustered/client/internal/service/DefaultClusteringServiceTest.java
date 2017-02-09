@@ -22,12 +22,12 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -113,9 +113,9 @@ public class DefaultClusteringServiceTest {
     UnitTestConnectionService.add(CLUSTER_URI_BASE,
         new PassthroughServerBuilder()
             .serverEntityService(observableEhcacheServerEntityService)
-            .clientEntityService(new EhcacheClientEntityService())
+            .clientEntityService(new ClusterTierManagerClientEntityService())
             .serverEntityService(observableClusterTierServerEntityService)
-            .clientEntityService(new ClusteredTierClientEntityService())
+            .clientEntityService(new ClusterTierClientEntityService())
             .serverEntityService(new VoltronReadWriteLockServerEntityService())
             .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)
@@ -345,7 +345,7 @@ public class DefaultClusteringServiceTest {
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(0));
 
-    // startForMaintenance does **not** create an EhcacheActiveEntity
+    // startForMaintenance does **not** create an ClusterTierManagerActiveEntity
 
     service.stop();
 
@@ -410,7 +410,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
 
-    // startForMaintenance does **not** establish a link with the EhcacheActiveEntity
+    // startForMaintenance does **not** establish a link with the ClusterTierManagerActiveEntity
     assertThat(activeEntity.getConnectedClients().size(), is(0));
 
     maintenanceService.stop();

@@ -19,6 +19,7 @@ package org.ehcache.clustered.server.state;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -60,7 +61,7 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
   }
 
   @Override
-  public void reconcileTrackedClients(Set<UUID> trackedClients) {
+  public void reconcileTrackedClients(Collection<UUID> trackedClients) {
     clientUUIDMessageTrackerMap.keySet().retainAll(trackedClients);
   }
 

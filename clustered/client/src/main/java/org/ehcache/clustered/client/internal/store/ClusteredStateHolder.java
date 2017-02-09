@@ -30,9 +30,9 @@ import java.util.concurrent.TimeoutException;
 public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private final StateRepositoryMessageFactory messageFactory;
-  private final ClusteredTierClientEntity entity;
+  private final ClusterTierClientEntity entity;
 
-  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusteredTierClientEntity entity) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusterTierClientEntity entity) {
     this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
     this.entity = entity;
   }

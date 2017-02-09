@@ -36,11 +36,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
-import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
+import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -276,8 +276,8 @@ public class UnitTestConnectionService implements ConnectionService {
    * {@link #serverEntityService(EntityServerService)} or {@link #clientEntityService(EntityClientService)},
    * this builder defines the following services for each {@code PassthroughServer} built:
    * <ul>
-   *   <li>{@link EhcacheServerEntityService}</li>
-   *   <li>{@link EhcacheClientEntityService}</li>
+   *   <li>{@link ClusterTierManagerServerEntityService}</li>
+   *   <li>{@link ClusterTierManagerClientEntityService}</li>
    *   <li>{@link VoltronReadWriteLockServerEntityService}</li>
    *   <li>{@link VoltronReadWriteLockEntityClientService}</li>
    * </ul>
@@ -350,10 +350,10 @@ public class UnitTestConnectionService implements ConnectionService {
        * If services have been specified, don't establish the "defaults".
        */
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
-        newServer.registerServerEntityService(new EhcacheServerEntityService());
-        newServer.registerClientEntityService(new EhcacheClientEntityService());
-        newServer.registerServerEntityService(new ClusteredTierServerEntityService());
-        newServer.registerClientEntityService(new ClusteredTierClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierManagerServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierManagerClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }

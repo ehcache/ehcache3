@@ -110,7 +110,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(managerCapabilities).hasSize(4);
 
     assertThat(managerCapabilities[0].getName()).isEqualTo("ClientStateSettings");
-    assertThat(managerCapabilities[1].getName()).isEqualTo("ClusteredTierManagerSettings");
+    assertThat(managerCapabilities[1].getName()).isEqualTo("ClusterTierManagerSettings");
     assertThat(managerCapabilities[2].getName()).isEqualTo("PoolSettings");
     assertThat(managerCapabilities[3].getName()).isEqualTo("PoolStatistics");
 
@@ -124,7 +124,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     Capability[] tierCapabilities = readTopology().getSingleStripe().getActiveServerEntity(ehcacheClusterTierIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(tierCapabilities).hasSize(5);
 
-    assertThat(tierCapabilities[0].getName()).isEqualTo("ClusteredTierClientStateSettings");
+    assertThat(tierCapabilities[0].getName()).isEqualTo("ClusterTierClientStateSettings");
     assertThat(tierCapabilities[1].getName()).isEqualTo("PoolSettings");
     assertThat(tierCapabilities[2].getName()).isEqualTo("PoolStatistics");
     assertThat(tierCapabilities[3].getName()).isEqualTo("ServerStoreSettings");
@@ -142,11 +142,11 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     Settings settings = (Settings) managerCapabilities[0].getDescriptors().iterator().next();
     assertThat((boolean) settings.get("attached")).isTrue();
 
-    // ClusteredTierManagerStateSettings
+    // ClusterTierManagerStateSettings
 
     assertThat(managerCapabilities[1].getDescriptors()).hasSize(1);
     settings = (Settings) managerCapabilities[1].getDescriptors().iterator().next();
-    assertThat(settings.get("type")).isEqualTo("ClusteredTierManager");
+    assertThat(settings.get("type")).isEqualTo("ClusterTierManager");
     assertThat(settings.get("defaultServerResource")).isEqualTo("primary-server-resource");
 
     // Shared PoolSettings
@@ -168,7 +168,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
-    // ClusteredTierClientStateSettings
+    // ClusterTierClientStateSettings
 
     assertThat(tierCapabilities[0].getDescriptors()).hasSize(1);
     settings = (Settings) tierCapabilities[0].getDescriptors().iterator().next();

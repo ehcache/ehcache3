@@ -41,14 +41,14 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final Lock invalidateAllLock = new ReentrantLock();
   private volatile CountDownLatch invalidateAllLatch;
-  private final ClusteredTierClientEntity entity;
-  private final ClusteredTierClientEntity.ReconnectListener reconnectListener;
-  private final ClusteredTierClientEntity.DisconnectionListener disconnectionListener;
+  private final ClusterTierClientEntity entity;
+  private final ClusterTierClientEntity.ReconnectListener reconnectListener;
+  private final ClusterTierClientEntity.DisconnectionListener disconnectionListener;
 
-  public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
+  public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
     this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity);
     this.entity = entity;
-    this.reconnectListener = new SimpleClusteredTierClientEntity.ReconnectListener() {
+    this.reconnectListener = new SimpleClusterTierClientEntity.ReconnectListener() {
       @Override
       public void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage) {
         Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
@@ -60,7 +60,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     };
     entity.setReconnectListener(reconnectListener);
 
-    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
         long key = response.getKey();
@@ -71,7 +71,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
+    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.AllInvalidationDone response) {
         LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated all", cacheId);
@@ -92,7 +92,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       }
     });
 
-    this.disconnectionListener = new SimpleClusteredTierClientEntity.DisconnectionListener() {
+    this.disconnectionListener = new SimpleClusterTierClientEntity.DisconnectionListener() {
       @Override
       public void onDisconnection() {
         for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {

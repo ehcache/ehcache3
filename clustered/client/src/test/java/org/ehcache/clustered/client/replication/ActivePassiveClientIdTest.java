@@ -18,19 +18,16 @@ package org.ehcache.clustered.client.replication;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
-import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcachePassiveEntity;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -49,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.clustered.client.replication.ReplicationUtil.getEntity;
-import static org.ehcache.clustered.client.replication.ReplicationUtil.getServerStoreConfiguration;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -72,9 +68,9 @@ public class ActivePassiveClientIdTest {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
         server -> {
           server.registerServerEntityService(observableEhcacheServerEntityService);
-          server.registerClientEntityService(new EhcacheClientEntityService());
+          server.registerClientEntityService(new ClusterTierManagerClientEntityService());
           server.registerServerEntityService(observableClusterTierServerEntityService);
-          server.registerClientEntityService(new ClusteredTierClientEntityService());
+          server.registerClientEntityService(new ClusterTierClientEntityService());
           server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
           server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
           server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));

@@ -21,7 +21,7 @@ import org.ehcache.clustered.client.config.TimeoutDuration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Describes the timeouts for {@link EhcacheClientEntity} operations.  Use
+ * Describes the timeouts for {@link ClusterTierManagerClientEntity} operations.  Use
  * {@link #builder()} to construct an instance.
  */
 public final class Timeouts {

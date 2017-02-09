@@ -17,8 +17,8 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
@@ -28,7 +28,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -62,8 +62,8 @@ public class EventualServerStoreProxyTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
 
-  private static ClusteredTierClientEntity clientEntity1;
-  private static ClusteredTierClientEntity clientEntity2;
+  private static ClusterTierClientEntity clientEntity1;
+  private static ClusterTierClientEntity clientEntity2;
   private static EventualServerStoreProxy serverStoreProxy1;
   private static EventualServerStoreProxy serverStoreProxy2;
   private static ObservableClusterTierServerEntityService observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
@@ -72,10 +72,10 @@ public class EventualServerStoreProxyTest {
   public static void setUp() throws Exception {
     UnitTestConnectionService.add(CLUSTER_URI,
         new PassthroughServerBuilder()
-            .serverEntityService(new EhcacheServerEntityService())
-            .clientEntityService(new EhcacheClientEntityService())
+            .serverEntityService(new ClusterTierManagerServerEntityService())
+            .clientEntityService(new ClusterTierManagerClientEntityService())
             .serverEntityService(observableClusterTierServerEntityService)
-            .clientEntityService(new ClusteredTierClientEntityService())
+            .clientEntityService(new ClusterTierClientEntityService())
             .serverEntityService(new VoltronReadWriteLockServerEntityService())
             .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)
@@ -84,8 +84,8 @@ public class EventualServerStoreProxyTest {
     Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
     Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
-    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
+    ClusterTierManagerClientEntityFactory entityFactory1 = new ClusterTierManagerClientEntityFactory(connection1);
+    ClusterTierManagerClientEntityFactory entityFactory2 = new ClusterTierManagerClientEntityFactory(connection2);
 
     entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
