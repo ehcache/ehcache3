@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.TreeNode;
 import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.statistics.StatisticsManager;
@@ -472,7 +471,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
+  public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
   }
 
