@@ -27,7 +27,8 @@ dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
   testCompile project(':management')
-  testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms-agent:$parent.managementVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
 
   testCompile (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion) {
@@ -40,8 +41,8 @@ dependencies {
   }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
-    exclude group:'org.terracotta.management.dist', module:'management-common'
+  serverLibs ("org.terracotta.management.dist:mnm-server:$parent.managementVersion") {
+    exclude group:'org.terracotta.management.dist', module:'mnm-common'
   }
 }
 

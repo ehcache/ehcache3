@@ -36,11 +36,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.management.entity.management.ManagementAgentConfig;
-import org.terracotta.management.entity.management.ManagementAgentVersion;
-import org.terracotta.management.entity.management.client.ManagementAgentEntity;
-import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
-import org.terracotta.management.entity.management.client.ManagementAgentService;
+import org.terracotta.management.entity.nms.agent.NmsAgentConfig;
+import org.terracotta.management.entity.nms.agent.NmsAgentVersion;
+import org.terracotta.management.entity.nms.agent.client.NmsAgentEntity;
+import org.terracotta.management.entity.nms.agent.client.NmsAgentEntityFactory;
+import org.terracotta.management.entity.nms.agent.client.NmsAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
@@ -60,8 +60,8 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
-  private volatile ManagementAgentService managementAgentService;
-  private volatile ClientEntityFactory<ManagementAgentEntity, ManagementAgentConfig> managementAgentEntityFactory;
+  private volatile NmsAgentService nmsAgentService;
+  private volatile ClientEntityFactory<NmsAgentEntity, NmsAgentConfig> nmsAgentFactory;
   private volatile InternalCacheManager cacheManager;
   private volatile ExecutorService managementCallExecutor;
   private volatile ClusteringService clusteringService;
@@ -88,11 +88,11 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this.collectorService.start(serviceProvider);
 
     EntityService entityService = serviceProvider.getService(EntityService.class);
-    this.managementAgentEntityFactory = entityService.newClientEntityFactory(
-        ManagementAgentEntityFactory.ENTITYNAME,
-        ManagementAgentEntity.class,
-        ManagementAgentVersion.LATEST.version(),
-        new ManagementAgentConfig());
+    this.nmsAgentFactory = entityService.newClientEntityFactory(
+        NmsAgentEntityFactory.ENTITYNAME,
+        NmsAgentEntity.class,
+        NmsAgentVersion.LATEST.version(),
+        new NmsAgentConfig());
 
     this.cacheManager.registerListener(this);
   }
@@ -105,11 +105,11 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     shutdownNow(managementCallExecutor);
 
     // nullify so that no further actions are done with them (see null-checks below)
-    if(managementAgentService != null) {
-      managementAgentService.close();
+    if(nmsAgentService != null) {
+      nmsAgentService.close();
       managementRegistryService = null;
     }
-    managementAgentService = null;
+    nmsAgentService = null;
     managementCallExecutor = null;
   }
 
@@ -128,32 +128,32 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
       case AVAILABLE: {
         // create / fetch the management entity
-        ManagementAgentEntity managementAgentEntity;
+        NmsAgentEntity nmsAgentEntity;
         try {
-          managementAgentEntity = managementAgentEntityFactory.retrieve();
+          nmsAgentEntity = nmsAgentFactory.retrieve();
         } catch (EntityNotFoundException e) {
           try {
-            managementAgentEntityFactory.create();
+            nmsAgentFactory.create();
           } catch (EntityAlreadyExistsException ignored) {
           }
           try {
-            managementAgentEntity = managementAgentEntityFactory.retrieve();
+            nmsAgentEntity = nmsAgentFactory.retrieve();
           } catch (EntityNotFoundException bigFailure) {
-            throw (AssertionError) new AssertionError("Entity " + ManagementAgentEntity.class.getSimpleName() + " cannot be retrieved even after being created.").initCause(bigFailure.getCause());
+            throw (AssertionError) new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " cannot be retrieved even after being created.").initCause(bigFailure.getCause());
           }
         }
-        managementAgentService = new ManagementAgentService(managementAgentEntity);
-        managementAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
-        managementAgentService.setManagementRegistry(managementRegistryService);
+        nmsAgentService = new NmsAgentService(nmsAgentEntity);
+        nmsAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
+        nmsAgentService.setManagementRegistry(managementRegistryService);
         // setup the executor that will handle the management call requests received from the server. We log failures.
-        managementAgentService.setManagementCallExecutor(new LoggingExecutor(
+        nmsAgentService.setManagementCallExecutor(new LoggingExecutor(
             managementCallExecutor,
             LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
 
         try {
-          managementAgentService.init();
+          nmsAgentService.init();
           // expose tags
-          managementAgentService.setTags(managementRegistryService.getConfiguration().getTags());
+          nmsAgentService.setTags(managementRegistryService.getConfiguration().getTags());
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new StateTransitionException(e);
@@ -181,7 +181,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
   @Override
   public void onNotification(ContextualNotification notification) {
-    ManagementAgentService service = managementAgentService;
+    NmsAgentService service = nmsAgentService;
     if (service != null && clusteringService.isConnected()) {
       try {
         service.pushNotification(notification);
@@ -196,7 +196,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
   @Override
   public void onStatistics(Collection<ContextualStatistics> statistics) {
-    ManagementAgentService service = managementAgentService;
+    NmsAgentService service = nmsAgentService;
     if (service != null && clusteringService.isConnected()) {
       try {
         service.pushStatistics(statistics);
