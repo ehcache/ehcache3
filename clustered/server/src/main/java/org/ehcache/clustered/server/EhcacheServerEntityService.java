@@ -26,11 +26,20 @@ import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
+import org.terracotta.logging.LoggingSupplement;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final long ENTITY_VERSION = 1L;
   private static final int DEFAULT_CONCURRENCY = 1024;
+
+  static {
+    try {
+      LoggingSupplement.logNamespaceToServer("org.ehcache");
+    } catch (NoClassDefFoundError e) {
+      // Ignore - execution outside of server ends up requiring log4j
+    }
+  }
 
   @Override
   public long getVersion() {

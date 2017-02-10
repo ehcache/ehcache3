@@ -22,9 +22,11 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 public class VoltronReadWriteLock {
 
@@ -78,6 +80,8 @@ public class VoltronReadWriteLock {
       throw new AssertionError(e);
     } catch (EntityNotFoundException e) {
       return false;
+    } catch (PermanentEntityException e) {
+      throw new AssertionError(e);
     }
   }
 
@@ -130,6 +134,8 @@ public class VoltronReadWriteLock {
     } catch (EntityVersionMismatchException e) {
       throw new IllegalStateException(e);
     } catch (EntityNotProvidedException e) {
+      throw new IllegalStateException(e);
+    } catch (EntityConfigurationException e) {
       throw new IllegalStateException(e);
     }
   }

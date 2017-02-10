@@ -25,6 +25,7 @@ import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 @Named("SettingsCapability")
@@ -44,8 +45,8 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
   }
 
   @Override
-  public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = super.getDescriptors();
+  public Collection<? extends Descriptor> getDescriptors() {
+    Collection<Descriptor> descriptors = new ArrayList<Descriptor>(super.getDescriptors());
     descriptors.add(cacheManagerSettings());
     return descriptors;
   }

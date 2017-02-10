@@ -50,13 +50,17 @@ import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
+import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
+import org.terracotta.passthrough.IAsynchronousServerCrasher;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
+
+import static org.mockito.Mockito.mock;
 
 
 /**
@@ -137,6 +141,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     SERVERS.put(keyURI, new ServerDescriptor(server));
+    server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
@@ -332,7 +337,7 @@ public class UnitTestConnectionService implements ConnectionService {
       }
 
       if (!this.resources.getResource().isEmpty()) {
-        newServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(this.resources));
+        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
       }
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {

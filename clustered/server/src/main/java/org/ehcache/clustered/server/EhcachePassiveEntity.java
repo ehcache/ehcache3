@@ -22,7 +22,6 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
-import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
@@ -35,13 +34,9 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.offheapresource.OffHeapResources;
 
-import java.util.Collections;
-import java.util.Set;
 import java.util.UUID;
 
 class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
@@ -49,18 +44,12 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcachePassiveEntity.class);
 
   private final UUID identity;
-  private final Set<String> offHeapResourceIdentifiers;
   private final EhcacheStateService ehcacheStateService;
 
   @Override
   public void invoke(EhcacheEntityMessage message) {
 
     try {
-      if (this.offHeapResourceIdentifiers.isEmpty()) {
-        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
-                                                  " Check your server configuration and define at least one offheap resource.");
-      }
-
       switch (message.getType()) {
         case LIFECYCLE_OP:
           invokeLifeCycleOperation((LifecycleMessage) message);
@@ -82,13 +71,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   EhcachePassiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
-    OffHeapResources offHeapResources = services.getService(new BasicServiceConfiguration<OffHeapResources>(OffHeapResources.class));
-    if (offHeapResources == null) {
-      this.offHeapResourceIdentifiers = Collections.emptySet();
-    } else {
-      this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
-    }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -193,11 +176,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   @Override
   public void createNew() {
-
-  }
-
-  @Override
-  public void loadExisting() {
 
   }
 

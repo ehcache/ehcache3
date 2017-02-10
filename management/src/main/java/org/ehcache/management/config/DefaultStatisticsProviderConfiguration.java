@@ -17,69 +17,23 @@ package org.ehcache.management.config;
 
 import org.terracotta.management.model.Objects;
 import org.terracotta.management.registry.ManagementProvider;
+import org.terracotta.management.registry.collect.StatisticConfiguration;
 
 import java.util.concurrent.TimeUnit;
 
-public class DefaultStatisticsProviderConfiguration implements StatisticsProviderConfiguration {
+public class DefaultStatisticsProviderConfiguration extends StatisticConfiguration implements StatisticsProviderConfiguration {
+
+  private static final long serialVersionUID = 1L;
 
   private final Class<? extends ManagementProvider> provider;
 
-  private long averageWindowDuration = 60;
-  private TimeUnit averageWindowUnit = TimeUnit.SECONDS;
-  private int historySize = 100;
-  private long historyInterval = 1;
-  private TimeUnit historyIntervalUnit = TimeUnit.SECONDS;
-  private long timeToDisable = 30;
-  private TimeUnit timeToDisableUnit = TimeUnit.SECONDS;
-
   public DefaultStatisticsProviderConfiguration(Class<? extends ManagementProvider> provider, long averageWindowDuration, TimeUnit averageWindowUnit, int historySize, long historyInterval, TimeUnit historyIntervalUnit, long timeToDisable, TimeUnit timeToDisableUnit) {
+    super(averageWindowDuration, averageWindowUnit, historySize, historyInterval, historyIntervalUnit, timeToDisable, timeToDisableUnit);
     this.provider = Objects.requireNonNull(provider);
-    this.averageWindowDuration = averageWindowDuration;
-    this.averageWindowUnit = Objects.requireNonNull(averageWindowUnit);
-    this.historySize = historySize;
-    this.historyInterval = historyInterval;
-    this.historyIntervalUnit = Objects.requireNonNull(historyIntervalUnit);
-    this.timeToDisable = timeToDisable;
-    this.timeToDisableUnit = Objects.requireNonNull(timeToDisableUnit);
   }
 
   public DefaultStatisticsProviderConfiguration(Class<? extends ManagementProvider> provider) {
     this.provider = Objects.requireNonNull(provider);
-  }
-
-  @Override
-  public long averageWindowDuration() {
-    return averageWindowDuration;
-  }
-
-  @Override
-  public TimeUnit averageWindowUnit() {
-    return averageWindowUnit;
-  }
-
-  @Override
-  public int historySize() {
-    return historySize;
-  }
-
-  @Override
-  public long historyInterval() {
-    return historyInterval;
-  }
-
-  @Override
-  public TimeUnit historyIntervalUnit() {
-    return historyIntervalUnit;
-  }
-
-  @Override
-  public long timeToDisable() {
-    return timeToDisable;
-  }
-
-  @Override
-  public TimeUnit timeToDisableUnit() {
-    return timeToDisableUnit;
   }
 
   @Override
@@ -88,81 +42,42 @@ public class DefaultStatisticsProviderConfiguration implements StatisticsProvide
   }
 
   @Override
-  public String toString() {
-    return "{statisticsProviderType=" + getStatisticsProviderType() +
-        ", averageWindowDuration=" + averageWindowDuration() +
-        ", averageWindowUnit=" + averageWindowUnit() +
-        ", historyInterval=" + historyInterval() +
-        ", historyIntervalUnit=" + historyIntervalUnit() +
-        ", historySize=" + historySize() +
-        ", timeToDisable=" + timeToDisable() +
-        ", timeToDisableUnit=" + timeToDisableUnit() +
-        '}';
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-
+    if (!super.equals(o)) return false;
     DefaultStatisticsProviderConfiguration that = (DefaultStatisticsProviderConfiguration) o;
-
-    if (!provider.equals(that.provider)) return false;
-    if (averageWindowDuration != that.averageWindowDuration) return false;
-    if (historySize != that.historySize) return false;
-    if (historyInterval != that.historyInterval) return false;
-    if (timeToDisable != that.timeToDisable) return false;
-    if (averageWindowUnit != that.averageWindowUnit) return false;
-    if (historyIntervalUnit != that.historyIntervalUnit) return false;
-    return timeToDisableUnit == that.timeToDisableUnit;
-
+    return provider.equals(that.provider);
   }
 
   @Override
   public int hashCode() {
-    int result = (int) (averageWindowDuration ^ (averageWindowDuration >>> 32));
+    int result = super.hashCode();
     result = 31 * result + provider.hashCode();
-    result = 31 * result + averageWindowUnit.hashCode();
-    result = 31 * result + historySize;
-    result = 31 * result + (int) (historyInterval ^ (historyInterval >>> 32));
-    result = 31 * result + historyIntervalUnit.hashCode();
-    result = 31 * result + (int) (timeToDisable ^ (timeToDisable >>> 32));
-    result = 31 * result + timeToDisableUnit.hashCode();
     return result;
   }
 
-  public DefaultStatisticsProviderConfiguration setAverageWindowDuration(long averageWindowDuration) {
-    this.averageWindowDuration = averageWindowDuration;
+  @Override
+  public DefaultStatisticsProviderConfiguration setAverageWindowDuration(long averageWindowDuration, TimeUnit averageWindowUnit) {
+    super.setAverageWindowDuration(averageWindowDuration, averageWindowUnit);
     return this;
   }
 
-  public DefaultStatisticsProviderConfiguration setAverageWindowUnit(TimeUnit averageWindowUnit) {
-    this.averageWindowUnit = averageWindowUnit;
+  @Override
+  public DefaultStatisticsProviderConfiguration setHistoryInterval(long historyInterval, TimeUnit historyIntervalUnit) {
+    super.setHistoryInterval(historyInterval, historyIntervalUnit);
     return this;
   }
 
-  public DefaultStatisticsProviderConfiguration setHistoryInterval(long historyInterval) {
-    this.historyInterval = historyInterval;
-    return this;
-  }
-
-  public DefaultStatisticsProviderConfiguration setHistoryIntervalUnit(TimeUnit historyIntervalUnit) {
-    this.historyIntervalUnit = historyIntervalUnit;
-    return this;
-  }
-
+  @Override
   public DefaultStatisticsProviderConfiguration setHistorySize(int historySize) {
-    this.historySize = historySize;
+    super.setHistorySize(historySize);
     return this;
   }
 
-  public DefaultStatisticsProviderConfiguration setTimeToDisable(long timeToDisable) {
-    this.timeToDisable = timeToDisable;
-    return this;
-  }
-
-  public DefaultStatisticsProviderConfiguration setTimeToDisableUnit(TimeUnit timeToDisableUnit) {
-    this.timeToDisableUnit = timeToDisableUnit;
+  @Override
+  public DefaultStatisticsProviderConfiguration setTimeToDisable(long timeToDisable, TimeUnit timeToDisableUnit) {
+    super.setTimeToDisable(timeToDisable, timeToDisableUnit);
     return this;
   }
 

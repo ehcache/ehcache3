@@ -60,23 +60,24 @@ public class EhcacheStatisticsProviderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-        EhcacheStatistics mock = mock(EhcacheStatistics.class);
-        Set<Descriptor> descriptors = new HashSet<Descriptor>();
+        StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
+        Collection<StatisticDescriptor> descriptors = new HashSet<StatisticDescriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
         descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
         descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY));
-        when(mock.getDescriptors()).thenReturn(descriptors);
+        when(mock.getDescriptors()).thenReturn((Collection) descriptors);
         return mock;
       }
     };
 
     ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
 
-    Collection<Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
+    Collection<? extends Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new StatisticDescriptor("aCounter", StatisticType.COUNTER),
@@ -90,7 +91,7 @@ public class EhcacheStatisticsProviderTest {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-        return mock(EhcacheStatistics.class);
+        return mock(StandardEhcacheStatistics.class);
       }
     };
 

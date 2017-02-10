@@ -22,17 +22,13 @@ import org.terracotta.entity.ServiceRegistry;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.Set;
-
 @CommonComponent
 public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheStateService> {
 
   private final ServiceRegistry serviceRegistry;
-  private final Set<String> offHeapResourceIdentifiers;
 
-  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry, Set<String> offHeapResourceIdentifiers) {
+  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
   }
 
   @Override
@@ -42,10 +38,6 @@ public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheSt
 
   public ServiceRegistry getServiceRegistry() {
     return this.serviceRegistry;
-  }
-
-  public Set<String> getOffHeapResourceIdentifiers() {
-    return this.offHeapResourceIdentifiers;
   }
 
 }
