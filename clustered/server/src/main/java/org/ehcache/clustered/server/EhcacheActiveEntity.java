@@ -67,6 +67,7 @@ import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.management.Management;
+import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
@@ -372,6 +373,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
 
       syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
+
+      StateRepositoryManager stateRepositoryManager = ehcacheStateService.getStateRepositoryManager();
+      ehcacheStateService.getStores().forEach(storeName ->
+        stateRepositoryManager.syncMessageFor(storeName).forEach(syncChannel::synchronizeToPassive));
     } else {
       Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
       AtomicLong size = new AtomicLong(0);
