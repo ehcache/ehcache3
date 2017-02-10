@@ -103,34 +103,34 @@ public class ClusterTierManagement {
     }
   }
 
-  public void clientConnected(ClientDescriptor clientDescriptor) {
+  public void clientConnected(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientConnected({})", clientDescriptor);
-      managementRegistry.registerAndRefresh(new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, false)));
+      managementRegistry.registerAndRefresh(new ClusterTierClientStateBinding(clientDescriptor, clientState));
     }
   }
 
 
-  public void clientDisconnected(ClientDescriptor clientDescriptor) {
+  public void clientDisconnected(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientDisconnected({})", clientDescriptor);
-      ClusterTierClientState clientState = new ClusterTierClientState(storeIdentifier, false);
-      managementRegistry.pushServerEntityNotification(new ClusterTierClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_RELEASED.name());
-      managementRegistry.unregisterAndRefresh(new ClusterTierClientStateBinding(clientDescriptor, clientState));
+      ClusterTierClientStateBinding clientStateBinding = new ClusterTierClientStateBinding(clientDescriptor, clientState);
+      managementRegistry.pushServerEntityNotification(clientStateBinding, EHCACHE_SERVER_STORE_RELEASED.name());
+      managementRegistry.unregisterAndRefresh(clientStateBinding);
     }
   }
 
-  public void clientReconnected(ClientDescriptor clientDescriptor) {
+  public void clientReconnected(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientReconnected({})", clientDescriptor);
-      managementRegistry.pushServerEntityNotification(new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, true)), EHCACHE_SERVER_STORE_CLIENT_RECONNECTED.name());
+      managementRegistry.pushServerEntityNotification(new ClusterTierClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_CLIENT_RECONNECTED.name());
     }
   }
 
-  public void clientValidated(ClientDescriptor clientDescriptor) {
+  public void clientValidated(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientValidated({})", clientDescriptor);
-      ClusterTierClientStateBinding clientStateBinding = new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, true));
+      ClusterTierClientStateBinding clientStateBinding = new ClusterTierClientStateBinding(clientDescriptor, clientState);
       managementRegistry.unregister(clientStateBinding);
       managementRegistry.registerAndRefresh(clientStateBinding).thenRun(() ->
         managementRegistry.pushServerEntityNotification(clientStateBinding, EHCACHE_SERVER_STORE_ATTACHED.name()));

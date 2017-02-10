@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.server.management;
 
+import java.util.UUID;
+
 /**
  * ClusterTierClientState
  */
@@ -23,11 +25,17 @@ public class ClusterTierClientState {
 
   private final boolean attached;
   private final String storeIdentifier;
+  private final UUID clientId;
 
 
   public ClusterTierClientState(String storeIdentifier, boolean attached) {
+    this(storeIdentifier, attached, null);
+  }
+
+  public ClusterTierClientState(String storeIdentifier, boolean attached, UUID clientId) {
     this.attached = attached;
     this.storeIdentifier = storeIdentifier;
+    this.clientId = clientId;
   }
 
   public boolean isAttached() {
@@ -36,5 +44,9 @@ public class ClusterTierClientState {
 
   public String getStoreIdentifier() {
     return storeIdentifier;
+  }
+
+  public UUID getClientIdentifier() {
+    return clientId;
   }
 }

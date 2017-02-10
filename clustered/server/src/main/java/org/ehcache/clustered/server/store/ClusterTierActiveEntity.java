@@ -19,6 +19,7 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
@@ -42,9 +43,11 @@ import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.ServerStoreCompatibility;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.management.ClusterTierClientState;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -69,6 +72,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
@@ -77,9 +81,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.stream.Collectors.toSet;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -106,7 +112,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final EhcacheStateService stateService;
   private final IEntityMessenger entityMessenger;
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
-  private final ConcurrentMap<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
+  private final ConcurrentMap<ClientDescriptor, ClusterTierClientState> connectedClients = new ConcurrentHashMap<>();
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
@@ -173,8 +179,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    if (connectedClients.putIfAbsent(clientDescriptor, false) == null) {
-      management.clientConnected(clientDescriptor);
+    ClusterTierClientState clientState = new ClusterTierClientState(storeIdentifier, false);
+    if (connectedClients.putIfAbsent(clientDescriptor, clientState) == null) {
+      management.clientConnected(clientDescriptor, clientState);
     }
   }
 
@@ -196,13 +203,26 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       }
     }
 
-    if (connectedClients.remove(clientDescriptor) != null) {
-      management.clientDisconnected(clientDescriptor);
+    ClusterTierClientState clientState = connectedClients.remove(clientDescriptor);
+    if (clientState != null) {
+      management.clientDisconnected(clientDescriptor, clientState);
+
+      UUID clientId = clientState.getClientIdentifier();
+      if (clientId != null) {
+        try {
+          entityMessenger.messageSelf(new PassiveReplicationMessage.ClientIDTrackerMessage(clientId));
+        } catch (MessageCodecException mce) {
+          throw new AssertionError("Codec error", mce);
+        }
+        stateService.getClientMessageTracker(storeIdentifier).remove(clientId);
+      }
     }
   }
 
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
+    clearClientTrackedAtReconnectComplete();
+
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -240,24 +260,35 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   private void validateServerStore(ClientDescriptor clientDescriptor, ValidateServerStore validateServerStore) throws ClusterException {
-    ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
+    ClusterTierClientState clientState = connectedClients.get(clientDescriptor);
+    if (clientState == null) {
+      throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
+    }
+    if (clientState.isAttached()) {
+      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client ID : " + clientState.getClientIdentifier());
+    }
 
+    UUID clientId = validateServerStore.getClientId();
+    if (getTrackedClients().collect(toSet()).contains(clientId)) {
+      throw new InvalidClientIdException("Another client with Client ID : " + clientId + " is already being tracked.");
+    }
+
+    ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
     LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, storeIdentifier);
     ServerSideServerStore store = stateService.getStore(storeIdentifier);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-      attachStore(clientDescriptor, storeIdentifier);
+      attachStore(clientDescriptor, clientId);
+      management.clientValidated(clientDescriptor, connectedClients.get(clientDescriptor));
     } else {
       throw new InvalidStoreException("Clustered tier '" + storeIdentifier + "' does not exist");
     }
   }
 
-  private void attachStore(ClientDescriptor clientDescriptor, String storeId) {
-    connectedClients.replace(clientDescriptor, false, true);
-
-    LOGGER.info("Client {} attached to clustered tier '{}'", clientDescriptor, storeId);
-
-    management.clientValidated(clientDescriptor);
+  private void attachStore(ClientDescriptor clientDescriptor, UUID clientId) {
+    ClusterTierClientState clientState = new ClusterTierClientState(storeIdentifier, true, clientId);
+    connectedClients.replace(clientDescriptor, clientState);
+    LOGGER.info("Client: {} with client ID: {} attached to clustered tier '{}'", clientDescriptor, storeIdentifier);
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
@@ -267,9 +298,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
     }
 
-    Boolean connectedClient = connectedClients.get(clientDescriptor);
-    if (connectedClient == null || !connectedClient) {
-      // An operation on a store should never happen from client no attached onto that store
+    ClusterTierClientState clientState = connectedClients.get(clientDescriptor);
+    if (clientState == null || !clientState.isAttached()) {
+      // An operation on a store should never happen from client not attached onto this store
       throw new LifecycleException("Client not attached to clustered tier '" + storeIdentifier + "'");
     }
 
@@ -483,7 +514,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   private boolean isMessageDuplicate(EhcacheEntityMessage message) {
-    return stateService.getClientMessageTracker().isDuplicate(message.getId(), message.getClientId());
+    return stateService.getClientMessageTracker(storeIdentifier).isDuplicate(message.getId(), message.getClientId());
   }
 
   private void sendMessageToSelfAndDeferRetirement(KeyBasedServerStoreOpMessage message, Chain result) {
@@ -508,6 +539,8 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       if (invalidationTracker != null) {
         inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
         invalidationTracker.clear();
+      } else {
+        throw new AssertionError("Eventual caches must have an invalidation tracker");
       }
     }
   }
@@ -517,17 +550,32 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     if (inflightInvalidations == null) {
       throw new AssertionError("Load existing was not invoked before handleReconnect");
     }
-    if (!connectedClients.replace(clientDescriptor, false, true)) {
+
+    if (connectedClients.get(clientDescriptor) == null) {
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
     ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
     addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
 
-    attachStore(clientDescriptor, storeIdentifier);
+    attachStore(clientDescriptor, reconnectMessage.getClientId());
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
-    management.clientReconnected(clientDescriptor);
+    management.clientReconnected(clientDescriptor, connectedClients.get(clientDescriptor));
+  }
+
+  private void clearClientTrackedAtReconnectComplete() {
+    if (!reconnectComplete.get()) {
+      if (reconnectComplete.compareAndSet(false, true)) {
+        stateService.getClientMessageTracker(storeIdentifier).reconcileTrackedClients(getTrackedClients().collect(toSet()));
+      }
+    }
+  }
+
+  private Stream<UUID> getTrackedClients() {
+    return connectedClients.entrySet().stream()
+      .filter(entry -> entry.getValue().isAttached())
+      .map(entry -> entry.getValue().getClientIdentifier());
   }
 
   private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
@@ -595,9 +643,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   Set<ClientDescriptor> getAttachedClients() {
     return unmodifiableSet(connectedClients.entrySet().stream()
-      .filter(Map.Entry::getValue)
+      .filter(entry -> entry.getValue().isAttached())
       .map(Map.Entry::getKey)
-      .collect(Collectors.toSet()));
+      .collect(toSet()));
   }
 
   ConcurrentMap<Integer, InvalidationHolder> getClientsWaitingForInvalidation() {

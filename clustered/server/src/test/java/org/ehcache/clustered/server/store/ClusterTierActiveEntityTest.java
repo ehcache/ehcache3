@@ -1024,7 +1024,7 @@ public class ClusterTierActiveEntityTest {
 
     EhcacheStateService ehcacheStateService = defaultRegistry.getStoreManagerService();
 
-    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
+    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker(defaultStoreName);
 
     Random random = new Random();
     Set<Long> msgIds = new HashSet<>();

@@ -176,7 +176,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         }
         break;
       case CLIENT_ID_TRACK_OP:
-        stateService.getClientMessageTracker().remove(message.getClientId());
+        stateService.getClientMessageTracker(storeIdentifier).remove(message.getClientId());
         break;
       default:
         throw new AssertionError("Unsupported Retirement Message : " + message);
@@ -214,7 +214,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   }
 
   private void applyMessage(EhcacheOperationMessage message) {
-    ClientMessageTracker clientMessageTracker = stateService.getClientMessageTracker();
+    ClientMessageTracker clientMessageTracker = stateService.getClientMessageTracker(storeIdentifier);
     clientMessageTracker.applied(message.getId(), message.getClientId());
   }
 

@@ -109,18 +109,18 @@ public class ActivePassiveClientIdTest {
 
     ObservableClusterTierServerEntityService.ObservableClusterTierPassiveEntity ehcachePassiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
 
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap().size(), is(0));
+    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap().size(), is(1));
+    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(1));
 
     service.stop();
 
     CompletableFuture<Boolean> completableFuture = CompletableFuture.supplyAsync(() -> {
       while (true) {
         try {
-          if (ehcachePassiveEntity.getMessageTrackerMap().size() == 0) {
+          if (ehcachePassiveEntity.getMessageTrackerMap("test").size() == 0) {
             return true;
           }
         } catch (Exception e) {
