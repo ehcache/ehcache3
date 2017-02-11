@@ -103,19 +103,19 @@ class DefaultTierStatistics implements TierStatistics {
     addKnownStatistic(knownStatistics, tierName, "PutCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
-        return getMisses();
+        return getPuts();
       }
     });
     addKnownStatistic(knownStatistics, tierName, "UpdateCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
-        return getMisses();
+        return getUpdates();
       }
     });
     addKnownStatistic(knownStatistics, tierName, "RemovalCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
-        return getMisses();
+        return getRemovals();
       }
     });
     addKnownStatistic(knownStatistics, tierName, "EvictionCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
