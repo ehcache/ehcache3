@@ -23,8 +23,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InvalidationTrackerImpl implements InvalidationTracker {
 
-  final ConcurrentMap<Long, Integer> invalidationMap = new ConcurrentHashMap<>();
-  final AtomicBoolean isClearInProgress = new AtomicBoolean(false);
+  private final ConcurrentMap<Long, Integer> invalidationMap = new ConcurrentHashMap<>();
+  private final AtomicBoolean isClearInProgress = new AtomicBoolean(false);
+
+  protected ConcurrentMap<Long, Integer> getInvalidationMap() {
+    return invalidationMap;
+  }
 
   @Override
   public boolean isClearInProgress() {
@@ -33,11 +37,11 @@ public class InvalidationTrackerImpl implements InvalidationTracker {
 
   @Override
   public void setClearInProgress(boolean clearInProgress) {
-    isClearInProgress.getAndSet(clearInProgress);
+    isClearInProgress.set(clearInProgress);
   }
 
-  protected ConcurrentMap<Long, Integer> getInvalidationMap() {
-    return invalidationMap;
+  protected long getInvalidationCount(long chainKey) {
+    return getInvalidationMap().getOrDefault(chainKey, 0);
   }
 
   @Override
