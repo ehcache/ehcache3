@@ -526,50 +526,6 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testBasicDestroyAll() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate()
-            .defaultServerResource("defaultResource")
-            .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
-            .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
-            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
-            .build();
-    DefaultClusteringService createService = new DefaultClusteringService(configuration);
-    createService.start(null);
-    createService.stop();
-
-    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    assertThat(activeEntities.size(), is(1));
-    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
-    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
-    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
-    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-
-    try {
-      createService.destroyAll();
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("Maintenance mode required"));
-    }
-
-    createService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
-
-    createService.destroyAll();
-
-    activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    assertThat(activeEntities.size(), is(1));
-    activeEntity = activeEntities.get(0);
-    assertThat(activeEntity.getDefaultServerResource(), is(nullValue()));
-    assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-  }
-
-  @Test
   public void testGetServerStoreProxySharedAutoCreate() throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
@@ -1309,7 +1265,51 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testFullDestroyAll() throws Exception {
+  public void testDestroyAllNoStores() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .autoCreate()
+            .defaultServerResource("defaultResource")
+            .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
+            .build();
+    DefaultClusteringService createService = new DefaultClusteringService(configuration);
+    createService.start(null);
+    createService.stop();
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+
+    try {
+      createService.destroyAll();
+      fail("Expecting IllegalStateException");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("Maintenance mode required"));
+    }
+
+    createService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
+
+    createService.destroyAll();
+
+    activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is(nullValue()));
+    assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testDestroyAllWithStores() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
             .autoCreate()

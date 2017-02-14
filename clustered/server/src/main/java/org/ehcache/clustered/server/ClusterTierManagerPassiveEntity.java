@@ -25,7 +25,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.management.Management;
-import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,9 +61,33 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   @Override
   public void invoke(EhcacheEntityMessage message) {
-    throw new AssertionError("No invokes supported by this entity");
+    try {
+      if (message instanceof EhcacheOperationMessage) {
+        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+        EhcacheMessageType messageType = operationMessage.getMessageType();
+        if (isLifecycleMessage(messageType)) {
+          invokeLifeCycleOperation((LifecycleMessage) message);
+        } else {
+          throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
+        }
+      } else {
+        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
+      }
+    } catch (ClusterException e) {
+      // Reaching here means a lifecycle or sync operation failed
+      throw new IllegalStateException("A lifecycle or sync operation failed", e);
+    }
   }
 
+  private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
+    switch (message.getMessageType()) {
+      case PREPARE_FOR_DESTROY:
+        ehcacheStateService.prepareForDestroy();
+        break;
+      default:
+        throw new AssertionError("Unsupported LifeCycle operation " + message.getMessageType());
+    }
+  }
 
   @Override
   public void startSyncEntity() {

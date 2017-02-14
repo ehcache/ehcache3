@@ -152,8 +152,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public void loadExisting() {
-    stateService.loadStore(storeIdentifier, configuration);
-    stateService.getStore(storeIdentifier).setEvictionListener(this::invalidateHashAfterEviction);
+    stateService.loadStore(storeIdentifier, configuration).setEvictionListener(this::invalidateHashAfterEviction);
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = synchronizedList(new ArrayList<>());
     if (!isStrong()) {

@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
@@ -85,6 +86,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private final OffHeapResources offHeapResources;
   private volatile boolean configured = false;
+  private volatile boolean destroyInProgress = false;
 
   /**
    * The name of the resource to use for dedicated resource pools not identifying a resource from which
@@ -131,10 +133,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public void loadStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    if (getStore(name) == null) {
+  public ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    ServerStoreImpl store = getStore(name);
+    if (store == null) {
       LOGGER.warn("Clustered Tier {} not properly recovered on fail over.", name);
     }
+    return store;
   }
 
   public Set<String> getStores() {
@@ -175,6 +179,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   public void validate(ServerSideConfiguration configuration) throws ClusterException {
+    if (destroyInProgress) {
+      throw new DestroyInProgressException("Cluster Tier Manager marked in progress for destroy - clean up by destroying or re-creating");
+    }
     if (!isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
@@ -345,6 +352,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
         LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", name);
       }
     }
+  }
+
+  @Override
+  public void prepareForDestroy() {
+    destroyInProgress = true;
   }
 
   public void destroy() {

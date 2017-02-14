@@ -18,8 +18,10 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
@@ -253,7 +255,27 @@ public class ClusterTierManagerPassiveEntityTest {
       passiveEntity.invoke(new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
-      assertThat(e.getMessage(), containsString("No invokes supported by this entity"));
+      assertThat(e.getMessage(), containsString("Unsupported EhcacheEntityMessage"));
+    }
+  }
+
+  @Test
+  public void testPrepareForDestroy() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(4, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource", 4, MemoryUnit.MEGABYTES);
+
+    ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfigBuilder()
+      .build());
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
+    final ClusterTierManagerPassiveEntity passiveEntity = new ClusterTierManagerPassiveEntity(configuration, ehcacheStateService, management);
+
+    passiveEntity.invoke(new LifecycleMessage.PrepareForDestroy());
+
+    try {
+      ehcacheStateService.validate(null);
+    } catch (DestroyInProgressException e) {
+      assertThat(e.getMessage(), containsString("in progress for destroy"));
     }
   }
 

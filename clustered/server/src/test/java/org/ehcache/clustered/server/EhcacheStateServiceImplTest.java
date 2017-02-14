@@ -16,12 +16,14 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class EhcacheStateServiceImplTest {
 
@@ -39,6 +41,18 @@ public class EhcacheStateServiceImplTest {
     stateService.createInvalidationTrackerManager(false);
     InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
     assertThat(invalidationTrackerManager, notNullValue());
+  }
+
+  @Test
+  public void testPrepareForDestroy() throws Exception {
+    EhcacheStateServiceImpl ehcacheStateService = new EhcacheStateServiceImpl(null, null, null, null);
+    ehcacheStateService.prepareForDestroy();
+
+    try {
+      ehcacheStateService.validate(null);
+    } catch (DestroyInProgressException e) {
+      assertThat(e.getMessage(), containsString("in progress for destroy"));
+    }
   }
 
 }
