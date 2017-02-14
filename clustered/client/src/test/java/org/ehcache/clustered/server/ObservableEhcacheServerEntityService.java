@@ -60,14 +60,6 @@ public class ObservableEhcacheServerEntityService
     return Collections.unmodifiableList(observables);
   }
 
-  public List<ObservableEhcachePassiveEntity> getServedPassiveEntities() throws Exception {
-    List<ObservableEhcachePassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
-    for (ClusterTierManagerPassiveEntity servedPassiveEntity : servedPassiveEntities) {
-      observables.add(new ObservableEhcachePassiveEntity(servedPassiveEntity));
-    }
-    return Collections.unmodifiableList(observables);
-  }
-
   @Override
   public long getVersion() {
     return delegate.getVersion();
@@ -150,29 +142,6 @@ public class ObservableEhcacheServerEntityService
       return ehcacheStateService.getDedicatedResourcePoolIds();
     }
 
-    public Map getClientsWaitingForInvalidation() throws Exception {
-      Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
-      field.setAccessible(true);
-      return (Map)field.get(activeEntity);
-    }
   }
 
-  public static final class ObservableEhcachePassiveEntity {
-    private final ClusterTierManagerPassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
-
-    private ObservableEhcachePassiveEntity(ClusterTierManagerPassiveEntity passiveEntity) throws Exception {
-      this.passiveEntity = passiveEntity;
-      Field field = passiveEntity.getClass().getDeclaredField("ehcacheStateService");
-      field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
-    }
-
-    public Map getMessageTrackerMap() throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("messageTrackers");
-      field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
-    }
-
-  }
 }

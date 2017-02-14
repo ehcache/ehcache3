@@ -66,8 +66,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    */
   private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
 
-  private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
-  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
   private final IEntityMessenger entityMessenger;
@@ -137,22 +135,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       LOGGER.info("Disconnecting {}", clientDescriptor);
       management.clientDisconnected(clientDescriptor, clientState);
     }
-    UUID clientId = clientIdMap.remove(clientDescriptor);
-    if (clientId != null) {
-      try {
-        entityMessenger.messageSelf(new ClientIDTrackerMessage(clientId));
-      } catch (MessageCodecException mce) {
-        throw new AssertionError("Codec error", mce);
-      }
-      ehcacheStateService.getClientMessageTracker().remove(clientId);
-    }
   }
 
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
     try {
-      clearClientTrackedAtReconnectComplete();
-
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
@@ -169,16 +156,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     }
   }
 
-  private void clearClientTrackedAtReconnectComplete() {
-
-    if (!reconnectComplete.get()) {
-      if (reconnectComplete.compareAndSet(false, true)) {
-        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(clientIdMap.values());
-      }
-    }
-
-  }
-
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
@@ -186,8 +163,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     clientState.attach();
-    ClusterTierManagerReconnectMessage reconnectMessage = reconnectMessageCodec.decodeReconnectMessage(extendedReconnectData);
-    addClientId(clientDescriptor, reconnectMessage.getClientId());
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
     management.clientReconnected(clientDescriptor, clientState);
@@ -272,21 +247,9 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    if (clientIdMap.get(clientDescriptor) != null) {
-      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
-    } else if (clientIdMap.values().contains(message.getClientId())) {
-      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
-    }
-
-    addClientId(clientDescriptor, message.getClientId());
     ehcacheStateService.validate(message.getConfiguration());
     this.clientStateMap.get(clientDescriptor).attach();
     management.clientValidated(clientDescriptor, this.clientStateMap.get(clientDescriptor));
-  }
-
-  private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
-    LOGGER.info("Adding Client {} with client ID : {} ", clientDescriptor, clientId);
-    clientIdMap.put(clientDescriptor, clientId);
   }
 
 }

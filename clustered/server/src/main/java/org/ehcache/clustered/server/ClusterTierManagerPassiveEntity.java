@@ -42,33 +42,6 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
 
-  @Override
-  public void invoke(EhcacheEntityMessage message) {
-
-    try {
-      if (message instanceof EhcacheOperationMessage) {
-        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-        EhcacheMessageType messageType = operationMessage.getMessageType();
-        if (isLifecycleMessage(messageType)) {
-          invokeLifeCycleOperation((LifecycleMessage) message);
-        } else if (isPassiveReplicationMessage(messageType)) {
-          try {
-            invokeRetirementMessages((PassiveReplicationMessage)message);
-          } catch (ClusterException e) {
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
-        } else {
-          throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
-        }
-      } else {
-        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
-      }
-    } catch (ClusterException e) {
-      // Reaching here means a lifecycle or sync operation failed
-      throw new IllegalStateException("A lifecycle or sync operation failed", e);
-    }
-  }
-
   public ClusterTierManagerPassiveEntity(ClusterTierManagerConfiguration config,
                                          EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
@@ -87,31 +60,11 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
     }
   }
 
-  private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
-
-    switch (message.getMessageType()) {
-      case CLIENT_ID_TRACK_OP:
-        ehcacheStateService.getClientMessageTracker().remove(message.getClientId());
-        break;
-      default:
-        throw new AssertionError("Unsupported Retirement Message : " + message);
-    }
+  @Override
+  public void invoke(EhcacheEntityMessage message) {
+    throw new AssertionError("No invokes supported by this entity");
   }
 
-  private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
-    switch (message.getMessageType()) {
-      case VALIDATE:
-        applyMessage(message);
-        break;
-      default:
-        throw new AssertionError("Unsupported LifeCycle operation " + message.getMessageType());
-    }
-  }
-
-  private void applyMessage(EhcacheOperationMessage message) {
-    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
-    clientMessageTracker.applied(message.getId(), message.getClientId());
-  }
 
   @Override
   public void startSyncEntity() {

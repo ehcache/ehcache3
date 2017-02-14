@@ -110,7 +110,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
-  private final ClientMessageTracker messageTracker = new DefaultClientMessageTracker();
+  private final Map<String, ClientMessageTracker> messageTrackers = new ConcurrentHashMap<>();
   private volatile InvalidationTrackerManager invalidationTrackerManager;
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;
@@ -405,6 +405,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     stores.put(name, serverStore);
+    messageTrackers.put(name, new DefaultClientMessageTracker());
 
     registerStoreStatistics(serverStore, name);
 
@@ -421,6 +422,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       store.close();
     }
     stateRepositoryManager.destroyStateRepository(name);
+    messageTrackers.remove(name);
   }
 
   private PageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
@@ -485,8 +487,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public ClientMessageTracker getClientMessageTracker() {
-    return this.messageTracker;
+  public ClientMessageTracker getClientMessageTracker(String name) {
+    return this.messageTrackers.get(name);
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {

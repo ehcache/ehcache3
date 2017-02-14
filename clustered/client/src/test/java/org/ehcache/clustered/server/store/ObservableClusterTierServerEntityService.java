@@ -144,10 +144,10 @@ public class ObservableClusterTierServerEntityService
       this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
     }
 
-    public Map getMessageTrackerMap() throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("clientUUIDMessageTrackerMap");
+    public Map getMessageTrackerMap(String storeAlias) throws Exception {
+      Field field = this.ehcacheStateService.getClientMessageTracker(storeAlias).getClass().getDeclaredField("clientUUIDMessageTrackerMap");
       field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
+      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker(storeAlias));
     }
 
   }

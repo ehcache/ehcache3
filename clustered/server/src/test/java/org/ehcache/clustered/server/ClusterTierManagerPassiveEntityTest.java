@@ -253,7 +253,7 @@ public class ClusterTierManagerPassiveEntityTest {
       passiveEntity.invoke(new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
-      assertThat(e.getMessage(), containsString("Unsupported"));
+      assertThat(e.getMessage(), containsString("No invokes supported by this entity"));
     }
   }
 
