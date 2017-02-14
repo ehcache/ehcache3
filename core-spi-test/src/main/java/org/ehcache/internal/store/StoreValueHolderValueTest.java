@@ -26,7 +26,6 @@ import static org.hamcrest.core.Is.is;
 /**
  * Test the {@link Store.ValueHolder#value()} contract of the
  * {@link Store.ValueHolder Store.ValueHolder} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

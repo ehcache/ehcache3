@@ -35,7 +35,6 @@ import static org.hamcrest.Matchers.nullValue;
 /**
  * Test the {@link Store#putIfAbsent(Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

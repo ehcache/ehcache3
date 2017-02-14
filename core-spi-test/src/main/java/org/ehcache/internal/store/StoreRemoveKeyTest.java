@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#remove(Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

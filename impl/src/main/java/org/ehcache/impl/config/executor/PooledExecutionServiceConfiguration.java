@@ -25,10 +25,9 @@ import static java.util.Collections.unmodifiableMap;
 
 /**
  * {@link ServiceCreationConfiguration} for the pooled {@link ExecutionService} implementation.
- * <P>
- *   Enables configuring named thread pools that can then be used by the different Ehcache services
- *   that require threads to function.
- * </P>
+ * <p>
+ * Enables configuring named thread pools that can then be used by the different Ehcache services
+ * that require threads to function.
  *
  * @see org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration
  * @see org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration
@@ -45,11 +44,10 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
 
   /**
    * Adds a new default pool with the provided minimum and maximum.
-   * <P>
-   *   The default pool will be used by any service requiring threads but not specifying a pool alias.
-   *   It is not mandatory to have a default pool.
-   *   But without one <I>ALL</I> services have to specify a pool alias.
-   * </P>
+   * <p>
+   * The default pool will be used by any service requiring threads but not specifying a pool alias.
+   * It is not mandatory to have a default pool.
+   * But without one <i>ALL</i> services have to specify a pool alias.
    *
    * @param alias the pool alias
    * @param minSize the minimum size

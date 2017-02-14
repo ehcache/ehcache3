@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * The {@code PooledExecutionServiceConfigurationBuilder} enables building configurations for an
  * {@link org.ehcache.core.spi.service.ExecutionService} that is pool based using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.

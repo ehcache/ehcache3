@@ -24,9 +24,8 @@ import java.util.Collection;
 
 /**
  * Represents the minimal configuration for a {@link Cache}.
- * <P>
- *   <EM>Implementations are expected to be read-only.</EM>
- * </P>
+ * <p>
+ * <em>Implementations are expected to be read-only.</em>
  *
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
@@ -35,9 +34,8 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The service configurations defined for the {@link Cache}.
-   * <P>
-   *   Implementations must return an unmodifiable collection.
-   * </P>
+   * <p>
+   * Implementations must return an unmodifiable collection.
    *
    * @return service configurations
    */
@@ -45,9 +43,8 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The key type for the {@link Cache}.
-   * <P>
-   *   The key type must not be {@code null}.
-   * </P>
+   * <p>
+   * The key type must not be {@code null}.
    *
    * @return a non {@code null} class
    */
@@ -55,9 +52,8 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The value type for the {@link Cache}.
-   * <P>
-   *   The value type must not be {@code null}.
-   * </P>
+   * <p>
+   * The value type must not be {@code null}.
    *
    * @return a non {@code null} class
    */
@@ -65,10 +61,9 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The {@link EvictionAdvisor} predicate function.
-   * <P>
+   * <p>
    * Entries which pass this predicate may be ignored by the eviction process.
    * <strong>This is only a hint.</strong>
-   * </P>
    *
    * @return the eviction advisor predicate
    */
@@ -76,13 +71,11 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The {@link ClassLoader} for the {@link Cache}.
-   * <P>
-   *   This {@code ClassLoader} will be used to instantiate cache level services
-   *   and for deserializing cache entries when required.
-   * </P>
-   * <P>
-   *   The {@code ClassLoader} must not be null.
-   * </P>
+   * <p>
+   * This {@code ClassLoader} will be used to instantiate cache level services
+   * and for deserializing cache entries when required.
+   * <p>
+   * The {@code ClassLoader} must not be null.
    *
    * @return the cache {@code ClassLoader}
    */
@@ -90,19 +83,17 @@ public interface CacheConfiguration<K, V> {
 
   /**
    * The {@link Expiry} rules for the {@link Cache}.
-   * <P>
-   *   The {@code Expiry} cannot be null.
-   * </P>
+   * <p>
+   * The {@code Expiry} cannot be null.
    *
-   *  @return the {@code Expiry}
+   * @return the {@code Expiry}
    */
   Expiry<? super K, ? super V> getExpiry();
 
   /**
    * The {@link ResourcePools} for the {@link Cache}.
-   * <P>
-   *   The {@code ResourcePools} cannot be null nor empty.
-   * </P>
+   * <p>
+   * The {@code ResourcePools} cannot be null nor empty.
    *
    * @return the {@link ResourcePools}
    */

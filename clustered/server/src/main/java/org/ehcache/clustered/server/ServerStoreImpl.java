@@ -18,16 +18,15 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
-import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractList;
 import java.util.List;
+import java.util.Set;
 
 @CommonComponent
 public class ServerStoreImpl implements ServerSideServerStore {
@@ -92,8 +91,19 @@ public class ServerStoreImpl implements ServerSideServerStore {
     store.close();
   }
 
-  public List<OffHeapChainMap<Long>> getSegments() {
-    return store.getSegments();
+  @Override
+  public List<Set<Long>> getSegmentKeySets() {
+
+    return new AbstractList<Set<Long>>() {
+      @Override
+      public Set<Long> get(int index) {
+        return store.getSegments().get(index).keySet();
+      }
+      @Override
+      public int size() {
+        return store.getSegments().size();
+      }
+    };
   }
 
   // stats

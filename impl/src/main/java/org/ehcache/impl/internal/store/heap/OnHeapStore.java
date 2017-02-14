@@ -107,7 +107,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  *   <li>Eviction</li>
  *   <li>Events</li>
  *   <li>Statistics</li>
- * </ul></p>
+ * </ul>
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  */
@@ -275,14 +275,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag(STATISTICS_TAG).build();
 
     Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
-    Map<String, String> properties = singletonMap("discriminator", STATISTICS_TAG);
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return map.mappingCount();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         if (byteSized) {

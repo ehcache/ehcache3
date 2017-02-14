@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryMessageFactory;
@@ -34,12 +34,12 @@ import static org.ehcache.clustered.client.internal.service.ValueCodecFactory.ge
 public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private final StateRepositoryMessageFactory messageFactory;
-  private final EhcacheClientEntity entity;
+  private final ClusterTierClientEntity entity;
   private final Class<K> keyClass;
   private final ValueCodec<K> keyCodec;
   private final ValueCodec<V> valueCodec;
 
-  public ClusteredStateHolder(final String cacheId, final String mapId, final EhcacheClientEntity entity, Class<K> keyClass, Class<V> valueClass) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusterTierClientEntity entity, Class<K> keyClass, Class<V> valueClass) {
     this.keyClass = keyClass;
     this.keyCodec = getCodecForClass(keyClass);
     this.valueCodec = getCodecForClass(valueClass);
@@ -60,7 +60,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private Object getResponse(StateRepositoryOpMessage message) {
     try {
-      EhcacheEntityResponse response = entity.invoke(message, true);
+      EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
     } catch (ClusterException ce) {
       throw new ClusteredMapException(ce);

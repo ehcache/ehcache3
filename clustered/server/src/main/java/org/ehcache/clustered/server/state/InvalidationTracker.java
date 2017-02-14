@@ -18,26 +18,21 @@ package org.ehcache.clustered.server.state;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @CommonComponent
-public class InvalidationTracker {
+public interface InvalidationTracker {
 
-  private final ConcurrentMap<Long, Integer> invalidationMap = new ConcurrentHashMap<>();
-  private final AtomicBoolean isClearInProgress = new AtomicBoolean(false);
+  boolean isClearInProgress();
 
-  public boolean isClearInProgress() {
-    return isClearInProgress.get();
-  }
+  void setClearInProgress(boolean clearInProgress);
 
-  public void setClearInProgress(boolean clearInProgress) {
-    isClearInProgress.getAndSet(clearInProgress);
-  }
+  void trackHashInvalidation(long chainKey);
 
-  public ConcurrentMap<Long, Integer> getInvalidationMap() {
-    return invalidationMap;
-  }
+  void untrackHashInvalidation(long chainKey);
 
+  Set<Long> getTrackedKeys();
+
+  void clear();
 }

@@ -17,10 +17,10 @@ package org.ehcache.management.providers.actions;
 
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.registry.action.AbstractActionManagementProvider;
 import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
 
 @Named("ActionsCapability")
 @RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})

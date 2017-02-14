@@ -307,6 +307,6 @@ public class CacheConfigurationBuilderTest {
 
     assertThat(copy.getEvictionAdvisor(), IsSame.<EvictionAdvisor<?, ?>>sameInstance(eviction));
     assertThat(copy.getExpiry(), IsSame.<Expiry<?, ?>>sameInstance(expiry));
-    assertThat(copy.getServiceConfigurations(), containsInAnyOrder(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
+    assertThat(copy.getServiceConfigurations(), contains(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
   }
 }

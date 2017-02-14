@@ -28,18 +28,17 @@ abstract class Eh107MXBean {
 
   private final ObjectName objectName;
 
-  Eh107MXBean(String cacheName, Eh107CacheManager cacheManager, final String beanName) {
-    this.objectName = createObjectName(cacheName, cacheManager, beanName);
+  Eh107MXBean(String cacheName, URI cacheManagerURI, final String beanName) {
+    this.objectName = createObjectName(cacheName, cacheManagerURI, beanName);
   }
 
   private String sanitize(String string) {
     return string == null ? "" : string.replaceAll(",|:|=|\n", ".");
   }
 
-  private ObjectName createObjectName(String cacheName, Eh107CacheManager cacheManager, String beanName) {
-    URI uri = cacheManager.getURI();
-    String cacheManagerName = sanitize(uri != null ? uri.toString() : "null");
-    cacheName = sanitize(cacheName != null ? cacheName : "null");
+  private ObjectName createObjectName(String cacheName, URI cacheManagerURI, String beanName) {
+    String cacheManagerName = sanitize(cacheManagerURI.toString());
+    cacheName = sanitize(cacheName);
 
     // The classloader should really be used as part of the ObjectName IMO, but
     // the TCK would fail with that

@@ -20,22 +20,40 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.terracotta.entity.ConcurrencyStrategy;
 
-import org.terracotta.entity.EntityMessage;
+import static java.util.Collections.singleton;
 
 public final class ConcurrencyStrategies {
+
+  public static final int DEFAULT_KEY = 1;
 
   private ConcurrencyStrategies() {
   }
 
-  public static final <T extends EntityMessage> ConcurrencyStrategy<T> defaultConcurrency(KeySegmentMapper mapper) {
-    return new DefaultConcurrencyStrategy<T>(mapper);
+  public static ConcurrencyStrategy<EhcacheEntityMessage> clusterTierConcurrency(KeySegmentMapper mapper) {
+    return new DefaultConcurrencyStrategy(mapper);
   }
 
-  public static class DefaultConcurrencyStrategy<T extends EntityMessage> implements ConcurrencyStrategy<T> {
-    public static final int DEFAULT_KEY = 1;
+  public static ConcurrencyStrategy<EhcacheEntityMessage> clusterTierManagerConcurrency() {
+    return CLUSTER_TIER_MANAGER_CONCURRENCY_STRATEGY;
+  }
+
+  private static final ConcurrencyStrategy<EhcacheEntityMessage> CLUSTER_TIER_MANAGER_CONCURRENCY_STRATEGY = new ConcurrencyStrategy<EhcacheEntityMessage>() {
+    @Override
+    public int concurrencyKey(EhcacheEntityMessage message) {
+      return DEFAULT_KEY;
+    }
+
+    @Override
+    public Set<Integer> getKeysForSynchronization() {
+      return singleton(DEFAULT_KEY);
+    }
+  };
+
+  public static class DefaultConcurrencyStrategy implements ConcurrencyStrategy<EhcacheEntityMessage> {
     public static final int DATA_CONCURRENCY_KEY_OFFSET = DEFAULT_KEY + 1;
 
     private final KeySegmentMapper mapper;
@@ -45,7 +63,7 @@ public final class ConcurrencyStrategies {
     }
 
     @Override
-    public int concurrencyKey(EntityMessage entityMessage) {
+    public int concurrencyKey(EhcacheEntityMessage entityMessage) {
       if (entityMessage instanceof ServerStoreOpMessage.GetMessage) {
         return UNIVERSAL_KEY;
       } else if (entityMessage instanceof ConcurrentEntityMessage) {

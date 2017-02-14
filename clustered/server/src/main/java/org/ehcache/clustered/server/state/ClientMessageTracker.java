@@ -16,83 +16,45 @@
 
 package org.ehcache.clustered.server.state;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.tc.classloader.CommonComponent;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
+/**
+ * ClientMessageTracker keeps track of message ids corresponds to the clientIds.
+ */
 @CommonComponent
-public class ClientMessageTracker {
+public interface ClientMessageTracker {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClientMessageTracker.class);
+  /**
+   * Track the given messageId corresponding to the clientId.
+   *
+   * @param msgId Message Id to be checked.
+   * @param clientId client identifier
+   */
+  void applied(long msgId, UUID clientId);
 
-  private final ConcurrentMap<UUID, MessageTracker> messageTrackers = new ConcurrentHashMap<>();
-  private volatile UUID entityConfiguredStamp = null;
-  private volatile long configuredTimestamp;
+  /**
+   * Check that the message is already seen by the server.
+   * @param msgId Message Id to be checked.
+   * @param clientId client identifier
+   * @return {@code true} if the message is a duplicate, {@code false} otherwise
+   */
+  boolean isDuplicate(long msgId, UUID clientId);
 
-  //TODO : This method will be removed once we move to model where
-  //caches are entites. Then passive just needs to keep track of
-  //applied messages. Thus only 'applied' method will be keeping
-  // track of watermarking for de-duplication. This method is only
-  // allowed to be used by cache lifecycle message for now.
-  @Deprecated
-  public void track(long msgId, UUID clientId) {
-    messageTrackers.compute(clientId, (mappedUuid, messageTracker) -> {
-      if (messageTracker == null) {
-        messageTracker = new MessageTracker();
-        LOGGER.info("Tracking client {}.", clientId);
-      }
-      messageTracker.track(msgId);
-      return messageTracker;
-    });
-  }
+  /**
+   * Remove the given clientId and associated state.
+   * @param clientId Client Identifier
+   */
+  void remove(UUID clientId);
 
-  public void applied(long msgId, UUID clientId){
-    messageTrackers.compute(clientId, (mappedUuid, messageTracker) -> {
-      if (messageTracker == null) {
-        messageTracker = new MessageTracker();
-        LOGGER.info("Tracking client {}.", clientId);
-      }
-      messageTracker.track(msgId);
-      messageTracker.applied(msgId);
-      return messageTracker;
-    });
-  }
 
-  public boolean isDuplicate(long msgId, UUID clientId) {
-    if (messageTrackers.get(clientId) == null) {
-      return false;
-    }
-    return !messageTrackers.get(clientId).shouldApply(msgId);
-  }
-
-  public void remove(UUID clientId) {
-    messageTrackers.remove(clientId);
-    LOGGER.info("Stop tracking client {}.", clientId);
-  }
-
-  public void setEntityConfiguredStamp(UUID clientId, long timestamp) {
-    this.entityConfiguredStamp = clientId;
-    this.configuredTimestamp = timestamp;
-  }
-
-  public boolean isConfigureApplicable(UUID clientId, long timestamp) {
-    if (entityConfiguredStamp == null) {
-      return true;
-    }
-    if (clientId.equals(entityConfiguredStamp) && configuredTimestamp == timestamp) {
-      return false;
-    }
-    return true;
-  }
-
-  public void reconcileTrackedClients(Set<UUID> trackedClients) {
-    messageTrackers.keySet().retainAll(trackedClients);
-  }
+  /**
+   * Reconcile the clientId with the caller.
+   * @param trackedClients Client Identifiers to be reconciled.
+   */
+  void reconcileTrackedClients(Collection<UUID> trackedClients);
 
 }

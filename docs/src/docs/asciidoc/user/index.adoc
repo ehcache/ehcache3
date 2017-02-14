@@ -51,4 +51,5 @@ Each topic below corresponds to a menu item at the left.
 |link:writers.html[Cache Writers]|Using cache writers (write-through and write-behind)
 |link:cache-event-listeners.html[Cache Event Listeners]|Getting notified about events within the cache
 |link:eviction-advisor.html[Eviction Advisor]|Affecting the way entries are chosen for eviction
+|link:class-loading.html[Class loading]|Ehcache and `ClassLoader` interactions
 |===

@@ -1,0 +1,58 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.ehcache.clustered.server;
+
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
+import org.ehcache.clustered.server.state.InvalidationTrackerManager;
+import org.junit.Test;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+public class EhcacheStateServiceImplTest {
+
+  @Test
+  public void getInvalidationTrackerManagerForActive() throws Exception {
+    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
+    stateService.createInvalidationTrackerManager(true);
+    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
+    assertThat(invalidationTrackerManager, nullValue());
+  }
+
+  @Test
+  public void getInvalidationTrackerManagerForPassive() throws Exception {
+    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
+    stateService.createInvalidationTrackerManager(false);
+    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
+    assertThat(invalidationTrackerManager, notNullValue());
+  }
+
+  @Test
+  public void testPrepareForDestroy() throws Exception {
+    EhcacheStateServiceImpl ehcacheStateService = new EhcacheStateServiceImpl(null, null, null, null);
+    ehcacheStateService.prepareForDestroy();
+
+    try {
+      ehcacheStateService.validate(null);
+    } catch (DestroyInProgressException e) {
+      assertThat(e.getMessage(), containsString("in progress for destroy"));
+    }
+  }
+
+}

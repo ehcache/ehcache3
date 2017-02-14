@@ -33,7 +33,7 @@ import static org.junit.Assert.fail;
 public class ServerStoreOpCodecTest {
 
   private static final UUID CLIENT_ID = UUID.randomUUID();
-  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test", CLIENT_ID);
+  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory(CLIENT_ID);
   private static final ServerStoreOpCodec STORE_OP_CODEC = new ServerStoreOpCodec();
 
   @Test
@@ -46,7 +46,6 @@ public class ServerStoreOpCodecTest {
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(appendMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.AppendMessage decodedAppendMessage = (ServerStoreOpMessage.AppendMessage) decodedMsg;
 
-    assertThat(decodedAppendMessage.getCacheId(), is("test"));
     assertThat(decodedAppendMessage.getKey(), is(1L));
     assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
     assertThat(decodedAppendMessage.getId(), is(42L));
@@ -63,7 +62,6 @@ public class ServerStoreOpCodecTest {
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.GetMessage decodedGetMessage = (ServerStoreOpMessage.GetMessage) decodedMsg;
 
-    assertThat(decodedGetMessage.getCacheId(), is("test"));
     assertThat(decodedGetMessage.getKey(), is(2L));
     assertThat(decodedGetMessage.getId(), is(42L));
     assertThat(decodedGetMessage.getMessageType(), is(EhcacheMessageType.GET_STORE));
@@ -85,7 +83,6 @@ public class ServerStoreOpCodecTest {
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getAndAppendMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.GetAndAppendMessage decodedGetAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage) decodedMsg;
 
-    assertThat(decodedGetAndAppendMessage.getCacheId(), is("test"));
     assertThat(decodedGetAndAppendMessage.getKey(), is(10L));
     assertThat(readPayLoad(decodedGetAndAppendMessage.getPayload()), is(10L));
     assertThat(decodedGetAndAppendMessage.getId(), is(123L));
@@ -104,7 +101,6 @@ public class ServerStoreOpCodecTest {
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(replaceAtHeadMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ReplaceAtHeadMessage decodedReplaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) decodedMsg;
 
-    assertThat(decodedReplaceAtHeadMessage.getCacheId(), is("test"));
     assertThat(decodedReplaceAtHeadMessage.getKey(), is(10L));
     assertThat(decodedReplaceAtHeadMessage.getId(), is(42L));
     Util.assertChainHas(decodedReplaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
@@ -121,7 +117,6 @@ public class ServerStoreOpCodecTest {
     byte[] encoded = STORE_OP_CODEC.encode(clearMessage);
     ServerStoreOpMessage decodedMsg = (ServerStoreOpMessage) STORE_OP_CODEC.decode(clearMessage.getMessageType(), wrap(encoded));
 
-    assertThat(decodedMsg.getCacheId(), is("test"));
     assertThat(decodedMsg.getId(), is(42L));
     assertThat(decodedMsg.getClientId(), is(CLIENT_ID));
     assertThat(decodedMsg.getMessageType(), is(EhcacheMessageType.CLEAR));
@@ -129,14 +124,14 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testClientInvalidationAckMessageCodec() throws Exception {
-    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(123);
+    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(42L,123);
     invalidationAckMessage.setId(456L);
 
     byte[] encoded = STORE_OP_CODEC.encode(invalidationAckMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(invalidationAckMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ClientInvalidationAck decodedInvalidationAckMessage = (ServerStoreOpMessage.ClientInvalidationAck)decodedMsg;
 
-    assertThat(decodedInvalidationAckMessage.getCacheId(), is("test"));
+    assertThat(decodedInvalidationAckMessage.getKey(), is(42L));
     assertThat(decodedInvalidationAckMessage.getInvalidationId(), is(123));
     assertThat(decodedInvalidationAckMessage.getId(), is(456L));
     assertThat(decodedInvalidationAckMessage.getMessageType(), is(EhcacheMessageType.CLIENT_INVALIDATION_ACK));

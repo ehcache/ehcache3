@@ -17,7 +17,7 @@ package org.ehcache.management.cluster;
 
 public class DefaultClusteringManagementServiceConfiguration implements ClusteringManagementServiceConfiguration {
 
-  private String managementCallExecutorAlias;
+  private String managementCallExecutorAlias = "managementCallExecutor";
   private int managementCallQueueSize = 1024;
   private long managementCallTimeoutSec = 5;
 
