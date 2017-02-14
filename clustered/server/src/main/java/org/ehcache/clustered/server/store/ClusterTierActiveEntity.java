@@ -268,17 +268,12 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client ID : " + clientState.getClientIdentifier());
     }
 
-    UUID clientId = validateServerStore.getClientId();
-    if (getTrackedClients().collect(toSet()).contains(clientId)) {
-      throw new InvalidClientIdException("Another client with Client ID : " + clientId + " is already being tracked.");
-    }
-
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
     LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, storeIdentifier);
     ServerSideServerStore store = stateService.getStore(storeIdentifier);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-      attachStore(clientDescriptor, clientId);
+      attachStore(clientDescriptor, validateServerStore.getClientId());
       management.clientValidated(clientDescriptor, connectedClients.get(clientDescriptor));
     } else {
       throw new InvalidStoreException("Clustered tier '" + storeIdentifier + "' does not exist");
