@@ -494,7 +494,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
+  public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
   }
 

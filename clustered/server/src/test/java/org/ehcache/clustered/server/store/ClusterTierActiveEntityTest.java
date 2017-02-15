@@ -31,7 +31,9 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFacto
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
+import org.ehcache.clustered.server.ConcurrencyStrategies;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
@@ -954,7 +956,7 @@ public class ClusterTierActiveEntityTest {
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-    activeEntity.synchronizeKeyToPassive(syncChannel, 2);
+    activeEntity.synchronizeKeyToPassive(syncChannel, 3);
 
     verify(syncChannel).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
   }
@@ -974,16 +976,19 @@ public class ClusterTierActiveEntityTest {
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
-    activeEntity.invoke(client, messageFactory.appendOperation(1L, payload));
+    ServerStoreOpMessage.AppendMessage testMessage = messageFactory.appendOperation(1L, payload);
+    activeEntity.invoke(client, testMessage);
     activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
     activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
     activeEntity.invoke(client, messageFactory.appendOperation(33L, payload));
 
     System.setProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP, "512");
+    ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
+    int concurrencyKey = concurrencyStrategy.concurrencyKey(testMessage);
     try {
       @SuppressWarnings("unchecked")
       PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-      activeEntity.synchronizeKeyToPassive(syncChannel, 2);
+      activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
 
       verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
     } finally {

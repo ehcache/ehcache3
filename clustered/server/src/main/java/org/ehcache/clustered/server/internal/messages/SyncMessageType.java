@@ -27,13 +27,13 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
  */
 @CommonComponent
 public enum SyncMessageType {
-  STATE,
+  STATE_REPO,
   DATA;
 
   public static final String SYNC_MESSAGE_TYPE_FIELD_NAME = "msgType";
   public static final int SYNC_MESSAGE_TYPE_FIELD_INDEX = 10;
   public static final EnumMapping<SyncMessageType> SYNC_MESSAGE_TYPE_MAPPING = newEnumMappingBuilder(SyncMessageType.class)
-    .mapping(STATE, 1)
+    .mapping(STATE_REPO, 1)
     .mapping(DATA, 10)
     .build();
 }

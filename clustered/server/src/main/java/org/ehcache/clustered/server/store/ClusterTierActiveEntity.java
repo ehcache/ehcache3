@@ -584,32 +584,37 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
     LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
-    Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
-    AtomicLong size = new AtomicLong(0);
-    ServerSideServerStore store = stateService.getStore(storeIdentifier);
-    final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
-    store.getSegmentKeySets().get(concurrencyKey - DEFAULT_KEY)
-      .forEach(key -> {
-        final Chain chain;
-        try {
-          chain = store.get(key);
-        } catch (TimeoutException e) {
-          throw new AssertionError("Server side store is not expected to throw timeout exception");
-        }
-        for (Element element : chain) {
-          size.addAndGet(element.getPayload().remaining());
-        }
-        mappingsToSend.get().put(key, chain);
-        if (size.get() > dataSizeThreshold) {
-          syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-          mappingsToSend.set(new HashMap<>());
-          size.set(0);
-        }
-      });
-    if (!mappingsToSend.get().isEmpty()) {
-      syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-      mappingsToSend.set(new HashMap<>());
-      size.set(0);
+    if (concurrencyKey == DEFAULT_KEY) {
+      stateService.getStateRepositoryManager().syncMessageFor(storeIdentifier).forEach(syncChannel::synchronizeToPassive);
+    } else {
+      int segmentId = concurrencyKey - DEFAULT_KEY - 1;
+      Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
+      AtomicLong size = new AtomicLong(0);
+      ServerSideServerStore store = stateService.getStore(storeIdentifier);
+      final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
+      store.getSegmentKeySets().get(segmentId)
+        .forEach(key -> {
+          final Chain chain;
+          try {
+            chain = store.get(key);
+          } catch (TimeoutException e) {
+            throw new AssertionError("Server side store is not expected to throw timeout exception");
+          }
+          for (Element element : chain) {
+            size.addAndGet(element.getPayload().remaining());
+          }
+          mappingsToSend.get().put(key, chain);
+          if (size.get() > dataSizeThreshold) {
+            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
+            mappingsToSend.set(new HashMap<>());
+            size.set(0);
+          }
+        });
+      if (!mappingsToSend.get().isEmpty()) {
+        syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
+        mappingsToSend.set(new HashMap<>());
+        size.set(0);
+      }
     }
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }

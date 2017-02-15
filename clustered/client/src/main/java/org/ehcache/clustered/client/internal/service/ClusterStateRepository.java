@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.internal.store.ClusteredStateHolder;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.spi.persistence.StateHolder;
@@ -41,6 +40,6 @@ class ClusterStateRepository implements StateRepository {
 
   @Override
   public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
-    return new ClusteredStateHolder<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity);
+    return new ClusteredStateHolder<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity, keyClass, valueClass);
   }
 }

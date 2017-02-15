@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguratio
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateRepoSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
@@ -139,6 +140,10 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           store.put(entry.getKey(), entry.getValue());
 
         });
+        break;
+      case STATE_REPO:
+        EhcacheStateRepoSyncMessage stateRepoSyncMessage = (EhcacheStateRepoSyncMessage) message;
+        stateService.getStateRepositoryManager().processSyncMessage(stateRepoSyncMessage);
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());

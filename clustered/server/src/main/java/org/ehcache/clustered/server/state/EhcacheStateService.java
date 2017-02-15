@@ -62,7 +62,7 @@ public interface EhcacheStateService {
 
   boolean isConfigured();
 
-  StateRepositoryManager getStateRepositoryManager() throws ClusterException;
+  StateRepositoryManager getStateRepositoryManager();
 
   ClientMessageTracker getClientMessageTracker(String name);
 

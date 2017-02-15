@@ -40,6 +40,7 @@ import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.net.URI;
 
@@ -48,6 +49,7 @@ import static org.ehcache.clustered.client.internal.UnitTestConnectionService.ge
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.expiry.Expirations.noExpiration;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -118,10 +120,81 @@ public class ClusterStateRepositoryReplicationTest {
     service.stop();
   }
 
+  @Test
+  public void testClusteredStateRepositoryReplicationWithSerializableKV() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
+            .autoCreate()
+            .build();
+
+    ClusteringService service = new ClusteringServiceFactory().create(configuration);
+
+    service.start(null);
+
+    BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
+      newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
+    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
+      config);
+
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+
+    SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
+
+    ClusterStateRepository stateRepository = new ClusterStateRepository(new ClusteringService.ClusteredCacheIdentifier() {
+      @Override
+      public String getId() {
+        return "testStateRepo";
+      }
+
+      @Override
+      public Class<ClusteringService> getServiceType() {
+        return ClusteringService.class;
+      }
+    }, "test", clientEntity);
+
+    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class);
+    testMap.putIfAbsent(new TestVal("One"), new TestVal("One"));
+    testMap.putIfAbsent(new TestVal("Two"), new TestVal("Two"));
+
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
+
+    assertThat(testMap.get(new TestVal("One")), is(new TestVal("One")));
+    assertThat(testMap.get(new TestVal("Two")), is(new TestVal("Two")));
+
+    assertThat(testMap.entrySet(), hasSize(2));
+
+    service.stop();
+  }
+
   private static SimpleClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
     return (SimpleClusterTierClientEntity)entity.get(clusteringService);
+  }
+
+  private static class TestVal implements Serializable {
+    final String val;
+
+
+    private TestVal(String val) {
+      this.val = val;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      TestVal testVal = (TestVal) o;
+
+      return val != null ? val.equals(testVal.val) : testVal.val == null;
+    }
+
+    @Override
+    public int hashCode() {
+      return val != null ? val.hashCode() : 0;
+    }
   }
 
 }
