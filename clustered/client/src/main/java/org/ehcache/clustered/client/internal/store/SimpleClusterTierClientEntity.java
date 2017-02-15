@@ -189,7 +189,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
-      throw new ClusterTierValidationException("Error validating clustered tier '" + storeIdentifier + "'", e);
+      throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
   }
 

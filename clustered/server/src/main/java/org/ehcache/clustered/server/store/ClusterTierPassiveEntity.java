@@ -155,7 +155,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client
-          throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
+          throw new LifecycleException("cluster tier does not exist : '" + storeIdentifier + "'");
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         applyMessage(message);
@@ -186,7 +186,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      throw new LifecycleException("Clustered tier does not exist : '" + storeIdentifier + "'");
+      throw new LifecycleException("cluster tier does not exist : '" + storeIdentifier + "'");
     }
 
     switch (message.getMessageType()) {
@@ -239,7 +239,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
 
   @Override
   public void destroy() {
-    LOGGER.info("Destroying clustered tier '{}'", storeIdentifier);
+    LOGGER.info("Destroying cluster tier '{}'", storeIdentifier);
     try {
       stateService.destroyServerStore(storeIdentifier);
     } catch (ClusterException e) {

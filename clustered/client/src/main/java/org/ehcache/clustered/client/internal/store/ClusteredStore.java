@@ -654,7 +654,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
       } catch (CachePersistenceException e) {
-        throw new RuntimeException("Unable to create clustered tier proxy - " + cacheIdentifier, e);
+        throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
       }
 
       Serializer keySerializer = clusteredStore.codec.getKeySerializer();

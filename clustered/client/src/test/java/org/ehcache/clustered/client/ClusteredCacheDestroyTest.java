@@ -147,7 +147,7 @@ public class ClusteredCacheDestroyTest {
       persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
       fail();
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString("Cannot destroy clustered tier"));
+      assertThat(e.getMessage(), containsString("Cannot destroy cluster tier"));
     }
 
     try {
@@ -187,7 +187,7 @@ public class ClusteredCacheDestroyTest {
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
     expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by other client(s)");
+    expectedException.expectMessage("Cannot destroy cluster tier 'clustered-cache': in use by other client(s)");
     persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
   }
 

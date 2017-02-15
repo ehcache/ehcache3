@@ -138,7 +138,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   public ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
     ServerStoreImpl store = getStore(name);
     if (store == null) {
-      LOGGER.warn("Clustered Tier {} not properly recovered on fail over.", name);
+      LOGGER.warn("Cluster tier {} not properly recovered on fail over.", name);
     }
     messageTrackers.get(name).stopTracking();
     invalidationTrackers.remove(name);
@@ -187,7 +187,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       throw new DestroyInProgressException("Cluster Tier Manager marked in progress for destroy - clean up by destroying or re-creating");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
+      throw new LifecycleException("Cluster tier manager is not configured");
     }
 
     if (configuration != null) {
@@ -250,9 +250,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       return;
     }
     if (offHeapResources == null || offHeapResources.getAllIdentifiers().isEmpty()) {
-      throw new ConfigurationException("No offheap-resources defined - Unable to work with clustered tiers");
+      throw new ConfigurationException("No offheap-resources defined - Unable to work with cluster tiers");
     }
-    LOGGER.info("Configuring server-side clustered tier manager");
+    LOGGER.info("Configuring server-side cluster tier manager");
 
     this.defaultServerResource = configuration.getDefaultServerResource();
     if (this.defaultServerResource != null) {
@@ -353,7 +353,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
         dedicatedResourcePools.remove(name);
         releasePool("dedicated", name, expectedPageSource);
       } else {
-        LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", name);
+        LOGGER.error("Client {} attempting to destroy cluster tier '{}' with unmatched page source", name);
       }
     }
   }
@@ -405,7 +405,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException {
     if (this.stores.containsKey(name)) {
-      throw new ConfigurationException("Clustered tier '" + name + "' already exists");
+      throw new ConfigurationException("cluster tier '" + name + "' already exists");
     }
 
     ServerStoreImpl serverStore;
@@ -434,7 +434,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     final ServerStoreImpl store = stores.remove(name);
     unRegisterStoreStatistics(store);
     if (store == null) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
+      throw new InvalidStoreException("cluster tier '" + name + "' does not exist");
     } else {
       releaseDedicatedPool(name, store.getPageSource());
       store.close();
@@ -453,13 +453,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
        * identified by the cache identifier/name.
        */
       if (dedicatedResourcePools.containsKey(name)) {
-        throw new ConfigurationException("Fixed resource pool for clustered tier '" + name + "' already exists");
+        throw new ConfigurationException("Fixed resource pool for cluster tier '" + name + "' already exists");
       } else {
         PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
         String resourceName = dedicatedAllocation.getResourceName();
         if (resourceName == null) {
           if (defaultServerResource == null) {
-            throw new ConfigurationException("Fixed pool for clustered tier '" + name + "' not defined; default server resource not configured");
+            throw new ConfigurationException("Fixed pool for cluster tier '" + name + "' not defined; default server resource not configured");
           } else {
             resourceName = defaultServerResource;
           }

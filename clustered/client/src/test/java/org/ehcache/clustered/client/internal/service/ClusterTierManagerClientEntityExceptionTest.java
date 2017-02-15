@@ -92,7 +92,7 @@ public class ClusterTierManagerClientEntityExceptionTest {
             .build();
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
     /*
-     * Induce an "InvalidStoreException: Clustered tier 'cacheAlias' does not exist" on the server.
+     * Induce an "InvalidStoreException: cluster tier 'cacheAlias' does not exist" on the server.
      */
     try {
       accessService.start(null);
