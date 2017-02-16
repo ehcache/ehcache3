@@ -176,17 +176,12 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void createNew() {
-    ehcacheStateService.createInvalidationTrackerManager(true);
-
     management.init();
     management.sharedPoolsConfigured();
   }
 
   @Override
   public void loadExisting() {
-    if (ehcacheStateService.getInvalidationTrackerManager() == null) {
-      ehcacheStateService.createInvalidationTrackerManager(true);
-    }
     ehcacheStateService.loadExisting(configuration);
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);

@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -63,9 +62,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class ClusterTierManagerActiveEntityTest {
 
@@ -83,42 +79,6 @@ public class ClusterTierManagerActiveEntityTest {
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
     new ClusterTierManagerActiveEntity(null, null, null, null);
-  }
-
-  @Test
-  public void testInvalidationTrackerManagerInstantiationOnCreateNew() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    EhcacheStateService stateService = mock(EhcacheStateService.class);
-    ClusterTierManagerConfiguration config = mock(ClusterTierManagerConfiguration.class);
-    Management management = mock(Management.class);
-    ClusterTierManagerActiveEntity entity = new ClusterTierManagerActiveEntity(registry, config, stateService, management);
-    entity.createNew();
-    verify(stateService).createInvalidationTrackerManager(true);
-  }
-
-  @Test
-  public void testInvalidationTrackerManagerNoInstantiationOnLoadExisting() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    EhcacheStateService stateService = mock(EhcacheStateService.class);
-    InvalidationTrackerManager invalidationTrackerManager = mock(InvalidationTrackerManager.class);
-    when(stateService.getInvalidationTrackerManager()).thenReturn(invalidationTrackerManager);
-    ClusterTierManagerConfiguration config = mock(ClusterTierManagerConfiguration.class);
-    Management management = mock(Management.class);
-    ClusterTierManagerActiveEntity entity = new ClusterTierManagerActiveEntity(registry, config, stateService, management);
-    entity.loadExisting();
-    verify(stateService, never()).createInvalidationTrackerManager(true);
-  }
-
-  @Test
-  public void testInvalidationTrackerManagerInstantiationOnLoadExisting() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    EhcacheStateService stateService = mock(EhcacheStateService.class);
-    when(stateService.getInvalidationTrackerManager()).thenReturn(null);
-    ClusterTierManagerConfiguration config = mock(ClusterTierManagerConfiguration.class);
-    Management management = mock(Management.class);
-    ClusterTierManagerActiveEntity entity = new ClusterTierManagerActiveEntity(registry, config, stateService, management);
-    entity.loadExisting();
-    verify(stateService).createInvalidationTrackerManager(true);
   }
 
   /**

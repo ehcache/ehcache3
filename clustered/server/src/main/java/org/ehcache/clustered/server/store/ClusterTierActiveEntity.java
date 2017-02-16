@@ -51,7 +51,6 @@ import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
-import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,26 +137,23 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public void createNew() throws ConfigurationException {
-    ServerSideServerStore store = stateService.createStore(storeIdentifier, configuration);
-    stateService.createClientMessageTracker(storeIdentifier, true);
+    ServerSideServerStore store = stateService.createStore(storeIdentifier, configuration, true);
     store.setEvictionListener(this::invalidateHashAfterEviction);
-    if(!isStrong()) {
-      InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-      if (invalidationTrackerManager != null) {
-        invalidationTrackerManager.addInvalidationTracker(storeIdentifier);
-      }
-    }
     management.init();
+  }
+
+  List<InvalidationTuple> getInflightInvalidations() {
+    return this.inflightInvalidations;
   }
 
   @Override
   public void loadExisting() {
-    stateService.loadStore(storeIdentifier, configuration).setEvictionListener(this::invalidateHashAfterEviction);
-    LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = synchronizedList(new ArrayList<>());
     if (!isStrong()) {
+      LOGGER.debug("Preparing for handling inflight invalidations");
       addInflightInvalidationsForEventualCaches();
     }
+    stateService.loadStore(storeIdentifier, configuration).setEvictionListener(this::invalidateHashAfterEviction);
     reconnectComplete.set(false);
     management.init();
   }
@@ -329,6 +325,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       case APPEND: {
         if (!isMessageDuplicate(message)) {
           ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+
+          trackMessage(message);
+          InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+          if (invalidationTracker != null) {
+            invalidationTracker.trackHashInvalidation(appendMessage.getKey());
+          }
+
           final Chain newChain;
           try {
             cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
@@ -336,7 +339,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
           } catch (TimeoutException e) {
             throw new AssertionError("Server side store is not expected to throw timeout exception");
           }
-          trackMessage(message);
           sendMessageToSelfAndDeferRetirement(appendMessage, newChain);
           invalidateHashForClient(clientDescriptor, appendMessage.getKey());
         }
@@ -347,6 +349,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());
         if (!isMessageDuplicate(message)) {
           LOGGER.trace("Message {} : is not duplicate", message);
+
+          trackMessage(message);
+          InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+          if (invalidationTracker != null) {
+            invalidationTracker.trackHashInvalidation(getAndAppendMessage.getKey());
+          }
+
           final Chain result;
           final Chain newChain;
           try {
@@ -355,12 +364,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
           } catch (TimeoutException e) {
             throw new AssertionError("Server side store is not expected to throw timeout exception");
           }
-          trackMessage(message);
           sendMessageToSelfAndDeferRetirement(getAndAppendMessage, newChain);
-          EhcacheEntityResponse response = responseFactory.response(result);
           LOGGER.debug("Send invalidations for key {}", getAndAppendMessage.getKey());
           invalidateHashForClient(clientDescriptor, getAndAppendMessage.getKey());
-          return response;
+          return responseFactory.response(result);
         }
         try {
           return responseFactory.response(cacheStore.get(getAndAppendMessage.getKey()));
@@ -396,12 +403,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
             throw new AssertionError("Server side store is not expected to throw timeout exception");
           }
           trackMessage(message);
-          InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-          if (invalidationTrackerManager != null) {
-            InvalidationTracker invalidationTracker = invalidationTrackerManager.getInvalidationTracker(storeIdentifier);
-            if (invalidationTracker != null) {
-              invalidationTracker.setClearInProgress(true);
-            }
+
+          InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+          if (invalidationTracker != null) {
+            invalidationTracker.setClearInProgress(true);
           }
           invalidateAll(clientDescriptor);
         }
@@ -458,12 +463,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
             } else {
               entityMessenger.messageSelf(new ClearInvalidationCompleteMessage());
 
-              InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-              if (invalidationTrackerManager != null) {
-                InvalidationTracker invalidationTracker = invalidationTrackerManager.getInvalidationTracker(storeIdentifier);
-                if (invalidationTracker != null) {
-                  invalidationTracker.setClearInProgress(false);
-                }
+              InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+              if (invalidationTracker != null) {
+                invalidationTracker.setClearInProgress(false);
               }
 
             }
@@ -473,12 +475,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
               LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", key, storeIdentifier, clientDescriptor, invalidationId);
             } else {
               entityMessenger.messageSelf(new InvalidationCompleteMessage(key));
-              InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-              if (invalidationTrackerManager != null) {
-                InvalidationTracker invalidationTracker = invalidationTrackerManager.getInvalidationTracker(storeIdentifier);
-                if (invalidationTracker != null) {
-                  invalidationTracker.untrackHashInvalidation(key);
-                }
+
+              InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+              if (invalidationTracker != null) {
+                invalidationTracker.untrackHashInvalidation(key);
               }
             }
           }
@@ -536,25 +536,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
-    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-    if (invalidationTrackerManager != null) {
-      InvalidationTracker invalidationTracker = invalidationTrackerManager.getInvalidationTracker(storeIdentifier);
-      if (invalidationTracker != null) {
-        invalidationTracker.trackHashInvalidation(message.getKey());
-      }
-    }
   }
 
   private void addInflightInvalidationsForEventualCaches() {
-    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-    if (invalidationTrackerManager != null) {
-      InvalidationTracker invalidationTracker = stateService.getInvalidationTrackerManager().getInvalidationTracker(storeIdentifier);
-      if (invalidationTracker != null) {
-        inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
-        invalidationTracker.clear();
-      } else {
-        throw new AssertionError("Eventual caches must have an invalidation tracker");
-      }
+    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+    if (invalidationTracker != null) {
+      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
+      invalidationTracker.clear();
     }
   }
 
@@ -646,13 +634,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } catch (ClusterException e) {
       LOGGER.error("Failed to destroy server store - does not exist", e);
     }
-    if(!isStrong()) {
-      InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-      if (invalidationTrackerManager != null) {
-        invalidationTrackerManager.removeInvalidationTracker(storeIdentifier);
-      }
-    }
-
   }
 
   Set<ClientDescriptor> getConnectedClients() {

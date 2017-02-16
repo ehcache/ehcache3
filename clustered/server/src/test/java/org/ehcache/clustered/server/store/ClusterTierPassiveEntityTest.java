@@ -114,7 +114,6 @@ public class ClusterTierPassiveEntityTest {
   public void testDestroyServerStore() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
-    defaultRegistry.getStoreManagerService().createInvalidationTrackerManager(false);
 
     passiveEntity.destroy();
 

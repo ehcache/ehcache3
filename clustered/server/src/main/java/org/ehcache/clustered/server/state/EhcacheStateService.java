@@ -56,7 +56,7 @@ public interface EhcacheStateService {
 
   void configure() throws ConfigurationException;
 
-  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ConfigurationException;
+  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException;
 
   void destroyServerStore(String name) throws ClusterException;
 
@@ -64,13 +64,10 @@ public interface EhcacheStateService {
 
   StateRepositoryManager getStateRepositoryManager();
 
-  void createClientMessageTracker(String name, boolean fromActive);
-
   ClientMessageTracker getClientMessageTracker(String name);
+
+  InvalidationTracker getInvalidationTracker(String name);
 
   void loadExisting(ServerSideConfiguration configuration);
 
-  void createInvalidationTrackerManager(boolean fromActive);
-
-  InvalidationTrackerManager getInvalidationTrackerManager();
 }

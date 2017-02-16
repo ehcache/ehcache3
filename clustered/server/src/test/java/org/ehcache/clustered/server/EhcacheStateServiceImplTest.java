@@ -17,7 +17,6 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.server.state.InvalidationTrackerManager;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
@@ -26,22 +25,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class EhcacheStateServiceImplTest {
-
-  @Test
-  public void getInvalidationTrackerManagerForActive() throws Exception {
-    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
-    stateService.createInvalidationTrackerManager(true);
-    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-    assertThat(invalidationTrackerManager, nullValue());
-  }
-
-  @Test
-  public void getInvalidationTrackerManagerForPassive() throws Exception {
-    EhcacheStateServiceImpl stateService = new EhcacheStateServiceImpl(null, null, null, null);
-    stateService.createInvalidationTrackerManager(false);
-    InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-    assertThat(invalidationTrackerManager, notNullValue());
-  }
 
   @Test
   public void testPrepareForDestroy() throws Exception {
