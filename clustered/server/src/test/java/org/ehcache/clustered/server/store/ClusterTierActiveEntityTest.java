@@ -85,6 +85,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -211,6 +212,7 @@ public class ClusterTierActiveEntityTest {
   @Test
   public void testLoadExistingRegistersEvictionListener() throws Exception {
     EhcacheStateService stateService = mock(EhcacheStateService.class);
+    when(stateService.getClientMessageTracker(anyString())).thenReturn(mock(ClientMessageTracker.class));
 
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
@@ -1015,6 +1017,7 @@ public class ClusterTierActiveEntityTest {
     Random random = new Random();
     random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.trackHashInvalidation(x));
 
+    defaultRegistry.getStoreManagerService().createClientMessageTracker(defaultStoreName, false);
     activeEntity.loadExisting();
 
     assertThat(ehcacheStateService.getInvalidationTrackerManager().getInvalidationTracker(defaultStoreName).getTrackedKeys(), empty());
@@ -1030,6 +1033,7 @@ public class ClusterTierActiveEntityTest {
 
     EhcacheStateService ehcacheStateService = defaultRegistry.getStoreManagerService();
 
+    ehcacheStateService.createClientMessageTracker(defaultStoreName, false);  // Passive would have done this before failover
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker(defaultStoreName);
 
     Random random = new Random();
@@ -1100,6 +1104,59 @@ public class ClusterTierActiveEntityTest {
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
     }
+  }
+
+  @Test
+  public void testActiveDoesNotTrackMessagesByDefault() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+
+    ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
+    message.setId(123);
+    activeEntity.invoke(client, message);
+
+    // create another message that has the same message ID
+    message = messageFactory.appendOperation(2L, createPayload(1L));
+    message.setId(123);
+
+    activeEntity.invoke(client, message); // this invoke should be rejected due to duplicate message id
+
+    ServerStoreOpMessage.GetMessage getMessage = messageFactory.getOperation(2L);
+    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invoke(client, getMessage);
+    assertThat(response.getChain().isEmpty(), is(false));
+  }
+
+  @Test
+  public void testActiveMessageTracking() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+    defaultRegistry.getStoreManagerService().createClientMessageTracker(defaultStoreName, false); //hack to enable message tracking on active
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+
+    ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
+    message.setId(123);
+    activeEntity.invoke(client, message);
+
+    // create another message that has the same message ID
+    message = messageFactory.appendOperation(2L, createPayload(1L));
+    message.setId(123);
+
+    activeEntity.invoke(client, message); // this invoke should be rejected due to duplicate message id
+
+    ServerStoreOpMessage.GetMessage getMessage = messageFactory.getOperation(2L);
+    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invoke(client, getMessage);
+    assertThat(response.getChain().isEmpty(), is(true));
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {

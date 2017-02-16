@@ -138,6 +138,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     if (store == null) {
       LOGGER.warn("Clustered Tier {} not properly recovered on fail over.", name);
     }
+    messageTrackers.get(name).stopTracking();
     return store;
   }
 
@@ -417,7 +418,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     stores.put(name, serverStore);
-    messageTrackers.put(name, new DefaultClientMessageTracker());
 
     registerStoreStatistics(serverStore, name);
 
@@ -496,6 +496,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   @Override
   public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
+  }
+
+  @Override
+  public void createClientMessageTracker(String name, boolean fromActive) {
+    if (!fromActive) {
+      this.messageTrackers.put(name, new DefaultClientMessageTracker());
+    }
   }
 
   @Override

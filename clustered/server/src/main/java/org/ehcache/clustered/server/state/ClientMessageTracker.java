@@ -57,4 +57,15 @@ public interface ClientMessageTracker {
    */
   void reconcileTrackedClients(Collection<UUID> trackedClients);
 
+  /**
+   * Clear all the tracking data.
+   */
+  void clear();
+
+  /**
+   * Turn off tracking.
+   */
+  void stopTracking();
+
+
 }

@@ -35,15 +35,23 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
 
   // Keeping track of message tracker per client UUID.
   private final Map<UUID, MessageTracker> clientUUIDMessageTrackerMap;
+  private volatile boolean track = true;
 
   public DefaultClientMessageTracker() {
     this.clientUUIDMessageTrackerMap = new ConcurrentHashMap<>();
   }
 
   @Override
+  public void stopTracking() {
+    this.track = false;
+  }
+
+  @Override
   public void applied(long msgId, UUID clientId) {
-    MessageTracker messageTracker = clientUUIDMessageTrackerMap.computeIfAbsent(clientId, uuid -> new MessageTracker());
-    messageTracker.track(msgId);
+    if (track) {
+      MessageTracker messageTracker = clientUUIDMessageTrackerMap.computeIfAbsent(clientId, uuid -> new MessageTracker());
+      messageTracker.track(msgId);
+    }
   }
 
   @Override
@@ -65,4 +73,8 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
     clientUUIDMessageTrackerMap.keySet().retainAll(trackedClients);
   }
 
+  @Override
+  public void clear() {
+    clientUUIDMessageTrackerMap.clear();
+  }
 }
