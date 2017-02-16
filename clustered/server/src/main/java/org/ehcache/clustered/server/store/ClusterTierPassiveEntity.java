@@ -81,6 +81,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration);
+    stateService.createClientMessageTracker(storeIdentifier, false);
     if(isEventual()) {
       stateService.getInvalidationTrackerManager().addInvalidationTracker(storeIdentifier);
     }
@@ -107,6 +108,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         } else if (isStateRepoOperationMessage(messageType)) {
           try {
             stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
+            applyMessage(operationMessage);
           } catch (ClusterException e) {
             // State repository operations should not be critical enough to fail a passive
             LOGGER.error("Unexpected exception raised during operation: " + message, e);
@@ -153,7 +155,6 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
 
     InvalidationTrackerManager invalidationTrackerManager = stateService.getInvalidationTrackerManager();
-    InvalidationTracker invalidationTracker = null;
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
         LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());

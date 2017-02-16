@@ -57,6 +57,23 @@ public class ClientMessageTrackerTest {
 
   }
 
+  @Test
+  public void testStopTracking() throws Exception {
+
+    ClientMessageTracker clientMessageTracker = new DefaultClientMessageTracker();
+    clientMessageTracker.applied(20L, UUID.randomUUID());
+    clientMessageTracker.applied(21L, UUID.randomUUID());
+    Map messageTracker = getMessageTracker(clientMessageTracker);
+    assertThat(messageTracker.size(), is(2));
+
+    clientMessageTracker.stopTracking();
+
+    clientMessageTracker.applied(22L, UUID.randomUUID());
+    clientMessageTracker.applied(23L, UUID.randomUUID());
+    assertThat(messageTracker.size(), is(2)); // The same old 2. No increments by the last 2 applied calls
+
+  }
+
   private Map getMessageTracker(ClientMessageTracker clientMessageTracker) throws Exception {
     Field field = clientMessageTracker.getClass().getDeclaredField("clientUUIDMessageTrackerMap");
     field.setAccessible(true);
