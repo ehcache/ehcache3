@@ -23,11 +23,20 @@ import java.io.Serializable;
  */
 public interface PoolAllocation extends Serializable {
 
+  interface DedicatedPoolAllocation extends PoolAllocation {
+    long getSize();
+    String getResourceName();
+  }
+
+  interface SharedPoolAllocation extends PoolAllocation {
+    String getResourcePoolName();
+  }
+
   /**
    * Describes a dedicated-size allocation for clustered storage.  When using a dedicated allocation,
    * storage is allocated from the server-based resource specified.
    */
-  final class Dedicated implements PoolAllocation {
+  final class Dedicated implements DedicatedPoolAllocation {
     private static final long serialVersionUID = -2249181124582282204L;
     private final long size;
     private final String resourceName;
@@ -69,7 +78,7 @@ public interface PoolAllocation extends Serializable {
    * Describes a shared allocation for clustered storage.  When using a shared pool,
    * allocation requests are satisfied from the server-based shared resource pool identified.
    */
-  final class Shared implements PoolAllocation {
+  final class Shared implements SharedPoolAllocation {
     private static final long serialVersionUID = -5111316473831788364L;
     private final String resourcePoolName;
 
