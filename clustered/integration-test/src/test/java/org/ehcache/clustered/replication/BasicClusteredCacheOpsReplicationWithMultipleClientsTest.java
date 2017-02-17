@@ -151,7 +151,6 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
   }
 
   @Test(timeout=180000)
-  @Ignore //TODO: FIXME: FIX THIS RANDOMLY FAILING TEST
   public void testBulkOps() throws Exception {
     List<Cache<Long, BlobValue>> caches = new ArrayList<>();
     caches.add(CACHE1);
