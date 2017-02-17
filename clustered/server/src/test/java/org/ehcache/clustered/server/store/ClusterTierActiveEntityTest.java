@@ -43,6 +43,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +63,7 @@ import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1001,39 +1003,25 @@ public class ClusterTierActiveEntityTest {
   @Test
   public void testLoadExistingRecoversInflightInvalidationsForEventualCache() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
-
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
-    ehcacheStateService.createInvalidationTrackerManager(false);
-    ehcacheStateService.getInvalidationTrackerManager().addInvalidationTracker(defaultStoreName);
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
 
-    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTrackerManager().getInvalidationTracker(defaultStoreName);
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
 
     Random random = new Random();
     random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.trackHashInvalidation(x));
 
-    defaultRegistry.getStoreManagerService().createClientMessageTracker(defaultStoreName, false);
     activeEntity.loadExisting();
 
-    assertThat(ehcacheStateService.getInvalidationTrackerManager().getInvalidationTracker(defaultStoreName).getTrackedKeys(), empty());
-
+    assertThat(activeEntity.getInflightInvalidations().isEmpty(), is(false));
   }
 
   @Test
   public void testPromotedActiveIgnoresDuplicateMessages() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
+    defaultRegistry.getService(new EhcacheStoreStateServiceConfig(identifier, DEFAULT_MAPPER));
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
 
-    IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
-
-    EhcacheStateService ehcacheStateService = defaultRegistry.getStoreManagerService();
-
-    ehcacheStateService.createClientMessageTracker(defaultStoreName, false);  // Passive would have done this before failover
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker(defaultStoreName);
 
     Random random = new Random();
@@ -1048,12 +1036,14 @@ public class ClusterTierActiveEntityTest {
       clientMessageTracker.applied(x, CLIENT_ID);
     });
 
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
-
     activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration));
 
-    reset(entityMessenger);
+    activeEntity.loadExisting();
+
+    IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
 
     ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory(CLIENT_ID);
     EhcacheEntityResponseFactory entityResponseFactory = new EhcacheEntityResponseFactory();
@@ -1135,8 +1125,8 @@ public class ClusterTierActiveEntityTest {
   @Test
   public void testActiveMessageTracking() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-    defaultRegistry.getStoreManagerService().createClientMessageTracker(defaultStoreName, false); //hack to enable message tracking on active
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);

@@ -73,16 +73,6 @@ public class ClusterTierManagerPassiveEntityTest {
     new ClusterTierManagerPassiveEntity(null, null, null);
   }
 
-  @Test
-  public void testInvalidationTrackerManagerInteractionsOnCreateNew() throws Exception {
-    EhcacheStateService stateService = mock(EhcacheStateService.class);
-    ClusterTierManagerConfiguration config = mock(ClusterTierManagerConfiguration.class);
-    Management management = mock(Management.class);
-    ClusterTierManagerPassiveEntity entity = new ClusterTierManagerPassiveEntity(config, stateService, management);
-    entity.createNew();
-    verify(stateService).createInvalidationTrackerManager(false);
-  }
-
   /**
    * Ensures basic shared resource pool configuration.
    */

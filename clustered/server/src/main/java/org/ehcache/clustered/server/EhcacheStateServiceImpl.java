@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -29,8 +30,8 @@ import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.DefaultClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
-import org.ehcache.clustered.server.state.InvalidationTrackerManager;
-import org.ehcache.clustered.server.state.InvalidationTrackerManagerImpl;
+import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.InvalidationTrackerImpl;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
@@ -113,7 +115,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
   private final Map<String, ClientMessageTracker> messageTrackers = new ConcurrentHashMap<>();
-  private volatile InvalidationTrackerManager invalidationTrackerManager;
+  private final ConcurrentMap<String, InvalidationTracker> invalidationTrackers = new ConcurrentHashMap<>();
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;
   private final KeySegmentMapper mapper;
@@ -139,6 +141,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       LOGGER.warn("Clustered Tier {} not properly recovered on fail over.", name);
     }
     messageTrackers.get(name).stopTracking();
+    invalidationTrackers.remove(name);
     return store;
   }
 
@@ -374,9 +377,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     releasePools("dedicated", this.dedicatedResourcePools);
 
     this.sharedResourcePools.clear();
-    if (invalidationTrackerManager != null) {
-      invalidationTrackerManager.clear();
-    }
     this.configured = false;
     destroyCallback.destroy(this);
   }
@@ -403,7 +403,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
   }
 
-  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ConfigurationException {
+  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException {
     if (this.stores.containsKey(name)) {
       throw new ConfigurationException("Clustered tier '" + name + "' already exists");
     }
@@ -418,6 +418,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     stores.put(name, serverStore);
+    if (!forActive) {
+      this.messageTrackers.put(name, new DefaultClientMessageTracker());
+      if (serverStoreConfiguration.getConsistency() == Consistency.EVENTUAL) {
+        this.invalidationTrackers.put(name, new InvalidationTrackerImpl());
+      }
+    }
 
     registerStoreStatistics(serverStore, name);
 
@@ -435,6 +441,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
     stateRepositoryManager.destroyStateRepository(name);
     messageTrackers.remove(name);
+    this.invalidationTrackers.remove(name);
   }
 
   private PageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
@@ -499,13 +506,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public void createClientMessageTracker(String name, boolean fromActive) {
-    if (!fromActive) {
-      this.messageTrackers.put(name, new DefaultClientMessageTracker());
-    }
-  }
-
-  @Override
   public ClientMessageTracker getClientMessageTracker(String name) {
     return this.messageTrackers.get(name);
   }
@@ -515,16 +515,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public void createInvalidationTrackerManager(final boolean fromActive) {
-    if (fromActive) {
-      invalidationTrackerManager = null;
-    } else {
-      invalidationTrackerManager = new InvalidationTrackerManagerImpl();
-    }
-  }
-
-  @Override
-  public InvalidationTrackerManager getInvalidationTrackerManager() {
-    return invalidationTrackerManager;
+  public InvalidationTracker getInvalidationTracker(String name) {
+    return invalidationTrackers.get(name);
   }
 }

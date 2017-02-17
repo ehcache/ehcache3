@@ -111,8 +111,6 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   @Override
   public void createNew() {
-    ehcacheStateService.createInvalidationTrackerManager(false);
-
     management.init();
     management.sharedPoolsConfigured();
   }
