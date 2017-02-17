@@ -386,17 +386,17 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:UpdateCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:RemovalCount", "COUNTER"));
 
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:PutCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:UpdateCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:RemovalCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MaxMappingCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:ExpirationCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:OccupiedByteSize", "SIZE"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedByteSize", "SIZE"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:MissCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:HitCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:PutCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:UpdateCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:RemovalCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:MaxMappingCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:EvictionCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:ExpirationCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:OccupiedByteSize", "SIZE"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:AllocatedByteSize", "SIZE"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Cluster:MappingCount", "COUNTER"));
 
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", "COUNTER"));
