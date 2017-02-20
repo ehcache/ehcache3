@@ -53,6 +53,7 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.impl.internal.util.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
@@ -184,13 +185,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private V getInternal(K key) throws StoreAccessException, TimeoutException {
     V value = null;
     try {
-      Chain chain = storeProxy.get(key.hashCode());
+      Chain chain = storeProxy.get(extractLongKey(key));
       if(!chain.isEmpty()) {
         ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
         if (resolvedChain.isCompacted()) {
           Chain compactedChain = resolvedChain.getCompactedChain();
-          storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+          storeProxy.replaceAtHead(extractLongKey(key), chain, compactedChain);
         }
 
         Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
@@ -202,6 +203,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       handleRuntimeException(re);
     }
     return value;
+  }
+
+  private long extractLongKey(K key) {
+    return HashUtils.intHashToLong(key.hashCode());
   }
 
   @Override
@@ -237,7 +242,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       if(resolvedChain.getResolvedResult(key) == null) {
         return PutStatus.PUT;
@@ -258,7 +263,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
@@ -292,7 +297,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       if(resolvedChain.getResolvedResult(key) != null) {
         return true;
@@ -313,7 +318,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
@@ -342,7 +347,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
@@ -366,7 +371,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {

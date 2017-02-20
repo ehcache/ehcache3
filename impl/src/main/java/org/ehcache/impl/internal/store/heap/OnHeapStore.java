@@ -45,6 +45,7 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.internal.util.HashUtils;
 import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.serialization.Serializer;
@@ -938,7 +939,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public void silentInvalidateAllWithHash(long hash, BiFunction<K, ValueHolder<V>, Void> biFunction) throws StoreAccessException {
     silentInvalidateAllWithHashObserver.begin();
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    int intHash = HashUtils.longHashToInt(hash);
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
     for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
       biFunction.apply(entry.getKey(), entry.getValue());
     }
@@ -967,11 +969,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public void invalidateAllWithHash(long hash) throws StoreAccessException {
     invalidateAllWithHashObserver.begin();
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    int intHash = HashUtils.longHashToInt(hash);
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
     for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
       notifyInvalidation(entry.getKey(), entry.getValue());
     }
-    LOG.debug("CLIENT: onheap store removed all with hash {}", hash);
+    LOG.debug("CLIENT: onheap store removed all with hash {}", intHash);
     invalidateAllWithHashObserver.end(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.SUCCESS);
   }
 

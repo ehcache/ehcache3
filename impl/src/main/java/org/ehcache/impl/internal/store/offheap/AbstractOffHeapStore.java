@@ -48,6 +48,7 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
+import org.ehcache.impl.internal.util.HashUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -995,7 +996,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   @Override
   public void invalidateAllWithHash(long hash) {
     invalidateAllWithHashObserver.begin();
-    Map<K, OffHeapValueHolder<V>> removed = backingMap().removeAllWithHash((int) hash);
+    int intHash = HashUtils.longHashToInt(hash);
+    Map<K, OffHeapValueHolder<V>> removed = backingMap().removeAllWithHash(intHash);
     for (Map.Entry<K, OffHeapValueHolder<V>> entry : removed.entrySet()) {
       notifyInvalidation(entry.getKey(), entry.getValue());
     }
