@@ -568,7 +568,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private void clearClientTrackedAtReconnectComplete() {
     if (!reconnectComplete.get()) {
       if (reconnectComplete.compareAndSet(false, true)) {
-        stateService.getClientMessageTracker(storeIdentifier).reconcileTrackedClients(getTrackedClients().collect(toSet()));
+        ClientMessageTracker clientMessageTracker = stateService.getClientMessageTracker(storeIdentifier);
+        if (clientMessageTracker != null) {
+          clientMessageTracker.reconcileTrackedClients(getTrackedClients().collect(toSet()));
+        }
       }
     }
   }
