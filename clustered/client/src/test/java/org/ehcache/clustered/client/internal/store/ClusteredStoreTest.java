@@ -36,6 +36,7 @@ import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.impl.internal.util.HashUtils;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.After;
@@ -157,7 +158,8 @@ public class ClusteredStoreTest {
   @SuppressWarnings("unchecked")
   public void testGetTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
-    when(proxy.get(1L)).thenThrow(TimeoutException.class);
+    long longKey = HashUtils.intHashToLong(new Long(1L).hashCode());
+    when(proxy.get(longKey)).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(null, null, proxy, null);
     assertThat(store.get(1L), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.TIMEOUT));
@@ -179,12 +181,13 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     Chain chain = mock(Chain.class);
     when(chain.isEmpty()).thenReturn(false);
-    when(serverStoreProxy.get(42L)).thenReturn(chain);
+    long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
+    when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
     ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
                                                                                     serverStoreProxy, timeSource);
     clusteredStore.get(42L);
-    verify(serverStoreProxy).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
+    verify(serverStoreProxy).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
   }
 
   @Test
@@ -202,12 +205,13 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     Chain chain = mock(Chain.class);
     when(chain.isEmpty()).thenReturn(false);
-    when(serverStoreProxy.get(42L)).thenReturn(chain);
+    long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
+    when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
     ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
                                                                                     serverStoreProxy, timeSource);
     clusteredStore.get(42L);
-    verify(serverStoreProxy, never()).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
+    verify(serverStoreProxy, never()).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
   }
 
   @Test
