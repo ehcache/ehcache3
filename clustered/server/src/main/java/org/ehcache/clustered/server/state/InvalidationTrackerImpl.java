@@ -17,13 +17,13 @@
 package org.ehcache.clustered.server.state;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InvalidationTrackerImpl implements InvalidationTracker {
 
-  private final ConcurrentMap<Long, Integer> invalidationMap = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Long, Integer> invalidationMap = new ConcurrentSkipListMap<>();
   private final AtomicBoolean isClearInProgress = new AtomicBoolean(false);
 
   protected ConcurrentMap<Long, Integer> getInvalidationMap() {

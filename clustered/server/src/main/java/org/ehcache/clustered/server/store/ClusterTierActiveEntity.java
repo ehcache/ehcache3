@@ -74,6 +74,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,7 +114,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ConcurrentMap<ClientDescriptor, ClusterTierClientState> connectedClients = new ConcurrentHashMap<>();
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
-  private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentSkipListMap<>();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
 
