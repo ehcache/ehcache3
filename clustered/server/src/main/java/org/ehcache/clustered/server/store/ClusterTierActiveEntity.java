@@ -81,7 +81,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toSet;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
@@ -117,6 +116,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
 
+  private final Object inflightInvalidationsMutex = new Object();
   private volatile List<InvalidationTuple> inflightInvalidations;
 
   public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
@@ -148,7 +148,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public void loadExisting() {
-    inflightInvalidations = synchronizedList(new ArrayList<>());
+    inflightInvalidations = new ArrayList<>();
     if (!isStrong()) {
       LOGGER.debug("Preparing for handling inflight invalidations");
       addInflightInvalidationsForEventualCaches();
@@ -299,18 +299,23 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new LifecycleException("Client not attached to clustered tier '" + storeIdentifier + "'");
     }
 
-    // This logic totally counts on the fact that invokes will only happen
-    // after all handleReconnects are done, else this is flawed.
     if (inflightInvalidations != null) {
-      LOGGER.debug("Stalling all operations for cache {} for firing inflight invalidations again.", storeIdentifier);
-      inflightInvalidations.forEach(invalidationState -> {
-        if (invalidationState.isClearInProgress()) {
-          invalidateAll(invalidationState.getClientDescriptor());
+      synchronized (inflightInvalidationsMutex) {
+        // This logic totally counts on the fact that invokes will only happen
+        // after all handleReconnects are done, else this is flawed.
+        if (inflightInvalidations != null) {
+          List<InvalidationTuple> tmpInflightInvalidations = this.inflightInvalidations;
+          this.inflightInvalidations = null;
+          LOGGER.debug("Stalling all operations for cluster tier {} for firing inflight invalidations again.", storeIdentifier);
+          tmpInflightInvalidations.forEach(invalidationState -> {
+            if (invalidationState.isClearInProgress()) {
+              invalidateAll(invalidationState.getClientDescriptor());
+            }
+            invalidationState.getInvalidationsInProgress()
+                .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
+          });
         }
-        invalidationState.getInvalidationsInProgress()
-            .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
-      });
-      inflightInvalidations = null;
+      }
     }
 
     switch (message.getMessageType()) {
