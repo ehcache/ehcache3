@@ -19,6 +19,7 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
+import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
@@ -32,10 +33,10 @@ import java.util.Set;
 public class ServerStoreImpl implements ServerSideServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
-  private final PageSource pageSource;
+  private final ResourcePageSource pageSource;
   private final OffHeapServerStore store;
 
-  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource, KeySegmentMapper mapper) {
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, ResourcePageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
     this.store = new OffHeapServerStore(pageSource, mapper);

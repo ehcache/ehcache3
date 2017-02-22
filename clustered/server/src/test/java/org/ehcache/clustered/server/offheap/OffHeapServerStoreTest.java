@@ -45,6 +45,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
@@ -88,6 +90,19 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         };
       }
     };
+  }
+
+  @Test
+  public void testGetMaxSize() {
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(2)), is(64L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(4)), is(128L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(16)), is(512L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(64)), is(2048L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(128)), is(4096L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(256)), is(8192L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(512)), is(8192L));
+
+    assertThat(OffHeapServerStore.getMaxSize(GIGABYTES.toBytes(2)), is(8192L));
   }
 
   @Test
