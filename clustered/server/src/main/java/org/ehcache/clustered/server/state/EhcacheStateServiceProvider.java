@@ -73,7 +73,6 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
         LOGGER.warn("EhcacheStateService requested but no offheap-resource was defined - returning null");
         return null;
       }
-      EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
       EhcacheStateService storeManagerService = new EhcacheStateServiceImpl(offHeapResourcesProvider);
       EhcacheStateService result = serviceMap.putIfAbsent(consumerID, storeManagerService);
       if (result == null) {
