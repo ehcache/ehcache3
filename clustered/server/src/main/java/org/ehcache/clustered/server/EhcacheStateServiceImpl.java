@@ -409,7 +409,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     ServerStoreImpl serverStore;
-    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
       serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     } catch (RuntimeException rte) {
@@ -444,7 +444,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     this.invalidationTrackers.remove(name);
   }
 
-  private PageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
+  private ResourcePageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
