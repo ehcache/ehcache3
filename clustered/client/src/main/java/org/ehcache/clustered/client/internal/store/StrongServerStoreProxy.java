@@ -117,7 +117,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     CountDownLatch latch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
-        throw new IllegalStateException("Clustered tier manager disconnected");
+        throw new IllegalStateException("Cluster tier manager disconnected");
       }
       CountDownLatch countDownLatch = hashInvalidationsInProgress.putIfAbsent(key, latch);
       if (countDownLatch == null) {
@@ -147,7 +147,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     CountDownLatch newLatch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
-        throw new IllegalStateException("Clustered tier manager disconnected");
+        throw new IllegalStateException("Cluster tier manager disconnected");
       }
 
       CountDownLatch existingLatch;
@@ -195,7 +195,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       LOGGER.debug("Waiting for the server's InvalidationDone message for {}s, backing off {}s...", totalAwaitTime, backoff);
     }
     if (!entity.isConnected()) {
-      throw new IllegalStateException("Clustered tier manager disconnected");
+      throw new IllegalStateException("Cluster tier manager disconnected");
     }
   }
 

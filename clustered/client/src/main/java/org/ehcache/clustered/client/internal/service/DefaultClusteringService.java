@@ -150,13 +150,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
         } catch (DestroyInProgressException e) {
-          throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
+          throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
         } catch (EntityNotFoundException e) {
-          throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
+          throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
         } catch (TimeoutException e) {
-          throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
+          throw new RuntimeException("Could not connect to the cluster tier manager '" + entityIdentifier
               + "'; retrieve operation timed out", e);
         }
       }
@@ -202,13 +202,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       try {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (ClusterTierManagerCreationException e) {
-        throw new IllegalStateException("Could not create the clustered tier manager '" + entityIdentifier + "'.", e);
+        throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException e) {
         //ignore - entity already exists - try to retrieve
       } catch (EntityBusyException e) {
         //ignore - entity in transition - try to retrieve
       } catch (TimeoutException e) {
-        throw new RuntimeException("Could not create the clustered tier manager '" + entityIdentifier
+        throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
             + "'; create operation timed out", e);
       }
       try {
@@ -218,7 +218,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } catch (EntityNotFoundException e) {
         //ignore - loop and try to create
       } catch (TimeoutException e) {
-        throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
+        throw new RuntimeException("Could not connect to the cluster tier manager '" + entityIdentifier
             + "'; retrieve operation timed out", e);
       }
     }
@@ -244,7 +244,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void stop() {
-    LOGGER.info("stop called for clustered tiers on {}", this.clusterUri);
+    LOGGER.info("Closing connection to cluster {}", this.clusterUri);
 
     /*
      * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
@@ -267,14 +267,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     if (!inMaintenance) {
       throw new IllegalStateException("Maintenance mode required");
     }
-    LOGGER.info("destroyAll called for clustered tiers on {}", this.clusterUri);
+    LOGGER.info("destroyAll called for cluster tiers on {}", this.clusterUri);
 
     try {
       entityFactory.destroy(entityIdentifier);
     } catch (ClusterTierManagerNotFoundException e) {
-      throw new CachePersistenceException("Clustered tiers on " + this.clusterUri + " not found", e);
+      throw new CachePersistenceException("Cluster tiers on " + this.clusterUri + " not found", e);
     } catch (EntityBusyException e) {
-      throw new CachePersistenceException("Can not delete clustered tiers on " + this.clusterUri, e);
+      throw new CachePersistenceException("Can not delete cluster tiers on " + this.clusterUri, e);
     }
   }
 
@@ -346,7 +346,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } catch (EntityNotFoundException e) {
         // No entity on the server, so no need to destroy anything
       } catch (TimeoutException e) {
-        throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
+        throw new CachePersistenceException("Could not connect to the cluster tier manager '" + entityIdentifier
                                             + "'; retrieve operation timed out", e);
       } catch (DestroyInProgressException e) {
         silentDestroy();
@@ -361,7 +361,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       }
     } catch (EntityNotFoundException e) {
       // Ignore - does not exist, nothing to destroy
-      LOGGER.debug("Destruction of clustered tier {} failed as it does not exist", name);
+      LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
     }
   }
 
@@ -411,7 +411,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         clientStoreConfiguration, configuration.isAutoCreate());
       clusterTierEntities.put(cacheId, storeClientEntity);
     } catch (EntityNotFoundException e) {
-      throw new CachePersistenceException("Clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "' does not exist.", e);
+      throw new CachePersistenceException("Cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "' does not exist.", e);
     }
 
 
@@ -432,10 +432,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       storeClientEntity.validate(clientStoreConfiguration);
     } catch (ClusterTierException e) {
       serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
+      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     } catch (TimeoutException e) {
       serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create clustered tier proxy '"
+      throw new CachePersistenceException("Unable to create cluster tier proxy '"
           + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
           + "'; validate operation timed out", e);
     }

@@ -193,7 +193,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the cluster tier manager");
     }
   }
 

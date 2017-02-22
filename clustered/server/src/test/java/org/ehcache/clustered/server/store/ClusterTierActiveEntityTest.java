@@ -596,7 +596,7 @@ public class ClusterTierActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        LifecycleException.class, "Client not attached to clustered tier 'store'"
+        LifecycleException.class, "Client not attached to cluster tier 'store'"
     );
   }
 

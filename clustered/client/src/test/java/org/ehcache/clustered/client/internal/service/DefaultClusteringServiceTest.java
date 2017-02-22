@@ -1949,7 +1949,7 @@ public class DefaultClusteringServiceTest {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
       fail("Server store proxy creation should have failed");
     } catch (CachePersistenceException cpe) {
-      assertThat(cpe.getMessage(), containsString("Unable to create clustered tier proxy"));
+      assertThat(cpe.getMessage(), containsString("Unable to create cluster tier proxy"));
       assertThat(getRootCause(cpe), instanceOf(InvalidServerStoreConfigurationException.class));
     }
   }
@@ -1988,7 +1988,7 @@ public class DefaultClusteringServiceTest {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
       fail("Server store proxy creation should have failed");
     } catch (CachePersistenceException cpe) {
-      assertThat(cpe.getMessage(), containsString("Unable to create clustered tier proxy"));
+      assertThat(cpe.getMessage(), containsString("Unable to create cluster tier proxy"));
       assertThat(getRootCause(cpe), instanceOf(InvalidServerStoreConfigurationException.class));
     }
   }

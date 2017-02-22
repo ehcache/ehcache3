@@ -108,7 +108,7 @@ public class ClusterTierManagerClientEntityFactory {
       localMaintenance = createAccessLockFor(identifier).tryWriteLock();
     }
     if (existingMaintenance == null && localMaintenance == null) {
-      throw new EntityBusyException("Unable to create clustered tier manager for id "
+      throw new EntityBusyException("Unable to create cluster tier manager for id "
                                     + identifier + ": another client owns the maintenance lease");
     }
 
@@ -137,12 +137,12 @@ public class ClusterTierManagerClientEntityFactory {
           }
         }
       } catch (EntityConfigurationException e) {
-        throw new ClusterTierManagerCreationException("Unable to configure clustered tier manager for id " + identifier, e);
+        throw new ClusterTierManagerCreationException("Unable to configure cluster tier manager for id " + identifier, e);
       } catch (EntityNotProvidedException e) {
-        LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
+        LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityVersionMismatchException e) {
-        LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
+        LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       }
     } finally {
@@ -179,7 +179,7 @@ public class ClusterTierManagerClientEntityFactory {
     try {
       entity = getEntityRef(identifier).fetchEntity();
     } catch (EntityVersionMismatchException e) {
-      LOGGER.error("Unable to retrieve clustered tier manager for id {}", identifier, e);
+      LOGGER.error("Unable to retrieve cluster tier manager for id {}", identifier, e);
       silentlyUnlock(fetchHold, identifier);
       throw new AssertionError(e);
     }
@@ -193,7 +193,7 @@ public class ClusterTierManagerClientEntityFactory {
     } catch (DestroyInProgressException e) {
       throw e;
     } catch (ClusterException e) {
-      throw new ClusterTierManagerValidationException("Unable to validate clustered tier manager for id " + identifier, e);
+      throw new ClusterTierManagerValidationException("Unable to validate cluster tier manager for id " + identifier, e);
     } finally {
       if (!validated) {
         silentlyClose(entity, identifier);
@@ -211,7 +211,7 @@ public class ClusterTierManagerClientEntityFactory {
     }
 
     if (existingMaintenance == null && localMaintenance == null) {
-      throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier's maintenance lease held");
+      throw new EntityBusyException("Destroy operation failed; " + identifier + " cluster tier's maintenance lease held");
     }
 
     boolean finished = false;
@@ -221,11 +221,11 @@ public class ClusterTierManagerClientEntityFactory {
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
-          throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
+          throw new EntityBusyException("Destroy operation failed; " + identifier + " cluster tier in use by other clients");
         }
         finished = true;
       } catch (EntityNotProvidedException e) {
-        LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
+        LOGGER.error("Unable to delete cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityNotFoundException e) {
         // Ignore - entity does not exist
@@ -293,7 +293,7 @@ public class ClusterTierManagerClientEntityFactory {
     try {
       return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
-      LOGGER.error("Unable to get clustered tier manager for id {}", identifier, e);
+      LOGGER.error("Unable to get cluster tier manager for id {}", identifier, e);
       throw new AssertionError(e);
     }
   }
@@ -315,7 +315,7 @@ public class ClusterTierManagerClientEntityFactory {
         } catch (EntityAlreadyExistsException e) {
           // Ignore - entity exists
         } catch (EntityConfigurationException e) {
-          throw new CachePersistenceException("Unable to create clustered tier", e);
+          throw new CachePersistenceException("Unable to create cluster tier", e);
         } catch (EntityException e) {
           throw new AssertionError(e);
         }
@@ -351,7 +351,7 @@ public class ClusterTierManagerClientEntityFactory {
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
       if (!entityRef.destroy()) {
-        throw new CachePersistenceException("Cannot destroy clustered tier '" + storeIdentifier + "': in use by other client(s)");
+        throw new CachePersistenceException("Cannot destroy cluster tier '" + storeIdentifier + "': in use by other client(s)");
       }
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
