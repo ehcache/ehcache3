@@ -84,3 +84,8 @@ include::{sourcedir32}/xml/src/test/resources/configs/docs/getting-started.xml[t
 ----
 
 <1> Simply pass the fully qualified class name of your custom expiry.
+
+****
+There is a <<migration-guide.adoc#per-mapping-expiry,_migration guide_>> in place to demonstrate how to migrate the Ehcache 2.x per mapping expiry code to Ehcache 3.x.
+****
+
