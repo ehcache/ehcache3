@@ -26,6 +26,7 @@ ext {
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
+  ehcache2Version = '2.10.3'
 
   // Clustered
   terracottaPlatformVersion = '5.1.1-pre5'

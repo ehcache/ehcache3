@@ -1,0 +1,48 @@
+---
+---
+= Migration Guide
+ifndef::sourcedir31[]
+include::common.adoc[]
+endif::sourcedir31[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+This guide provides sample code snippets to help migrate Ehcache 2.x code to Ehcache 3.x code.
+
+[[per-mapping-expiry]]
+== Per Mapping Expiry
+
+Per mapping expiry covers use cases where a subset of mappings have different expiration settings than the ones configured at the cache level.
+
+
+==== Ehcache 2.x Code snippet:
+Here we are creating a cache manager having a default time-to-live (TTL) expiry. +
+Before adding we verify the expiry and set it on the Element only when different than the Cache one.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
+----
+<1> Expiry duration defined at the cache level.
+<2> Compute the mapping expiry using helper method getTimeToLiveInSeconds.
+<3> Only setting the computed expiry on element, if other than default expiry.
+<4> Waiting for 2.1 seconds - assuming 2 seconds is the custom expiry duration - to get the mapping to be expired.
+
+==== Corresponding Ehcache 3.x Code Snippet:
+Here we are creating a cache manager with a cache configuration having custom expiry, having methods to be called during the lifecycle of added mappings.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+----
+<1> Defining Custom Expiry to be called during the lifecycle of added mappings.
+<2> During mapping creation, defining expiry duration using the helper method getTimeToLiveDuration.
+<3> Waiting for 2.1 seconds - assuming 2 seconds is the custom expiry duration - to get the mapping to be expired.
+
+****
+So to migrate the Ehcache 2.x per mapping expiry code to Ehcache 3.x, move expiry computation logic to getExpiryForCreation method of Custom Expiry.
+****
