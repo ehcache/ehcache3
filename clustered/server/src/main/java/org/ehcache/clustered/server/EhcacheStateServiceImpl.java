@@ -379,7 +379,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     ServerStoreImpl serverStore;
-    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
       serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     } catch (RuntimeException rte) {
@@ -406,7 +406,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     stateRepositoryManager.destroyStateRepository(name);
   }
 
-  private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
+  private ResourcePageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
