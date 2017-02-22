@@ -56,6 +56,7 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -110,6 +111,8 @@ public class XAStore<K, V> implements Store<K, V> {
     this.transactionContextFactory = new XATransactionContextFactory<K, V>(timeSource);
     this.recoveryXaResource = new EhcacheXAResource<K, V>(underlyingStore, journal, transactionContextFactory);
     this.eventSourceWrapper = new StoreEventSourceWrapper<K, V>(underlyingStore.getStoreEventSource());
+
+    ContextManager.associate(underlyingStore).withParent(this);
   }
 
   private static boolean isInDoubt(SoftLock<?> softLock) {
