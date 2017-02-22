@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import com.tc.classloader.CommonComponent;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -291,7 +292,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
     }
 
-    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource);
     stores.put(name, serverStore);
     return serverStore;
@@ -308,7 +309,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     stateRepositoryManager.destroyStateRepository(name);
   }
 
-  private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
+  private ResourcePageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
@@ -365,14 +366,15 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    * Pairs a {@link ServerSideConfiguration.Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
    * for the pool.
    */
-  private static class ResourcePageSource implements PageSource{
+  @CommonComponent
+  public static class ResourcePageSource implements PageSource{
     /**
      * A description of the resource allocation underlying this {@code PageSource}.
      */
     private final ServerSideConfiguration.Pool pool;
     private final UpfrontAllocatingPageSource delegatePageSource;
 
-    private ResourcePageSource(ServerSideConfiguration.Pool pool) {
+    public ResourcePageSource(ServerSideConfiguration.Pool pool) {
       this.pool = pool;
       this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.getSize(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
     }
