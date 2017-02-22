@@ -23,14 +23,18 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStore implements ServerStore, MapInternals {
+
+  private static final long MAX_PAGE_SIZE_IN_KB = KILOBYTES.convert(8, MEGABYTES);
 
   private final List<OffHeapChainMap<Long>> segments;
   private final KeySegmentMapper mapper;
@@ -43,8 +47,30 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
+  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper) {
+    this.mapper = mapper;
+    segments = new ArrayList<OffHeapChainMap<Long>>(mapper.getSegments());
+    long maxSize = getMaxSize(source);
+
+    for (int i = 0; i < mapper.getSegments(); i++) {
+      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+    }
+  }
+
   public List<OffHeapChainMap<Long>> getSegments() {
     return segments;
+  }
+
+  private static long getMaxSize(ResourcePageSource source) {
+    long poolSize = source.getPool().getSize();
+    long l = Long.highestOneBit(poolSize);
+    long sizeInKb = KILOBYTES.convert(l, BYTES);
+    long maxSize = sizeInKb >> 4;
+
+    if (maxSize >= MAX_PAGE_SIZE_IN_KB) {
+      maxSize = MAX_PAGE_SIZE_IN_KB;
+    }
+    return maxSize;
   }
 
   public void setEvictionListener(final ServerStoreEvictionListener listener) {
