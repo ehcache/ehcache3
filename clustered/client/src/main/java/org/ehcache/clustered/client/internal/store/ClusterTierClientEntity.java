@@ -40,11 +40,11 @@ public interface ClusterTierClientEntity extends Entity {
 
   void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException;
 
-  EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate) throws ClusterException, TimeoutException;
+  EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate, boolean track) throws ClusterException, TimeoutException;
 
-  void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate) throws MessageCodecException;
+  void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate, boolean track) throws MessageCodecException;
 
-  EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) throws ClusterException, TimeoutException;
+  EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException;
 
   <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener);
 

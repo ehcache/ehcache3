@@ -203,28 +203,28 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate) throws ClusterException, TimeoutException {
-    return invoke(message, replicate);
+  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate, boolean track) throws ClusterException, TimeoutException {
+    return invoke(message, replicate, track);
   }
 
   @Override
-  public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) throws ClusterException, TimeoutException {
-    return invoke(message, true);
+  public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
+    return invoke(message, true, track);
   }
 
   @Override
-  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate)
+  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate, boolean track)
       throws MessageCodecException {
-    internalInvokeAsync(message, replicate, false);
+    internalInvokeAsync(message, replicate, track);
   }
 
-  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate)
+  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate, boolean track)
       throws ClusterException, TimeoutException {
     TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       timeLimit = timeouts.getReadOperationTimeout();
     }
-    return invokeInternal(timeLimit, message, replicate, replicate);
+    return invokeInternal(timeLimit, message, replicate, track);
   }
 
   private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate, boolean track)
