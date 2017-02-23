@@ -209,7 +209,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
-    return invoke(message, true, track);
+    return invoke(message, track, track);
   }
 
   @Override
