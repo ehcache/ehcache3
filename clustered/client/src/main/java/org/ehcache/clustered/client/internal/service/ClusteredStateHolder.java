@@ -54,13 +54,13 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
       return null;
     }
     @SuppressWarnings("unchecked")
-    Object response = getResponse(messageFactory.getMessage(keyCodec.encode((K) key)));
+    Object response = getResponse(messageFactory.getMessage(keyCodec.encode((K) key)), false);
     return valueCodec.decode(response);
   }
 
-  private Object getResponse(StateRepositoryOpMessage message) {
+  private Object getResponse(StateRepositoryOpMessage message, boolean track) {
     try {
-      EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message);
+      EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
     } catch (ClusterException ce) {
       throw new ClusteredMapException(ce);
@@ -73,7 +73,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   @SuppressWarnings("unchecked")
   public Set<Map.Entry<K, V>> entrySet() {
     @SuppressWarnings("unchecked")
-    Set<Map.Entry<Object, Object>> response = (Set<Map.Entry<Object, Object>>) getResponse(messageFactory.entrySetMessage());
+    Set<Map.Entry<Object, Object>> response = (Set<Map.Entry<Object, Object>>) getResponse(messageFactory.entrySetMessage(), true);
     Set<Map.Entry<K, V>> entries = new HashSet<Map.Entry<K, V>>();
     for (Map.Entry<Object, Object> objectEntry : response) {
       entries.add(new AbstractMap.SimpleEntry<K, V>(keyCodec.decode(objectEntry.getKey()),
@@ -85,7 +85,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   @Override
   @SuppressWarnings("unchecked")
   public V putIfAbsent(final K key, final V value) {
-    Object response = getResponse(messageFactory.putIfAbsentMessage(keyCodec.encode(key), valueCodec.encode(value)));
+    Object response = getResponse(messageFactory.putIfAbsentMessage(keyCodec.encode(key), valueCodec.encode(value)), true);
     return valueCodec.decode(response);
   }
 

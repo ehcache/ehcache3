@@ -187,7 +187,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invokeServerStoreOperationAsync(messageFactory.replaceAtHeadOperation(key, expect, update), true);
+      entity.invokeServerStoreOperationAsync(messageFactory.replaceAtHeadOperation(key, expect, update), false);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

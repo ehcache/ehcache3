@@ -157,11 +157,11 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           // An operation on a non-existent store should never get out of the client
           throw new LifecycleException("cluster tier does not exist : '" + storeIdentifier + "'");
         }
-        cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         applyMessage(message);
         if (isEventual()) {
           stateService.getInvalidationTracker(storeIdentifier).trackHashInvalidation(retirementMessage.getKey());
         }
+        cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         break;
       case INVALIDATION_COMPLETE:
         if (isEventual()) {

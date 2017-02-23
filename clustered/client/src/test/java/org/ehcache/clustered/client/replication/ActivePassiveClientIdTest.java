@@ -21,11 +21,13 @@ import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurati
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.service.ClusteredStateHolder;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
@@ -40,6 +42,9 @@ import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +52,8 @@ import static org.ehcache.clustered.client.config.builders.ClusteredResourcePool
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.clustered.client.replication.ReplicationUtil.getEntity;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.expiry.Expirations.noExpiration;
@@ -129,6 +136,42 @@ public class ActivePassiveClientIdTest {
       }
     });
     assertThat(completableFuture.get(2, TimeUnit.SECONDS), is(true));
+
+  }
+
+  @Test
+  public void testNotTrackedMessages() throws Exception {
+
+    ClusteringServiceConfiguration configuration =
+            ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
+                    .autoCreate()
+                    .build();
+
+    ClusteringService service = new ClusteringServiceFactory().create(configuration);
+
+    service.start(null);
+
+    BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
+            newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
+    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
+            config);
+
+    ServerStoreProxy storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+
+    ObservableClusterTierServerEntityService.ObservableClusterTierPassiveEntity ehcachePassiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
+
+    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
+
+    List<Element> elements = new ArrayList<>();
+    elements.add(getElement(createPayload(44L)));
+
+    storeProxy.replaceAtHead(44L, getChain(elements), getChain(new ArrayList<Element>()));
+
+    storeProxy.get(42L);
+
+    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
+
+    service.stop();
 
   }
 
