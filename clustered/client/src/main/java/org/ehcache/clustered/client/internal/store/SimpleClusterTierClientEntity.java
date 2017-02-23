@@ -187,7 +187,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
+      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false, false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
@@ -215,7 +215,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate)
       throws MessageCodecException {
-    internalInvokeAsync(message, replicate);
+    internalInvokeAsync(message, replicate, true);
   }
 
   private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate)
@@ -224,14 +224,14 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       timeLimit = timeouts.getReadOperationTimeout();
     }
-    return invokeInternal(timeLimit, message, replicate);
+    return invokeInternal(timeLimit, message, replicate, true);
   }
 
-  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate)
+  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate, boolean track)
       throws ClusterException, TimeoutException {
 
     try {
-      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, replicate));
+      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, replicate, track));
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
@@ -250,10 +250,10 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean replicate)
+  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean replicate, boolean track)
         throws MessageCodecException {
     getClientId();
-    if (replicate) {
+    if (track) {
       message.setId(sequenceGenerator.getAndIncrement());
     }
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
