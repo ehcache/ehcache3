@@ -23,6 +23,7 @@ Each topic below corresponds to a menu item at the left.
 |link:xml.html[XML Configuration]|How to configure Ehcache using XML
 |link:usermanaged.html[User Managed Caches]|Creating and making use of caches directly
 |link:107.html[JSR-107 Support]|Using Ehcache as a javax.cache aka JSR-107 provider
+|link:tiering.html[Tiering options]|Using resources other than heap memory, combining them or not
 |link:examples.html[Java Examples]|Examples of using Ehcache APIs
 |link:xsds.html[Configuration XSD]|Reference XSD for configuration
 |link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in Ehcache

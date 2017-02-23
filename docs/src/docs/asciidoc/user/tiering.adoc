@@ -1,0 +1,118 @@
+---
+---
+= Ehcache Tiering Options
+ifndef::sourcedir31[]
+include::common.adoc[]
+endif::sourcedir31[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+Ehcache supports the <<caching-concepts.adoc#storage-tiers,concept of tiered caching>>.
+This section covers the different available configuration options.
+It also explains rules and best practices to benefit the most from tiered caching.
+
+== Moving out of heap
+
+The moment you have a tier different than heap in a cache, a few things happen:
+
+* Adding a mapping to the cache means that the key and value have to be serialized,
+* Reading a mapping from the cache means that the key and value may have to be deserialized.
+
+With these two points above, you need to realise that the binary representation of the data and how it is transformed to and from will play a significant role in caching performance.
+Make sure you know about <<serializers-copiers.adoc#serializers,the options available>> in Ehcache 3.
+Also this means that some configurations, while making sense on paper, may not offer the best performance depending on the real use case of the application.
+
+== Single tier setups
+
+All tiering options can be used in isolation.
+That means you can have caches with data only in _offheap_ or only _clustered_ for example.
+
+The following possibilities are valid configurations:
+
+* heap
+* offheap
+* disk
+* <<clustered-cache.adoc#,clustered>>
+
+For this, simply define the single resource in the cache configuration:
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
+----
+
+<1> Start with defining the key and value type in the configuration builder
+<2> When specifying the resources, just use offheap
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=clusteredOnly]
+----
+
+<1> Start with defining the key and value type in the configuration builder
+<2> When specifying the resources, you reach into the clustering related builders and only specify that single resource
+
+== Multiple tiers setups
+
+The moment you want to use more than one tier, you have to observe some constraints:
+
+. There must always be a heap tier in a multi tier setup,
+. You cannot combine _disk_ and _clustered_ tiers,
+. Tiers should be sized in a pyramidal fashion.
+
+For 1, this is a limitation of the current implementation.
+
+For 2, this is a design decision as having two tiers with content that can outlive the life of a single JVM makes for all kind of interesting consistency questions on restart.
+
+[.float-group]
+--
+[.left]
+.Tiers hierarchy
+image::TiersHierarchy.png[Tiers hierarchy]
+
+For 3, the idea is that tiers are related between each others.
+If you picture the fastest tier - heap - is on top, while the slower tiers are below, you can see the pyramid.
+It comes from the fact that heap is more constrained than the total memory of the machine.
+And in addition memory is more constrained than disk or the memory available on the cluster.
+And the Ehcache implementation takes this into account.
+
+It means that when sizing in the same units, that is memory quantity, the validation of the configuration will fail if an upper tier is larger or equal to a lower tier.
+While we cannot verify that a count based sizing for heap will not be larger than a byte sizing for another tier, you should make sure that is the case during testing.
+--
+
+With the above into account, the following possibilities are valid configurations:
+
+* heap + offheap
+* heap + offheap + disk
+* heap + disk
+* heap + offheap + clustered
+* heap + clustered
+
+== Persistent tiers
+
+The _disk_ and _clustered_ tiers introduce the concept of persistence.
+It means that the data they contain can survive a restart of the Java application hosting the cache instance.
+
+Persistent cluster tier::
+The cluster tier is persistent since the data lives in a different JVM.
+However the open source clustering implementation does not preserve data across restarts of the server JVM hosting the Terracotta cluster.
+
+Persistent disk tier::
+By default the disk tier is non persistent.
+It will wipe the data files upon clean shutdown or during restart.
+If you want the disk tier to be persistent, it needs to be configured as such, see examples below.
+Note that the disk tier persistence is not crash proof.
+It requires a clean shutdown of the cache manager through the invocation of `CacheManager.close()`.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskPersistent]
+----
+
+<1> Configure the `CacheManager` to have a location where to put cache data files
+<2> Make the disk resource of the cache persistent with that third `boolean` argument
+
