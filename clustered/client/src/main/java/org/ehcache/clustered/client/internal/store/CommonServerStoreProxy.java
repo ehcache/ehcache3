@@ -72,7 +72,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
         try {
           LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false, false);
+          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false);
         } catch (Exception e) {
           //TODO: what should be done here?
           LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
@@ -91,7 +91,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
         try {
           LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false, false);
+          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false);
         } catch (Exception e) {
           //TODO: what should be done here?
           LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
@@ -140,7 +140,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public Chain get(long key) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invokeServerStoreOperation(messageFactory.getOperation(key), false, false);
+      response = entity.invokeServerStoreOperation(messageFactory.getOperation(key), false);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -157,7 +157,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
     try {
-      entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true, true);
+      entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -169,7 +169,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invokeServerStoreOperation(messageFactory.getAndAppendOperation(key, payLoad), true, true);
+      response = entity.invokeServerStoreOperation(messageFactory.getAndAppendOperation(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -187,7 +187,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invokeServerStoreOperationAsync(messageFactory.replaceAtHeadOperation(key, expect, update), true, false);
+      entity.invokeServerStoreOperationAsync(messageFactory.replaceAtHeadOperation(key, expect, update), false);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -196,7 +196,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     try {
-      entity.invokeServerStoreOperation(messageFactory.clearOperation(), true, true);
+      entity.invokeServerStoreOperation(messageFactory.clearOperation(), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {

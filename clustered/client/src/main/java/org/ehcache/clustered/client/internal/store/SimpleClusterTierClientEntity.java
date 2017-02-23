@@ -187,7 +187,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false, false);
+      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
@@ -203,35 +203,35 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean replicate, boolean track) throws ClusterException, TimeoutException {
-    return invoke(message, replicate, track);
+  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean track) throws ClusterException, TimeoutException {
+    return invoke(message, track);
   }
 
   @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
-    return invoke(message, track, track);
+    return invoke(message, track);
   }
 
   @Override
-  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate, boolean track)
+  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean track)
       throws MessageCodecException {
-    internalInvokeAsync(message, replicate, track);
+    internalInvokeAsync(message, track);
   }
 
-  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate, boolean track)
+  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean track)
       throws ClusterException, TimeoutException {
     TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       timeLimit = timeouts.getReadOperationTimeout();
     }
-    return invokeInternal(timeLimit, message, replicate, track);
+    return invokeInternal(timeLimit, message, track);
   }
 
-  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate, boolean track)
+  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean track)
       throws ClusterException, TimeoutException {
 
     try {
-      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, replicate, track));
+      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, track));
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
@@ -250,13 +250,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean replicate, boolean track)
+  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean track)
         throws MessageCodecException {
     getClientId();
     if (track) {
       message.setId(sequenceGenerator.getAndIncrement());
     }
-    return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
+    return endpoint.beginInvoke().message(message).invoke();
   }
 
   private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
