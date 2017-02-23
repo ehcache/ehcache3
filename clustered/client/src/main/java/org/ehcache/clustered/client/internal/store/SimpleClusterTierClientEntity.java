@@ -215,7 +215,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean replicate)
       throws MessageCodecException {
-    internalInvokeAsync(message, replicate, true);
+    internalInvokeAsync(message, replicate, false);
   }
 
   private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean replicate)
@@ -224,7 +224,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       timeLimit = timeouts.getReadOperationTimeout();
     }
-    return invokeInternal(timeLimit, message, replicate, true);
+    return invokeInternal(timeLimit, message, replicate, replicate);
   }
 
   private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate, boolean track)
