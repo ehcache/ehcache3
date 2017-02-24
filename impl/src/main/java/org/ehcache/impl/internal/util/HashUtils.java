@@ -22,8 +22,7 @@ package org.ehcache.impl.internal.util;
 public class HashUtils {
 
   public static long intHashToLong(int hash) {
-    long l = ((long) hash) & 0xffffffffL;
-    return (l << 32 ) | l;
+    return (long) hash;
   }
 
   public static int longHashToInt(long hash) {
