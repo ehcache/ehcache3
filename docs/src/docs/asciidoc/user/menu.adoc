@@ -5,6 +5,7 @@ User documentation::
 - link:./xml{outfilesuffix}[XML Configuration]
 - link:./usermanaged{outfilesuffix}[User managed caches]
 - link:./107{outfilesuffix}[javax.cache aka jsr-107]
+- link:./tiering{outfilesuffix}[Tiering options]
 - link:./expiry{outfilesuffix}[Expiry]
 - link:./thread-pools{outfilesuffix}[Thread Pools]
 - link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
