@@ -17,6 +17,7 @@ All other stores are only capable of storing a byte representation of the key/va
 
 `Serializer` and `Copier` are the abstractions to enable these different storage options.
 
+[[serializers]]
 == Serializers
 
 All stores but the on-heap one need some form of serialization/deserialization of objects to be able to store and retrieve mappings.
