@@ -1,9 +1,9 @@
 ---
 ---
 = Serializers and Copiers
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -110,7 +110,7 @@ Implement the following interface, from package `org.ehcache.spi.serialization`:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=20..-1]
+include::{sourcedir33}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=20..-1]
 ----
 
 As the javadoc states, there are some constructor rules, see the <<persistent-vs-transient-caches,section on persistent and transient caches>> for that.
@@ -232,7 +232,7 @@ Implement the following interface:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
+include::{sourcedir33}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
 ----
 
 * `T copyForRead(T obj)` is invoked when a copy must be made upon a read operation (like a cache `get()`),
