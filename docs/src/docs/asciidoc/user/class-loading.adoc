@@ -1,9 +1,9 @@
 ---
 ---
 = Class loading
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

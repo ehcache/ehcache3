@@ -1,9 +1,9 @@
 ---
 ---
 = Ehcache Tiering Options
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -42,7 +42,7 @@ For this, simply define the single resource in the cache configuration:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
 ----
 
 <1> Start with defining the key and value type in the configuration builder
@@ -50,7 +50,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offh
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=clusteredOnly]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=clusteredOnly]
 ----
 
 <1> Start with defining the key and value type in the configuration builder
@@ -110,7 +110,7 @@ It requires a clean shutdown of the cache manager through the invocation of `Cac
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskPersistent]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskPersistent]
 ----
 
 <1> Configure the `CacheManager` to have a location where to put cache data files

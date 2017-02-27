@@ -1,9 +1,9 @@
 ---
 ---
 = Migration Guide
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -25,7 +25,7 @@ Before adding we verify the expiry and set it on the Element only when different
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
 ----
 <1> Expiry duration defined at the cache level.
 <2> Compute the mapping expiry using helper method getTimeToLiveInSeconds.
@@ -37,7 +37,7 @@ Here we are creating a cache manager with a cache configuration having custom ex
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
 ----
 <1> Defining Custom Expiry to be called during the lifecycle of added mappings.
 <2> During mapping creation, defining expiry duration using the helper method getTimeToLiveDuration.

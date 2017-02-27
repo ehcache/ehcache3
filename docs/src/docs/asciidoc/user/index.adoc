@@ -1,9 +1,9 @@
 ---
 ---
-= Ehcache 3.2 Documentation Overview
-ifndef::sourcedir32[]
+= Ehcache 3.3 Documentation Overview
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,7 +11,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.2 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.3 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
