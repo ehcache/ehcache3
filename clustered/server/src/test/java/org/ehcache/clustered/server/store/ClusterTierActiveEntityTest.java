@@ -799,10 +799,10 @@ public class ClusterTierActiveEntityTest {
 
     String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
                                     "\n\t" +
-                                    "resourcePoolDedicatedSize existing: " +
-                                    ((Dedicated)defaultStoreConfiguration.getPoolAllocation()).getSize() +
+                                    "resourcePoolType existing: " +
+                                    defaultStoreConfiguration.getPoolAllocation() +
                                     ", desired: " +
-                                    ((Dedicated)storeConfiguration.getPoolAllocation()).getSize();
+                                    storeConfiguration.getPoolAllocation();
 
     assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
       InvalidServerStoreConfigurationException.class, expectedMessageContent);
@@ -822,10 +822,10 @@ public class ClusterTierActiveEntityTest {
 
     String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
                                     "\n\t" +
-                                    "resourcePoolDedicatedResourceName existing: " +
-                                    ((Dedicated)defaultStoreConfiguration.getPoolAllocation()).getResourceName() +
+                                    "resourcePoolType existing: " +
+                                    defaultStoreConfiguration.getPoolAllocation() +
                                     ", desired: " +
-                                    ((Dedicated)storeConfiguration.getPoolAllocation()).getResourceName();
+                                    storeConfiguration.getPoolAllocation();
 
     assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
       InvalidServerStoreConfigurationException.class, expectedMessageContent);
@@ -850,10 +850,10 @@ public class ClusterTierActiveEntityTest {
 
     String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
                                     "\n\t" +
-                                    "resourcePoolSharedPoolName existing: " +
-                                    ((Shared)storeConfiguration.getPoolAllocation()).getResourcePoolName() +
+                                    "resourcePoolType existing: " +
+                                    storeConfiguration.getPoolAllocation() +
                                     ", desired: " +
-                                    ((Shared)otherConfiguration.getPoolAllocation()).getResourcePoolName();
+                                    otherConfiguration.getPoolAllocation();
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.validateServerStore(defaultStoreName,
