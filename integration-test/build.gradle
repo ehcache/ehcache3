@@ -28,5 +28,10 @@ compileTestJava {
 }
 
 test {
-  executable = Jvm.current().javaExecutable
+  if (!testJava.javaVersion.isJava8Compatible()) {
+    executable = Jvm.current().javaExecutable
+  }
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
 }
