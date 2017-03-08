@@ -76,6 +76,14 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     management = new ClusterTierManagement(registry, stateService, false, storeIdentifier, config.getManagerIdentifier());
   }
 
+  protected EhcacheStateService getStateService() {
+    return stateService;
+  }
+
+  protected String getStoreIdentifier() {
+    return storeIdentifier;
+  }
+
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration, false);
