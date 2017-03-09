@@ -16,6 +16,9 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -29,6 +32,8 @@ import java.util.stream.LongStream;
  * Assumption: message ids are generated in contiguous fashion in the increment on 1, starting from 0.
  */
 public class MessageTracker {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MessageTracker.class);
 
   // keeping track of highest contiguous message id seen
   private volatile long highestContiguousMsgId;
@@ -80,6 +85,17 @@ public class MessageTracker {
    * Remove the contiguous seen msgIds from the nonContiguousMsgIds and update highestContiguousMsgId
    */
   private void reconcile() {
+
+    // This happens when a passive is started after Active has moved on and
+    // passive starts to see msgIDs starting from a number > 0.
+    if (highestContiguousMsgId == -1L && nonContiguousMsgIds.size() > 100) {
+      Long min = Collections.min(nonContiguousMsgIds);
+      LOGGER.info("Setting highestContiguousMsgId to {} from -1", min);
+      highestContiguousMsgId = min;
+    }
+
+    nonContiguousMsgIds.removeIf(x -> x <= highestContiguousMsgId);
+
     // Keeping track of contiguous message ids.
     List<Long> contiguousMsgIds = new ArrayList<>();
 
