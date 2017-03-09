@@ -29,6 +29,7 @@ import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -60,7 +61,7 @@ public class VoltronReadWriteLockTest {
 
     lock.readLock();
 
-    verify(entityRef).create(any(Void.class));
+    verify(entityRef).create(isNull());
   }
 
   @Test

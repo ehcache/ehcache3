@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
@@ -305,7 +306,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
+    when(store.bulkCompute(ArgumentMatchers.<String>anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Iterable, Object> function = functionArgumentCaptor.getValue();

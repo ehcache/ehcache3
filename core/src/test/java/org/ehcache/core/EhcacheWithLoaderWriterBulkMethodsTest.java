@@ -33,10 +33,10 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.ehcache.core.EhcacheBulkMethodsTest.entry;
 import static org.ehcache.core.EhcacheBulkMethodsTest.valueHolder;
 

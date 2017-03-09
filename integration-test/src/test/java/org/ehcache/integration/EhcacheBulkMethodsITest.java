@@ -39,6 +39,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 import org.mockito.Matchers;
 
@@ -58,12 +59,12 @@ import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * Tests for bulk processing methods in {@link org.ehcache.core.Ehcache Ehcache}.
@@ -257,8 +258,8 @@ public class EhcacheBulkMethodsITest {
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder().using(cacheLoaderWriterProvider);
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
-    when(cacheLoaderWriter.loadAll(argThat(hasItem("key0")))).thenReturn( new HashMap(){{put("key0","value0");}});
-    when(cacheLoaderWriter.loadAll(argThat(hasItem("key2")))).thenReturn( new HashMap(){{put("key2","value2");}});
+    when(cacheLoaderWriter.loadAll(argThat(IsCollectionContaining.<String>hasItem("key0")))).thenReturn(new HashMap(){{put("key0","value0");}});
+    when(cacheLoaderWriter.loadAll(argThat(IsCollectionContaining.<String>hasItem("key2")))).thenReturn(new HashMap(){{put("key2","value2");}});
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 

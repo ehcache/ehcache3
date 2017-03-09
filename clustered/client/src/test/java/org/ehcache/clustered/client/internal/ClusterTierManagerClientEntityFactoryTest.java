@@ -23,14 +23,16 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.terracotta.connection.Connection;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
@@ -75,9 +77,8 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
   @Test
   public void testCreateBadConfig() throws Exception {
-    doThrow(EntityConfigurationException.class).when(entityRef).create(any(ServerSideConfiguration.class));
+    doThrow(EntityConfigurationException.class).when(entityRef).create(any(ClusterTierManagerConfiguration.class));
     when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
-
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
@@ -114,14 +115,14 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
     assertThat(factory.retrieve("test", null), is(entity));
-    verify(entity).validate(any(ServerSideConfiguration.class));
+    verify(entity).validate(isNull());
     verify(entity, never()).close();
   }
 
   @Test
   public void testRetrieveFailedValidate() throws Exception {
     when(entityRef.fetchEntity(null)).thenReturn(entity);
-    doThrow(IllegalArgumentException.class).when(entity).validate(any(ServerSideConfiguration.class));
+    doThrow(IllegalArgumentException.class).when(entity).validate(isNull());
     when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
@@ -133,7 +134,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     } catch (IllegalArgumentException e) {
       // expected
     }
-    verify(entity).validate(any(ServerSideConfiguration.class));
+    verify(entity).validate(isNull());
     verify(entity).close();
   }
 
@@ -192,11 +193,11 @@ public class ClusterTierManagerClientEntityFactoryTest {
     when(lock.tryLock(any(HoldType.class))).thenReturn(result, results);
     @SuppressWarnings("unchecked")
     EntityRef<VoltronReadWriteLockClient, Object, Object> interlockRef = mock(EntityRef.class);
-    when(connection.getEntityRef(eq(VoltronReadWriteLockClient.class), anyInt(), eq(lockname))).thenReturn(interlockRef);
+    when(connection.getEntityRef(eq(VoltronReadWriteLockClient.class), anyLong(), eq(lockname))).thenReturn(interlockRef);
     when(interlockRef.fetchEntity(null)).thenReturn(lock);
   }
 
   private <E extends Entity> EntityRef<E, Object, Void> getEntityRef(Class<E> value) throws org.terracotta.exception.EntityNotProvidedException {
-    return connection.getEntityRef(eq(value), anyInt(), anyString());
+    return connection.getEntityRef(eq(value), anyLong(), anyString());
   }
 }
