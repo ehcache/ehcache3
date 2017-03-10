@@ -76,8 +76,7 @@ public class GettingStarted {
   @Test
   public void cachemanagerExample() {
     // tag::cachemanagerExample[]
-    CacheManager cacheManager
-        = CacheManagerBuilder.newCacheManagerBuilder() // <1>
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))) // <2>
         .build(); // <3>
