@@ -94,7 +94,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 === Creating a cache manager with clustering support
 
-To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-terracotta-server, start the Terracotta server>> configured with clustered storage.
+To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-server, start the Terracotta server>> configured with clustered storage.
 In addition, for creating the cache manager with clustering support, you will need to provide the clustering service configuration:
 
 [source,java,indent=0]
