@@ -23,6 +23,8 @@ import java.io.Serializable;
  */
 public interface PoolAllocation extends Serializable {
 
+  boolean isCompatible(PoolAllocation other);
+
   interface DedicatedPoolAllocation extends PoolAllocation {
     long getSize();
     String getResourceName();
@@ -72,6 +74,24 @@ public interface PoolAllocation extends Serializable {
     public String getResourceName() {
       return resourceName;
     }
+
+    @Override
+    public boolean isCompatible(PoolAllocation other) {
+      if (this == other) return true;
+      if (other == null) return false;
+      if (other.getClass().isAssignableFrom(Unknown.class)) return true;
+      if (!other.getClass().isAssignableFrom(Dedicated.class)) return false;
+
+      final Dedicated dedicated = (Dedicated)other;
+
+      if (size != dedicated.size) return false;
+      return resourceName != null ? resourceName.equals(dedicated.resourceName) : dedicated.resourceName == null;
+    }
+
+    @Override
+    public String toString() {
+      return "Dedicated{" + "resourceName='" + resourceName + "', size='" + size + "'}";
+    }
   }
 
   /**
@@ -100,6 +120,23 @@ public interface PoolAllocation extends Serializable {
     public String getResourcePoolName() {
       return resourcePoolName;
     }
+
+    @Override
+    public boolean isCompatible(PoolAllocation other) {
+      if (this == other) return true;
+      if (other == null) return false;
+      if (other.getClass().isAssignableFrom(Unknown.class)) return true;
+      if (!other.getClass().isAssignableFrom(Shared.class)) return false;
+
+      final Shared shared = (Shared)other;
+
+      return resourcePoolName.equals(shared.resourcePoolName);
+    }
+
+    @Override
+    public String toString() {
+      return "Shared{" + "resourcePoolName='" + resourcePoolName + "'}";
+    }
   }
 
   /**
@@ -107,5 +144,11 @@ public interface PoolAllocation extends Serializable {
    */
   final class Unknown implements PoolAllocation {
     private static final long serialVersionUID = 3584540926973176260L;
+
+    @Override
+    public boolean isCompatible(final PoolAllocation other) {
+      if (other == null) return false;
+      return true;
+    }
   }
 }
