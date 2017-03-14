@@ -20,10 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.LongStream;
 
 
 /**
@@ -39,14 +38,14 @@ public class MessageTracker {
   private volatile long highestContiguousMsgId;
 
   // Keeping track of non contiguous message Ids higher than highestContiguousMsgId.
-  private final Set<Long> nonContiguousMsgIds;
+  private final ConcurrentSkipListSet<Long> nonContiguousMsgIds;
 
   // Lock used for reconciliation.
   private final Lock reconciliationLock;
 
   public MessageTracker() {
     this.highestContiguousMsgId = -1L;
-    this.nonContiguousMsgIds = ConcurrentHashMap.newKeySet();
+    this.nonContiguousMsgIds = new ConcurrentSkipListSet<>();
     this.reconciliationLock = new ReentrantLock();
   }
 
@@ -89,34 +88,22 @@ public class MessageTracker {
     // This happens when a passive is started after Active has moved on and
     // passive starts to see msgIDs starting from a number > 0.
     if (highestContiguousMsgId == -1L && nonContiguousMsgIds.size() > 100) {
-      Long min = Collections.min(nonContiguousMsgIds);
+      Long min = nonContiguousMsgIds.first();
       LOGGER.info("Setting highestContiguousMsgId to {} from -1", min);
       highestContiguousMsgId = min;
     }
 
-    nonContiguousMsgIds.removeIf(x -> x <= highestContiguousMsgId);
-
-    // Keeping track of contiguous message ids.
-    List<Long> contiguousMsgIds = new ArrayList<>();
-
-    // Generate msgIds in sequence from current highestContiguousMsgId and add contiguous msg ids to contiguousMsgIds
-    for (long msgId : (Iterable<Long>) () -> LongStream.iterate(highestContiguousMsgId + 1, id -> id + 1).iterator()) {
-      if (!nonContiguousMsgIds.contains(msgId)) {
+    for (long msgId : nonContiguousMsgIds) {
+      if (msgId <= highestContiguousMsgId) {
+        nonContiguousMsgIds.remove(msgId);
+      } else if (msgId > highestContiguousMsgId + 1) {
         break;
+      } else {
+        nonContiguousMsgIds.remove(msgId);
+        highestContiguousMsgId = msgId;
       }
-      contiguousMsgIds.add(msgId);
-    };
-
-    // Return right away, as no new higher contiguous MsgId found.
-    if (contiguousMsgIds.isEmpty()) {
-      return;
     }
 
-    // Update the current highestContiguousMsgId based on last element in the contiguousMsgIds sequence.
-    highestContiguousMsgId = contiguousMsgIds.get(contiguousMsgIds.size() - 1);
-
-    // Remove all contiguous message ids from nonContiguousMsgIds
-    nonContiguousMsgIds.removeAll(contiguousMsgIds);
   }
 
   /**
