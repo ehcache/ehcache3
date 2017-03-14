@@ -25,10 +25,10 @@ dependencies {
   compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
   compileOnly "org.terracotta.management.dist:management-client:$parent.managementVersion"
 
-  compile project(':api')
-  compile project(':core')
-  compile project(':impl')
-  compile ("org.terracotta.management:management-registry:$parent.managementVersion") {
+  compileOnly project(':api')
+  compileOnly project(':core')
+  compileOnly project(':impl')
+  testCompile ("org.terracotta.management:management-registry:$parent.managementVersion") {
     exclude group: 'org.terracotta', module: 'statistics'
   }
 
