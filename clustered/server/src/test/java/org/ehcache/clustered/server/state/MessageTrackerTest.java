@@ -122,8 +122,31 @@ public class MessageTrackerTest {
       f.get();
     }
 
+    long highestId = getHighestId(messageTracker);
+
+    nonTrackedMsgs.removeIf(x -> x <= highestId);
+
     nonTrackedMsgs.forEach(x -> assertThat(messageTracker.seen(x), is(false)));
     LongStream.of(input).filter(x -> !nonTrackedMsgs.contains(x)).forEach(x -> assertThat(messageTracker.seen(x), is(true)));
+  }
+
+  @Test
+  public void testMessageTrackWhenPassiveStartsAfterActiveMovedOn() throws Exception {
+
+    long[] input = getInputFor(200, 500);
+
+    MessageTracker messageTracker = new MessageTracker();
+
+    for (int i = 0; i < input.length; i++) {
+      messageTracker.track(input[i]);
+    }
+
+    assertHighestContiguousMsgId(messageTracker, 499);
+
+    assertThat(messageTracker.isEmpty(), is(true));
+
+    LongStream.of(input).forEach(msg -> assertThat(messageTracker.seen(msg), is(true)));
+
   }
 
   /**
@@ -138,9 +161,13 @@ public class MessageTrackerTest {
   }
 
   private static void assertHighestContiguousMsgId(MessageTracker messageTracker, long highestContiguousMsgId) throws NoSuchFieldException, IllegalAccessException {
+    assertThat(getHighestId(messageTracker), is(highestContiguousMsgId));
+  }
+
+  private static Long getHighestId(MessageTracker messageTracker) throws NoSuchFieldException, IllegalAccessException {
     Field entity = messageTracker.getClass().getDeclaredField("highestContiguousMsgId");
     entity.setAccessible(true);
-    assertThat((Long)entity.get(messageTracker), is(highestContiguousMsgId));
+    return (Long)entity.get(messageTracker);
   }
 
 }
