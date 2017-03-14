@@ -764,22 +764,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnCreate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
 
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -799,22 +784,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.ZERO;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
@@ -835,22 +805,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
