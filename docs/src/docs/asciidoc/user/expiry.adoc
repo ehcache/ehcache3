@@ -28,7 +28,7 @@ include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 [source,xml,indent=0]
 ----
-include::{sourcedir33}/xml/src/test/resources/configs/docs/getting-started.xml[tags=expiry]
+include::{sourcedir33}/xml/src/test/resources/configs/docs/expiry.xml[tags=expiry]
 ----
 
 <1> At the cache level, using the predefined _time-to-live_ again.
@@ -80,7 +80,7 @@ In XML:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir33}/xml/src/test/resources/configs/docs/getting-started.xml[tags=customExpiry]
+include::{sourcedir33}/xml/src/test/resources/configs/docs/expiry.xml[tags=customExpiry]
 ----
 
 <1> Simply pass the fully qualified class name of your custom expiry.
