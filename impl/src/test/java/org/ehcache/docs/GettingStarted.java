@@ -86,7 +86,7 @@ public class GettingStarted {
         cacheManager.getCache("preConfigured", Long.class, String.class); // <5>
 
     Cache<Long, String> myCache = cacheManager.createCache("myCache", // <6>
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)).build());
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)));
 
     myCache.put(1L, "da one!"); // <7>
     String value = myCache.get(1L); // <8>
