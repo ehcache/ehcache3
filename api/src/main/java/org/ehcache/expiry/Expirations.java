@@ -62,6 +62,8 @@ public final class Expirations {
    * Unspecified values will be set to {@code Duration.INFINITE} for create and {@code null} for access and update, matching
    * the {@link #noExpiration() no expiration} expiry.
    *
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
    * @return an {@link Expiry} builder
    */
   public static <K, V> ExpiryBuilder<K, V> builder() {
@@ -202,6 +204,10 @@ public final class Expirations {
       return this;
     }
 
+    /**
+     *
+     * @return an {@link Expiry}
+     */
     public Expiry<K, V> build() {
       return new BaseExpiry<K, V>(create, access, update);
     }
