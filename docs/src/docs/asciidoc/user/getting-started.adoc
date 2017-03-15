@@ -23,7 +23,7 @@ NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should s
 
 Java configuration is most easily achieved through the use of builders that offer a fluent API.
 
-As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`:
+As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`.
 
 [source,java,indent=0]
 ----
@@ -58,10 +58,21 @@ It only takes one parameter which is the key, and returns the value associated w
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+Here is a shorter version featuring 3 important things:
+
+[source,java,indent=0]
+----
+include::{sourcedir33}/integration-test/src/test/java/org/ehcache/docs/GettingStarted.java[tag=java7Example]
+----
+<1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
+A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.
+<2> Builders having different names, you can use static imports for all of them.
+<3> The `CacheManager` is initialized using `build(true)`.
+
 [[configuring-with-xml]]
 === XML configuration
 
-You can create an XML file to configure a `CacheManager`:
+You can create an XML file to configure a `CacheManager`.
 
 [source,xml,indent=0]
 ----
