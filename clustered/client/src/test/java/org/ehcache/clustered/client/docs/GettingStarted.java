@@ -165,7 +165,7 @@ public class GettingStarted {
           .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
           .build();
 
-      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache-tiered", config);
       cache.put(42L, "All you need to know!");
 
       // end::clusteredCacheTieredExample[]
