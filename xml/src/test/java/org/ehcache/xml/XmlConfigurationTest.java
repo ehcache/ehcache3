@@ -250,6 +250,16 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testTwoCachesWithSameAlias() {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-two-caches.xml"));
+      fail("Two caches with the same alias should not be allowed");
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Two caches defined with the same alias: foo"));
+    }
+  }
+
+  @Test
   public void testExposesProperURL() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/one-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
