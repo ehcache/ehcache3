@@ -101,13 +101,13 @@ public class GettingStarted {
   public void persistentCacheManager() throws Exception {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
-        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .disk(10, MemoryUnit.MB, true)) // <2>
-            )
-        .build(true);
+      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
+      .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(10, EntryUnit.ENTRIES)
+          .disk(10, MemoryUnit.MB, true)) // <2>
+      )
+      .build(true);
 
     persistentCacheManager.close();
     // end::persistentCacheManager[]
@@ -117,12 +117,12 @@ public class GettingStarted {
   public void offheapCacheManager() {
     // tag::offheapCacheManager[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)) // <1>
-            )
-        .build(true);
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(10, EntryUnit.ENTRIES)
+          .offheap(10, MemoryUnit.MB)) // <1>
+    )
+      .build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
 
@@ -134,18 +134,18 @@ public class GettingStarted {
   public void threeTiersCacheManager() throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
+        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES) // <2>
                     .offheap(1, MemoryUnit.MB) // <3>
-                    .disk(20, MemoryUnit.MB) // <4>
+                    .disk(20, MemoryUnit.MB, true) // <4>
                 )
         ).build(true);
 
     Cache<Long, String> threeTieredCache = persistentCacheManager.getCache("threeTieredCache", Long.class, String.class);
-
+    threeTieredCache.put(1L, "stillAvailableAfterRestart"); // <5>
 
     persistentCacheManager.close();
     // end::threeTiersCacheManager[]
