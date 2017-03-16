@@ -113,7 +113,7 @@ import static org.mockito.Mockito.mock;
 public class XmlConfigurationTest {
 
   @Rule
-  public ExpectedException thrown= ExpectedException.none();
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -242,6 +242,7 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
@@ -682,6 +683,7 @@ public class XmlConfigurationTest {
   public void testCustomResource() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
