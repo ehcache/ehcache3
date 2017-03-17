@@ -146,9 +146,9 @@ include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 <2> You define a resource pool for the heap. This will be your faster but smaller pool.
 <3> You define a resource pool for the off-heap. Still pretty fast and a bit bigger.
 <4> You define a persistent resource pool for the disk. It is persistent because said it should be (last parameter is `true`).
-<5> All values stored in the cache will be available after a JVM restart (assuming the `CacheManager` has been closed cleanly by calling `close()`.)
+<5> All values stored in the cache will be available after a JVM restart (assuming the `CacheManager` has been closed cleanly by calling `close()`).
 
-For details, read the <<tiering.adoc,tiering documentation>>.
+For details, read the <<tiering.adoc#,tiering documentation>>.
 
 === Data freshness
 
