@@ -91,7 +91,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final String STATISTICS_TAG = "Clustered";
   private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
+  static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.chain.compaction.threshold";
+  static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
+  private final int chainCompactionLimit;
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
 
@@ -113,6 +116,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, TimeSource timeSource) {
+    this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
     this.timeSource = timeSource;
@@ -242,11 +246,18 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       if(resolvedChain.getResolvedResult(key) == null) {
         return PutStatus.PUT;
       } else {
+
+        if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+          Chain compactedChain = resolvedChain.getCompactedChain();
+          storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+        }
+
         return PutStatus.UPDATE;
       }
     } catch (RuntimeException re) {
@@ -263,8 +274,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
@@ -297,9 +315,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
       if(resolvedChain.getResolvedResult(key) != null) {
+        storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
         return true;
       } else {
         return false;
@@ -318,11 +339,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(value.equals(result.getValue())) {
+          storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
+
           conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
           return RemoveStatus.REMOVED;
         } else {
@@ -347,8 +372,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
@@ -371,8 +403,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(extractLongKey(key), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(oldValue.equals(result.getValue())) {
