@@ -22,6 +22,7 @@
   <!-- tag::gettingStarted[] -->
   <cache alias="foo"> <!--1-->
     <key-type>java.lang.String</key-type> <!--2-->
+    <value-type>java.lang.String</value-type> <!--2-->
     <resources>
       <heap unit="entries">2000</heap> <!--3-->
       <offheap unit="MB">500</offheap> <!--4-->
@@ -42,7 +43,7 @@
   <!-- end::gettingStarted[] -->
 
   <!-- tag::expiry[] -->
-  <cache alias="foo">
+  <cache alias="withExpiry">
     <expiry>
       <ttl unit="seconds">20</ttl> <!--1-->
     </expiry>
@@ -51,7 +52,7 @@
   <!-- end::expiry[] -->
 
   <!-- tag::customExpiry[] -->
-  <cache alias="foo">
+  <cache alias="withCustomExpiry">
     <expiry>
       <class>com.pany.ehcache.MyExpiry</class> <!--1-->
     </expiry>
