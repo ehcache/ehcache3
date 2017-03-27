@@ -19,12 +19,19 @@ package org.ehcache.clustered.server.state;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ClientMessageTrackerTest {
 
@@ -72,6 +79,47 @@ public class ClientMessageTrackerTest {
     clientMessageTracker.applied(23L, UUID.randomUUID());
     assertThat(messageTracker.size(), is(2)); // The same old 2. No increments by the last 2 applied calls
 
+  }
+
+  @Test
+  public void testMessageTrackerConcurrency() throws Exception {
+    final int highestContiguousId = 1000;
+    final int numTasks = 20;
+    final int maxApplications = 2;
+
+    ClientMessageTracker clientMessageTracker = new DefaultClientMessageTracker();
+    ExecutorService executor = Executors.newFixedThreadPool(20);
+    for (int p = 0; p < 2; p++) {
+      List<Future<?>> tasks = new ArrayList<>();
+      final UUID clientId = UUID.randomUUID();
+      clientMessageTracker.applied(0, clientId);
+      for (int i = 0; i < numTasks; i++) {
+        final int j = i;
+        tasks.add(executor.submit(() -> {
+          for (long k = j; k < highestContiguousId; k += numTasks) {
+            final UUID otherClientId = UUID.randomUUID();
+            for (int l = 0; l < maxApplications; l++) {
+              clientMessageTracker.applied((highestContiguousId * l) + k, clientId);
+            }
+            clientMessageTracker.applied(k, otherClientId);
+            Thread.yield();
+            for (int l = 0; l < maxApplications; l++) {
+              assertThat(clientMessageTracker.isDuplicate((highestContiguousId * l) + k, clientId), is(true));
+            }
+            clientMessageTracker.remove(otherClientId);
+          }
+        }));
+      }
+
+      tasks.forEach((future) -> {
+        try {
+          future.get();
+        } catch (InterruptedException | ExecutionException e) {
+          e.printStackTrace();
+          fail("Unexpected Exception " + e.getMessage());
+        }
+      });
+    }
   }
 
   private Map getMessageTracker(ClientMessageTracker clientMessageTracker) throws Exception {

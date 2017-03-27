@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.state;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -66,7 +65,7 @@ public class MessageTracker {
    * @return true if the given msgId is already tracked otherwise false.
    */
   public boolean seen(long msgId) {
-    boolean seen = (msgId <= highestContiguousMsgId) || nonContiguousMsgIds.contains(msgId);
+    boolean seen = nonContiguousMsgIds.contains(msgId) || msgId <= highestContiguousMsgId;
     tryReconcile();
     return seen;
   }
@@ -99,8 +98,9 @@ public class MessageTracker {
       } else if (msgId > highestContiguousMsgId + 1) {
         break;
       } else {
-        nonContiguousMsgIds.remove(msgId);
+        // the order is important..
         highestContiguousMsgId = msgId;
+        nonContiguousMsgIds.remove(msgId);
       }
     }
 
