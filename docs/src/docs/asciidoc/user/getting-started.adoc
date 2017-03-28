@@ -62,7 +62,7 @@ Here is a shorter version featuring 3 important things:
 
 [source,java,indent=0]
 ----
-include::{sourcedir33}/integration-test/src/test/java/org/ehcache/docs/GettingStarted.java[tag=java7Example]
+include::{sourcedir33}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
 ----
 <1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
 A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.

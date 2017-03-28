@@ -37,8 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -158,9 +156,9 @@ public class Tiering {
     // tag::notShared[]
     ResourcePools pool = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10).build();
 
-    CacheManager cacheManager = newCacheManagerBuilder()
-      .withCache("test-cache1", newCacheConfigurationBuilder(Integer.class, String.class, pool))
-      .withCache("test-cache2", newCacheConfigurationBuilder(Integer.class, String.class, pool))
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache("test-cache1", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, pool))
+      .withCache("test-cache2", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, pool))
       .build(true);
     // end::notShared[]
   }
