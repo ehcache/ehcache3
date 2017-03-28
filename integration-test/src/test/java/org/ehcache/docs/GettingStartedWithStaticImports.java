@@ -19,15 +19,17 @@ package org.ehcache.docs;
 import org.ehcache.CacheManager;
 import org.junit.Test;
 
+// CSOFF: AvoidStaticImport
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+// CSON: AvoidStaticImport
 
 /**
  * Samples to get started with Ehcache 3. Java 7 syntax
  */
 @SuppressWarnings("unused")
-public class GettingStarted {
+public class GettingStartedWithStaticImports {
 
   @Test
   public void cachemanagerExample() {
