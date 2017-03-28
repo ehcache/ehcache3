@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Ludovic Orban
  */
-public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
+public abstract class   OnHeapValueHolder<V> extends AbstractValueHolder<V> {
 
   public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
