@@ -21,7 +21,6 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -65,14 +64,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1049,6 +1046,7 @@ public abstract class BaseOnHeapStoreTest {
     // Advance after expiration time
     timeSource.advanceTime(1);
 
+    @SuppressWarnings("unchecked")
     final ValueHolder<String> vh = mock(ValueHolder.class);
     when(vh.value()).thenReturn("newvalue");
     when(vh.expirationTime(TimeUnit.MILLISECONDS)).thenReturn(2L);
