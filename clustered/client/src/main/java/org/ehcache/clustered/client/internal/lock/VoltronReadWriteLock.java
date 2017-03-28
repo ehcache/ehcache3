@@ -121,9 +121,7 @@ public class VoltronReadWriteLock {
     public void unlock() {
       client.unlock(type);
       client.close();
-      if (type == HoldType.WRITE) {
-        tryDestroy();
-      }
+      tryDestroy();
     }
   }
 

@@ -34,7 +34,7 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
   /**
    * Creates a new configuration object with the provided parameters.
    *
-   * @param rootDirectory the root directory to use for local persistence
+   * @param rootDirectory the root directory to use for disk storage
    */
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
     super(rootDirectory);

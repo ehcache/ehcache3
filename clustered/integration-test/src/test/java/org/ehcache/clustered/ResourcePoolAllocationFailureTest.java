@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
@@ -71,9 +72,9 @@ public class ResourcePoolAllocationFailureTest {
       cacheManagerBuilder.build(true);
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
-      e.printStackTrace();
-      assertThat(getRootCause(e), instanceOf(InvalidServerStoreConfigurationException.class));
-      assertThat(getRootCause(e).getMessage(), startsWith("Failed to create ServerStore"));
+      Throwable cause = getCause(e, CachePersistenceException.class);
+      assertThat(cause, notNullValue());
+      assertThat(cause.getMessage(), startsWith("Unable to create"));
     }
     resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(100, MemoryUnit.KB);
     cacheManagerBuilder = getPersistentCacheManagerCacheManagerBuilder(resourcePool);
@@ -96,6 +97,17 @@ public class ResourcePoolAllocationFailureTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(resourcePool)
       ).add(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
+  }
+
+  private static Throwable getCause(Throwable e, Class<? extends Throwable> causeClass) {
+    Throwable current = e;
+    while (current.getCause() != null) {
+      if (current.getClass().isAssignableFrom(causeClass)) {
+        return current;
+      }
+      current = current.getCause();
+    }
+    return null;
   }
 
   private static Throwable getRootCause(Throwable e) {

@@ -20,15 +20,13 @@ import org.ehcache.spi.persistence.StateRepository;
 /**
  * Implementations of this interface can have their state maintained in a {@code StateRepository}.
  * The state will be maintained by the authoritative tier of the cache for which this is configured.
- * <P>
- *   Implementations must be thread-safe.
- * </P>
- * <P>
+ * <p>
+ * Implementations must be thread-safe.
+ * <p>
  * When used within the default serialization provider, there is an additional constructor requirement.
  * The implementations must define a constructor that takes in a {@code ClassLoader}.
  * Post instantiation, the state repository will be injected with the {@code init} method invocation.
  * This is guaranteed to happen before any serialization/deserialization interaction.
- * </P>
  *
  * @param <T> the type of the instances to serialize
  *

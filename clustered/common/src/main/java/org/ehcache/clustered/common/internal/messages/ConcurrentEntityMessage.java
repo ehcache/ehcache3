@@ -27,7 +27,6 @@ public interface ConcurrentEntityMessage extends EntityMessage {
   /**
    * Get the {@link org.terracotta.entity.EntityMessage}'s concurrency key.
    *
-   * @see org.terracotta.entity.ConcurrencyStrategy#concurrencyKey(EntityMessage)
    * @return the concurrency key
    */
   long concurrencyKey();

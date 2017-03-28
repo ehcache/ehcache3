@@ -17,8 +17,6 @@ package org.ehcache.management.registry;
 
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.management.config.DefaultStatisticsProviderConfiguration;
-import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
@@ -27,7 +25,6 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -56,23 +53,19 @@ public class XmlConfigTest {
             new DefaultManagementRegistryConfiguration()
                 .setCacheManagerAlias("my-cache-manager-name")
                 .addTags("webapp-name", "jboss-1", "server-node-1")
-                .setStatisticsExecutorAlias("my-statisticsExecutorAlias")
                 .setCollectorExecutorAlias("my-collectorExecutorAlias")
-                .addConfiguration(new DefaultStatisticsProviderConfiguration(EhcacheStatisticsProvider.class, 2, TimeUnit.HOURS, 500, 1, TimeUnit.MINUTES, 1, TimeUnit.MINUTES))
         },
         {
             "ehcache-management-4.xml",
             new DefaultManagementRegistryConfiguration()
                 .setCacheManagerAlias("my-cache-manager-name")
                 .addTags("webapp-name", "jboss-1", "server-node-1")
-                .addConfiguration(new DefaultStatisticsProviderConfiguration(EhcacheStatisticsProvider.class, 2, TimeUnit.SECONDS, 100, 2, TimeUnit.SECONDS, 1, TimeUnit.SECONDS))
         },
         {
             "ehcache-management-5.xml",
             new DefaultManagementRegistryConfiguration()
                 .setCacheManagerAlias("my-cache-manager-name")
                 .addTags("webapp-name", "jboss-1", "server-node-1")
-                .addConfiguration(new DefaultStatisticsProviderConfiguration(EhcacheStatisticsProvider.class).setHistorySize(500))
         }
     });
   }

@@ -1,9 +1,9 @@
 ---
 ---
 = User managed caches
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -38,7 +38,7 @@ The interface definition is shown in this code:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
+include::{sourcedir33}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
 ----
 
 === User Managed Persistent Cache
@@ -52,7 +52,7 @@ The interface definition is shown in this code:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
+include::{sourcedir33}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
 ----
 
 
@@ -64,12 +64,12 @@ Here is a simple example showing a basic lifecycle of a user managed cache:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 <1> Create a `UserManagedCache` instance. You can either pass "true" to have the builder `init()` it for you, or you can pass "false" and it is up to you to `init()` it prior to using it.
 <2> Since "false" was passed in step 1, you have to `init()` the `UserManagedCache` prior to using it.
 <3> You can use the cache exactly as a managed cache
-<4> In the same vein, a `UserManagedCache` requires you to close it explicitly using `UserManagedCache.close()`. 
+<4> In the same vein, a `UserManagedCache` requires you to close it explicitly using `UserManagedCache.close()`.
 If you are also using managed caches simultaneously, the `CacheManager.close()` operation does not impact the user managed cache(s).
 
 From this basic example, explore the API of `UserManagedCacheBuilder` to find all the directly available features.
@@ -89,7 +89,7 @@ If you want to use a disk persistent cache, you will need to create and lifecycl
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
 ----
 <1> Create the persistence service to be used by the cache for storing data on disk
 <2> Pass the persistence service to the builder as well as a name for the cache. Note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
@@ -110,7 +110,7 @@ For more information on cache event listeners, see <<cache-event-listeners.adoc#
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
 ----
 <1> Provide the `ExecutorService` for ordered and unordered event delivery.
 <2> Provide listener configuration using `CacheEventListenerConfigurationBuilder`.

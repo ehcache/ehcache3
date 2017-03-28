@@ -57,11 +57,27 @@ public final class Expirations {
     return new TimeToIdleExpiry(timeToIdle);
   }
 
+  /**
+   * Fluent API for creating an Expiry instance where you can specify constant values for creation, access and update time.
+   * Unspecified values will be set to {@code Duration.INFINITE} for create and {@code null} for access and update, matching
+   * the {@link #noExpiration() no expiration} expiry.
+   *
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
+   * @return an {@link Expiry} builder
+   */
+  public static <K, V> ExpiryBuilder<K, V> builder() {
+    return new ExpiryBuilder<K, V>();
+  }
+
   private Expirations() {
     //
   }
 
-  private static abstract class BaseExpiry implements Expiry<Object, Object> {
+  /**
+   * Simple implementation of the {@link Expiry} interface allowing to set constants to each expiry types.
+   */
+  private static class BaseExpiry<K, V> implements Expiry<K, V> {
 
     private final Duration create;
     private final Duration access;
@@ -74,13 +90,18 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForCreation(Object key, Object value) {
+    public Duration getExpiryForCreation(K key, V value) {
       return create;
     }
 
     @Override
-    public Duration getExpiryForAccess(Object key, ValueSupplier<?> value) {
+    public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
       return access;
+    }
+
+    @Override
+    public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+      return update;
     }
 
     @Override
@@ -108,36 +129,87 @@ public final class Expirations {
     @Override
     public String toString() {
       return this.getClass().getSimpleName() + "{" +
-          "create=" + create +
-          ", access=" + access +
-          ", update=" + update +
-          '}';
-    }
-
-    @Override
-    public Duration getExpiryForUpdate(Object key, ValueSupplier<?> oldValue, Object newValue) {
-      return update;
+             "create=" + create +
+             ", access=" + access +
+             ", update=" + update +
+             '}';
     }
   }
 
-  private static class TimeToLiveExpiry extends BaseExpiry {
+  private static class TimeToLiveExpiry extends BaseExpiry<Object, Object> {
     TimeToLiveExpiry(Duration ttl) {
       super(ttl, null, ttl);
     }
   }
 
-  private static class TimeToIdleExpiry extends BaseExpiry {
+  private static class TimeToIdleExpiry extends BaseExpiry<Object, Object> {
     TimeToIdleExpiry(Duration tti) {
       super(tti, tti, tti);
     }
   }
 
-  private static class NoExpiry extends BaseExpiry {
+  private static class NoExpiry extends BaseExpiry<Object, Object> {
 
     private static final Expiry<Object, Object> INSTANCE = new NoExpiry();
 
     private NoExpiry() {
       super(Duration.INFINITE, null, null);
+    }
+  }
+
+  /**
+   * Builder to create a simple {@link Expiry}.
+   *
+   * @param <K> Key type of the cache entries
+   * @param <V> Value type of the cache entries
+   */
+  public static final class ExpiryBuilder<K, V> {
+
+    private Duration create = Duration.INFINITE;
+    private Duration access = null;
+    private Duration update = null;
+
+    private ExpiryBuilder() {}
+
+    /**
+     * Set TTL since creation
+     *
+     * @param create TTL since creation
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setCreate(Duration create) {
+      this.create = create;
+      return this;
+    }
+
+    /**
+     * Set TTL since last access
+     *
+     * @param access TTL since last access
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setAccess(Duration access) {
+      this.access = access;
+      return this;
+    }
+
+    /**
+     * Set TTL since last update
+     *
+     * @param update TTL since last update
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setUpdate(Duration update) {
+      this.update = update;
+      return this;
+    }
+
+    /**
+     *
+     * @return an {@link Expiry}
+     */
+    public Expiry<K, V> build() {
+      return new BaseExpiry<K, V>(create, access, update);
     }
   }
 }

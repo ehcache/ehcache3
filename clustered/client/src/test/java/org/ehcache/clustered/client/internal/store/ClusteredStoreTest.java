@@ -19,8 +19,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.Result;
@@ -38,6 +37,7 @@ import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.impl.internal.util.HashUtils;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.After;
@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.client.internal.store.ClusteredStore.DEFAULT_CHAIN_COMPACTION_THRESHOLD;
@@ -88,30 +89,25 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
+        new ServerSideConfiguration("defaultResource", Collections.emptyMap());
     entityFactory.create("TestCacheManager", serverConfig);
 
-    EhcacheClientEntity clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
-    ServerStoreConfiguration serverStoreConfiguration =
-        new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-            Long.class.getName(), String.class.getName(),
-            Long.class.getName(), String.class.getName(),
-            LongSerializer.class.getName(), StringSerializer.class.getName(),
-            null
-    );
-    clientEntity.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
-    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId());
-    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(factory, clientEntity);
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
+      Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null);
+    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity.validate(serverStoreConfiguration);
+    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(clientEntity.getClientId());
+    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, factory, clientEntity);
 
     TestTimeSource testTimeSource = new TestTimeSource();
 
     OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
-    store = new ClusteredStore<Long, String>(codec, resolver, serverStoreProxy, testTimeSource);
+    store = new ClusteredStore<>(codec, resolver, serverStoreProxy, testTimeSource);
   }
 
   @After
@@ -166,7 +162,8 @@ public class ClusteredStoreTest {
   @SuppressWarnings("unchecked")
   public void testGetTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
-    when(proxy.get(1L)).thenThrow(TimeoutException.class);
+    long longKey = HashUtils.intHashToLong(new Long(1L).hashCode());
+    when(proxy.get(longKey)).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(null, null, proxy, null);
     assertThat(store.get(1L), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.TIMEOUT));
@@ -188,12 +185,13 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     Chain chain = mock(Chain.class);
     when(chain.isEmpty()).thenReturn(false);
-    when(serverStoreProxy.get(42L)).thenReturn(chain);
+    long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
+    when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
     ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
                                                                                     serverStoreProxy, timeSource);
     clusteredStore.get(42L);
-    verify(serverStoreProxy).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
+    verify(serverStoreProxy).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
   }
 
   @Test
@@ -211,12 +209,13 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     Chain chain = mock(Chain.class);
     when(chain.isEmpty()).thenReturn(false);
-    when(serverStoreProxy.get(42L)).thenReturn(chain);
+    long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
+    when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
     ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
                                                                                     serverStoreProxy, timeSource);
     clusteredStore.get(42L);
-    verify(serverStoreProxy, never()).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
+    verify(serverStoreProxy, never()).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
   }
 
   @Test

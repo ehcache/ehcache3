@@ -16,7 +16,6 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.util.ClassLoading;
@@ -135,16 +134,20 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
-    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
 
-    Collection<Service> services = new ArrayList<Service>();
+    Object[] serviceCreationConfigurations = config.getServiceCreationConfigurations().toArray();
+
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
+
+    Collection<Service> services = new ArrayList<Service>(4);
     services.add(cacheLoaderWriterFactory);
     services.add(jsr107Service);
-    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
+
+    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
       services.add(new DefaultJsr107SerializationProvider());
     }
 
-    EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
+    Eh107InternalCacheManager ehcacheManager = new Eh107InternalCacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
     ehcacheManager.init();
 
     return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
