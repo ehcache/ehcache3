@@ -23,7 +23,7 @@ NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should s
 
 Java configuration is most easily achieved through the use of builders that offer a fluent API.
 
-As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`:
+As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`.
 
 [source,java,indent=0]
 ----
@@ -58,10 +58,21 @@ It only takes one parameter which is the key, and returns the value associated w
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+Here is a shorter version featuring 3 important things:
+
+[source,java,indent=0]
+----
+include::{sourcedir33}/integration-test/src/test/java/org/ehcache/docs/GettingStarted.java[tag=java7Example]
+----
+<1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
+A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.
+<2> Builders having different names, you can use static imports for all of them.
+<3> The `CacheManager` is initialized using `build(true)`.
+
 [[configuring-with-xml]]
 === XML configuration
 
-You can create an XML file to configure a `CacheManager`:
+You can create an XML file to configure a `CacheManager`.
 
 [source,xml,indent=0]
 ----
@@ -121,46 +132,9 @@ The idea is that resources related to faster storage are more rare, but are loca
 Thus less-hot (less frequently used) data is moved to the more abundant but slower tiers. Hotter data is moved onto
 the faster tiers.
 
-==== Off-heap
-
-[source,java,indent=0]
-----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
-----
-
-<1> If you wish to use off-heap, you'll have to define a resource pool, giving the memory size you want to allocate.
-
-The example above allocates a very small amount of off-heap.
-Remember that data stored off-heap will have to be serialized and deserialized - and is thus slower than heap.
-You should thus favor off-heap for large amounts of data where on-heap would have too severe an impact on garbage collection.
-
-Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option, according to the off-heap size you intend to use.
-
-==== Disk persistence
-
-[source,java,indent=0]
-----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
-----
-
-<1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
-    location where data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
-<2> Defines a resource pool for the disk.
-The third parameter is a boolean value which is used to set whether the disk pool is persistent.
-When set to true, the pool is persistent, and when set to false, the pool is not persistent.
-When this method is used without the third boolean parameter then the pool is not persistent.
-
-The example above allocates a very small amount of disk storage.
-Remember that data stored on disk will have to be serialized / deserialized and written / read from disk -
-and is thus slower than heap and offheap.
-You should thus favor disk for large amounts of data.
-
-Another reason to use disk storage is persistence across application restarts.
-Note that Ehcache 3 only offers persistence in the case of clean shutdowns.
-
 ==== Three tiers
 
-The example below illustrates how to use disk storage for a non-persistent `Cache` instance.
+A classical example would be using 3 tiers with a persistent disk storage.
 
 [source,java,indent=0]
 ----
@@ -168,46 +142,13 @@ include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
-    location where data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
-<2> You define a resource pool for the heap.
-<3> You define a resource pool for the off-heap.
-<4> You define a non-persistent resource pool for the disk. Remember this pool is not persistent because we declared the disk pool using the method that does not use the boolean persistent parameter.
+    location where data should be stored on disk to the `CacheManagerBuilder.persistence()` static method.
+<2> You define a resource pool for the heap. This will be your faster but smaller pool.
+<3> You define a resource pool for the off-heap. Still pretty fast and a bit bigger.
+<4> You define a persistent resource pool for the disk. It is persistent because said it should be (last parameter is `true`).
+<5> All values stored in the cache will be available after a JVM restart (assuming the `CacheManager` has been closed cleanly by calling `close()`).
 
-==== Byte-sized heap
-
-You can also size the heap tier using memory units instead of entry count.
-
-NOTE: Byte sizing has a runtime performance impact that depends on the size and graph complexity of the data cached.
-
-[source,java,indent=0]
-----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
-----
-
-<1> You can also size the heap tier in bytes.
-This will limit the amount of memory used by the heap tier for storing key-value pairs.
-Note that there is a cost associated to sizing objects.
-<2> The sizing can also be further restrained by 2 additional configuration settings:
-The first one specifies the maximum number of objects to traverse while walking the object graph, the second defines the maximum size of a single object.
-If the sizing goes above any of these two limits, the mutative operation on the cache will be ignored.
-<3> A default configuration can be provided at CacheManager level to be used by the caches unless defined
-    explicitly.
-
-==== Update ResourcePools
-
-Limited size adjustment can be performed on a live cache.
-
-NOTE: `updateResourcePools()` only allows you to change the heap tier sizing, not the pool type. Thus you can't change the sizing of off-heap or disk tiers.
-
-[source,java,indent=0]
-----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
-----
-
-<1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
-    then be passed to the said method so as to trigger the update.
-<2> To update capacity of `ResourcePools`, the `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
-    The `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
+For details, read the <<tiering.adoc#,tiering documentation>>.
 
 === Data freshness
 
@@ -231,3 +172,19 @@ A number of advanced topics that were discussed here have been moved out, see be
 === User managed cache
 
 See <<usermanaged.adoc#,the user managed cache documentation>> for more information on this feature.
+
+=== Byte-sized heap
+
+See the <<tiering.adoc#byte-sized-heap,relevant section>> in the tiering documentation for more information on this feature.
+
+=== Update ResourcePools
+
+See the <<tiering.adoc#update-resourcepools,relevant section>> in the tiering documentation for more information on this feature.
+
+=== Off-heap
+
+See <<tiering.adoc#off-heap,the tiering documentation>> for more information on this feature.
+
+=== Disk persistence
+
+See <<tiering.adoc#disk,the tiering documentation>> for more information on this feature.
