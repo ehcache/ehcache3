@@ -784,6 +784,8 @@ class ConfigurationParser {
     int writerConcurrency();
 
     String threadPool();
+
+    int diskSegments();
   }
 
 
@@ -1042,6 +1044,10 @@ class ConfigurationParser {
       return this.diskStoreSettings.getThreadPool();
     }
 
+    @Override
+    public int diskSegments() {
+      return this.diskStoreSettings.getDiskSegments().intValue();
+    }
   }
 
 }

@@ -141,6 +141,18 @@ NOTE: Ehcache 3 only offers persistence in the case of clean shutdowns (`close()
 is no data integrity guarantee. At restart, Ehcache will detect that the `CacheManager` wasn't cleanly closed and will wipe the disk
 storage before using it.
 
+==== Segments
+
+A disk storage is separated in segments which are providing concurrency access but are also holding open file pointers.
+The default is 16. In some cases, you might want to reduce the concurrency and save resources by reducing the number of segments.
+
+[source,java,indent=0]
+----
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
+----
+
+<1> Give an `OffHeapDiskStoreConfiguration` instance specifying the wanted number of segments.
+
 === Clustered
 
 A clustered tier means the client is connecting to a remote Terracotta server where the cached data is put. It is also

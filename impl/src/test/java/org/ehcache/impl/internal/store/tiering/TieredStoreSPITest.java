@@ -70,6 +70,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -143,7 +145,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           long sizeInBytes = unit.toBytes(diskPool.getSize());
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
                   persistenceContext,
-                  new OnDemandExecutionService(), null, 1,
+                  new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
                   config, timeSource,
                   new TestStoreEventDispatcher<String, String>(),
                   sizeInBytes);
