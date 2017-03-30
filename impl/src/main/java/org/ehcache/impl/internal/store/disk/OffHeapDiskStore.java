@@ -51,7 +51,7 @@ import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +86,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Math.max;
 import static org.ehcache.config.Eviction.noAdvice;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**

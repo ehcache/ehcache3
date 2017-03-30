@@ -37,7 +37,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -52,7 +52,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.util.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
@@ -81,7 +81,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**

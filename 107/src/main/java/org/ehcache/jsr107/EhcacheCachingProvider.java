@@ -17,8 +17,8 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
@@ -137,13 +137,13 @@ public class EhcacheCachingProvider implements CachingProvider {
 
     Object[] serviceCreationConfigurations = config.getServiceCreationConfigurations().toArray();
 
-    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
 
     Collection<Service> services = new ArrayList<Service>(4);
     services.add(cacheLoaderWriterFactory);
     services.add(jsr107Service);
 
-    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
+    if (ServiceUtils.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
       services.add(new DefaultJsr107SerializationProvider());
     }
 

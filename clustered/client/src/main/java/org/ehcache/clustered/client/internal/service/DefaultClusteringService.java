@@ -42,7 +42,6 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -63,6 +62,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 

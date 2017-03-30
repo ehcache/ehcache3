@@ -15,7 +15,6 @@
  */
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -29,7 +28,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;

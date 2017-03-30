@@ -36,7 +36,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;

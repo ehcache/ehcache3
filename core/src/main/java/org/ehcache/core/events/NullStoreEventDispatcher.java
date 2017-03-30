@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.events;
+package org.ehcache.core.events;
 
 import org.ehcache.ValueSupplier;
-import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 
