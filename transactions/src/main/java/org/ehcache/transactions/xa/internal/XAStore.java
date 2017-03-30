@@ -31,7 +31,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -67,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.transaction.RollbackException;

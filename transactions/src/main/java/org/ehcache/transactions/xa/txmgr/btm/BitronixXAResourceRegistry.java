@@ -15,9 +15,9 @@
  */
 package org.ehcache.transactions.xa.txmgr.btm;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.xa.txmgr.XAResourceRegistry;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.transaction.xa.XAResource;
