@@ -20,9 +20,8 @@ import org.ehcache.core.spi.store.Store;
 
 /**
  * {@code SizeOfEngine} is the abstraction that byte sized {@link Store} will use to calculate memory size.
- * <P>
- *   Implementations are expected to be linked to {@link Store} implementations.
- * </P>
+ * <p>
+ * Implementations are expected to be linked to {@link Store} implementations.
  */
 public interface SizeOfEngine {
 

@@ -55,12 +55,10 @@ public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreation
 
   /**
    * Returns the maximum object graph size before aborting sizing.
-   * <P>
-   *   This measure is a count of different instances that have to be sized from the root of the graph.
-   *   That is a collection with 1000 identical elements will count as two objects, while a collection with 1000
-   *   different elements will count as 1001 objects.
-   *
-   * </P>
+   * <p>
+   * This measure is a count of different instances that have to be sized from the root of the graph.
+   * That is a collection with 1000 identical elements will count as two objects, while a collection with 1000
+   * different elements will count as 1001 objects.
    *
    * @return the maximum graph size
    */
@@ -70,9 +68,8 @@ public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreation
 
   /**
    * Returns the maximum object size before aborting sizing.
-   * <P>
-   *   This value applies to the sum of the size of objects composing the graph being sized.
-   * </P>
+   * <p>
+   * This value applies to the sum of the size of objects composing the graph being sized.
    *
    * @return the maximum object size
    *

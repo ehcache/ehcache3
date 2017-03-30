@@ -61,7 +61,9 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -109,6 +111,9 @@ import static org.mockito.Mockito.mock;
  * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider XAStore.Provider}.
  */
 public class XAStoreTest {
+
+  @Rule
+  public TestName testName = new TestName();
 
   @SuppressWarnings("unchecked")
   private final Class<SoftLock<String>> valueClass = (Class) SoftLock.class;
@@ -168,9 +173,7 @@ public class XAStoreTest {
 
   @Test
   public void testSimpleGetPutRemove() throws Exception {
-    String uniqueXAResourceId = "testSimpleGetPutRemove";
-
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(onHeapStore);
 
     testTransactionManager.begin();
     {
@@ -222,8 +225,7 @@ public class XAStoreTest {
 
   @Test
   public void testConflictingGetPutRemove() throws Exception {
-    String uniqueXAResourceId = "testConflictingGetPutRemove";
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
     testTransactionManager.begin();
@@ -339,8 +341,7 @@ public class XAStoreTest {
 
   @Test
   public void testIterate() throws Exception {
-    String uniqueXAResourceId = "testIterate";
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(onHeapStore);
 
     testTransactionManager.begin();
     {
@@ -428,8 +429,7 @@ public class XAStoreTest {
 
   @Test
   public void testPutIfAbsent() throws Exception {
-    String uniqueXAResourceId = "testPutIfAbsent";
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
     testTransactionManager.begin();
@@ -477,8 +477,7 @@ public class XAStoreTest {
 
   @Test
   public void testRemove2Args() throws Exception {
-    String uniqueXAResourceId = "testRemove2Args";
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
     testTransactionManager.begin();
@@ -562,8 +561,7 @@ public class XAStoreTest {
 
   @Test
   public void testReplace2Args() throws Exception {
-    String uniqueXAResourceId = "testReplace2Args";
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
     testTransactionManager.begin();
@@ -646,8 +644,7 @@ public class XAStoreTest {
 
   @Test
   public void testReplace3Args() throws Exception {
-    String uniqueXAResourceId = "testReplace3Args";
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
     testTransactionManager.begin();
@@ -728,16 +725,14 @@ public class XAStoreTest {
 
   @Test
   public void testCompute() throws Exception {
-    String uniqueXAResourceId = "testCompute";
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
         null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     {
@@ -955,16 +950,14 @@ public class XAStoreTest {
 
   @Test
   public void testComputeIfAbsent() throws Exception {
-    String uniqueXAResourceId = "testComputeIfAbsent";
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     {
@@ -1020,7 +1013,6 @@ public class XAStoreTest {
 
   @Test
   public void testExpiry() throws Exception {
-    String uniqueXAResourceId = "testExpiry";
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
         null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
@@ -1031,9 +1023,8 @@ public class XAStoreTest {
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     {
@@ -1052,7 +1043,6 @@ public class XAStoreTest {
 
   @Test
   public void testExpiryCreateException() throws Exception {
-    String uniqueXAResourceId = "testExpiryCreateException";
     Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
 
       @Override
@@ -1081,7 +1071,7 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     xaStore.put(1L, "one");
@@ -1123,7 +1113,7 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     xaStore.put(1L, "one");
@@ -1141,7 +1131,6 @@ public class XAStoreTest {
 
   @Test
   public void testExpiryUpdateException() throws Exception{
-    String uniqueXAResourceId = "testExpiryUpdateException";
     Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
 
       @Override
@@ -1173,7 +1162,7 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     xaStore.put(1L, "one");
@@ -1202,7 +1191,7 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     {
@@ -1271,7 +1260,6 @@ public class XAStoreTest {
 
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
-    String uniqueXAResourceId = "testBulkComputeIfAbsent";
     Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
@@ -1284,7 +1272,7 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
 
-    XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    XAStore<Long, String> xaStore = getXAStore(tieredStore);
 
     testTransactionManager.begin();
     {
@@ -1341,7 +1329,6 @@ public class XAStoreTest {
 
   @Test
   public void testCustomEvictionAdvisor() throws Exception {
-    String uniqueXAResourceId = "testCustomEvictionAdvisor";
     final AtomicBoolean invoked = new AtomicBoolean();
 
     EvictionAdvisor<Long, SoftLock> evictionAdvisor = new EvictionAdvisor<Long, SoftLock>() {
@@ -1358,7 +1345,7 @@ public class XAStoreTest {
         0, keySerializer, valueSerializer);
     OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
 
-    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
 
     testTransactionManager.begin();
     {
@@ -1466,6 +1453,10 @@ public class XAStoreTest {
     assertThat(counter, is(expectedSize));
 
     testTransactionManager.commit();
+  }
+
+  private XAStore<Long, String> getXAStore(Store<Long, SoftLock<String>> store) {
+    return new XAStore<Long, String>(Long.class, String.class, store, transactionManagerWrapper, testTimeSource, journal, testName.getMethodName());
   }
 
   static class TestTransactionManager implements TransactionManager {

@@ -15,41 +15,29 @@
  */
 package org.ehcache.clustered.server;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
 /**
- * Represents a client's state against an {@link EhcacheActiveEntity}.
+ * Represents a client's state against an {@link ClusterTierManagerActiveEntity}.
  */
 public class ClientState {
   /**
    * Indicates if the client has either configured or validated with clustered store manager.
    */
   private boolean attached = false;
-
-  /**
-   * The set of stores to which the client has attached.
-   */
-  private final Set<String> attachedStores = new HashSet<String>();
+  private UUID clientId;
 
   public boolean isAttached() {
     return attached;
   }
 
-  void attach() {
+  public UUID getClientIdentifier() {
+    return clientId;
+  }
+
+  void attach(UUID clientId) {
     this.attached = true;
+    this.clientId = clientId;
   }
 
-  boolean addStore(String storeName) {
-    return this.attachedStores.add(storeName);
-  }
-
-  boolean removeStore(String storeName) {
-    return this.attachedStores.remove(storeName);
-  }
-
-  public Set<String> getAttachedStores() {
-    return Collections.unmodifiableSet(new HashSet<String>(this.attachedStores));
-  }
 }

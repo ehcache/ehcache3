@@ -37,7 +37,6 @@ import static org.mockito.Mockito.when;
 /**
  * Test the {@link CachingTier#getOrComputeIfAbsent(Object, Function)} contract of the
  * {@link CachingTier CachingTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

@@ -77,10 +77,9 @@ import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  */
 public class EhcacheManager implements PersistentCacheManager, InternalCacheManager {
 

@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Test the {@link Store#iterator()} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

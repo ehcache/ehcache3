@@ -44,10 +44,9 @@ public abstract class ReadWriteCopier<T> implements Copier<T> {
 
   /**
    * Template copy method to be implemented by sub-classes.
-   * <P>
-   *   It will be invoked when {@link #copyForRead(Object)} or {@link #copyForWrite(Object)} is invoked on
-   *   {@link Copier}.
-   * </P>
+   * <p>
+   * It will be invoked when {@link #copyForRead(Object)} or {@link #copyForWrite(Object)} is invoked on
+   * {@link Copier}.
    *
    * @param obj the instance to copy
    *

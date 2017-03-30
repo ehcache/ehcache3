@@ -16,13 +16,9 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.DefaultStatisticsProviderConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.XmlModel;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.terracotta.management.registry.ManagementProvider;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -30,7 +26,6 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.util.concurrent.TimeUnit;
 
 public class ManagementRegistryServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ManagementRegistryService> {
 
@@ -58,11 +53,6 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
         registryConfiguration.setCacheManagerAlias(attr(fragment, "cache-manager-alias"));
       }
 
-      // ATTR: statistics-executor-alias
-      if (fragment.hasAttribute("statistics-executor-alias")) {
-        registryConfiguration.setStatisticsExecutorAlias(attr(fragment, "statistics-executor-alias"));
-      }
-
       // ATTR: collector-executor-alias
       if (fragment.hasAttribute("collector-executor-alias")) {
         registryConfiguration.setCollectorExecutorAlias(attr(fragment, "collector-executor-alias"));
@@ -76,55 +66,6 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
           if (val != null && !val.isEmpty()) {
             registryConfiguration.addTag(val);
           }
-        }
-      }
-
-      // statistics-configurations
-      for (Element statisticConfigurations : NodeListIterable.elements(fragment, NAMESPACE, "statistics-configurations")) {
-
-        // statistics-configuration
-        for (Element statisticConfiguration : NodeListIterable.elements(statisticConfigurations, NAMESPACE, "statistics-configuration")) {
-
-          // ATTR: provider
-          Class<?> providerType;
-          try {
-            providerType = getClass().getClassLoader().loadClass(attr(statisticConfiguration, "provider", EhcacheStatisticsProviderConfiguration.class.getName()));
-          } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to load class " + statisticConfiguration.getAttribute("provider") + " : " + e.getMessage(), e);
-          }
-          if (!ManagementProvider.class.isAssignableFrom(providerType)) {
-            throw new IllegalStateException("Class " + statisticConfiguration.getAttribute("provider") + " is not a " + ManagementProvider.class.getSimpleName());
-          }
-
-          DefaultStatisticsProviderConfiguration providerConfiguration = new DefaultStatisticsProviderConfiguration(providerType.asSubclass(ManagementProvider.class));
-
-          // average-window
-          for (Element averageWindow : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "average-window")) {
-            providerConfiguration.setAverageWindowDuration(
-              Long.parseLong(val(averageWindow, String.valueOf(providerConfiguration.averageWindowDuration()))),
-              unit(averageWindow, providerConfiguration.averageWindowUnit()));
-          }
-
-          // history-interval
-          for (Element historyInterval : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "history-interval")) {
-            providerConfiguration.setHistoryInterval(
-              Long.parseLong(val(historyInterval, String.valueOf(providerConfiguration.historyInterval()))),
-              unit(historyInterval, providerConfiguration.historyIntervalUnit()));
-          }
-
-          // history-size
-          for (Element historySize : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "history-size")) {
-            providerConfiguration.setHistorySize(Integer.parseInt(val(historySize, String.valueOf(providerConfiguration.historySize()))));
-          }
-
-          // time-to-disable
-          for (Element timeToDisable : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "time-to-disable")) {
-            providerConfiguration.setTimeToDisable(
-              Long.parseLong(val(timeToDisable, String.valueOf(providerConfiguration.timeToDisable()))),
-              unit(timeToDisable, providerConfiguration.timeToDisableUnit()));
-          }
-
-          registryConfiguration.addConfiguration(providerConfiguration);
         }
       }
 
@@ -148,15 +89,6 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
 
   private static String val(Element element) {
     return element.hasChildNodes() ? element.getFirstChild().getNodeValue() : null;
-  }
-
-  private static String val(Element element, String def) {
-    return element.hasChildNodes() ? element.getFirstChild().getNodeValue() : def;
-  }
-
-  private static TimeUnit unit(Element element, TimeUnit def) {
-    String s = attr(element, "unit");
-    return s == null ? def : XmlModel.convertToJavaTimeUnit(org.ehcache.xml.model.TimeUnit.fromValue(s));
   }
 
 }

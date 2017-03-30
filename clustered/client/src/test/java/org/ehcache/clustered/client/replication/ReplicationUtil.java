@@ -18,7 +18,9 @@ package org.ehcache.clustered.client.replication;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -34,16 +36,22 @@ public class ReplicationUtil {
 
   }
 
-  public static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  public static ClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
+    return (ClusterTierClientEntity)entity.get(clusteringService);
+  }
+
+  public static ClusterTierManagerClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
+    Field entity = clusteringService.getClass().getDeclaredField("entity");
+    entity.setAccessible(true);
+    return (ClusterTierManagerClientEntity)entity.get(clusteringService);
   }
 
   public static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(resourceName, 8, MB);
     return new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-        String.class.getName(), String.class.getName(), null, null, CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
+        String.class.getName(), String.class.getName(), CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
         .getName(), Consistency.STRONG);
   }
 }

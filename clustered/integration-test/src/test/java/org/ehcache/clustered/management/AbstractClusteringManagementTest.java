@@ -21,7 +21,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -30,10 +29,11 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
-import org.terracotta.management.entity.tms.TmsAgentConfig;
-import org.terracotta.management.entity.tms.client.TmsAgentEntity;
-import org.terracotta.management.entity.tms.client.TmsAgentEntityFactory;
-import org.terracotta.management.entity.tms.client.TmsAgentService;
+import org.terracotta.management.entity.nms.NmsConfig;
+import org.terracotta.management.entity.nms.client.DefaultNmsService;
+import org.terracotta.management.entity.nms.client.NmsEntity;
+import org.terracotta.management.entity.nms.client.NmsEntityFactory;
+import org.terracotta.management.entity.nms.client.NmsService;
 import org.terracotta.management.model.cluster.Client;
 import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.cluster.ServerEntityIdentifier;
@@ -41,7 +41,6 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
@@ -53,10 +52,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -79,20 +75,15 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static CacheManager cacheManager;
   protected static ClientIdentifier ehcacheClientIdentifier;
-  protected static ServerEntityIdentifier ehcacheServerEntityIdentifier;
+  protected static ServerEntityIdentifier clusterTierManagerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  protected static TmsAgentService tmsAgentService;
+  protected static NmsService nmsService;
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
-
-  private static final List<File> MANAGEMENT_PLUGINS = System.getProperty("managementPlugins") == null ?
-    Collections.emptyList() :
-    Stream.of(System.getProperty("managementPlugins").split(File.pathSeparator))
-      .map(File::new)
-      .collect(Collectors.toList());
+  protected static Connection managementConnection;
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, MANAGEMENT_PLUGINS, "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -101,20 +92,15 @@ public abstract class AbstractClusteringManagementTest {
     CLUSTER.getClusterControl().waitForActive();
 
     // simulate a TMS client
-    Connection managementConnection = CLUSTER.newConnection();
-    TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
-    TmsAgentEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig()
-      .setStatisticConfiguration(new StatisticConfiguration(
-        60, SECONDS,
-        100, 1, SECONDS,
-        10, SECONDS
-      )));
-    tmsAgentService = new TmsAgentService(tmsAgentEntity);
-    tmsAgentService.setOperationTimeout(5, TimeUnit.SECONDS);
+    managementConnection = CLUSTER.newConnection();
+    NmsEntityFactory entityFactory = new NmsEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
+    NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
+    nmsService = new DefaultNmsService(tmsAgentEntity);
+    nmsService.setOperationTimeout(5, TimeUnit.SECONDS);
 
     tmsServerEntityIdentifier = readTopology()
       .activeServerEntityStream()
-      .filter(serverEntity -> serverEntity.getType().equals(TmsAgentConfig.ENTITY_TYPE))
+      .filter(serverEntity -> serverEntity.getType().equals(NmsConfig.ENTITY_TYPE))
       .findFirst()
       .get() // throws if not found
       .getServerEntityIdentifier();
@@ -129,11 +115,7 @@ public abstract class AbstractClusteringManagementTest {
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
-        .setCacheManagerAlias("my-super-cache-manager")
-        .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-          1, TimeUnit.MINUTES,
-          100, 1, TimeUnit.SECONDS,
-          10, TimeUnit.SECONDS)))
+        .setCacheManagerAlias("my-super-cache-manager"))
       // cache config
       .withCache("dedicated-cache-1", newCacheConfigurationBuilder(
         String.class, String.class,
@@ -167,7 +149,7 @@ public abstract class AbstractClusteringManagementTest {
       .map(Client::getClientIdentifier)
       .get();
 
-    ehcacheServerEntityIdentifier = readTopology()
+    clusterTierManagerEntityIdentifier = readTopology()
       .activeServerEntityStream()
       .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
       .findFirst()
@@ -179,18 +161,16 @@ public abstract class AbstractClusteringManagementTest {
     List<String> notificationTypes = notificationTypes(messages);
 
     Map<String, List<String>> counts = notificationTypes.stream().collect(Collectors.groupingBy(o -> o));
-    assertThat(counts.keySet(), hasSize(12));
     assertThat(counts.get("CLIENT_CONNECTED"), hasSize(1));
     assertThat(counts.get("CLIENT_REGISTRY_AVAILABLE"), hasSize(1));
     assertThat(counts.get("CLIENT_TAGS_UPDATED"), hasSize(1));
     assertThat(counts.get("EHCACHE_CLIENT_VALIDATED"), hasSize(1));
     assertThat(counts.get("EHCACHE_RESOURCE_POOLS_CONFIGURED"), hasSize(1));
     assertThat(counts.get("EHCACHE_SERVER_STORE_CREATED"), hasSize(3));
-    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(2));
-    assertThat(counts.get("ENTITY_REGISTRY_UPDATED"), hasSize(11));
-    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(5));
+    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(5));
+    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(8));
     assertThat(counts.get("SERVER_ENTITY_DESTROYED"), hasSize(1));
-    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(7));
+    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(10));
     assertThat(counts.get("SERVER_ENTITY_UNFETCHED"), hasSize(3));
 
     assertThat(readMessages(), hasSize(0));
@@ -201,7 +181,20 @@ public abstract class AbstractClusteringManagementTest {
   @AfterClass
   public static void afterClass() throws Exception {
     if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
+
+      if (nmsService != null) {
+        Context ehcacheClient = readTopology().getClient(ehcacheClientIdentifier).get().getContext().with("cacheManagerName", "my-super-cache-manager");
+        nmsService.stopStatisticCollector(ehcacheClient).waitForReturn();
+      }
+
       cacheManager.close();
+    }
+
+    if (nmsService != null) {
+      Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
+      nmsService.stopStatisticCollector(context);
+
+      managementConnection.close();
     }
   }
 
@@ -210,23 +203,23 @@ public abstract class AbstractClusteringManagementTest {
 
   @Before
   public void init() throws Exception {
-    if (tmsAgentService != null) {
+    if (nmsService != null) {
       readMessages();
     }
   }
 
   protected static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
-    return tmsAgentService.readTopology();
+    return nmsService.readTopology();
   }
 
   protected static List<Message> readMessages() throws Exception {
-    return tmsAgentService.readMessages();
+    return nmsService.readMessages();
   }
 
-  protected static void sendManagementCallOnClientToCollectStats(String... statNames) throws Exception {
+  protected static void sendManagementCallOnClientToCollectStats() throws Exception {
     Context ehcacheClient = readTopology().getClient(ehcacheClientIdentifier).get().getContext()
       .with("cacheManagerName", "my-super-cache-manager");
-    tmsAgentService.updateCollectedStatistics(ehcacheClient, "StatisticsCapability", asList(statNames)).waitForReturn();
+    nmsService.startStatisticCollector(ehcacheClient, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
   protected static List<ContextualStatistics> waitForNextStats() throws Exception {
@@ -244,10 +237,6 @@ public abstract class AbstractClusteringManagementTest {
       }
     }
     return Collections.emptyList();
-  }
-
-  protected static List<String> messageTypes(List<Message> messages) {
-    return messages.stream().map(Message::getType).collect(Collectors.toList());
   }
 
   protected static List<String> notificationTypes(List<Message> messages) {
@@ -274,22 +263,7 @@ public abstract class AbstractClusteringManagementTest {
 
   private static void sendManagementCallOnEntityToCollectStats() throws Exception {
     Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
-    tmsAgentService.updateCollectedStatistics(context, "PoolStatistics", asList("Pool:AllocatedSize")).waitForReturn();
-    tmsAgentService.updateCollectedStatistics(context, "ServerStoreStatistics", asList(
-      "Store:AllocatedMemory",
-      "Store:DataAllocatedMemory",
-      "Store:OccupiedMemory",
-      "Store:DataOccupiedMemory",
-      "Store:Entries",
-      "Store:UsedSlotCount",
-      "Store:DataVitalMemory",
-      "Store:VitalMemory",
-      "Store:ReprobeLength",
-      "Store:RemovedSlotCount",
-      "Store:DataSize",
-      "Store:TableCapacity"
-    )).waitForReturn();
-    tmsAgentService.updateCollectedStatistics(context, "OffHeapResourceStatistics", asList("OffHeapResource:AllocatedMemory")).waitForReturn();
+    nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
 }

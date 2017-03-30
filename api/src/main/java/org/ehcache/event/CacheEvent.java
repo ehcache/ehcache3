@@ -42,9 +42,8 @@ public interface CacheEvent<K, V> {
 
   /**
    * The mapped value immediately after the mutative event occurred.
-   * <P>
-   *  If the mutative event removes the mapping then {@code null} is returned.
-   * </P>
+   * <p>
+   * If the mutative event removes the mapping then {@code null} is returned.
    *
    * @return the mapped value after the mutation
    */
@@ -52,9 +51,8 @@ public interface CacheEvent<K, V> {
 
   /**
    * The mapped value immediately before the mutative event occurred.
-   * <P>
-   *  If the mutative event created the mapping then {@code null} is returned.
-   * </P>
+   * <p>
+   * If the mutative event created the mapping then {@code null} is returned.
    *
    * @return the mapped value before the mutation
    */
@@ -62,10 +60,9 @@ public interface CacheEvent<K, V> {
 
   /**
    * The source cache for this event
-   * <P>
-   *  Calling back into the cache to perform operations is not supported. It is only provided as a way to identify the
-   *  event source.
-   * </P>
+   * <p>
+   * Calling back into the cache to perform operations is not supported. It is only provided as a way to identify the
+   * event source.
    *
    * @return the source cache
    */

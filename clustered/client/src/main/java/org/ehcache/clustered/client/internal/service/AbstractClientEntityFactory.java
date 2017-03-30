@@ -109,7 +109,7 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
     EntityRef<E, C> ref = getEntityRef();
     try {
       if (!ref.destroy()) {
-        throw new EntityBusyException("Destroy operation failed; " + entityIdentifier + " clustered tier in use by other clients");
+        throw new EntityBusyException("Destroy operation failed; " + entityIdentifier + " cluster tier in use by other clients");
       }
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to destroy entity {} for id {}", entityType.getName(), entityIdentifier, e);
