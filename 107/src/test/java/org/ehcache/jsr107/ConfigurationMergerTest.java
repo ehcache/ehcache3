@@ -17,7 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -311,7 +311,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypes() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-copiers-immutable-types.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
@@ -349,7 +349,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypesWithCMLevelDefaults() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-immutable-types-cm-level-copiers.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
