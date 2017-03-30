@@ -53,7 +53,7 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.util.HashUtils;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
