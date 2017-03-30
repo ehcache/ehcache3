@@ -86,7 +86,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Math.max;
 import static org.ehcache.config.Eviction.noAdvice;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**

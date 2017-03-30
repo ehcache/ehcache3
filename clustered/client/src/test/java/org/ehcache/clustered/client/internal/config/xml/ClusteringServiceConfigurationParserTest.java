@@ -19,8 +19,8 @@ package org.ehcache.clustered.client.internal.config.xml;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.config.Configuration;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -136,7 +136,7 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, TimeUnit.MINUTES))));
@@ -167,7 +167,7 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(TimeoutDuration.of(20, TimeUnit.SECONDS)));
@@ -199,7 +199,7 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     TimeUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
