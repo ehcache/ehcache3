@@ -26,7 +26,7 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
