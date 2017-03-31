@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.util;
+package org.ehcache.impl.store;
 
 import org.junit.Test;
 

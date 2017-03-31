@@ -45,7 +45,7 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.impl.internal.util.HashUtils;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.serialization.Serializer;
@@ -92,7 +92,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static java.util.Collections.singletonMap;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
