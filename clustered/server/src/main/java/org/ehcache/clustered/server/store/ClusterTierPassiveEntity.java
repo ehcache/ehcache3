@@ -233,6 +233,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   @Override
   public void endSyncEntity() {
     LOGGER.info("Sync completed.");
+    stateService.getClientMessageTracker(storeIdentifier).notifySyncCompleted();
   }
 
   @Override

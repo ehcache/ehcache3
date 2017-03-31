@@ -40,7 +40,7 @@ public class MessageTrackerTest {
 
     long[] input = getInputFor(0, 20);
 
-    MessageTracker messageTracker = new MessageTracker();
+    MessageTracker messageTracker = new MessageTracker(false);
 
     for (int i = 0; i < input.length; i++) {
       messageTracker.track(input[i]);
@@ -58,7 +58,7 @@ public class MessageTrackerTest {
   public void testMessageTrackAndApplyMultiThreaded() throws Exception {
 
     long[] input = getInputFor(0, 1000);
-    final MessageTracker messageTracker = new MessageTracker();
+    final MessageTracker messageTracker = new MessageTracker(false);
 
     ExecutorService executorService = Executors.newWorkStealingPool();
 
@@ -94,7 +94,7 @@ public class MessageTrackerTest {
 
     Random random = new Random();
     long[] input = getInputFor(0, 1000);
-    final MessageTracker messageTracker = new MessageTracker();
+    final MessageTracker messageTracker = new MessageTracker(false);
 
     Set<Long> nonTrackedMsgs = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
 
@@ -135,7 +135,7 @@ public class MessageTrackerTest {
 
     long[] input = getInputFor(200, 500);
 
-    MessageTracker messageTracker = new MessageTracker();
+    MessageTracker messageTracker = new MessageTracker(true);
 
     for (int i = 0; i < input.length; i++) {
       messageTracker.track(input[i]);

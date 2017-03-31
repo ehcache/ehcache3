@@ -36,6 +36,7 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
   // Keeping track of message tracker per client UUID.
   private final Map<UUID, MessageTracker> clientUUIDMessageTrackerMap;
   private volatile boolean track = true;
+  private volatile boolean isSyncCompleted = false;
 
   public DefaultClientMessageTracker() {
     this.clientUUIDMessageTrackerMap = new ConcurrentHashMap<>();
@@ -49,7 +50,7 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
   @Override
   public void applied(long msgId, UUID clientId) {
     if (track) {
-      MessageTracker messageTracker = clientUUIDMessageTrackerMap.computeIfAbsent(clientId, uuid -> new MessageTracker());
+      MessageTracker messageTracker = clientUUIDMessageTrackerMap.computeIfAbsent(clientId, uuid -> new MessageTracker(isSyncCompleted));
       messageTracker.track(msgId);
     }
   }
@@ -76,5 +77,11 @@ public class DefaultClientMessageTracker implements ClientMessageTracker {
   @Override
   public void clear() {
     clientUUIDMessageTrackerMap.clear();
+  }
+
+  @Override
+  public void notifySyncCompleted() {
+    this.isSyncCompleted = true;
+    clientUUIDMessageTrackerMap.values().forEach(MessageTracker::notifySyncCompleted);
   }
 }

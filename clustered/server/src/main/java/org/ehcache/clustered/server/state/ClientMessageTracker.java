@@ -67,5 +67,9 @@ public interface ClientMessageTracker {
    */
   void stopTracking();
 
+  /**
+   * Notifying client message tracker that the passive sync is completed.
+   */
+  void notifySyncCompleted();
 
 }
