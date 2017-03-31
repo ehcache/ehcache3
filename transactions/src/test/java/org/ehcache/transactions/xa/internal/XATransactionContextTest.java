@@ -17,7 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
