@@ -232,16 +232,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     TreeSet<String> cNames = contextContainer.getSubContexts().stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
-    List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
+    waitForAllNotifications("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
   }
 
   @Test
   public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
-    List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("CACHE_REMOVED", "EHCACHE_SERVER_STORE_RELEASED", "SERVER_ENTITY_UNFETCHED");
+    waitForAllNotifications("CACHE_REMOVED", "EHCACHE_SERVER_STORE_RELEASED", "SERVER_ENTITY_UNFETCHED");
   }
 
   @Test
