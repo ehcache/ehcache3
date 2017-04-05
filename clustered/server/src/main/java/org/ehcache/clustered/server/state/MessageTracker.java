@@ -42,10 +42,14 @@ public class MessageTracker {
   // Lock used for reconciliation.
   private final Lock reconciliationLock;
 
-  public MessageTracker() {
+  // Status that the sync is completed.
+  private volatile boolean isSyncCompleted;
+
+  public MessageTracker(boolean isSyncCompleted) {
     this.highestContiguousMsgId = -1L;
     this.nonContiguousMsgIds = new ConcurrentSkipListSet<>();
     this.reconciliationLock = new ReentrantLock();
+    this.isSyncCompleted = isSyncCompleted;
   }
 
   /**
@@ -79,17 +83,33 @@ public class MessageTracker {
     return nonContiguousMsgIds.isEmpty();
   }
 
+
+  /**
+   * Notify Message tracker that the sync is completed.
+   */
+  public void notifySyncCompleted() {
+    this.isSyncCompleted = true;
+  }
+
   /**
    * Remove the contiguous seen msgIds from the nonContiguousMsgIds and update highestContiguousMsgId
    */
   private void reconcile() {
 
+    // If nonContiguousMsgIds is empty then nothing to reconcile.
+    if (nonContiguousMsgIds.isEmpty()) {
+      return;
+    }
+
     // This happens when a passive is started after Active has moved on and
     // passive starts to see msgIDs starting from a number > 0.
-    if (highestContiguousMsgId == -1L && nonContiguousMsgIds.size() > 100) {
-      Long min = nonContiguousMsgIds.first();
+    // Once the sync is completed, fast forward highestContiguousMsgId.
+    // Post sync completion assuming platform will send all msgIds beyond highestContiguousMsgId.
+    if (highestContiguousMsgId == -1L && isSyncCompleted) {
+      Long min = nonContiguousMsgIds.last();
       LOGGER.info("Setting highestContiguousMsgId to {} from -1", min);
       highestContiguousMsgId = min;
+      nonContiguousMsgIds.removeIf(msgId -> msgId <= min);
     }
 
     for (long msgId : nonContiguousMsgIds) {
@@ -116,6 +136,11 @@ public class MessageTracker {
 
     try {
       reconcile();
+
+      // Keep on warning after every reconcile if nonContiguousMsgIds reaches 500 (kept it a bit higher so that we won't get unnecessary warning due to high concurrency).
+      if (nonContiguousMsgIds.size() > 500) {
+        LOGGER.warn("Non - Contiguous Message ID has size : {}, with highestContiguousMsgId as : {}", nonContiguousMsgIds.size(), highestContiguousMsgId);
+      }
     } finally {
       this.reconciliationLock.unlock();
     }
