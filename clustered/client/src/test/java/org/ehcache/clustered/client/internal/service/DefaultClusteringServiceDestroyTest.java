@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.terracotta.connection.Connection;
+import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 
@@ -60,11 +61,11 @@ public class DefaultClusteringServiceDestroyTest {
   @Mock
   private Connection connection;
   @Mock
-  private EntityRef<InternalClusterTierManagerClientEntity, Object> managerEntityRef;
+  private EntityRef<InternalClusterTierManagerClientEntity, Object, Void> managerEntityRef;
   @Mock
-  private EntityRef<InternalClusterTierClientEntity, Object> tierEntityRef;
+  private EntityRef<InternalClusterTierClientEntity, Object, Void> tierEntityRef;
   @Mock
-  private EntityRef<VoltronReadWriteLockClient, Object> lockEntityRef;
+  private EntityRef<VoltronReadWriteLockClient, Object, Void> lockEntityRef;
 
   @Before
   public void setUp() {
@@ -76,16 +77,16 @@ public class DefaultClusteringServiceDestroyTest {
   public void testDestroyAllFullyMocked() throws Exception {
     mockLockForWriteLockSuccess();
 
-    when(connection.getEntityRef(same(InternalClusterTierManagerClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(managerEntityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
     InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
-    when(managerEntityRef.fetchEntity()).thenReturn(managerEntity);
+    when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
 
     Set<String> stores = new HashSet<>();
     stores.add("store1");
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(connection.getEntityRef(same(InternalClusterTierClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
@@ -106,7 +107,7 @@ public class DefaultClusteringServiceDestroyTest {
 
     mockLockForWriteLockSuccess();
 
-    when(connection.getEntityRef(same(InternalClusterTierManagerClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(managerEntityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
     InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
 
     // ClusterTierManager exists
@@ -115,7 +116,7 @@ public class DefaultClusteringServiceDestroyTest {
       .doNothing()
         .when(managerEntityRef).create(new ClusterTierManagerConfiguration("whatever", serverConfig));
     // And can be fetch
-    when(managerEntityRef.fetchEntity()).thenReturn(managerEntity);
+    when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
     // However validate indicates destroy in progress
     doThrow(new DestroyInProgressException("destroying"))
       // Next time validation succeeds
@@ -127,7 +128,7 @@ public class DefaultClusteringServiceDestroyTest {
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(connection.getEntityRef(same(InternalClusterTierClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
@@ -145,11 +146,11 @@ public class DefaultClusteringServiceDestroyTest {
   public void testFetchOnPartialDestroyState() throws Exception {
     mockLockForReadLockSuccess();
 
-    when(connection.getEntityRef(same(InternalClusterTierManagerClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(managerEntityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
     InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
 
     // ClusterTierManager can be fetch
-    when(managerEntityRef.fetchEntity()).thenReturn(managerEntity);
+    when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
     // However validate indicates destroy in progress
     doThrow(new DestroyInProgressException("destroying")).when(managerEntity).validate(null);
 
@@ -167,9 +168,9 @@ public class DefaultClusteringServiceDestroyTest {
   public void testDestroyOnPartialDestroyState() throws Exception {
     mockLockForWriteLockSuccess();
 
-    when(connection.getEntityRef(same(InternalClusterTierManagerClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(managerEntityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
     InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
-    when(managerEntityRef.fetchEntity()).thenReturn(managerEntity);
+    when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
     doThrow(new DestroyInProgressException("destroying")).when(managerEntity).validate(any());
 
     Set<String> stores = new HashSet<>();
@@ -177,7 +178,7 @@ public class DefaultClusteringServiceDestroyTest {
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(connection.getEntityRef(same(InternalClusterTierClientEntity.class), eq(ENTITY_VERSION), any())).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
@@ -193,19 +194,22 @@ public class DefaultClusteringServiceDestroyTest {
   }
 
   private void mockLockForWriteLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
-    when(connection.getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
+    when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
     VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class);
-    when(lockEntityRef.fetchEntity()).thenReturn(lockClient);
+    when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.WRITE)).thenReturn(true);
   }
 
   private void mockLockForReadLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
-    when(connection.getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
+    when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
     VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class);
-    when(lockEntityRef.fetchEntity()).thenReturn(lockClient);
+    when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.READ)).thenReturn(true);
   }
 
+  private <E extends Entity> EntityRef<E, Object, Void> getEntityRef(Class<E> value) throws org.terracotta.exception.EntityNotProvidedException {
+    return connection.getEntityRef(same(value), eq(ENTITY_VERSION), any());
+  }
 }

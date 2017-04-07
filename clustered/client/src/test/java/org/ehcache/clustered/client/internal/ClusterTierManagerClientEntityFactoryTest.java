@@ -40,6 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityConfigurationException;
@@ -48,7 +49,7 @@ import org.terracotta.exception.EntityNotFoundException;
 public class ClusterTierManagerClientEntityFactoryTest {
 
   @Mock
-  private EntityRef<InternalClusterTierManagerClientEntity, Object> entityRef;
+  private EntityRef<InternalClusterTierManagerClientEntity, Object, Void> entityRef;
   @Mock
   private InternalClusterTierManagerClientEntity entity;
   @Mock
@@ -61,8 +62,8 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
   @Test
   public void testCreate() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(entity);
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(entityRef.fetchEntity(null)).thenReturn(entity);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -75,7 +76,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @Test
   public void testCreateBadConfig() throws Exception {
     doThrow(EntityConfigurationException.class).when(entityRef).create(any(ServerSideConfiguration.class));
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -91,7 +92,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @Test
   public void testCreateWhenExisting() throws Exception {
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -106,8 +107,8 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
   @Test
   public void testRetrieve() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(entity);
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(entityRef.fetchEntity(null)).thenReturn(entity);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -119,9 +120,9 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
   @Test
   public void testRetrieveFailedValidate() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(entity);
+    when(entityRef.fetchEntity(null)).thenReturn(entity);
     doThrow(IllegalArgumentException.class).when(entity).validate(any(ServerSideConfiguration.class));
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -139,9 +140,9 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testRetrieveWhenNotExisting() throws Exception {
-    when(entityRef.fetchEntity()).thenThrow(EntityNotFoundException.class);
+    when(entityRef.fetchEntity(null)).thenThrow(EntityNotFoundException.class);
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -157,9 +158,9 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @Test
   public void testDestroy() throws Exception {
     InternalClusterTierManagerClientEntity mockEntity = mock(InternalClusterTierManagerClientEntity.class);
-    when(entityRef.fetchEntity()).thenReturn(mockEntity);
+    when(entityRef.fetchEntity(null)).thenReturn(mockEntity);
     doReturn(Boolean.TRUE).when(entityRef).destroy();
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -171,9 +172,9 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testDestroyWhenNotExisting() throws Exception {
-    when(entityRef.fetchEntity()).thenThrow(EntityNotFoundException.class);
+    when(entityRef.fetchEntity(null)).thenThrow(EntityNotFoundException.class);
     doThrow(EntityNotFoundException.class).when(entityRef).destroy();
-    when(connection.getEntityRef(eq(InternalClusterTierManagerClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
@@ -190,8 +191,12 @@ public class ClusterTierManagerClientEntityFactoryTest {
     VoltronReadWriteLockClient lock = mock(VoltronReadWriteLockClient.class);
     when(lock.tryLock(any(HoldType.class))).thenReturn(result, results);
     @SuppressWarnings("unchecked")
-    EntityRef<VoltronReadWriteLockClient, Object> interlockRef = mock(EntityRef.class);
+    EntityRef<VoltronReadWriteLockClient, Object, Object> interlockRef = mock(EntityRef.class);
     when(connection.getEntityRef(eq(VoltronReadWriteLockClient.class), anyInt(), eq(lockname))).thenReturn(interlockRef);
-    when(interlockRef.fetchEntity()).thenReturn(lock);
+    when(interlockRef.fetchEntity(null)).thenReturn(lock);
+  }
+
+  private <E extends Entity> EntityRef<E, Object, Void> getEntityRef(Class<E> value) throws org.terracotta.exception.EntityNotProvidedException {
+    return connection.getEntityRef(eq(value), anyInt(), anyString());
   }
 }
