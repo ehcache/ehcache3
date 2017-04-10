@@ -82,7 +82,8 @@ include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=byte
 There is a cost associated to sizing objects.
 <2> The settings are only used by the heap tier. So off-heap won't use it at all.
 <3> The sizing can also be further restrained by 2 additional configuration settings:
-The first one specifies the maximum number of objects to traverse while walking the object graph, the second defines the maximum size of a single object.
+The first one specifies the maximum number of objects to traverse while walking the object graph (default: `1000`), the second
+defines the maximum size of a single object (default: `Long.MAX_VALUE`, so almost infinite).
 If the sizing goes above any of these two limits, the entry won't be stored in cache.
 <4> A default configuration can be provided at CacheManager level to be used by the caches unless defined
     explicitly.
