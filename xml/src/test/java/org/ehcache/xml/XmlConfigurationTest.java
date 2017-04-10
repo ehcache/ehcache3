@@ -597,6 +597,7 @@ public class XmlConfigurationTest {
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
+    assertThat(diskConfig.getDiskSegments(), is(4));
   }
 
   @Test

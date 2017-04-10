@@ -33,6 +33,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.event.EventType;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -100,6 +101,23 @@ public class Tiering {
 
     persistentCacheManager.close();
     // end::persistentCacheManager[]
+  }
+
+  @Test
+  public void diskSegments() throws Exception {
+    // tag::diskSegments[]
+    String storagePath = getStoragePath();
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(new File(storagePath, "myData")))
+      .withCache("less-segments",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
+        .add(new OffHeapDiskStoreConfiguration(2)) // <1>
+      )
+      .build(true);
+
+    persistentCacheManager.close();
+    // end::diskSegments[]
   }
 
   @Test
