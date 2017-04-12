@@ -9,8 +9,7 @@ try the Java launch.
 
 == Java launch
 
-1. Create the kit with `gradle :clustered:integration-test:copyServerLibs`
-2. Launch the test once to make it fail
-3. Edit the test configuration to add the following VM options:
-
-`-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false -DkitInstallationPath=build/ehcache-kit/ehcache-clustered-3.3.0-SNAPSHOT-kit`
+1. Make sure you have a clean build `grable clean assemble`
+2. Create the kit with `gradle :clustered:integration-test:copyServerLibs`
+3. Launch the test once to make it fail
+4. Edit the test configuration to add the following VM options: `-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false -DkitInstallationPath=build/ehcache-kit/ehcache-clustered-3.3.0-SNAPSHOT-kit`

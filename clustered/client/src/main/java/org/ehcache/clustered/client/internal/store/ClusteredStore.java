@@ -89,7 +89,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  */
 public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
-  private static final String STATISTICS_TAG = "Clustered";
+  private static final String STATISTICS_TAG = "Cluster";
   private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.chain.compaction.threshold";
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;

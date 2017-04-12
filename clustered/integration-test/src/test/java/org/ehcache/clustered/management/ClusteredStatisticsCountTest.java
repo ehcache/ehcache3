@@ -45,11 +45,11 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
     cache.get("three"); //miss
     cache.get("four");  //miss
 
-
     long cacheHitCount = 0;
     long clusteredHitCount = 0;
     long cacheMissCount = 0;
     long clusteredMissCount = 0;
+
 
     // it could be several seconds before the sampled stats could become available
     // let's try until we find the correct values
@@ -67,8 +67,8 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
           }*/
 
           cacheHitCount = stat.getStatistic("Cache:HitCount").longValue();
-          clusteredHitCount = stat.getStatistic("Clustered:HitCount").longValue();
-          clusteredMissCount = stat.getStatistic("Clustered:MissCount").longValue();
+          clusteredHitCount = stat.getStatistic("Cluster:HitCount").longValue();
+          clusteredMissCount = stat.getStatistic("Cluster:MissCount").longValue();
           cacheMissCount = stat.getStatistic("Cache:MissCount").longValue();
         }
       }
