@@ -85,7 +85,7 @@ However, registering a different `Serializer` for one of the given type means it
 === Lifecycle: instances vs. class names
 
 When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
-It will need to dispose of any resource the serializer might hold upon persisting and/or reloading the serializer's state.
+It will need to dispose of any resource the serializer might hold, persisting or reloading the serializer's state.
 
 When a `Serializer` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
 instance, it also is responsible for disposing of it.
