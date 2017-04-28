@@ -32,13 +32,14 @@ import org.junit.Test;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
-import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.net.URI;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -51,18 +52,15 @@ public class ClusteredStateRepositoryReplicationTest {
   @Before
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
-        new PassthroughTestHelpers.ServerInitializer() {
-          @Override
-          public void registerServicesForServer(PassthroughServer server) {
-            server.registerServerEntityService(new EhcacheServerEntityService());
-            server.registerClientEntityService(new EhcacheClientEntityService());
-            server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
-            server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+      server -> {
+        server.registerServerEntityService(new EhcacheServerEntityService());
+        server.registerClientEntityService(new EhcacheClientEntityService());
+        server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
+        server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
+        server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
-            UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
-          }
-        }
+        UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
+      }
     );
 
     clusterControl.waitForActive();
@@ -113,10 +111,74 @@ public class ClusteredStateRepositoryReplicationTest {
     service.stop();
   }
 
+  @Test
+  public void testClusteredStateRepositoryReplicationWithSerializableKV() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
+            .autoCreate()
+            .build();
+
+    ClusteringService service = new ClusteringServiceFactory().create(configuration);
+
+    service.start(null);
+
+    EhcacheClientEntity clientEntity = getEntity(service);
+
+    ClusteredStateRepository stateRepository = new ClusteredStateRepository(new ClusteringService.ClusteredCacheIdentifier() {
+      @Override
+      public String getId() {
+        return "testStateRepo";
+      }
+
+      @Override
+      public Class<ClusteringService> getServiceType() {
+        return ClusteringService.class;
+      }
+    }, "test", clientEntity);
+
+    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class);
+    testMap.putIfAbsent(new TestVal("One"), new TestVal("One"));
+    testMap.putIfAbsent(new TestVal("Two"), new TestVal("Two"));
+
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
+
+    assertThat(testMap.get(new TestVal("One")), is(new TestVal("One")));
+    assertThat(testMap.get(new TestVal("Two")), is(new TestVal("Two")));
+
+    assertThat(testMap.entrySet(), hasSize(2));
+
+    service.stop();
+  }
+
   private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
     return (EhcacheClientEntity)entity.get(clusteringService);
+  }
+
+  private static class TestVal implements Serializable {
+    final String val;
+
+
+    private TestVal(String val) {
+      this.val = val;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      TestVal testVal = (TestVal) o;
+
+      return val != null ? val.equals(testVal.val) : testVal.val == null;
+    }
+
+    @Override
+    public int hashCode() {
+      return val != null ? val.hashCode() : 0;
+    }
   }
 
 }

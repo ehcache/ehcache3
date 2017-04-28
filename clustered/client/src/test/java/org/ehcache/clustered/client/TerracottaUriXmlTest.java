@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
@@ -33,7 +33,7 @@ public class TerracottaUriXmlTest {
   @Test
   public void testCanLoadXmlConfigValidForHA() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/cluster-ha.xml"));
-    ClusteringServiceConfiguration config = ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, xmlConfiguration
+    ClusteringServiceConfiguration config = ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, xmlConfiguration
       .getServiceCreationConfigurations());
     assertThat(config.getClusterUri().toString(), containsString("example.com:9540,example.com:9640"));
   }

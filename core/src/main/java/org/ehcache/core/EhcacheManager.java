@@ -40,6 +40,7 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.CacheEventListener;
@@ -55,7 +56,6 @@ import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -316,7 +316,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       final CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
-          ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {
@@ -366,7 +366,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
-          ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
+          ServiceUtils.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
@@ -481,7 +481,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+    StoreEventSourceConfiguration eventSourceConfiguration = ServiceUtils.findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {

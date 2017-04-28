@@ -21,6 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -64,12 +65,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1064,7 +1067,7 @@ public abstract class BaseOnHeapStoreTest {
     ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", new Function<String, ValueHolder<String>>() {
       @Override
       public ValueHolder<String> apply(final String s) {
-        throw new AssertionError();
+        return null;
       }
     });
 
@@ -1072,6 +1075,40 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
     verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
     assertThat(storeSize(store), is(0));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+  }
+
+  @Test
+  public void testGetOfComputeIfAbsentExpiresWithLoaderWriter() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource,
+      Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    @SuppressWarnings("unchecked")
+    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    store.setInvalidationListener(invalidationListener);
+
+    // Add an entry
+    store.put("key", "value");
+    assertThat(storeSize(store), is(1));
+
+    // Advance after expiration time
+    timeSource.advanceTime(1);
+
+    final ValueHolder<String> vh = mock(ValueHolder.class);
+    when(vh.value()).thenReturn("newvalue");
+    when(vh.expirationTime(TimeUnit.MILLISECONDS)).thenReturn(2L);
+
+    ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", new Function<String, ValueHolder<String>>() {
+      @Override
+      public ValueHolder<String> apply(final String s) {
+        return vh;
+      }
+    });
+
+    assertThat(newValue, valueHeld("newvalue"));
+    assertThat(store.get("key"), valueHeld("newvalue"));
+    verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
+    assertThat(storeSize(store), is(1));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 

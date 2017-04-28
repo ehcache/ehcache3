@@ -31,7 +31,8 @@ class EhDocs implements Plugin<Project> {
   @Override
   void apply(Project project) {
     def utils = new Utils(project.baseVersion, project.logger)
-    def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
+    def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject +
+                            project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
 
     project.javadoc {
       title "$project.archivesBaseName $project.version API"

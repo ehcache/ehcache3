@@ -36,6 +36,7 @@ import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
+import org.terracotta.logging.LoggingSupplement;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -43,6 +44,14 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   private static final int DEFAULT_CONCURRENCY = 16;
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
+
+  static {
+    try {
+      LoggingSupplement.logNamespaceToServer("org.ehcache");
+    } catch (NoClassDefFoundError e) {
+      // Ignore - execution outside of server ends up requiring log4j
+    }
+  }
 
   @Override
   public long getVersion() {

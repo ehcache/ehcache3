@@ -26,7 +26,7 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.basic.NopStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;

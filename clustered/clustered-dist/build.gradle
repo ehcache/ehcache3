@@ -29,10 +29,10 @@ ext {
 }
 
 dependencies {
-  compile project(':clustered:client')
-  compile project(':clustered:common')
+  compileOnly project(':clustered:client')
+  compileOnly project(':clustered:common')
   // Needed because declared as provided in the different projects
-  compile "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 apply plugin: 'distribution'
@@ -44,8 +44,8 @@ configurations {
 }
 
 dependencies {
-  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion"
+  compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  compileOnly "org.terracotta.internal:client-logging:$terracottaCoreVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -56,6 +56,7 @@ dependencies {
 
   // Needed because declared as provided in the different projects
   serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  serverLibs "org.terracotta:server-logging:$parent.terracottaPlatformVersion"
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 

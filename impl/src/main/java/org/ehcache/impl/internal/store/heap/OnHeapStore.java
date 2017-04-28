@@ -37,7 +37,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
@@ -65,7 +65,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -735,14 +735,27 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       // If we have a real value (not a fault), we make sure it is not expired
-      // If yes, we return null and remove it. If no, we return it (below)
+      // If yes, we remove it and ask the source just in case. If no, we return it (below)
       if (!(cachedValue instanceof Fault)) {
         if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           expireMappingUnderLock(key, cachedValue);
-          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
-          return null;
+
+          // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
+          final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+            @Override
+            public ValueHolder<V> apply() {
+              return source.apply(key);
+            }
+          });
+          cachedValue = backEnd.putIfAbsent(key, fault);
+
+          if (cachedValue == null) {
+            return resolveFault(key, backEnd, now, fault);
+          }
         }
-        setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
+        else {
+          setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
+        }
       }
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);

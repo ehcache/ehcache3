@@ -29,7 +29,7 @@ import java.util.Map;
  * the user. Any {@code java.lang.Exception} thrown by the writing methods will
  * be wrapped into a {@link CacheWritingException}.
  * </P>
- * <P>  WTF?
+ * <P>
  *   A similar thing will happen for the bulk version of the loading and writing methods and create the bulk version of
  *   the related exceptions.
  * </P>
@@ -37,7 +37,6 @@ import java.util.Map;
  * @param <K> the key type processed by this loader-writer
  * @param <V> the value type processed by this loader-writer
  *
- * //These are already linked
  * @see CacheLoadingException
  * @see CacheWritingException
  * @see BulkCacheLoadingException

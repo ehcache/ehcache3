@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.TreeNode;
 import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.statistics.StatisticsManager;
@@ -380,7 +379,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     ServerStoreImpl serverStore;
-    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
       serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     } catch (RuntimeException rte) {
@@ -407,7 +406,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     stateRepositoryManager.destroyStateRepository(name);
   }
 
-  private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
+  private ResourcePageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
@@ -472,7 +471,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
+  public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
   }
 
