@@ -15,22 +15,14 @@
   ~ limitations under the License.
   -->
 
-<eh:config
-    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns:eh='http://www.ehcache.org/v3'
-    xmlns:tc='http://www.ehcache.org/v3/clustered'>
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:tc="http://www.ehcache.org/v3/clustered">
 
-  <eh:service>
+  <ehcache:service>
     <tc:cluster>
-      <tc:connection url="terracotta://example.com/myCacheManager"/>
-      <tc:server-side-config auto-create="false"/>
+      <tc:connection url="not/working/uri"/>
     </tc:cluster>
-  </eh:service>
+  </ehcache:service>
 
-  <eh:cache alias="unknownCache">
-    <eh:resources>
-      <tc:clustered></tc:clustered>
-    </eh:resources>
-  </eh:cache>
-
-</eh:config>
+</ehcache:config>
