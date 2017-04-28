@@ -32,14 +32,14 @@ package org.ehcache.impl.internal.classes.commonslang;
  *
  * <p>All exceptions messages are
  * <a href="http://docs.oracle.com/javase/1.5.0/docs/api/java/util/Formatter.html#syntax">format strings</a>
- * as defined by the Java platform. For example:</p>
+ * as defined by the Java platform. For example:</li>
  *
  * <pre>
  * Validate.isTrue(i &gt; 0, "The value must be greater than zero: %d", i);
  * Validate.notNull(surname, "The surname must not be %s", null);
  * </pre>
  *
- * <p>#ThreadSafe#</p>
+ * <p>#ThreadSafe#</li>
  * @see java.lang.String#format(String, Object...)
  * @since 2.0
  */

@@ -24,8 +24,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
@@ -41,7 +39,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -60,13 +57,7 @@ public class DefaultCollectorServiceTest {
             .offheap(1, MemoryUnit.MB))
         .build();
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(
-        1, TimeUnit.MINUTES,
-        100, 1, TimeUnit.SECONDS,
-        2, TimeUnit.SECONDS);
-
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration()
-        .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
     CollectorService collectorService = new DefaultCollectorService(new CollectorService.Collector() {
@@ -101,9 +92,9 @@ public class DefaultCollectorServiceTest {
     cacheManager.init();
 
     managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("updateCollectedStatistics",
-            new Parameter("StatisticsCapability"),
-            new Parameter(asList("Cache:HitCount", "Cache:MissCount"), Collection.class.getName()))
+        .call("startStatisticCollector",
+          new Parameter(1L, long.class.getName()),
+          new Parameter(TimeUnit.SECONDS, TimeUnit.class.getName()))
         .on(Context.create("cacheManagerName", "my-cm-1"))
         .build()
         .execute()

@@ -1,9 +1,9 @@
 ---
 ---
 = Thread Pools
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -84,7 +84,7 @@ Following are examples of describing how to configure the thread pools the diffe
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
@@ -96,7 +96,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
@@ -109,7 +109,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
 ----
 
 <1> Configure the thread pools. Note that there is no default one so all thread-using services must be configured
@@ -122,7 +122,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,xml]
 ----
-include::{sourcedir32}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
+include::{sourcedir33}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
 ----
 
 <1> Configure the thread pools. Note that there is no default one.

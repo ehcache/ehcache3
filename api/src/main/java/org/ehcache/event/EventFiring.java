@@ -23,17 +23,15 @@ public enum EventFiring {
 
   /**
    * Events will fire asynchronously.
-   * <P>
-   *   The mutating thread does not have to wait for firing to complete.
-   * </P>
+   * <p>
+   * The mutating thread does not have to wait for firing to complete.
    */
   ASYNCHRONOUS,
 
   /**
    * Events will fire synchronously.
-   * <P>
-   *   The mutating thread will wait for firing to complete.
-   * </P>
+   * <p>
+   * The mutating thread will wait for firing to complete.
    */
   SYNCHRONOUS
 }

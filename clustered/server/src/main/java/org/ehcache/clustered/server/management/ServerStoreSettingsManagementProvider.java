@@ -19,8 +19,8 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
 import java.util.ArrayList;
@@ -31,8 +31,11 @@ import java.util.Collections;
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvider<ServerStoreBinding> {
 
-  ServerStoreSettingsManagementProvider() {
+  private final String clusterTierManagerIdentifier;
+
+  ServerStoreSettingsManagementProvider(String clusterTierManagerIdentifier) {
     super(ServerStoreBinding.class);
+    this.clusterTierManagerIdentifier = clusterTierManagerIdentifier;
   }
 
   @Override
@@ -40,6 +43,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
     Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(new Settings()
       .set("type", getCapabilityName())
+      .set("clusterTierManager", clusterTierManagerIdentifier)
       .set("time", System.currentTimeMillis()));
     return descriptors;
   }
@@ -52,12 +56,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
   private static class ExposedServerStoreBinding extends ExposedAliasBinding<ServerStoreBinding> {
 
     ExposedServerStoreBinding(Context context, ServerStoreBinding binding) {
-      super(context, binding);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ServerStore");
+      super(context.with("type", "ServerStore"), binding);
     }
 
     @Override
@@ -78,11 +77,11 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
         .set("dataOccupiedMemoryAtTime", getBinding().getValue().getDataOccupiedMemory())
         .set("dataSizeAtTime", getBinding().getValue().getDataSize())
         .set("dataVitalMemoryAtTime", getBinding().getValue().getDataVitalMemory());
-      if (poolAllocation instanceof PoolAllocation.Dedicated) {
-        settings.set("resourcePoolDedicatedResourceName", ((PoolAllocation.Dedicated) poolAllocation).getResourceName());
-        settings.set("resourcePoolDedicatedSize", ((PoolAllocation.Dedicated) poolAllocation).getSize());
-      } else if (poolAllocation instanceof PoolAllocation.Shared) {
-        settings.set("resourcePoolSharedPoolName", ((PoolAllocation.Shared) poolAllocation).getResourcePoolName());
+      if (poolAllocation instanceof PoolAllocation.DedicatedPoolAllocation) {
+        settings.set("resourcePoolDedicatedResourceName", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getResourceName());
+        settings.set("resourcePoolDedicatedSize", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getSize());
+      } else if (poolAllocation instanceof PoolAllocation.SharedPoolAllocation) {
+        settings.set("resourcePoolSharedPoolName", ((PoolAllocation.SharedPoolAllocation) poolAllocation).getResourcePoolName());
       }
       return settings;
     }

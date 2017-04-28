@@ -1,16 +1,15 @@
 ---
 ---
 = Cache Writers
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Introduction
-
-endif::notBuildingForSite[]
 
 NOTE: Ehcache 3.1 added clustering support but this is not yet compatible with _cache-through_.
 
@@ -69,7 +68,7 @@ maximum write delay::
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> We register a sample `CacheLoaderWriter` that knows about the mapping `(41L -> "zero")`
@@ -81,7 +80,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.

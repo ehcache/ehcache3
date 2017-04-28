@@ -21,9 +21,10 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
+import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
@@ -35,34 +36,26 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Provides an alternative to {@link EhcacheServerEntityService} for unit tests to enable observing
- * the state of the {@link EhcacheActiveEntity} instances served.
+ * Provides an alternative to {@link ClusterTierManagerServerEntityService} for unit tests to enable observing
+ * the state of the {@link ClusterTierManagerActiveEntity} instances served.
  */
 public class ObservableEhcacheServerEntityService
     implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
-  private final EhcacheServerEntityService delegate = new EhcacheServerEntityService();
+  private final ClusterTierManagerServerEntityService delegate = new ClusterTierManagerServerEntityService();
 
-  private final List<EhcacheActiveEntity> servedActiveEntities = new ArrayList<EhcacheActiveEntity>();
-  private final List<EhcachePassiveEntity> servedPassiveEntities = new ArrayList<>();
+  private final List<ClusterTierManagerActiveEntity> servedActiveEntities = new ArrayList<ClusterTierManagerActiveEntity>();
+  private final List<ClusterTierManagerPassiveEntity> servedPassiveEntities = new ArrayList<>();
 
   /**
    * Gets a list of {@link ObservableEhcacheActiveEntity} instances wrapping the
-   * {@link EhcacheActiveEntity} instances served by this {@link EntityServerService}.
+   * {@link ClusterTierManagerActiveEntity} instances served by this {@link EntityServerService}.
    *
    * @return an unmodifiable list of {@code ObservableEhcacheActiveEntity} instances
    */
   public List<ObservableEhcacheActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
     List<ObservableEhcacheActiveEntity> observables = new ArrayList<ObservableEhcacheActiveEntity>(servedActiveEntities.size());
-    for (EhcacheActiveEntity servedActiveEntity : servedActiveEntities) {
+    for (ClusterTierManagerActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableEhcacheActiveEntity(servedActiveEntity));
-    }
-    return Collections.unmodifiableList(observables);
-  }
-
-  public List<ObservableEhcachePassiveEntity> getServedPassiveEntities() throws Exception {
-    List<ObservableEhcachePassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
-    for (EhcachePassiveEntity servedPassiveEntity : servedPassiveEntities) {
-      observables.add(new ObservableEhcachePassiveEntity(servedPassiveEntity));
     }
     return Collections.unmodifiableList(observables);
   }
@@ -78,15 +71,15 @@ public class ObservableEhcacheServerEntityService
   }
 
   @Override
-  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    EhcacheActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
+  public ClusterTierManagerActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierManagerActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
     servedActiveEntities.add(activeEntity);
     return activeEntity;
   }
 
   @Override
-  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    EhcachePassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
+  public ClusterTierManagerPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierManagerPassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
     servedPassiveEntities.add(passiveEntity);
     return passiveEntity;
   }
@@ -94,6 +87,11 @@ public class ObservableEhcacheServerEntityService
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
     return delegate.getConcurrencyStrategy(config);
+  }
+
+  @Override
+  public ExecutionStrategy<EhcacheEntityMessage> getExecutionStrategy(byte[] configuration) {
+    return delegate.getExecutionStrategy(configuration);
   }
 
   @Override
@@ -107,13 +105,13 @@ public class ObservableEhcacheServerEntityService
   }
 
   /**
-   * Provides access to unit test state methods in an {@link EhcacheActiveEntity} instance.
+   * Provides access to unit test state methods in an {@link ClusterTierManagerActiveEntity} instance.
    */
   public static final class ObservableEhcacheActiveEntity {
-    private final EhcacheActiveEntity activeEntity;
+    private final ClusterTierManagerActiveEntity activeEntity;
     private final EhcacheStateServiceImpl ehcacheStateService;
 
-    private ObservableEhcacheActiveEntity(EhcacheActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
+    private ObservableEhcacheActiveEntity(ClusterTierManagerActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
       this.activeEntity = activeEntity;
       Field field = activeEntity.getClass().getDeclaredField("ehcacheStateService");
       field.setAccessible(true);
@@ -124,16 +122,12 @@ public class ObservableEhcacheServerEntityService
       return this.activeEntity;
     }
 
-    public Map<ClientDescriptor, Set<String>> getConnectedClients() {
+    public Set<ClientDescriptor> getConnectedClients() {
       return activeEntity.getConnectedClients();
     }
 
     public Set<String> getStores() {
       return ehcacheStateService.getStores();
-    }
-
-    public Map<String, Set<ClientDescriptor>> getInUseStores() {
-      return activeEntity.getInUseStores();
     }
 
     public String getDefaultServerResource() {
@@ -148,29 +142,6 @@ public class ObservableEhcacheServerEntityService
       return ehcacheStateService.getDedicatedResourcePoolIds();
     }
 
-    public Map getClientsWaitingForInvalidation() throws Exception {
-      Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
-      field.setAccessible(true);
-      return (Map)field.get(activeEntity);
-    }
   }
 
-  public static final class ObservableEhcachePassiveEntity {
-    private final EhcachePassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
-
-    private ObservableEhcachePassiveEntity(EhcachePassiveEntity passiveEntity) throws Exception {
-      this.passiveEntity = passiveEntity;
-      Field field = passiveEntity.getClass().getDeclaredField("ehcacheStateService");
-      field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
-    }
-
-    public Map getMessageTrackerMap() throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("messageTrackers");
-      field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
-    }
-
-  }
 }

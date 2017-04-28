@@ -36,9 +36,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
+import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -105,20 +107,18 @@ import static org.mockito.Mockito.mock;
  * public void removePassthroughServer() throws Exception {
  *   UnitTestConnectionService.remove(<i>CLUSTER_URI</i>);
  * }
- *   </code></pre>
+ * </code></pre>
  *
- *   If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
- *   can also add Voltron server & client services and service providers.
- * </p>
+ * If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
+ * can also add Voltron server & client services and service providers.
  * <p>
- *   Tests needing direct access to a {@link Connection} can obtain a connection using the following:
- *   <pre><code>
+ * Tests needing direct access to a {@link Connection} can obtain a connection using the following:
+ * <pre><code>
  * Connection connection = new UnitTestConnectionService().connect(<i>CLUSTER_URI</i>, new Properties());
- *   </code></pre>
- *   after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
- *   be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
- *   through {@link #connect(URI, Properties)}.
- * </p>
+ * </code></pre>
+ * after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
+ * be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
+ * through {@link #connect(URI, Properties)}.
  *
  * @see PassthroughServerBuilder
  */
@@ -243,7 +243,7 @@ public class UnitTestConnectionService implements ConnectionService {
           EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
+          LOGGER.error("Entity destroy failed (not provided???): ", ex);
         } catch (EntityNotFoundException ex) {
           LOGGER.error("Entity destroy failed: ", ex);
         } catch (PermanentEntityException ex) {
@@ -276,8 +276,8 @@ public class UnitTestConnectionService implements ConnectionService {
    * {@link #serverEntityService(EntityServerService)} or {@link #clientEntityService(EntityClientService)},
    * this builder defines the following services for each {@code PassthroughServer} built:
    * <ul>
-   *   <li>{@link EhcacheServerEntityService}</li>
-   *   <li>{@link EhcacheClientEntityService}</li>
+   *   <li>{@link ClusterTierManagerServerEntityService}</li>
+   *   <li>{@link ClusterTierManagerClientEntityService}</li>
    *   <li>{@link VoltronReadWriteLockServerEntityService}</li>
    *   <li>{@link VoltronReadWriteLockEntityClientService}</li>
    * </ul>
@@ -285,8 +285,8 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>>();
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
         new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
 
@@ -338,7 +338,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -350,8 +350,10 @@ public class UnitTestConnectionService implements ConnectionService {
        * If services have been specified, don't establish the "defaults".
        */
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
-        newServer.registerServerEntityService(new EhcacheServerEntityService());
-        newServer.registerClientEntityService(new EhcacheClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierManagerServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierManagerClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }
@@ -360,7 +362,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 

@@ -20,9 +20,8 @@ import java.util.Set;
 /**
  * A collection of {@link ResourcePool resource pools} that a {@link org.ehcache.Cache Cache} has at its disposal
  * to store its mappings.
- * <P>
- *   <EM>Implementations must be immutable.</EM>
- * </P>
+ * <p>
+ * <em>Implementations must be immutable.</em>
  */
 public interface ResourcePools {
 

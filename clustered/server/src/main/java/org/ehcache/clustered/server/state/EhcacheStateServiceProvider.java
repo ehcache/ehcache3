@@ -18,6 +18,7 @@ package org.ehcache.clustered.server.state;
 
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.PlatformConfiguration;
@@ -44,7 +45,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceProvider.class);
 
-  private ConcurrentMap<Long, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
+  private ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
   private OffHeapResources offHeapResourcesProvider;
 
   @Override
@@ -69,20 +70,25 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   @Override
   public <T> T getService(long consumerID, ServiceConfiguration<T> configuration) {
     if (configuration != null && configuration.getServiceType().equals(EhcacheStateService.class)) {
-      if (offHeapResourcesProvider == null) {
-        LOGGER.warn("EhcacheStateService requested but no offheap-resource was defined - returning null");
-        return null;
+
+      EhcacheStateService result;
+      if (configuration instanceof EhcacheStateServiceConfig) {
+        EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
+        EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(
+          offHeapResourcesProvider, stateServiceConfig.getConfig().getConfiguration(), stateServiceConfig.getMapper(),
+          service -> serviceMap.remove(stateServiceConfig.getConfig().getIdentifier(), service));
+        result = serviceMap.putIfAbsent(stateServiceConfig.getConfig().getIdentifier(), storeManagerService);
+        if (result == null) {
+          result = storeManagerService;
+        }
+      } else if (configuration instanceof EhcacheStoreStateServiceConfig) {
+        EhcacheStoreStateServiceConfig storeStateServiceConfig = (EhcacheStoreStateServiceConfig) configuration;
+        result = serviceMap.get(storeStateServiceConfig.getManagerIdentifier());
+      } else {
+        throw new IllegalArgumentException("Unexpected configuration type: " + configuration);
       }
-      EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
-      EhcacheStateService storeManagerService = new EhcacheStateServiceImpl(
-        offHeapResourcesProvider, stateServiceConfig.getMapper());
-      EhcacheStateService result = serviceMap.putIfAbsent(consumerID, storeManagerService);
-      if (result == null) {
-        result = storeManagerService;
-      }
-      @SuppressWarnings("unchecked")
-      T typedResult = (T) result;
-      return typedResult;
+
+      return configuration.getServiceType().cast(result);
     }
     throw new IllegalArgumentException("Unexpected configuration type.");
   }
@@ -97,5 +103,9 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   @Override
   public void prepareForSynchronization() throws ServiceProviderCleanupException {
     serviceMap.clear();
+  }
+
+  public interface DestroyCallback {
+    void destroy(EhcacheStateService service);
   }
 }

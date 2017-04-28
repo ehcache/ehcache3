@@ -37,7 +37,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -52,7 +52,8 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
@@ -80,7 +81,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -90,7 +91,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final String STATISTICS_TAG = "Clustered";
   private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
+  static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.chain.compaction.threshold";
+  static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
+  private final int chainCompactionLimit;
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
 
@@ -112,6 +116,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, TimeSource timeSource) {
+    this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
     this.timeSource = timeSource;
@@ -127,27 +132,25 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.getAndFaultObserver = operation(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class).of(this).named("getAndFault").tag(STATISTICS_TAG).build();
 
     Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
-    Map<String, Object> properties = new HashMap<String, Object>();
-    properties.put("discriminator", STATISTICS_TAG);
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
@@ -186,13 +189,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private V getInternal(K key) throws StoreAccessException, TimeoutException {
     V value = null;
     try {
-      Chain chain = storeProxy.get(key.hashCode());
+      Chain chain = storeProxy.get(extractLongKey(key));
       if(!chain.isEmpty()) {
         ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
         if (resolvedChain.isCompacted()) {
           Chain compactedChain = resolvedChain.getCompactedChain();
-          storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+          storeProxy.replaceAtHead(extractLongKey(key), chain, compactedChain);
         }
 
         Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
@@ -204,6 +207,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       handleRuntimeException(re);
     }
     return value;
+  }
+
+  private long extractLongKey(K key) {
+    return HashUtils.intHashToLong(key.hashCode());
   }
 
   @Override
@@ -239,11 +246,18 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
       if(resolvedChain.getResolvedResult(key) == null) {
         return PutStatus.PUT;
       } else {
+
+        if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+          Chain compactedChain = resolvedChain.getCompactedChain();
+          storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+        }
+
         return PutStatus.UPDATE;
       }
     } catch (RuntimeException re) {
@@ -260,8 +274,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
@@ -294,9 +315,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
       if(resolvedChain.getResolvedResult(key) != null) {
+        storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
         return true;
       } else {
         return false;
@@ -315,11 +339,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(value.equals(result.getValue())) {
+          storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
+
           conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
           return RemoveStatus.REMOVED;
         } else {
@@ -344,8 +372,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
@@ -368,8 +403,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
-      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      long extractedKey = extractLongKey(key);
+      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+
+      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
+      }
+
       Result<V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(oldValue.equals(result.getValue())) {
@@ -651,7 +693,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
       } catch (CachePersistenceException e) {
-        throw new RuntimeException("Unable to create clustered tier proxy - " + cacheIdentifier, e);
+        throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
       }
 
       Serializer keySerializer = clusteredStore.codec.getKeySerializer();

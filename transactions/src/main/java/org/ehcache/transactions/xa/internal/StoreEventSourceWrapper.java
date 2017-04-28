@@ -17,7 +17,6 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.event.EventType;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.StoreEventImpl;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
@@ -25,6 +24,7 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
 import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;

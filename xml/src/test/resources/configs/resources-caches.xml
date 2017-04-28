@@ -26,7 +26,7 @@
       <ehcache:heap unit="entries">10</ehcache:heap>
       <ehcache:disk unit="MB">100</ehcache:disk>
     </ehcache:resources>
-    <ehcache:disk-store-settings writer-concurrency="2" thread-pool="some-pool"/>
+    <ehcache:disk-store-settings writer-concurrency="2" thread-pool="some-pool" disk-segments="4"/>
   </ehcache:cache>
 
   <ehcache:cache alias="tieredPersistent">

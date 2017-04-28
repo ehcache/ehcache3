@@ -22,8 +22,8 @@ import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.CacheBindingManagementProvider;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 
 import java.util.ArrayList;
 import java.util.Collection;

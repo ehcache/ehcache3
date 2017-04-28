@@ -27,22 +27,19 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.HumanReadable;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.net.URI;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
@@ -101,11 +98,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         // management config
         .using(new DefaultManagementRegistryConfiguration()
             .addTags("webapp-1", "server-node-1")
-            .setCacheManagerAlias("my-super-cache-manager")
-            .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-                1, TimeUnit.MINUTES,
-                100, 1, TimeUnit.SECONDS,
-                2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector run faster
+            .setCacheManagerAlias("my-super-cache-manager"))
         // cache config
         .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
             String.class, String.class,

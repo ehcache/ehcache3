@@ -23,40 +23,38 @@ import java.util.UUID;
 
 public class ServerStoreMessageFactory {
 
-  private final String cacheId;
   private final UUID clientId;
 
-  public ServerStoreMessageFactory(String cacheId, UUID clientId) {
-    this.cacheId = cacheId;
+  public ServerStoreMessageFactory(UUID clientId) {
     this.clientId = clientId;
   }
 
   public ServerStoreOpMessage.GetMessage getOperation(long key) {
-    return new ServerStoreOpMessage.GetMessage(this.cacheId, key);
+    return new ServerStoreOpMessage.GetMessage(key);
   }
 
   public ServerStoreOpMessage.GetAndAppendMessage getAndAppendOperation(long key, ByteBuffer payload) {
-    return new ServerStoreOpMessage.GetAndAppendMessage(this.cacheId, key, payload, clientId);
+    return new ServerStoreOpMessage.GetAndAppendMessage(key, payload, clientId);
   }
 
   public ServerStoreOpMessage.AppendMessage appendOperation(long key, ByteBuffer payload) {
-    return new ServerStoreOpMessage.AppendMessage(this.cacheId, key, payload, clientId);
+    return new ServerStoreOpMessage.AppendMessage(key, payload, clientId);
   }
 
   public ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
-    return new ServerStoreOpMessage.ReplaceAtHeadMessage(this.cacheId, key, expect, update, clientId);
+    return new ServerStoreOpMessage.ReplaceAtHeadMessage(key, expect, update, clientId);
   }
 
-  public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(int invalidationId) {
-    return new ServerStoreOpMessage.ClientInvalidationAck(this.cacheId, invalidationId);
+  public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(long key, int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidationAck(key, invalidationId);
+  }
+
+  public ServerStoreOpMessage.ClientInvalidationAllAck clientInvalidationAllAck(int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidationAllAck(invalidationId);
   }
 
   public ServerStoreOpMessage.ClearMessage clearOperation() {
-    return new ServerStoreOpMessage.ClearMessage(this.cacheId, clientId);
-  }
-
-  public String getCacheId() {
-    return cacheId;
+    return new ServerStoreOpMessage.ClearMessage(clientId);
   }
 
 }

@@ -141,7 +141,7 @@ public class PutFieldTest {
       ObjectOutputStream.PutField fields = out.putFields();
       fields.put("s1", "qwerty");
       fields.put("s2", "asdfg");
-      fields.write(out);
+      out.writeFields();
     }
   }
 

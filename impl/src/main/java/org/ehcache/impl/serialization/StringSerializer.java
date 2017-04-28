@@ -37,9 +37,8 @@ public class StringSerializer implements Serializer<String> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link String} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link String} is a base java type.
    *
    * @param classLoader the classloader to use
    *
