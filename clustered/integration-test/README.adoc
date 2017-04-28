@@ -1,0 +1,16 @@
+= How to launch tests from an IDE
+
+== Gradle launch
+
+Launch the gradle task corresponding to `:clustered:integration-test:test`.
+
+If that doesn't work (possibly caused by a warning saying `warning: [options] bootstrap class path not set in conjunction with -source 1.6`)
+try the Java launch.
+
+== Java launch
+
+1. Create the kit with `gradle :clustered:integration-test:copyServerLibs`
+2. Launch the test once to make it fail
+3. Edit the test configuration to add the following VM options:
+
+`-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false -DkitInstallationPath=build/ehcache-kit/ehcache-clustered-3.3.0-SNAPSHOT-kit`

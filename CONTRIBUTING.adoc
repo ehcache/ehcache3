@@ -6,7 +6,6 @@
 :uri-fork: {uri-repo}/fork
 :uri-waffle: https://waffle.io/ehcache/ehcache3
 :uri-dev-ml: https://groups.google.com/forum/#!forum/ehcache-dev
-:uri-contributor-agreement: https://confluence.terracotta.org/download/attachments/27918462/Terracotta%20Individual%20Contributor%20Agreement%20v3.pdf?version=1&modificationDate=1393442245216&api=v2
 
 == Process
 
@@ -24,7 +23,8 @@ Now, the doing the work part might be a little more challenging, and we don't pr
 
 == Contributor agreement
 
-In order to accept any contribution, we will need you to fill out and mail {uri-contributor-agreement}[the Individual Contributor Agreement] at contributors@terracotta.org.
+Please review the http://www.ehcache.org/community/contribute.html[contribute page] on the Ehcache website
+and pay attention to requests on your pull requests.
 
 == Code layout
 

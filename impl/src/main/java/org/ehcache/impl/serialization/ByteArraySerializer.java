@@ -27,7 +27,6 @@ import java.nio.ByteBuffer;
  * <p>
  * Note that {@link #equals(byte[], ByteBuffer)} does not follow the {@code byte[].equals(Object)} contract but does
  * byte-to-byte comparison of both byte arrays.
- * </p>
  */
 public class ByteArraySerializer implements Serializer<byte[]> {
 
@@ -39,9 +38,8 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@code byte[]} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@code byte[]} is a base java type.
    *
    * @param classLoader the classloader to use
    *

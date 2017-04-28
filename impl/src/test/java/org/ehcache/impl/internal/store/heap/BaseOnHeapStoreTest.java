@@ -761,22 +761,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnCreate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
 
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -796,22 +781,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.ZERO;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
@@ -832,22 +802,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
@@ -1064,7 +1019,7 @@ public abstract class BaseOnHeapStoreTest {
     ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", new Function<String, ValueHolder<String>>() {
       @Override
       public ValueHolder<String> apply(final String s) {
-        throw new AssertionError();
+        return null;
       }
     });
 
@@ -1072,6 +1027,41 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(store.get("key"), nullValue());
     verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
     assertThat(storeSize(store), is(0));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+  }
+
+  @Test
+  public void testGetOfComputeIfAbsentExpiresWithLoaderWriter() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource,
+      Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    @SuppressWarnings("unchecked")
+    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    store.setInvalidationListener(invalidationListener);
+
+    // Add an entry
+    store.put("key", "value");
+    assertThat(storeSize(store), is(1));
+
+    // Advance after expiration time
+    timeSource.advanceTime(1);
+
+    @SuppressWarnings("unchecked")
+    final ValueHolder<String> vh = mock(ValueHolder.class);
+    when(vh.value()).thenReturn("newvalue");
+    when(vh.expirationTime(TimeUnit.MILLISECONDS)).thenReturn(2L);
+
+    ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", new Function<String, ValueHolder<String>>() {
+      @Override
+      public ValueHolder<String> apply(final String s) {
+        return vh;
+      }
+    });
+
+    assertThat(newValue, valueHeld("newvalue"));
+    assertThat(store.get("key"), valueHeld("newvalue"));
+    verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
+    assertThat(storeSize(store), is(1));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 

@@ -1,9 +1,9 @@
 ---
 ---
 = Clustered Cache
-ifndef::sourcedir32[]
+ifndef::sourcedir33[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir33[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -29,29 +29,29 @@ In this section we discuss some Terracotta clustering terms and concepts that us
 
 Server off-heap resource::
 Server off-heap resources are storage resources defined at the server.
-Caches can reserve a storage area for their clustered tiers within these server off-heap resources.
+Caches can reserve a storage area for their cluster tiers within these server off-heap resources.
 
-Clustered Tier Manager::
-The Ehcache _Clustered Tier Manager_ is the server-side component that gives clustering capabilities to a cache manager.
+Cluster Tier Manager::
+The Ehcache _Cluster Tier Manager_ is the server-side component that gives clustering capabilities to a cache manager.
 Cache managers connect to these to get access to the server's storage resources so that the clustered tiers of caches defined in them can consume those resources.
-Each Ehcache _Clustered Tier Manager_ at the server side has a unique identifier.
-Using it, multiple cache managers can connect to the same clustered tier manager to share cache data.
-The clustered tier manager is also responsible for managing the storage of the clustered tier of caches, with the following different options.
+Each Ehcache _Cluster Tier Manager_ at the server side has a unique identifier.
+Using it, multiple cache managers can connect to the same cluster tier manager to share cache data.
+The cluster tier manager is also responsible for managing the storage of the cluster tier of caches, with the following different options.
 
 Dedicated pool::
-Dedicated pools are storage pools with a fixed amount of storage allocated to the clustered tier of caches.
+Dedicated pools are storage pools with a fixed amount of storage allocated to the cluster tier of caches.
 A dedicated amount of storage is allocated directly from server off-heap resources to these pools.
-And this storage space is used exclusively by a given clustered tier.
+And this storage space is used exclusively by a given cluster tier.
 
 Shared pool::
-Shared pools are also storage pools with a fixed amount of storage, but can be shared by the clustered tiers of multiple caches.
+Shared pools are also storage pools with a fixed amount of storage, but can be shared by the cluster tiers of multiple caches.
 As in the case of dedicated pools, shared pools are also carved out from server off-heap resources.
 The storage available in these shared pools is strictly shared.
 In other words, no cluster tier can ask for a fixed amount of storage from a shared pool.
 +
 Sharing of storage via shared pools does not mean that the data is shared.
-This means that if two caches are using a shared pool as their clustered tier, the data of each cache is still isolated but the underlying storage is shared.
-Consequently, when resource capacity is reached and eviction is triggered, the evicted mapping can come from any of the clustered tiers sharing the pool.
+This means that if two caches are using a shared pool as their cluster tier, the data of each cache is still isolated but the underlying storage is shared.
+Consequently, when resource capacity is reached and eviction is triggered, the evicted mapping can come from any of the cluster tiers sharing the pool.
 
 Here is a pictorial representation of the concepts explained above:
 
@@ -66,7 +66,7 @@ Detailed instructions on how to configure and start a Terracotta server array ca
 
 [source,xml]
 ----
-include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
+include::{sourcedir33}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
 ----
 
 The above configuration defines two named _server off-heap resources_:
@@ -106,7 +106,7 @@ Here is a code sample that shows how to configure a cache manager with clusterin
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
@@ -123,7 +123,7 @@ This code sample demonstrates the usage of the concepts explained in the previou
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
 ----
 
 <1> `defaultServerResource(String)` on `ClusteringServiceConfigurationBuilder` instance sets the default server off-heap resource for the cache manager.
@@ -140,19 +140,19 @@ include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/clie
 <7> Configures another cache (`shared-cache-2`) that shares the resource pool (`resource-pool-a`) with `shared-cache-1`.
 <8> Creates a fully initialized cache manager with the clustered caches.
 
-== Ehcache Clustered Tier Manager Lifecycle
+== Ehcache Cluster Tier Manager Lifecycle
 
-When configuring a cache manager to connect to a clustered tier manager there are three possible connection modes:
+When configuring a cache manager to connect to a cluster tier manager there are three possible connection modes:
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
 ----
-<1> In auto-create mode if no clustered tier manager exists then one is created with the supplied configuration.
+<1> In auto-create mode if no cluster tier manager exists then one is created with the supplied configuration.
 If it exists and its configuration matches the supplied configuration then a connection is established.
 If the supplied configuration does not match then the cache manager will fail to initialize.
-<2> In expected mode if a clustered tier manager exists and its configuration matches the supplied configuration then a connection is established.
-If the supplied configuration does not match or the clustered tier manager does not exist then the cache manager will fail to initialize.
-<3> In config-less mode if a clustered tier manager exists then a connection is established without regard to its configuration.
+<2> In expected mode if a cluster tier manager exists and its configuration matches the supplied configuration then a connection is established.
+If the supplied configuration does not match or the cluster tier manager does not exist then the cache manager will fail to initialize.
+<3> In config-less mode if a cluster tier manager exists then a connection is established without regard to its configuration.
 If it does not exist then the cache manager will fail to initialize.
 
 == Clustered caches
@@ -162,21 +162,21 @@ If it does not exist then the cache manager will fail to initialize.
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
 ----
 
 <1> Configuring the heap tier for cache.
-<2> Configuring the clustered tier of dedicated size from the server off-heap resource using `ClusteredResourcePoolBuilder`.
+<2> Configuring the cluster tier of dedicated size from the server off-heap resource using `ClusteredResourcePoolBuilder`.
 
 The equivalent XML configuration is as follows:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
+include::{sourcedir33}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
 ----
 
 <1> Specify the heap tier for cache.
-<2> Specify the clustered tier for cache through a custom service configuration from the `clustered` namespace.
+<2> Specify the cluster tier for cache through a custom service configuration from the `clustered` namespace.
 
 === Specifying consistency level
 
@@ -193,7 +193,7 @@ This comes with a latency penalty on the write operation required to give this g
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
 ----
 
 <1> Specify the consistency level through the use of an additional service configuration, using _strong_ consistency here,
@@ -203,22 +203,22 @@ The equivalent XML configuration is as follows:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
+include::{sourcedir33}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
 ----
 
 <1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
 
 === Clustered Cache Expiry
 
-Expiry in clustered caches works with the exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers.
+Expiry in clustered caches works with the exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for cluster tiers.
 It may not be as accurate as in the case of local tiers.
 
 === Clustered Unspecified Inheritance
 
-We have included an option which allows a cache to be created without specifying its clustered tier resource pool allocation.
-In order to do so you must already have a clustered tier created with either a _shared_ or _dedicated_ resource pool.
+We have included an option which allows a cache to be created without specifying its cluster tier resource pool allocation.
+In order to do so you must already have a cluster tier created with either a _shared_ or _dedicated_ resource pool.
 When you create the second cache with the same alias in a different cache manager you must configure it with a clustered _unspecified_ resource pool.
-It will then inherit the clustered resource pool as it was configured when creating the clustered tier.
+It will then inherit the clustered resource pool as it was configured when creating the cluster tier.
 
 This option provides many benefits.
 The main benefit is that it simplifies clustered configuration by allowing clustered resource pool configuration to be handled by one client, then all subsequent clients can inherit this configuration.
@@ -230,7 +230,7 @@ Please review the example code below to see how this can be implemented.
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
+include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
 ----
 <1> Configure the first cache manager with auto create
 <2> Build a cache configuration for a clustered _dedicated_ resource pool

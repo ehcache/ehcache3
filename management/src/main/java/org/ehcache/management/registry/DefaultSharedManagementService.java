@@ -20,7 +20,6 @@ import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.store.InternalCacheManager;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.spi.service.Service;
@@ -38,6 +37,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -108,6 +109,15 @@ public class DefaultSharedManagementService implements SharedManagementService {
       capabilities.addAll(registryService.getCapabilities());
     }
     return capabilities;
+  }
+
+  @Override
+  public Collection<String> getCapabilityNames() {
+    Collection<String> names = new TreeSet<String>();
+    for (ManagementRegistryService registryService : delegates.values()) {
+      names.addAll(registryService.getCapabilityNames());
+    }
+    return names;
   }
 
   @Override

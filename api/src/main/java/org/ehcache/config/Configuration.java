@@ -23,18 +23,16 @@ import java.util.Map;
 
 /**
  * Represents the configuration for a {@link org.ehcache.CacheManager CacheManager}.
- * <P>
- *   <EM>Implementations are expected to be read-only.</EM>
- * </P>
+ * <p>
+ * <em>Implementations are expected to be read-only.</em>
  */
 public interface Configuration {
 
   /**
    * Mapping of aliases to {@link CacheConfiguration}s, used to configure the {@link org.ehcache.Cache Cache}s
    * managed by the {@link org.ehcache.CacheManager CacheManager}.
-   * <P>
-   *   The map must not be {@code null} but can be empty. It must be unmodifiable.
-   * </P>
+   * <p>
+   * The map must not be {@code null} but can be empty. It must be unmodifiable.
    *
    * @return a map of aliases to cache configurations
    */
@@ -43,9 +41,8 @@ public interface Configuration {
   /**
    * {@link ServiceCreationConfiguration} initially used to bootstrap the {@link org.ehcache.CacheManager CacheManager}
    * and its {@link org.ehcache.Cache Cache}s.
-   * <P>
-   *   The collection must not be null but can be empty. Also it must be unmodifiable.
-   * </P>
+   * <p>
+   * The collection must not be null but can be empty. Also it must be unmodifiable.
    *
    * @return a collection of service creations configurations
    */
@@ -53,13 +50,11 @@ public interface Configuration {
 
   /**
    * The {@link ClassLoader} for the {@link org.ehcache.CacheManager CacheManager}.
-   * <P>
-   *   This {@code ClassLoader} will be used to instantiate cache manager level services
-   *   and for {@link org.ehcache.Cache Cache}s that do not have a specific {@code ClassLoader}.
-   * </P>
-   * <P>
-   *   The {@code ClassLoader} must not be null.
-   * </P>
+   * <p>
+   * This {@code ClassLoader} will be used to instantiate cache manager level services
+   * and for {@link org.ehcache.Cache Cache}s that do not have a specific {@code ClassLoader}.
+   * <p>
+   * The {@code ClassLoader} must not be null.
    *
    * @return the cache manager {@code ClassLoader}
    */

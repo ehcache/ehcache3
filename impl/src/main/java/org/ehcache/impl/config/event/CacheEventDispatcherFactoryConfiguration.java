@@ -21,10 +21,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * {@link ServiceCreationConfiguration} class for the default {@link org.ehcache.core.events.CacheEventDispatcherFactory}.
- * <P>
- *   Enables configuring the default thread pool alias to be used by the
- *   {@link org.ehcache.core.events.CacheEventDispatcher}s
- * </P>
+ * <p>
+ * Enables configuring the default thread pool alias to be used by the
+ * {@link org.ehcache.core.events.CacheEventDispatcher}s
  */
 public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
 

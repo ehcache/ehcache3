@@ -44,14 +44,12 @@ import java.util.concurrent.Future;
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
  * firing mode for specified event types.
- * <P>
- *   Use of this class is linked to having cache events on a {@link org.ehcache.UserManagedCache user managed cache}.
- * </P>
- * <P>
- * <EM>Note on event ordering guarantees:</EM> Events are received and transmitted to register listeners through the
+ * <p>
+ * Use of this class is linked to having cache events on a {@link org.ehcache.UserManagedCache user managed cache}.
+ * <p>
+ * <em>Note on event ordering guarantees:</em> Events are received and transmitted to register listeners through the
  * registration of a {@link StoreEventListener} on the linked {@link StoreEventSource} which is responsible for event
  * ordering.
- * </P>
  */
 public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V> {
 

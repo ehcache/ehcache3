@@ -21,10 +21,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * {@link ServiceConfiguration} for the {@link WriteBehindProvider}.
- * <P>
- *   The {@code WriteBehindProvider} provides write-behind services to a
- *   {@link org.ehcache.Cache Cache}.
- * </P>
+ * <p>
+ * The {@code WriteBehindProvider} provides write-behind services to a
+ * {@link org.ehcache.Cache Cache}.
  */
 public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
 
@@ -37,9 +36,8 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
   /**
    * The maximum number of operations allowed on each write behind queue.
-   * <P>
-   *   Only positive values are legal.
-   * </P>
+   * <p>
+   * Only positive values are legal.
    *
    * @return the maximum queue size
    */
@@ -66,11 +64,10 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
     /**
      * The recommended size of a batch of operations.
-     * <P>
-     *   Only positive values are legal. A value of 1 indicates that no batching
-     *   should happen. Real batch size will be influenced by the write rate and
-     *   the max write delay.
-     * </P>
+     * <p>
+     * Only positive values are legal. A value of 1 indicates that no batching
+     * should happen. Real batch size will be influenced by the write rate and
+     * the max write delay.
      *
      * @return the batch size
      */
@@ -92,10 +89,9 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
     /**
      * Whether write operations can be coalesced.
-     * <P>
-     *   Write coalescing ensure that operations within a batch for the same key
-     *   will be coalesced in to a single write operation.
-     * </P>
+     * <p>
+     * Write coalescing ensure that operations within a batch for the same key
+     * will be coalesced in to a single write operation.
      *
      * @return {@code true} if write coalescing enabled
      */

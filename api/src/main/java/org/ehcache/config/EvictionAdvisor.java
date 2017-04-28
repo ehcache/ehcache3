@@ -26,9 +26,8 @@ public interface EvictionAdvisor<K, V> {
 
   /**
    * Returns {@code true} if the given key value pair should not be evicted if possible.
-   * <P>
-   *   Any exception thrown from this method will be logged and the result considered {@code false}.
-   * </P>
+   * <p>
+   * Any exception thrown from this method will be logged and the result considered {@code false}.
    *
    * @param key the cache key
    * @param value the cache value

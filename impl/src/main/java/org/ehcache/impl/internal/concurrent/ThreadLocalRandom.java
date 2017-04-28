@@ -39,7 +39,7 @@ import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
  * BY ALL MEANS, DO <u>NOT</u> USE THE <code>ints()</code>, <code>longs()</code> or <code>doubles()</code> METHODS.
  * USE THE <code>_ints()</code>, <code>_longs()</code> or <code>_doubles()</code> ONES INSTEAD.
  * </b>
- * <p/>
+ * <p>
  * A random number generator isolated to the current thread.  Like the
  * global {@link java.util.Random} generator used by the {@link
  * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized

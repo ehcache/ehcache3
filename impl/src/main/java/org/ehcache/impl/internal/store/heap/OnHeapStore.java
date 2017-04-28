@@ -37,7 +37,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
@@ -45,6 +45,7 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.serialization.Serializer;
@@ -65,7 +66,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +92,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static java.util.Collections.singletonMap;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
@@ -107,7 +107,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  *   <li>Eviction</li>
  *   <li>Events</li>
  *   <li>Statistics</li>
- * </ul></p>
+ * </ul>
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  */
@@ -275,14 +275,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag(STATISTICS_TAG).build();
 
     Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
-    Map<String, String> properties = singletonMap("discriminator", STATISTICS_TAG);
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return map.mappingCount();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         if (byteSized) {
@@ -735,14 +734,27 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       // If we have a real value (not a fault), we make sure it is not expired
-      // If yes, we return null and remove it. If no, we return it (below)
+      // If yes, we remove it and ask the source just in case. If no, we return it (below)
       if (!(cachedValue instanceof Fault)) {
         if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           expireMappingUnderLock(key, cachedValue);
-          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
-          return null;
+
+          // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
+          final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+            @Override
+            public ValueHolder<V> apply() {
+              return source.apply(key);
+            }
+          });
+          cachedValue = backEnd.putIfAbsent(key, fault);
+
+          if (cachedValue == null) {
+            return resolveFault(key, backEnd, now, fault);
+          }
         }
-        setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
+        else {
+          setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
+        }
       }
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
@@ -939,7 +951,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public void silentInvalidateAllWithHash(long hash, BiFunction<K, ValueHolder<V>, Void> biFunction) throws StoreAccessException {
     silentInvalidateAllWithHashObserver.begin();
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    int intHash = HashUtils.longHashToInt(hash);
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
     for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
       biFunction.apply(entry.getKey(), entry.getValue());
     }
@@ -968,11 +981,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public void invalidateAllWithHash(long hash) throws StoreAccessException {
     invalidateAllWithHashObserver.begin();
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    int intHash = HashUtils.longHashToInt(hash);
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
     for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
       notifyInvalidation(entry.getKey(), entry.getValue());
     }
-    LOG.debug("CLIENT: onheap store removed all with hash {}", hash);
+    LOG.debug("CLIENT: onheap store removed all with hash {}", intHash);
     invalidateAllWithHashObserver.end(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.SUCCESS);
   }
 

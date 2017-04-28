@@ -34,8 +34,6 @@ public class ServerStoreConfiguration implements Serializable {
 
   private final String storedKeyType;
   private final String storedValueType;
-  private final String actualKeyType;
-  private final String actualValueType;
   private final String keySerializerType;
   private final String valueSerializerType;
   private final Consistency consistency;
@@ -44,16 +42,12 @@ public class ServerStoreConfiguration implements Serializable {
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
                                   String storedKeyType,
                                   String storedValueType,
-                                  String actualKeyType,
-                                  String actualValueType,
                                   String keySerializerType,
                                   String valueSerializerType,
                                   Consistency consistency) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
-    this.actualKeyType = actualKeyType;
-    this.actualValueType = actualValueType;
     this.keySerializerType = keySerializerType;
     this.valueSerializerType = valueSerializerType;
     this.consistency = consistency;
@@ -71,14 +65,6 @@ public class ServerStoreConfiguration implements Serializable {
     return storedValueType;
   }
 
-  public String getActualKeyType() {
-    return actualKeyType;
-  }
-
-  public String getActualValueType() {
-    return actualValueType;
-  }
-
   public String getKeySerializerType() {
     return keySerializerType;
   }
@@ -92,55 +78,28 @@ public class ServerStoreConfiguration implements Serializable {
   }
 
   public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
+    boolean isCompatible = true;
 
-    boolean isCompatible;
-    PoolAllocation otherPoolAllocation = otherConfiguration.getPoolAllocation();
-
-    isCompatible = comparePoolAllocationType(sb, otherPoolAllocation);
-    if(isCompatible) {
-      if( !(otherPoolAllocation instanceof PoolAllocation.Unknown) ) {
-        if (poolAllocation instanceof PoolAllocation.Dedicated) {
-          PoolAllocation.Dedicated serverDedicatedAllocation = (PoolAllocation.Dedicated)poolAllocation;
-          PoolAllocation.Dedicated clientDedicatedAllocation = (PoolAllocation.Dedicated)otherPoolAllocation;
-          if (compareField(sb, "resourcePoolDedicatedResourceName",
-              serverDedicatedAllocation.getResourceName(),
-              clientDedicatedAllocation.getResourceName())) {
-            if (clientDedicatedAllocation.getSize() != serverDedicatedAllocation.getSize()) {
-              appendFault(sb, "resourcePoolDedicatedSize", serverDedicatedAllocation.getSize(), clientDedicatedAllocation.getSize());
-              isCompatible &= false;
-            }
-          } else {
-            isCompatible &= false;
-          }
-        } else if (poolAllocation instanceof PoolAllocation.Shared) {
-          isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
-              ((PoolAllocation.Shared)poolAllocation).getResourcePoolName(),
-              ((PoolAllocation.Shared)otherPoolAllocation).getResourcePoolName());
-        }
-      }
-    }
-    isCompatible &= compareField(sb, "storedKeyType", storedKeyType, otherConfiguration.getStoredKeyType());
-    isCompatible &= compareField(sb, "storedValueType", storedValueType, otherConfiguration.getStoredValueType());
-    isCompatible &= compareField(sb, "actualKeyType", actualKeyType, otherConfiguration.getActualKeyType());
-    isCompatible &= compareField(sb, "actualValueType", actualValueType, otherConfiguration.getActualValueType());
-    isCompatible &= compareField(sb, "keySerializerType", keySerializerType, otherConfiguration.getKeySerializerType());
-    isCompatible &= compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
-    isCompatible &= compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
+    isCompatible = isCompatible && compareField(sb, "storedKeyType", storedKeyType, otherConfiguration.getStoredKeyType());
+    isCompatible = isCompatible && compareField(sb, "storedValueType", storedValueType, otherConfiguration.getStoredValueType());
+    isCompatible = isCompatible && compareField(sb, "keySerializerType", keySerializerType, otherConfiguration.getKeySerializerType());
+    isCompatible = isCompatible && compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
+    isCompatible = isCompatible && compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
+    isCompatible = isCompatible && comparePoolAllocation(sb, otherConfiguration.getPoolAllocation());
 
     return isCompatible;
   }
 
-    private boolean comparePoolAllocationType(StringBuilder sb, PoolAllocation clientPoolAllocation) {
-
-    if (clientPoolAllocation instanceof PoolAllocation.Unknown || poolAllocation.getClass().getName().equals(clientPoolAllocation.getClass().getName())) {
+  private boolean comparePoolAllocation(StringBuilder sb, PoolAllocation clientPoolAllocation) {
+    if (poolAllocation.isCompatible(clientPoolAllocation)) {
       return true;
     }
 
-    appendFault(sb, "resourcePoolType", getClassName(poolAllocation), getClassName(clientPoolAllocation));
+    appendFault(sb, "resourcePoolType", poolAllocation, clientPoolAllocation);
     return false;
   }
 
-    private String getClassName(Object obj) {
+  private String getClassName(Object obj) {
     if(obj != null) {
       return obj.getClass().getName();
     } else {
@@ -148,7 +107,7 @@ public class ServerStoreConfiguration implements Serializable {
     }
   }
 
-    private boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
+  private boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
     if((serverConsistencyValue == null && clientConsistencyValue == null)
         || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
       return true;

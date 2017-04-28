@@ -12,11 +12,6 @@
         <mnm:tag>jboss-1</mnm:tag>
         <mnm:tag>server-node-1</mnm:tag>
       </mnm:tags>
-      <mnm:statistics-configurations>
-        <mnm:statistics-configuration>
-          <mnm:history-size>500</mnm:history-size>
-        </mnm:statistics-configuration>
-      </mnm:statistics-configurations>
     </mnm:management>
   </service>
 

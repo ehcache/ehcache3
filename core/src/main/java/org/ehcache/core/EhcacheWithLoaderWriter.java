@@ -79,10 +79,9 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implementation of the {@link Cache} interface when a {@link CacheLoaderWriter} is involved.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  *
  * @see Ehcache
  */

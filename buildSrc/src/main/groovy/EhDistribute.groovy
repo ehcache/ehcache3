@@ -27,7 +27,7 @@ class EhDistribute implements Plugin<Project> {
   @Override
   void apply(Project project) {
     def utils = new Utils(project.baseVersion, project.logger)
-    def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
+    def hashsetOfProjects = project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
 
     project.plugins.apply 'java'
     project.plugins.apply 'maven'
@@ -45,6 +45,7 @@ class EhDistribute implements Plugin<Project> {
     }
 
     project.shadowJar {
+      configurations = [[project.configurations.compileOnly]]
       baseName = "$project.archivesBaseName-shadow"
       classifier = ''
       dependencies {

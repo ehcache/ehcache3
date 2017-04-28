@@ -17,7 +17,6 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Context holder of an in-flight XA transaction. Modifications to the {@link XAStore} are registered in an instance

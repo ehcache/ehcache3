@@ -30,7 +30,7 @@ import java.util.concurrent.BlockingQueue;
  * in AbstractOffHeapStore because eviction event is fired after create / update
  * events have been recorded. But in reality, eviction happened first as the memory
  * limit on offheap is hard.
- * <P/>
+ * <p>
  * This creates a special case where we have to rewrite events in case we get an evicted
  * event on the same key than the previous non eviction event. In that case we need to get rid
  * of that former event (in case of UPDATED) or former events (EXPIRED followed by CREATED) and
