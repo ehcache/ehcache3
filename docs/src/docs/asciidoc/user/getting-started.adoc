@@ -119,7 +119,8 @@ include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/clie
     The sample URI provided in the example points to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (assuming the server is running on localhost and port *9510*); the query-param `auto-create`
     creates the clustered storage in the server if it doesn't already exist.
 <3> Returns a fully initialized cache manager that can be used to create clustered caches.
-<4> Close the cache manager.
+<4> Auto-create the clustered storage if it doesn't already exist.
+<5> Close the cache manager.
 
 NOTE: See <<clustered-cache.adoc#,the clustered cache documentation>> for more information on this feature.
 
