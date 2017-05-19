@@ -30,7 +30,7 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;

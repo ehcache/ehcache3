@@ -40,7 +40,7 @@
   <!-- end::consistencySample[] -->
 
   <!-- tag::tieringSample[] -->
-  <cache alias="clustered-cache">
+  <cache alias="clustered-cache-tiered">
     <resources>
       <heap unit="MB">10</heap> <!--1-->
       <tc:clustered-dedicated unit="MB">50</tc:clustered-dedicated> <!--2-->

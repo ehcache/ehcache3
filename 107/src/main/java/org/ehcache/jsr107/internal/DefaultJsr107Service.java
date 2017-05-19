@@ -16,12 +16,15 @@
 
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 
+@ServiceDependencies(StatisticsService.class)
 public class DefaultJsr107Service implements Jsr107Service {
 
   private final Jsr107Configuration configuration;

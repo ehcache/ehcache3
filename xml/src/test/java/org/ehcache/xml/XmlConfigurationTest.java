@@ -86,7 +86,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -113,7 +113,7 @@ import static org.mockito.Mockito.mock;
 public class XmlConfigurationTest {
 
   @Rule
-  public ExpectedException thrown= ExpectedException.none();
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -242,10 +242,21 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
+    }
+  }
+
+  @Test
+  public void testTwoCachesWithSameAlias() {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-two-caches.xml"));
+      fail("Two caches with the same alias should not be allowed");
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Two caches defined with the same alias: foo"));
     }
   }
 
@@ -586,6 +597,7 @@ public class XmlConfigurationTest {
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
+    assertThat(diskConfig.getDiskSegments(), is(4));
   }
 
   @Test
@@ -672,6 +684,7 @@ public class XmlConfigurationTest {
   public void testCustomResource() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }

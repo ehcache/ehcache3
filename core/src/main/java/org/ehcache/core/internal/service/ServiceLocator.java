@@ -458,35 +458,6 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return list;
   }
 
-  public static <T> Collection<T> findAmongst(Class<T> clazz, Collection<?> instances) {
-    return findAmongst(clazz, instances.toArray());
-  }
-
-  public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
-    Collection<T> matches = new ArrayList<T>();
-    for (Object instance : instances) {
-      if (instance != null && clazz.isAssignableFrom(instance.getClass())) {
-        matches.add(clazz.cast(instance));
-      }
-    }
-    return Collections.unmodifiableCollection(matches);
-  }
-
-  public static <T> T findSingletonAmongst(Class<T> clazz, Collection<?> instances) {
-    return findSingletonAmongst(clazz, instances.toArray());
-  }
-
-  public static <T> T findSingletonAmongst(Class<T> clazz, Object ... instances) {
-    final Collection<T> matches = findAmongst(clazz, instances);
-    if (matches.isEmpty()) {
-      return null;
-    } else if (matches.size() == 1) {
-      return matches.iterator().next();
-    } else {
-      throw new IllegalArgumentException("More than one " + clazz.getName() + " found");
-    }
-  }
-
   private static class DependencyException extends Exception {
     public DependencyException(String s) {
       super(s);

@@ -55,6 +55,15 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
           EvictionAdvisor<? super K, ? super V> evictionAdvisor,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
           ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
+    if (keyType == null) {
+      throw new NullPointerException("keyType cannot be null");
+    }
+    if (valueType == null) {
+      throw new NullPointerException("valueType cannot be null");
+    }
+    if (resourcePools == null) {
+      throw new NullPointerException("resourcePools cannot be null");
+    }
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionAdvisor = evictionAdvisor;

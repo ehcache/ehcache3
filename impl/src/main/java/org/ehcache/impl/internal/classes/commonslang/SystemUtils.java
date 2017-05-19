@@ -24,32 +24,25 @@ package org.ehcache.impl.internal.classes.commonslang;
 /**
  * <p>
  * Helpers for {@code java.lang.System}.
- * </p>
  * <p>
  * If a system property cannot be read due to security restrictions, the corresponding field in this class will be set
  * to {@code null} and a message will be written to {@code System.err}.
- * </p>
  * <p>
  * #ThreadSafe#
- * </p>
  *
  * @since 1.0
  */
 public class SystemUtils {
 
     /**
-     * <p>
      * The {@code java.specification.version} System Property. Java Runtime Environment specification version.
-     * </p>
      * <p>
      * Defaults to {@code null} if the runtime does not have security access to read this property or the property does
      * not exist.
-     * </p>
      * <p>
      * This value is initialized when the class is loaded. If {@link System#setProperty(String,String)} or
      * {@link System#setProperties(java.util.Properties)} is called after this class is loaded, the value will be out of
      * sync with that System property.
-     * </p>
      *
      * @since Java 1.3
      */
@@ -58,13 +51,10 @@ public class SystemUtils {
 
     // -----------------------------------------------------------------------
     /**
-     * <p>
      * Gets a System property, defaulting to {@code null} if the property cannot be read.
-     * </p>
      * <p>
      * If a {@code SecurityException} is caught, the return value is {@code null} and a message is written to
      * {@code System.err}.
-     * </p>
      *
      * @param property the system property name
      * @return the system property value or {@code null} if a security problem occurs
@@ -81,15 +71,12 @@ public class SystemUtils {
     }
 
     /**
-     * <p>
      * Is the Java version at least the requested version.
-     * </p>
      * <p>
      * Example input:
-     * </p>
      * <ul>
-     * <li>{@code 1.2f} to test for Java 1.2</li>
-     * <li>{@code 1.31f} to test for Java 1.3.1</li>
+     *   <li>{@code 1.2f} to test for Java 1.2</li>
+     *   <li>{@code 1.31f} to test for Java 1.3.1</li>
      * </ul>
      *
      * @param requiredVersion the required version, for example 1.31f
@@ -101,13 +88,10 @@ public class SystemUtils {
 
     // -----------------------------------------------------------------------
     /**
-     * <p>
      * SystemUtils instances should NOT be constructed in standard programming. Instead, the class should be used as
      * {@code SystemUtils.FILE_SEPARATOR}.
-     * </p>
      * <p>
      * This constructor is public to permit tools that require a JavaBean instance to operate.
-     * </p>
      */
     public SystemUtils() {
         super();

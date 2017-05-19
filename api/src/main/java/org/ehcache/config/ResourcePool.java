@@ -17,9 +17,8 @@ package org.ehcache.config;
 
 /**
  * A resource providing capacity to be used by {@link org.ehcache.Cache Cache}s.
- * <P>
- *  <EM>Implementations must be immutable.</EM>
- * </P>
+ * <p>
+ * <em>Implementations must be immutable.</em>
  */
 public interface ResourcePool {
 
@@ -32,9 +31,8 @@ public interface ResourcePool {
 
   /**
    * Indicates whether the underlying resource is persistent.
-   * <P>
-   *   Persistence in this context means that data stored will survive a JVM restart, unless destroyed.
-   * </P>
+   * <p>
+   * Persistence in this context means that data stored will survive a JVM restart, unless destroyed.
    *
    * @return {@code true} if persistent, {@code false} otherwise
    */

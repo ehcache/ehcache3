@@ -51,7 +51,7 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
 
 /**
  * The {@code CacheConfigurationBuilder} enables building {@link CacheConfiguration}s using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -237,7 +237,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link ClassLoader} to the returned builder.
-   * <P/>
+   * <p>
    * The {@link ClassLoader} will be used for resolving all non Ehcache types.
    *
    * @param classLoader the class loader to use
@@ -251,7 +251,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds the {@link ResourcePools} to the returned builder.
-   * <P/>
+   * <p>
    * {@link ResourcePools} is what determines the tiering of a cache.
    *
    * @param resourcePools the resource pools to use
@@ -283,7 +283,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds {@link Expiry} configuration to the returned builder.
-   * <P/>
+   * <p>
    * {@link Expiry} is what controls data freshness in a cache.
    *
    * @param expiry the expiry to use
@@ -309,7 +309,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link CacheLoaderWriter} to the configured builder.
-   * <P/>
+   * <p>
    * Configuration of a {@link CacheLoaderWriter} is what enables cache-through patterns.
    *
    * @param loaderWriter the loaderwriter to use
@@ -331,7 +331,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   /**
    * Adds a {@link CacheLoaderWriter} configured through a class and optional constructor arguments to the configured
    * builder.
-   * <P/>
+   * <p>
    * Configuration of a {@link CacheLoaderWriter} is what enables cache-through patterns.
    *
    * @param loaderWriterClass the loaderwrite class
@@ -353,7 +353,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the cache key serializer for the key on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @return a new builder with the added key copier
@@ -367,7 +367,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the cache value serializer for the value on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @return a new builder with the added value copier
@@ -381,7 +381,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the provided {@link Copier} for the key on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @param keyCopier the key copier to use
@@ -399,7 +399,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the provided {@link Copier} class for the key on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @param keyCopierClass the key copier class to use
@@ -417,7 +417,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the provided {@link Copier} for the value on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @param valueCopier the value copier to use
@@ -435,7 +435,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds by-value semantic using the provided {@link Copier} class for the value on heap.
-   * <P/>
+   * <p>
    * {@link Copier}s are what enable control of by-reference / by-value semantics for on-heap tier.
    *
    * @param valueCopierClass the value copier class to use
@@ -471,7 +471,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link Serializer} for cache keys to the configured builder.
-   * <P/>
+   * <p>
    * {@link Serializer}s are what enables cache storage beyond the heap tier.
    *
    * @param keySerializer the key serializer to use
@@ -489,7 +489,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link Serializer} class for cache keys to the configured builder.
-   * <P/>
+   * <p>
    * {@link Serializer}s are what enables cache storage beyond the heap tier.
    *
    * @param keySerializerClass the key serializer to use
@@ -507,7 +507,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link Serializer} for cache values to the configured builder.
-   * <P/>
+   * <p>
    * {@link Serializer}s are what enables cache storage beyond the heap tier.
    *
    * @param valueSerializer the key serializer to use
@@ -525,7 +525,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   /**
    * Adds a {@link Serializer} class for cache values to the configured builder.
-   * <P/>
+   * <p>
    * {@link Serializer}s are what enables cache storage beyond the heap tier.
    *
    * @param valueSerializerClass the key serializer to use
@@ -599,7 +599,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   /**
    * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified object graph maximum size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
@@ -620,7 +620,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   /**
    * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified maximum mapping size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size

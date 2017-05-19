@@ -41,10 +41,9 @@ import java.util.Set;
 /**
  * Implementation of {@link PersistentUserManagedCache} which is a cache with a persistent resource outside of a
  * {@link org.ehcache.CacheManager}.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  */
 public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 

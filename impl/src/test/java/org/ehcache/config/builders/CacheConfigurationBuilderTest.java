@@ -19,7 +19,7 @@ package org.ehcache.config.builders;
 import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -107,7 +107,7 @@ public class CacheConfigurationBuilderTest {
         .withLoaderWriter(loaderWriter)
         .build();
 
-    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(loaderWriter));
   }
@@ -136,7 +136,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
     Object instance = serializerConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keySerializer));
@@ -166,7 +166,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueSerializer));
@@ -191,7 +191,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
     Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keyCopier));
@@ -216,7 +216,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
     Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueCopier));
@@ -267,7 +267,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -276,7 +276,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
   }
@@ -307,6 +307,6 @@ public class CacheConfigurationBuilderTest {
 
     assertThat(copy.getEvictionAdvisor(), IsSame.<EvictionAdvisor<?, ?>>sameInstance(eviction));
     assertThat(copy.getExpiry(), IsSame.<Expiry<?, ?>>sameInstance(expiry));
-    assertThat(copy.getServiceConfigurations(), containsInAnyOrder(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
+    assertThat(copy.getServiceConfigurations(), contains(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
   }
 }

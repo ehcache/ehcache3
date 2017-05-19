@@ -29,7 +29,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -322,22 +322,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetWithExpiryOnAccess() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    offHeapStore = createAndInitStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
     offHeapStore.put("key", "value");
     final AtomicReference<String> expired = new AtomicReference<String>();
     offHeapStore.getStoreEventSource().addEventListener(new StoreEventListener<String, String>() {
@@ -445,22 +430,9 @@ public abstract class AbstractOffHeapStoreTest {
   @Test
   public void testComputeExpiresOnAccess() throws StoreAccessException {
     timeSource.advanceTime(1000L);
-    offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.ZERO;
-      }
-    });
+    
+    offHeapStore = createAndInitStore(timeSource,
+      Expirations.builder().setAccess(Duration.ZERO).setUpdate(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
     Store.ValueHolder<String> result = offHeapStore.compute("key", new BiFunction<String, String, String>() {
@@ -481,22 +453,9 @@ public abstract class AbstractOffHeapStoreTest {
   @Test
   public void testComputeExpiresOnUpdate() throws StoreAccessException {
     timeSource.advanceTime(1000L);
-    offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
 
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.ZERO;
-      }
-    });
+    offHeapStore = createAndInitStore(timeSource,
+      Expirations.builder().setAccess(Duration.ZERO).setUpdate(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
     Store.ValueHolder<String> result = offHeapStore.compute("key", new BiFunction<String, String, String>() {

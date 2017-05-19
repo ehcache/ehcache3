@@ -15,8 +15,8 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -94,7 +94,7 @@ public class EhcacheActionProviderTest {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
 
     try {
-      ehcacheActionProvider.collectStatistics(null, null, System.currentTimeMillis());
+      ehcacheActionProvider.collectStatistics(null, null);
       fail("expected UnsupportedOperationException");
     } catch (UnsupportedOperationException uoe) {
       // expected
