@@ -16,11 +16,16 @@
 package org.ehcache.impl.internal.executor;
 
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -123,11 +128,32 @@ public class PooledExecutionServiceTest {
 
     pooledExecutionService.stop();
 
+    // Note: This test also tends to fail when other tests are not closing stores or cache managers correctly. So it will
+    // also print these threads below and fail. To go look after them, turn ThreadFactoryUtil.DEBUG to true to get a full
+    // stacktrace to the creation point.
+    detectLeakingThreads();
+  }
+
+  public static void detectLeakingThreads() {
     Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+    Set<String> leakedThreads = new HashSet<String>();
+
+    Map<Integer, Exception> createdThreads = ThreadFactoryUtil.getCreatedThreads();
+
     for(Thread thread : threadSet) {
-      if(thread.isAlive()) {
-        assertThat(thread.getName()).doesNotContain("Ehcache [");
+      if(thread.isAlive() && thread.getName().startsWith("Ehcache [")) {
+        int hash = System.identityHashCode(thread);
+        String stackTrace = null;
+        if(createdThreads != null) {
+          Exception exception = createdThreads.get(hash);
+          StringWriter errors = new StringWriter();
+          exception.printStackTrace(new PrintWriter(errors));
+          stackTrace = errors.toString();
+        }
+        leakedThreads.add(thread + "(" + hash + ")" + stackTrace);
       }
     }
+
+    assertThat(leakedThreads).isEmpty();
   }
 }
