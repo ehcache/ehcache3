@@ -27,6 +27,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
@@ -62,6 +63,13 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   public void setUp() {
     timeSource = new TestTimeSource();
     kvStore = factory.newStoreWithExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+  }
+
+  @After
+  public void tearDown() {
+    if(kvStore != null) {
+      factory.close(kvStore);
+    }
   }
 
   @SPITest
