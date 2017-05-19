@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.executor;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,9 +42,15 @@ import static org.junit.Assert.assertThat;
 
 public class PartitionedScheduledExecutorTest {
 
+  private OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
+
+  @After
+  public void after() {
+    scheduler.shutdownNow();
+  }
+
   @Test
   public void testShutdownOfIdleExecutor() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newCachedThreadPool();
     PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
     executor.shutdown();
@@ -54,7 +61,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newCachedThreadPool();
     PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
     assertThat(executor.shutdownNow(), empty());
@@ -65,7 +71,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testShutdownLeavesJobRunning() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -96,7 +101,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testQueuedJobRunsAfterShutdown() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -145,7 +149,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testQueuedJobIsStoppedAfterShutdownNow() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -192,7 +195,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testRunningJobIsInterruptedAfterShutdownNow() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -231,7 +233,6 @@ public class PartitionedScheduledExecutorTest {
   public void testRunningJobsAreInterruptedAfterShutdownNow() throws InterruptedException {
     final int jobCount = 4;
 
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newCachedThreadPool();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -272,7 +273,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testFixedRatePeriodicTaskIsCancelledByShutdown() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -298,7 +298,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testFixedDelayPeriodicTaskIsCancelledByShutdown() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -324,7 +323,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testFixedRatePeriodicTaskIsCancelledByShutdownNow() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -350,7 +348,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testFixedDelayPeriodicTaskIsRemovedByShutdownNow() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -376,7 +373,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testDelayedTaskIsRemovedByShutdownNow() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -407,7 +403,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testTerminationAfterShutdownWaitsForDelayedTask() throws InterruptedException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor();
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
@@ -433,7 +428,6 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testScheduledTasksRunOnDeclaredPool() throws InterruptedException, ExecutionException {
-    OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newSingleThreadExecutor(new ThreadFactory() {
 
       @Override

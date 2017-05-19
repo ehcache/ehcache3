@@ -45,15 +45,10 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
-      tier = null;
+      factory.close(tier);
     }
   }
 

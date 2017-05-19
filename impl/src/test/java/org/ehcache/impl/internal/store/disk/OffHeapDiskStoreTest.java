@@ -327,99 +327,113 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     CacheManager manager = newCacheManagerBuilder()
         .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
         .build(true);
+    try {
+      final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
+        heap(1000).offheap(20, MB).disk(30, MB))
+        .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
+          @Override
+          public CacheValue load(Long key) throws Exception {
+            return null;
+          }
 
-    final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
-            heap(1000).offheap(20, MB).disk(30, MB))
-    .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
-      @Override
-      public CacheValue load(Long key) throws Exception {
-        return null;
+          @Override
+          public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
+            return Collections.emptyMap();
+          }
+
+          @Override
+          public void write(Long key, CacheValue value) throws Exception {
+          }
+
+          @Override
+          public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) throws BulkCacheWritingException, Exception {
+          }
+
+          @Override
+          public void delete(Long key) throws Exception {
+          }
+
+          @Override
+          public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
+          }
+        }));
+
+      for (long i = 0; i < 100000; i++) {
+        cache.put(i, new CacheValue((int)i));
       }
 
-      @Override
-      public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
-        return Collections.emptyMap();
-      }
+      Callable<Void> task = new Callable<Void>() {
+        @Override
+        public Void call() {
+          Random rndm = new Random();
 
-      @Override
-      public void write(Long key, CacheValue value) throws Exception {
-      }
-
-      @Override
-      public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) throws BulkCacheWritingException, Exception {
-      }
-
-      @Override
-      public void delete(Long key) throws Exception {
-      }
-
-      @Override
-      public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
-      }
-    }));
-
-    for (long i = 0; i < 100000; i++) {
-      cache.put(i, new CacheValue((int) i));
-    }
-
-    Callable<Void> task = new Callable<Void>() {
-      @Override
-      public Void call() {
-        Random rndm = new Random();
-
-        long start = System.nanoTime();
-        while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
-          Long k = key(rndm);
-          switch (rndm.nextInt(4)) {
-            case 0: {
-              CacheValue v = value(rndm);
-              cache.putIfAbsent(k, v);
-              break;
-            }
-            case 1: {
-              CacheValue nv = value(rndm);
-              CacheValue ov = value(rndm);
-              cache.put(k, ov);
-              cache.replace(k, nv);
-              break;
-            }
-            case 2: {
-              CacheValue nv = value(rndm);
-              CacheValue ov = value(rndm);
-              cache.put(k, ov);
-              cache.replace(k, ov, nv);
-              break;
-            }
-            case 3: {
-              CacheValue v = value(rndm);
-              cache.put(k, v);
-              cache.remove(k, v);
-              break;
+          long start = System.nanoTime();
+          while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
+            Long k = key(rndm);
+            switch (rndm.nextInt(4)) {
+              case 0: {
+                CacheValue v = value(rndm);
+                cache.putIfAbsent(k, v);
+                break;
+              }
+              case 1: {
+                CacheValue nv = value(rndm);
+                CacheValue ov = value(rndm);
+                cache.put(k, ov);
+                cache.replace(k, nv);
+                break;
+              }
+              case 2: {
+                CacheValue nv = value(rndm);
+                CacheValue ov = value(rndm);
+                cache.put(k, ov);
+                cache.replace(k, ov, nv);
+                break;
+              }
+              case 3: {
+                CacheValue v = value(rndm);
+                cache.put(k, v);
+                cache.remove(k, v);
+                break;
+              }
             }
           }
+          return null;
         }
-        return null;
-      }
-    };
+      };
 
-    ExecutorService executor = Executors.newCachedThreadPool();
-    try {
-      executor.invokeAll(Collections.nCopies(4, task));
+      ExecutorService executor = Executors.newCachedThreadPool();
+      try {
+        executor.invokeAll(Collections.nCopies(4, task));
+      } finally {
+        executor.shutdown();
+      }
+
+      Query invalidateAllQuery = QueryBuilder.queryBuilder()
+        .descendants()
+        .filter(context(attributes(hasAttribute("tags", new Matcher<Set<String>>() {
+          @Override
+          protected boolean matchesSafely(Set<String> object) {
+            return object.contains("OffHeap");
+          }
+        }))))
+        .filter(context(attributes(hasAttribute("name", "invalidateAll"))))
+        .ensureUnique()
+        .build();
+
+      @SuppressWarnings("unchecked")
+      OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>)invalidateAllQuery
+        .execute(singleton(nodeFor(cache)))
+        .iterator()
+        .next()
+        .getContext()
+        .attributes()
+        .get("this");
+
+      assertThat(invalidateAll.sum(), is(0L));
     } finally {
-      executor.shutdown();
+      manager.close();
     }
-
-    Query invalidateAllQuery = QueryBuilder.queryBuilder().descendants().filter(context(attributes(hasAttribute("tags", new Matcher<Set<String>>() {
-      @Override
-      protected boolean matchesSafely(Set<String> object) {
-        return object.contains("OffHeap");
-      }
-    })))).filter(context(attributes(hasAttribute("name", "invalidateAll")))).ensureUnique().build();
-
-    @SuppressWarnings("unchecked")
-    OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>) invalidateAllQuery.execute(singleton(nodeFor(cache))).iterator().next().getContext().attributes().get("this");
-
-    assertThat(invalidateAll.sum(), is(0L));
   }
 
   private Long key(Random rndm) {
