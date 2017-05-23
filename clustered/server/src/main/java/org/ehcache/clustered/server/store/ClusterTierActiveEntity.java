@@ -62,6 +62,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 
 import java.util.ArrayList;
@@ -126,9 +127,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     storeIdentifier = entityConfiguration.getStoreIdentifier();
     configuration = entityConfiguration.getConfiguration();
     responseFactory = new EhcacheEntityResponseFactory();
-    clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
-    stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
-    entityMessenger = registry.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    try {
+      clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
+      stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
+      entityMessenger = registry.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
+    }
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }

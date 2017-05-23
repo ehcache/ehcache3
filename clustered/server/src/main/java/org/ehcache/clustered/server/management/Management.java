@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
@@ -43,21 +45,25 @@ public class Management {
   private final EhcacheStateService ehcacheStateService;
   private final String clusterTierManagerIdentifier;
 
-  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String clusterTierManagerIdentifier) {
+  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String clusterTierManagerIdentifier) throws ConfigurationException {
     this.ehcacheStateService = ehcacheStateService;
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
     EntityMonitoringService entityMonitoringService;
-    if (active) {
-      entityMonitoringService = services.getService(new ActiveEntityMonitoringServiceConfiguration());
-    } else {
-      IMonitoringProducer monitoringProducer = services.getService(new BasicServiceConfiguration<>(IMonitoringProducer.class));
-      entityMonitoringService = monitoringProducer == null ? null : services.getService(new PassiveEntityMonitoringServiceConfiguration(monitoringProducer));
-    }
+    try {
+      if (active) {
+        entityMonitoringService = services.getService(new ActiveEntityMonitoringServiceConfiguration());
+      } else {
+        IMonitoringProducer monitoringProducer = services.getService(new BasicServiceConfiguration<>(IMonitoringProducer.class));
+        entityMonitoringService = monitoringProducer == null ? null : services.getService(new PassiveEntityMonitoringServiceConfiguration(monitoringProducer));
+      }
 
-    // create a management registry for this entity to handle exposed objects and stats
-    // if mnm-server distribution is on the classpath
-    managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService));
+      // create a management registry for this entity to handle exposed objects and stats
+      // if mnm-server distribution is on the classpath
+      managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
+    }
 
     if (managementRegistry != null) {
 
