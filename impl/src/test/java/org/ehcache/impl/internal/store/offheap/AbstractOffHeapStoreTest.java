@@ -430,7 +430,6 @@ public abstract class AbstractOffHeapStoreTest {
   @Test
   public void testComputeExpiresOnAccess() throws StoreAccessException {
     timeSource.advanceTime(1000L);
-    
     offHeapStore = createAndInitStore(timeSource,
       Expirations.builder().setAccess(Duration.ZERO).setUpdate(Duration.ZERO).build());
 
