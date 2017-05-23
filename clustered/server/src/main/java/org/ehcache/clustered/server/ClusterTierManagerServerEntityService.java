@@ -39,6 +39,7 @@ import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
@@ -66,8 +67,12 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
   public ClusterTierManagerActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     ClusterTierManagerConfiguration clusterTierManagerConfiguration =
       configCodec.decodeClusterTierManagerConfiguration(configuration);
-    EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    EhcacheStateService ehcacheStateService;
+    try {
+      ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve EhcacheStateService: " + e.getMessage());
+    }
     Management management = new Management(registry, ehcacheStateService, true, clusterTierManagerConfiguration.getIdentifier());
     return new ClusterTierManagerActiveEntity(registry, clusterTierManagerConfiguration, ehcacheStateService, management);
   }
@@ -75,8 +80,12 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
   @Override
   public ClusterTierManagerPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     ClusterTierManagerConfiguration clusterTierManagerConfiguration = configCodec.decodeClusterTierManagerConfiguration(configuration);
-    EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    EhcacheStateService ehcacheStateService;
+    try {
+      ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(clusterTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve EhcacheStateService: " + e.getMessage());
+    }
     Management management = new Management(registry, ehcacheStateService, false, clusterTierManagerConfiguration.getIdentifier());
     return new ClusterTierManagerPassiveEntity(clusterTierManagerConfiguration, ehcacheStateService, management);
   }

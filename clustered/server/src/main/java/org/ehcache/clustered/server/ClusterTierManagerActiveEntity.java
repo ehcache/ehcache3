@@ -39,6 +39,7 @@ import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 
 import java.util.Collections;
@@ -84,7 +85,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
-    entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    try {
+      entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve IEntityMessenger: " + e.getMessage());
+    }
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
