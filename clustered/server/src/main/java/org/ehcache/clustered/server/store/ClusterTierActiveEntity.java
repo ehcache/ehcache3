@@ -647,6 +647,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } catch (ClusterException e) {
       LOGGER.error("Failed to destroy server store - does not exist", e);
     }
+    management.close();
   }
 
   Set<ClientDescriptor> getConnectedClients() {
