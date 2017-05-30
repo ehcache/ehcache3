@@ -71,7 +71,9 @@ public class Management implements Closeable {
 
   @Override
   public void close() {
-    managementRegistry.close();
+    if(managementRegistry != null) {
+      managementRegistry.close();
+    }
   }
 
   protected EhcacheStateService getEhcacheStateService() {

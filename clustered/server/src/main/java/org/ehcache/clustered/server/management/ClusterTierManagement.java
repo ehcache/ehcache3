@@ -76,7 +76,9 @@ public class ClusterTierManagement implements Closeable {
 
   @Override
   public void close() {
-    managementRegistry.close();
+    if (managementRegistry != null) {
+      managementRegistry.close();
+    }
   }
 
   // the goal of the following code is to send the management metadata from the entity into the monitoring tree AFTER the entity creation

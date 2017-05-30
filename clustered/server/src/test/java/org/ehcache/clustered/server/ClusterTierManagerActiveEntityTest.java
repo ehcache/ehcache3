@@ -37,8 +37,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -797,9 +796,7 @@ public class ClusterTierManagerActiveEntityTest {
           this.entityMessenger = mock(IEntityMessenger.class);
         }
         return (T) this.entityMessenger;
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof ActiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       }
 
