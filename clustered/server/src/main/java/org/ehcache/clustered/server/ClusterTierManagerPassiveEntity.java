@@ -118,5 +118,6 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
   @Override
   public void destroy() {
     ehcacheStateService.destroy();
+    management.close();
   }
 }

@@ -55,9 +55,9 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistry;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -221,7 +221,7 @@ public class ClusterTierActiveEntityTest {
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
     IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
-    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null);
+    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
     verify(store).setEvictionListener(any(ServerStoreEvictionListener.class));
@@ -1170,7 +1170,8 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService) {
+                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
       public <T> T getService(final ServiceConfiguration<T> configuration) {
@@ -1183,6 +1184,8 @@ public class ClusterTierActiveEntityTest {
           return (T) stateService;
         } else if (serviceType.isAssignableFrom(EntityMonitoringService.class)) {
           return (T) entityMonitoringService;
+        } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
+          return (T) entityManagementRegistry;
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1377,9 +1380,7 @@ public class ClusterTierActiveEntityTest {
           this.entityMessenger = mock(IEntityMessenger.class);
         }
         return (T) this.entityMessenger;
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof ActiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       }
 

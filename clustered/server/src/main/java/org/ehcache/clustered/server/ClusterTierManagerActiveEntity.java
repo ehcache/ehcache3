@@ -233,7 +233,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void destroy() {
     ehcacheStateService.destroy();
-
+    management.close();
   }
 
   /**
