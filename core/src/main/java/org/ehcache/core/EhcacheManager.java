@@ -679,7 +679,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeAndCloseWithoutNotice(alias);
+      removeCache(alias);
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it
