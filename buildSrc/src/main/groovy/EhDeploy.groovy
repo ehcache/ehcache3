@@ -33,6 +33,7 @@ class EhDeploy implements Plugin<Project> {
 
     project.plugins.apply 'signing'
     project.plugins.apply 'maven'
+    project.plugins.apply EhPomGenerate // for generating pom.*
 
     project.configurations {
         provided
