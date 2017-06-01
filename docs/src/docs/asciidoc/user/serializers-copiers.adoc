@@ -131,7 +131,7 @@ All custom serializers must have a constructor with the following signature:
 public MySerializer(ClassLoader classLoader) {
 }
 ```
-Attempting to configure a serializer that lacks such constructor on a cache using either of
+Attempting to configure a serializer that lacks such a constructor on a cache using either of
 `CacheConfigurationBuilder.withKeySerializer(Class<? extends Serializer<K>> keySerializerClass)` or
 `CacheConfigurationBuilder.withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass)`
 will be sanctioned with an exception upon cache initialization.
@@ -141,7 +141,7 @@ But if an instance of the serializer is configured using either of
 `CacheConfigurationBuilder.withValueSerializer(Serializer valueSerializer)`
 it will work since the instantiation is done by the user code itself.
 
-Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for caches.
+Registering a serializer that lacks such a constructor at the cache manager level will prevent it from being chosen for caches.
 
 Custom serializer implementations could have some state that is used in the serialization/deserialization process.
 When configured on a persistent cache, the state of such serializers needs to be persisted across restarts.
