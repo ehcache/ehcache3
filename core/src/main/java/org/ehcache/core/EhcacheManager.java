@@ -634,23 +634,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return configuration;
   }
 
-  /**
-   * Removes and closes a cache without performing {@link CacheManagerListener#cacheRemoved(String, Cache)}
-   * notifications.
-   *
-   * @param alias the alias of the cache to remove
-   */
-  protected void removeAndCloseWithoutNotice(final String alias) {
-    final CacheHolder cacheHolder = caches.remove(alias);
-    if(cacheHolder != null) {
-      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
-      if(ehcache.getStatus() == Status.AVAILABLE) {
-        ehcache.close();
-      }
-    }
-    configuration.removeCacheConfiguration(alias);
-  }
-
   @Override
   public void destroyCache(final String alias) throws CachePersistenceException {
     if (alias == null) {
@@ -679,7 +662,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeAndCloseWithoutNotice(alias);
+      removeCache(alias, true);
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it
