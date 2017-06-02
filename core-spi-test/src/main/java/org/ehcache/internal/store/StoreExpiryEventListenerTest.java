@@ -37,9 +37,9 @@ import java.util.concurrent.TimeUnit;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * Tests expiry events according to the contract of the

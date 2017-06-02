@@ -49,6 +49,8 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
@@ -74,6 +76,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anySet;
@@ -112,7 +115,7 @@ public class EhcacheManagerTest {
         null, null, ResourcePoolsHelper.createHeapOnlyPools(10));
 
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     Store store = mock(Store.class);
     CacheEventDispatcherFactory cacheEventNotificationListenerServiceProvider = mock(CacheEventDispatcherFactory.class);
 
@@ -204,7 +207,7 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
@@ -240,7 +243,7 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, cl1);
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -273,7 +276,7 @@ public class EhcacheManagerTest {
   public void testThrowsWhenAddingExistingCache() {
     CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
@@ -303,7 +306,7 @@ public class EhcacheManagerTest {
   @Test
   public void testThrowsWhenNotInitialized() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -340,7 +343,7 @@ public class EhcacheManagerTest {
   @Test
   public void testThrowsWhenRetrievingCacheWithWrongTypes() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
@@ -406,7 +409,7 @@ public class EhcacheManagerTest {
     );
 
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     Store mock = mock(Store.class);
     CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -431,7 +434,7 @@ public class EhcacheManagerTest {
   public void testDoesNotifyAboutCache() {
     final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     final Store.Provider mock = mock(Store.Provider.class);
-    when(mock.rank(anySet(), anyCollection())).thenReturn(1);
+    when(mock.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -457,7 +460,7 @@ public class EhcacheManagerTest {
   public void testDoesNotNotifyAboutCacheOnInitOrClose() {
     final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     final Store.Provider mock = mock(Store.Provider.class);
-    when(mock.rank(anySet(), anyCollection())).thenReturn(1);
+    when(mock.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -484,7 +487,7 @@ public class EhcacheManagerTest {
     final Set<Cache<?,?>> caches = new HashSet<Cache<?, ?>>();
     final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Collection<Service> services = getServices(storeProvider, null);
     final RuntimeException thrown = new RuntimeException();
     when(storeProvider.createStore(Matchers.<Store.Configuration>anyObject())).thenReturn(mock(Store.class));
@@ -533,7 +536,7 @@ public class EhcacheManagerTest {
     final Set<String> caches = new HashSet<String>();
     final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
     final Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
@@ -672,7 +675,7 @@ public class EhcacheManagerTest {
   @Test
   public void testChangesToManagerAreReflectedInConfig() {
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     Store store = mock(Store.class);
     CacheEventDispatcherFactory cacheEventNotificationListenerServiceProvider = mock(CacheEventDispatcherFactory.class);
 
@@ -717,7 +720,7 @@ public class EhcacheManagerTest {
   @Test
   public void testCachesAddedAtRuntimeGetReInited() {
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     Store store = mock(Store.class);
     CacheEventDispatcherFactory cacheEventNotificationListenerServiceProvider = mock(CacheEventDispatcherFactory.class);
 
@@ -757,7 +760,7 @@ public class EhcacheManagerTest {
   @Test
   public void testCloseWhenRuntimeCacheCreationFails() throws Exception {
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     doThrow(new Error("Test EhcacheManager close.")).when(storeProvider).createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg());
 
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
@@ -790,7 +793,7 @@ public class EhcacheManagerTest {
   @Test(timeout = 2000L)
   public void testCloseWhenCacheCreationFailsDuringInitialization() throws Exception {
     Store.Provider storeProvider = mock(Store.Provider.class);
-    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     doThrow(new Error("Test EhcacheManager close.")).when(storeProvider).createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg());
 
     CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<Long, String>(Long.class, String.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());

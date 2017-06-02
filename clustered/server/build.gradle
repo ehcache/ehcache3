@@ -46,7 +46,9 @@ compileTestJava {
 }
 
 test {
-  executable = Jvm.current().javaExecutable
+  if (!testJava.javaVersion.isJava8Compatible()) {
+    executable = Jvm.current().javaExecutable
+  }
 }
 
 tasks.withType(JavaCompile) {

@@ -246,13 +246,13 @@ public class XATransactionContextTest {
         savedInDoubt.set(new HashSet<Long>(o));
         return null;
       }
-    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     assertThat(xaTransactionContext.prepare(), is(3));
 
     Assert.assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
 
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
 
@@ -316,7 +316,7 @@ public class XATransactionContextTest {
     xaTransactionContext.commit(false);
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
-    verify(journal, times(0)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(0)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     verify(underlyingStore, times(1)).get(1L);
     verify(underlyingStore, times(1)).replace(eq(1L), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<String>("un", timeSource.getTimeMillis()))), eq(new SoftLock<String>(null, "un", null)));
@@ -364,7 +364,7 @@ public class XATransactionContextTest {
         savedInDoubtCollectionRef.set(new HashSet<Long>((Collection<Long>) invocation.getArguments()[1]));
         return null;
       }
-    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -441,7 +441,7 @@ public class XATransactionContextTest {
 
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     verify(underlyingStore, times(1)).putIfAbsent(eq(1L), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), null, new XAValueHolder<String>("un", timeSource.getTimeMillis()))));
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<String>(null, "two", null)), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "two", null)));

@@ -29,9 +29,9 @@ import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * StoreCreationEventListenerTest

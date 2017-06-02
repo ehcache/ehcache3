@@ -278,7 +278,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
+    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();

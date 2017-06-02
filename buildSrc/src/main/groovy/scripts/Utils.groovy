@@ -16,13 +16,10 @@
 
 package scripts
 
-import org.gradle.internal.os.OperatingSystem
-
 class Utils {
 
   String version
   String revision
-  Map<File, Map<String, ?>> executablesPath = [:]
 
   Utils(version, logger) {
     this.version = version
@@ -87,19 +84,5 @@ class Utils {
         }
       }
     }
-  }
-
-  def executables(path) {
-    def execMap = executablesPath.get(path)
-    if (execMap == null) {
-      execMap = [:].withDefault { execName ->
-        def extension = OperatingSystem.current().isWindows() ? ".exe" : ""
-        def executable = new File(path, 'bin' + File.separator + execName + extension)
-        assert executable.exists(): "There is no ${execName} executable in ${path}"
-        executable
-      }
-      executablesPath.put(path, execMap)
-    }
-    execMap
   }
 }
