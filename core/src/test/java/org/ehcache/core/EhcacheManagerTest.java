@@ -96,7 +96,7 @@ public class EhcacheManagerTest {
     return new HashMap<String, CacheConfiguration<?, ?>>();
   }
 
-  private List<Service> minimunCacheManagerServices() {
+  private List<Service> minimumCacheManagerServices() {
     return new ArrayList<Service>(Arrays.asList(
       mock(Store.Provider.class),
       mock(CacheLoaderWriterProvider.class),
@@ -184,7 +184,7 @@ public class EhcacheManagerTest {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("myCache", mock(CacheConfiguration.class));
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
-    List<Service> services = minimunCacheManagerServices();
+    List<Service> services = minimumCacheManagerServices();
     EhcacheManager cacheManager = new EhcacheManager(config, services);
 
     Store.Provider storeProvider = (Store.Provider) services.get(0); // because I know it's the first of the list
@@ -833,7 +833,7 @@ public class EhcacheManagerTest {
   public void testDestroyCacheFailsIfAlreadyInMaintenanceMode() throws CachePersistenceException, InterruptedException {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
-    final EhcacheManager manager = new EhcacheManager(config, minimunCacheManagerServices());
+    final EhcacheManager manager = new EhcacheManager(config, minimumCacheManagerServices());
 
     Thread thread = new Thread(new Runnable() {
       @Override
@@ -854,7 +854,7 @@ public class EhcacheManagerTest {
   public void testDestroyCacheFailsAndStopIfStartingServicesFails() throws CachePersistenceException, InterruptedException {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
-    List<Service> services = minimunCacheManagerServices();
+    List<Service> services = minimumCacheManagerServices();
     MaintainableService service = mock(MaintainableService.class);
     doThrow(new RuntimeException("failed")).when(service)
       .startForMaintenance(Mockito.<ServiceProvider<MaintainableService>>anyObject(), eq(MaintainableService.MaintenanceScope.CACHE));
