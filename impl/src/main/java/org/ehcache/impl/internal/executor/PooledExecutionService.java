@@ -113,7 +113,9 @@ public class PooledExecutionService implements ExecutionService {
   }
 
   /**
-   * Stop the service. Underlying executors will be stopped calling {@code shutdownNow}. Pending tasks are discarded
+   * Stop the service. Underlying executors will be stopped calling {@code shutdownNow}. Pending tasks are discarded. Currently running tasks are
+   * awaited for termination for 30 seconds. So it is possible to get out of this method after 30 seconds having tasks that are still running. If it
+   * occurs, the event will be logged as a warning.
    */
   @Override
   public void stop() {
