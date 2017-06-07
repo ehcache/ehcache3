@@ -187,6 +187,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if(cacheHolder != null) {
       final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if (ehcache != null) {
+        if (removeFromConfig) {
+          configuration.removeCacheConfiguration(alias);
+        }
+
         if (!statusTransitioner.isTransitioning()) {
           for (CacheManagerListener listener : listeners) {
             listener.cacheRemoved(alias, ehcache);
@@ -195,9 +199,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         ehcache.close();
         closeEhcache(alias, ehcache);
-        if (removeFromConfig) {
-          configuration.removeCacheConfiguration(alias);
-        }
       }
       LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
