@@ -6,15 +6,21 @@
 :uri-fork: {uri-repo}/fork
 :uri-waffle: https://waffle.io/ehcache/ehcache3
 :uri-dev-ml: https://groups.google.com/forum/#!forum/ehcache-dev
+:uri-users-ml: https://groups.google.com/forum/#!forum/ehcache-users
 
-== Process
+== Reporting issues
+
+ . Before opening an issue, drop us an email on the {uri-users-ml}[user mailing list] so we can chat about the problem first.
+ . Based on the discussion and findings in the mail thread, you will be asked to provide all the relevant information to open an {uri-issues}[issue] in case you found a genuine bug.
+
+== Fixing issues
 
 On paper (or on this screen), it's pretty straight forward:
 
  . Join the {uri-dev-ml}[developer mailing list] and say hello! Or join us on irc #ehcache on freenode
  . Check the {uri-issues}[issues] and verify what you want isn't yet planned or could even already being worked on by someone; We're also using a board on {uri-waffle}[waffle.io], where work for the current milestone is prioritized;
  . If the task exists already and isn't assigned: drop us an email on the {uri-dev-ml}[developer mailing list] about it and we'll make sure we help you getting started and we'll assign the task/issue to you;
- . If nothing matches in the existing issue list, create a bug as such; or, if we're talking about a larger task or feature, {uri-dev-ml}[drop us a message] first, and we'll see how to tackle it;
+ . If we're talking about a larger task or feature, {uri-dev-ml}[drop us a message] first, and we'll see how to tackle it;
  . {uri-fork}[Fork] the project to your own repository and get started (you probably want to work on a dedicated branch);
  . Rebase your fork and do a pull request. We'll use that to code review it (see {uri-wiki}/dev.git[git usage page] as well as the {uri-wiki}/dev.guidelines[developer guidelines])
  . Be rich and famous!
