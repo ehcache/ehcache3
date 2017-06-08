@@ -17,6 +17,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import org.ehcache.config.CacheConfiguration;
@@ -43,6 +44,11 @@ public class XmlConfiguration {
   
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+  private static Schema newSchema(Source[] schemas) throws SAXException {
+    synchronized (XSD_SCHEMA_FACTORY) {
+      return XSD_SCHEMA_FACTORY.newSchema(schemas);
+    }
+  }
 
   private final DocumentBuilder domBuilder;
   private final Map<URI, XmlConfigurationParser> xmlParsers = new HashMap<>();
@@ -59,7 +65,7 @@ public class XmlConfiguration {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
+    factory.setSchema(newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     try {
       this.domBuilder = factory.newDocumentBuilder();

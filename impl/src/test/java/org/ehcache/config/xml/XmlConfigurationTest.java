@@ -12,6 +12,13 @@ import org.ehcache.config.Configuration;
 import org.ehcache.spi.ServiceConfiguration;
 import org.xml.sax.SAXParseException;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import static java.util.Collections.nCopies;
 import static org.hamcrest.collection.IsCollectionWithSize.*;
 import static org.hamcrest.core.Is.*;
 import static org.hamcrest.core.IsCollectionContaining.*;
@@ -86,4 +93,24 @@ public class XmlConfigurationTest {
     
     assertThat(configTwo, not(sameInstance(configOne)));
   }
+
+  @Test
+  public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
+    Callable<Configuration> parserTask = new Callable<Configuration>() {
+      @Override
+      public Configuration call() throws Exception {
+        return new XmlConfiguration().parseConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+      }
+    };
+
+    ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    try {
+      for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
+        assertThat(c.get(), notNullValue());
+      }
+    } finally {
+      service.shutdown();
+    }
+  }
+
 }
