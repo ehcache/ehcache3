@@ -88,6 +88,18 @@ class OutOfBandScheduledExecutor {
     return scheduler.awaitTermination(timeout, unit);
   }
 
+  public boolean isShutdown() {
+    return scheduler.isShutdown();
+  }
+
+  public boolean isTerminating() {
+    return scheduler.isTerminating();
+  }
+
+  public boolean isTerminated() {
+    return scheduler.isTerminated();
+  }
+
   interface ExecutorCarrier {
     ExecutorService executor();
   }

@@ -113,9 +113,8 @@ public class PooledExecutionService implements ExecutionService {
   }
 
   /**
-   * Stop the service. Underlying executors will be stopped calling {@code shutdownNow}. Pending tasks are discarded. Currently running tasks are
-   * awaited for termination for 30 seconds. So it is possible to get out of this method after 30 seconds having tasks that are still running. If it
-   * occurs, the event will be logged as a warning.
+   * Stop the service. Underlying executors will be stopped calling {@code shutdownNow}. Pending tasks are discarded. Running tasks are
+   * awaited for termination indefinitely. A warning is emitted every 30 seconds if some tasks are still running.
    */
   @Override
   public void stop() {
@@ -131,12 +130,30 @@ public class PooledExecutionService implements ExecutionService {
       }
     }
     try {
-      if(!scheduledExecutor.awaitTermination(30, SECONDS)) {
-        LOGGER.warn("Timeout while waiting on scheduler to finish");
+      while(!scheduledExecutor.awaitTermination(30, SECONDS)) {
+        LOGGER.warn("Timeout while waiting on scheduler to finish, keep waiting");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+  }
+
+  /**
+   * Tells that {@link #stop()} has been called but hasn't finished processing running tasks yet.
+   *
+   * @return if a stop is currently going on
+   */
+  public boolean isStopping() {
+    return scheduledExecutor.isTerminating();
+  }
+
+  /**
+   * {@link #stop} has been called and has managed to finish processing all tasks.
+   *
+   * @return
+   */
+  public boolean isStopped() {
+    return scheduledExecutor.isTerminated();
   }
 
   private static ThreadPoolExecutor createPool(String alias, PoolConfiguration config) {

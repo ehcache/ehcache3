@@ -130,12 +130,15 @@ public class PooledExecutionServiceTest {
 
     assertThat(Thread.currentThread().isInterrupted()).isFalse();
 
-    // Note: This test also tends to fail when other tests are not closing stores or cache managers correctly. So it will
-    // also print these threads below and fail. To go look after them, turn ThreadFactoryUtil.DEBUG to true to get a full
-    // stacktrace to the creation point.
-    detectLeakingThreads();
+    assertThat(pooledExecutionService.isStopped()).isTrue();
   }
 
+  /**
+   * This method can be used to debug a failure in {@link #testAllThreadsAreStopped()} but also any other king of thread
+   * leaking. You can enable thread tracking in {@link ThreadFactoryUtil}. Note that on a slow machine, the detector might "lie". Because
+   * even if a thread pool is stopped, it doesn't mean all the underlying threads had the time to die. It only means that they are not
+   * processing any tasks anymore.
+   */
   public static void detectLeakingThreads() {
     Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
     Set<String> leakedThreads = new HashSet<String>();
