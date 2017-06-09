@@ -232,7 +232,7 @@ subprojects {
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
-      forkOptions.executable = java6.javacExecutable
+      forkOptions.javaHome = java6.javaHome
     }
   }
   tasks.withType(Test) {

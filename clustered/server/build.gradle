@@ -38,11 +38,11 @@ dependencies {
 }
 
 compileJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+  options.forkOptions.javaHome = Jvm.current().javaHome
 }
 
 compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+  options.forkOptions.javaHome = Jvm.current().javaHome
 }
 
 test {
