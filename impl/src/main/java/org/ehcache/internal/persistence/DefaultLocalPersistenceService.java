@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 
 /**
  * @author Alex Snaps
@@ -45,9 +46,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     try {
       lockFile = new File(rootDirectory + File.separator + ".lock");
       final RandomAccessFile rw = new RandomAccessFile(lockFile, "rw");
-      lock = rw.getChannel().lock();
+      if ((lock = rw.getChannel().tryLock()) == null) {
+        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
+      }
+    } catch (OverlappingFileLockException e) {
+      throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
     } catch (IOException e) {
-      throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.getAbsolutePath(), e);
     }
   }
 
