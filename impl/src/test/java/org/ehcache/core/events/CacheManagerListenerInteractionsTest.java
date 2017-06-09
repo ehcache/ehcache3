@@ -29,8 +29,9 @@ import org.junit.Test;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -54,9 +55,9 @@ public class CacheManagerListenerInteractionsTest {
       .build();
 
     cacheManager.createCache(CACHE_NAME, cacheConfiguration);
-    verify(cacheManagerListener).cacheAdded(eq(CACHE_NAME), (Cache<?, ?>) any());
+    verify(cacheManagerListener).cacheAdded(eq(CACHE_NAME), (Cache<?, ?>) isNotNull());
     cacheManager.removeCache(CACHE_NAME);
-    verify(cacheManagerListener).cacheRemoved(eq(CACHE_NAME), (Cache<?, ?>) any());
+    verify(cacheManagerListener).cacheRemoved(eq(CACHE_NAME), (Cache<?, ?>) isNotNull());
   }
 
 

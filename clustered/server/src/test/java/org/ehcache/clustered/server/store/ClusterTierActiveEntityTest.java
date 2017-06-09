@@ -63,7 +63,6 @@ import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
@@ -87,9 +86,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -1076,7 +1076,7 @@ public class ClusterTierActiveEntityTest {
     activeEntity.invoke(client, getAndAppend);
 
     ArgumentCaptor<PassiveReplicationMessage.ChainReplicationMessage> captor = ArgumentCaptor.forClass(PassiveReplicationMessage.ChainReplicationMessage.class);
-    verify(entityMessenger).messageSelfAndDeferRetirement(any(), captor.capture());
+    verify(entityMessenger).messageSelfAndDeferRetirement(isNotNull(), captor.capture());
     PassiveReplicationMessage.ChainReplicationMessage replicatedMessage = captor.getValue();
 
     assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
