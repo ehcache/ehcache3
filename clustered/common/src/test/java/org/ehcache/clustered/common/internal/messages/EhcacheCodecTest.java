@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
