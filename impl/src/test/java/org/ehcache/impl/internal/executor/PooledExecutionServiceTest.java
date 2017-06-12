@@ -63,19 +63,19 @@ public class PooledExecutionServiceTest {
   @Test
   public void testGetOrderedExecutorFailsOnNonExistentPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    configuration.addPool("aaa", 0, 1);
+    configuration.addPool("getOrderedExecutorFailsOnNonExistentPool", 0, 1);
     pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
 
-    expectedException.expectMessage("Pool 'abc' is not in the set of available pools [aaa]");
+    expectedException.expectMessage("Pool 'abc' is not in the set of available pools [getOrderedExecutorFailsOnNonExistentPool]");
     pooledExecutionService.getOrderedExecutor("abc", new LinkedBlockingDeque<Runnable>());
   }
 
   @Test
   public void testGetOrderedExecutorFailsOnNonExistentDefaultPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    configuration.addPool("aaa", 0, 1);
+    configuration.addPool("getOrderedExecutorFailsOnNonExistentDefaultPool", 0, 1);
     pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
@@ -87,19 +87,19 @@ public class PooledExecutionServiceTest {
   @Test
   public void testGetOrderedExecutorSucceedsOnExistingPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    configuration.addPool("aaa", 0, 1);
+    configuration.addPool("getOrderedExecutorSucceedsOnExistingPool", 0, 1);
     pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
 
-    ExecutorService aaa = pooledExecutionService.getOrderedExecutor("aaa", new LinkedBlockingDeque<Runnable>());
+    ExecutorService aaa = pooledExecutionService.getOrderedExecutor("getOrderedExecutorSucceedsOnExistingPool", new LinkedBlockingDeque<Runnable>());
     aaa.shutdown();
   }
 
   @Test
   public void testGetOrderedExecutorSucceedsOnExistingDefaultPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    configuration.addDefaultPool("dflt", 0, 1);
+    configuration.addDefaultPool("getOrderedExecutorSucceedsOnExistingDefaultPool", 0, 1);
     pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
@@ -111,29 +111,34 @@ public class PooledExecutionServiceTest {
   @Test
   public void testAllThreadsAreStopped() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    configuration.addDefaultPool("dflt", 0, 1);
+    configuration.addDefaultPool("allThreadsAreStopped", 0, 1);
     pooledExecutionService = new PooledExecutionService(configuration);
     pooledExecutionService.start(null);
 
     final CountDownLatch latch = new CountDownLatch(1);
 
-    pooledExecutionService.getScheduledExecutor("dflt")
+    pooledExecutionService.getScheduledExecutor("allThreadsAreStopped")
       .execute(new Runnable() {
         @Override
         public void run() {
           latch.countDown();
         }});
 
-    latch.await(30, TimeUnit.SECONDS);
+    assertThat(latch.await(30, TimeUnit.SECONDS)).isTrue();
 
     pooledExecutionService.stop();
 
-    // Note: This test also tends to fail when other tests are not closing stores or cache managers correctly. So it will
-    // also print these threads below and fail. To go look after them, turn ThreadFactoryUtil.DEBUG to true to get a full
-    // stacktrace to the creation point.
-    detectLeakingThreads();
+    assertThat(Thread.currentThread().isInterrupted()).isFalse();
+
+    assertThat(pooledExecutionService.isStopped()).isTrue();
   }
 
+  /**
+   * This method can be used to debug a failure in {@link #testAllThreadsAreStopped()} but also any other king of thread
+   * leaking. You can enable thread tracking in {@link ThreadFactoryUtil}. Note that on a slow machine, the detector might "lie". Because
+   * even if a thread pool is stopped, it doesn't mean all the underlying threads had the time to die. It only means that they are not
+   * processing any tasks anymore.
+   */
   public static void detectLeakingThreads() {
     Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
     Set<String> leakedThreads = new HashSet<String>();
