@@ -36,7 +36,7 @@ dependencies {
 }
 
 compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+  options.forkOptions.javaHome = Jvm.current().javaHome
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
 }

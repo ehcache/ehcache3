@@ -65,7 +65,7 @@ task copyServerLibs(type: Copy) {
 }
 
 compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+  options.forkOptions.javaHome = Jvm.current().javaHome
 }
 
 test {
