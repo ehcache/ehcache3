@@ -62,6 +62,7 @@ class EhDistribute implements Plugin<Project> {
       }
       // LICENSE is included in root gradle build
       from "$project.rootDir/NOTICE"
+      duplicatesStrategy = 'exclude'
     }
 
 
