@@ -38,7 +38,7 @@ There are two places where serializers can be configured:
 ** `CacheConfigurationBuilder.withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass)`,
 ** and `CacheConfigurationBuilder.withValueSerializer(Serializer<V> valueSerializer)`
 +
-which allow by _instance_ or by _class name_ configuration.
+which allow by _instance_ or by _class_ configuration.
 * at the cache manager level where one can use
 ** `CacheManagerBuilder.withSerializer(Class<C> clazz, Class<? extends Serializer<C>> serializer)`
 
