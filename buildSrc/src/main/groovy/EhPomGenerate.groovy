@@ -3,6 +3,7 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
+import scripts.Utils
 
 /*
  * Copyright Terracotta, Inc.
@@ -30,6 +31,8 @@ class EhPomGenerate implements Plugin<Project> {
   @Override
   void apply(Project project) {
 
+    def utils = new Utils(project.baseVersion, project.logger)
+
     project.plugins.apply "maven-publish" // for generating pom.*
 
     def mavenTempResourcePath = "${project.buildDir}/mvn/META-INF/maven/${project.group}/${project.archivesBaseName}"
@@ -55,6 +58,7 @@ class EhPomGenerate implements Plugin<Project> {
         mavenJava(MavenPublication) {
           artifactId project.archivesBaseName
           from project.components.java
+          utils.pomFiller(pom, project.subPomName, project.subPomDesc)
         }
       }
     }

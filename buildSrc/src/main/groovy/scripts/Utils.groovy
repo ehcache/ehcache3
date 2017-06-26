@@ -51,36 +51,38 @@ class Utils {
   }
 
   def pomFiller(pom, nameVar, descriptionVar) {
-    pom.project {
-      name = nameVar
-      description = descriptionVar
-      url = 'http://ehcache.org'
-      organization {
-        name = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-        url = 'http://terracotta.org'
-      }
-      issueManagement {
-        system = 'Github'
-        url = 'https://github.com/ehcache/ehcache3/issues'
-      }
-      scm {
-        url = 'https://github.com/ehcache/ehcache3'
-        connection = 'scm:git:https://github.com/ehcache/ehcache3.git'
-        developerConnection = 'scm:git:git@github.com:ehcache/ehcache3.git'
-      }
-      licenses {
-        license {
-          name = 'The Apache Software License, Version 2.0'
-          url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          distribution = 'repo'
+    pom.withXml {
+      asNode().version[0] + {
+        name nameVar
+        description descriptionVar
+        url 'http://ehcache.org'
+        organization {
+          name 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+          url 'http://terracotta.org'
         }
-      }
-      developers {
-        developer {
-          name = 'Terracotta Engineers'
-          email = 'tc-oss@softwareag.com'
-          organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-          organizationUrl = 'http://ehcache.org'
+        issueManagement {
+          system 'Github'
+          url 'https://github.com/ehcache/ehcache3/issues'
+        }
+        scm {
+          url 'https://github.com/ehcache/ehcache3'
+          connection 'scm:git:https://github.com/ehcache/ehcache3.git'
+          developerConnection 'scm:git:git@github.com:ehcache/ehcache3.git'
+        }
+        licenses {
+          license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+          }
+        }
+        developers {
+          developer {
+            name 'Terracotta Engineers'
+            email 'tc-oss@softwareag.com'
+            organization 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+            organizationUrl 'http://ehcache.org'
+          }
         }
       }
     }
