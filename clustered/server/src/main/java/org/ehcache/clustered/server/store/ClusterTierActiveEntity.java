@@ -65,6 +65,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.entity.StateDumpCollector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,7 +118,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
-
+  private final String managerIdentifier;
   private final Object inflightInvalidationsMutex = new Object();
   private volatile List<InvalidationTuple> inflightInvalidations;
 
@@ -127,6 +128,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
     storeIdentifier = entityConfiguration.getStoreIdentifier();
     configuration = entityConfiguration.getConfiguration();
+    managerIdentifier = entityConfiguration.getManagerIdentifier();
     responseFactory = new EhcacheEntityResponseFactory();
     try {
       clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
@@ -139,6 +141,24 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     management = new ClusterTierManagement(registry, stateService, true, storeIdentifier, entityConfiguration.getManagerIdentifier());
+  }
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClusterTierDump.dump(dump, managerIdentifier, storeIdentifier, configuration);
+    {
+      Map<ClientDescriptor, ClusterTierClientState> clients = new HashMap<>(connectedClients);
+      dump.addState("clientCount", String.valueOf(clients.size()));
+      StateDumpCollector clientsDump = dump.subStateDumpCollector("clients");
+      int idx = 0;
+      for (Map.Entry<ClientDescriptor, ClusterTierClientState> entry : clients.entrySet()) {
+        StateDumpCollector clientDump = clientsDump.subStateDumpCollector(String.valueOf(idx++));
+        clientDump.addState("clientDescriptor", entry.getKey().toString());
+        clientDump.addState("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
+        clientDump.addState("storeIdentifier", entry.getValue().getStoreIdentifier());
+        clientDump.addState("attached", String.valueOf(entry.getValue().isAttached()));
+      }
+    }
   }
 
   @Override
