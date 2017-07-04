@@ -91,8 +91,8 @@ public class Tiering {
   @Test
   public void persistentCacheManager() throws Exception {
     // tag::persistentCacheManager[]
-    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <2>
-      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
+    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <1>
+      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <2>
       .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)) // <3>
       )
