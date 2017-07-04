@@ -25,10 +25,10 @@ configurations {
 
 dependencies {
   // not required by gradle but required by the IDE because 'dist' do not has any transitive dependencies
-  testCompile project(':clustered:client')
-  testCompile project(':clustered:common')
-  testCompile project(':impl')
-  testCompile project(':xml')
+  testCompileOnly project(':clustered:client')
+  testCompileOnly project(':clustered:common')
+  testCompileOnly project(':impl')
+  testCompileOnly project(':xml')
 
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
