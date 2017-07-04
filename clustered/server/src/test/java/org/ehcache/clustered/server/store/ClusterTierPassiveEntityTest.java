@@ -26,7 +26,6 @@ import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguratio
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.BasicServiceConfiguration;
@@ -51,6 +50,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -106,7 +106,7 @@ public class ClusterTierPassiveEntityTest {
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
     assertThat(defaultRegistry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder(defaultSharedPool));
-    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(empty()));
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(MemoryUnit.MEGABYTES.toBytes(2L)));
   }
 
@@ -117,8 +117,8 @@ public class ClusterTierPassiveEntityTest {
 
     passiveEntity.destroy();
 
-    assertThat(defaultRegistry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
-    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getStores(), is(empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(empty()));
 
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(0L));
   }
@@ -128,7 +128,7 @@ public class ClusterTierPassiveEntityTest {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
 
     try {
-      passiveEntity.invoke(new InvalidMessage());
+      passiveEntity.invokePassive(null, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
