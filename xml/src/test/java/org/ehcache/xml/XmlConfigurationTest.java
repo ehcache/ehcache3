@@ -50,6 +50,7 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -78,11 +79,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import static java.util.Collections.nCopies;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -597,6 +604,7 @@ public class XmlConfigurationTest {
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
+    assertThat(diskConfig.getDiskSegments(), is(4));
   }
 
   @Test
@@ -711,6 +719,25 @@ public class XmlConfigurationTest {
       assertThat(e.getMessage().contains("${bar}"), is(true));
     }
     assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
+  }
+
+  @Test
+  public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
+    Callable<Configuration> parserTask = new Callable<Configuration>() {
+      @Override
+      public Configuration call() throws Exception {
+        return new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+      }
+    };
+
+    ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    try {
+      for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
+        assertThat(c.get(), IsNull.notNullValue());
+      }
+    } finally {
+      service.shutdown();
+    }
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

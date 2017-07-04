@@ -55,16 +55,16 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistry;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,9 +86,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -220,7 +221,7 @@ public class ClusterTierActiveEntityTest {
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
     IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
-    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null);
+    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
     verify(store).setEvictionListener(any(ServerStoreEvictionListener.class));
@@ -1075,7 +1076,7 @@ public class ClusterTierActiveEntityTest {
     activeEntity.invoke(client, getAndAppend);
 
     ArgumentCaptor<PassiveReplicationMessage.ChainReplicationMessage> captor = ArgumentCaptor.forClass(PassiveReplicationMessage.ChainReplicationMessage.class);
-    verify(entityMessenger).messageSelfAndDeferRetirement(any(), captor.capture());
+    verify(entityMessenger).messageSelfAndDeferRetirement(isNotNull(), captor.capture());
     PassiveReplicationMessage.ChainReplicationMessage replicatedMessage = captor.getValue();
 
     assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
@@ -1169,7 +1170,8 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService) {
+                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
       public <T> T getService(final ServiceConfiguration<T> configuration) {
@@ -1182,8 +1184,15 @@ public class ClusterTierActiveEntityTest {
           return (T) stateService;
         } else if (serviceType.isAssignableFrom(EntityMonitoringService.class)) {
           return (T) entityMonitoringService;
+        } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
+          return (T) entityManagementRegistry;
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
+      }
+
+      @Override
+      public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+        return Collections.singleton(getService(configuration));
       }
     };
   }
@@ -1371,13 +1380,16 @@ public class ClusterTierActiveEntityTest {
           this.entityMessenger = mock(IEntityMessenger.class);
         }
         return (T) this.entityMessenger;
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof ActiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
+    }
+
+    @Override
+    public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+      return Collections.singleton(getService(configuration));
     }
   }
 

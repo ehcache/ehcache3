@@ -36,6 +36,7 @@ class EhDistribute implements Plugin<Project> {
     project.plugins.apply EhOsgi
     project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
+    project.plugins.apply EhPomGenerate
 
     def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
@@ -61,6 +62,7 @@ class EhDistribute implements Plugin<Project> {
       }
       // LICENSE is included in root gradle build
       from "$project.rootDir/NOTICE"
+      duplicatesStrategy = 'exclude'
     }
 
 

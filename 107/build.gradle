@@ -49,6 +49,12 @@ javadoc {
   classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
 }
 
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
+}
+
 task unpackTckTests(type: Copy) {
   from {
     configurations.tckTestClasses.collect {zipTree(it)}
@@ -57,7 +63,9 @@ task unpackTckTests(type: Copy) {
 }
 
 task tckTest(type: Test, dependsOn: unpackTckTests) {
-  executable = Jvm.current().javaExecutable
+  if (!testJava.javaVersion.isJava7Compatible()) {
+    executable = Jvm.current().javaExecutable
+  }
   testClassesDir = sourceSets.tckTest.output.classesDir
   classpath += sourceSets.tckTest.runtimeClasspath
 

@@ -84,16 +84,17 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   public void test_C_client_capabilities_exposed() throws Exception {
     Capability[] capabilities = readTopology().getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
-    assertThat(capabilities.length).isEqualTo(5);
+    assertThat(capabilities.length).isEqualTo(6);
     assertThat(capabilities[0].getName()).isEqualTo("ActionsCapability");
-    assertThat(capabilities[1].getName()).isEqualTo("NmsAgentService");
-    assertThat(capabilities[2].getName()).isEqualTo("SettingsCapability");
-    assertThat(capabilities[3].getName()).isEqualTo("StatisticCollectorCapability");
-    assertThat(capabilities[4].getName()).isEqualTo("StatisticsCapability");
+    assertThat(capabilities[1].getName()).isEqualTo("DiagnosticCalls");
+    assertThat(capabilities[2].getName()).isEqualTo("NmsAgentService");
+    assertThat(capabilities[3].getName()).isEqualTo("SettingsCapability");
+    assertThat(capabilities[4].getName()).isEqualTo("StatisticCollectorCapability");
+    assertThat(capabilities[5].getName()).isEqualTo("StatisticsCapability");
 
     assertThat(capabilities[0].getDescriptors()).hasSize(4);
 
-    Collection<? extends Descriptor> descriptors = capabilities[4].getDescriptors();
+    Collection<? extends Descriptor> descriptors = capabilities[5].getDescriptors();
     Collection<Descriptor> allDescriptors = new ArrayList<>();
     allDescriptors.addAll(CACHE_DESCRIPTORS);
     allDescriptors.addAll(ONHEAP_DESCRIPTORS);
@@ -232,16 +233,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     TreeSet<String> cNames = contextContainer.getSubContexts().stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
-    List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
+    waitForAllNotifications("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "EHCACHE_SERVER_STORE_ATTACHED", "CACHE_ADDED");
   }
 
   @Test
   public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
-    List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages)).containsOnly("CACHE_REMOVED", "EHCACHE_SERVER_STORE_RELEASED", "SERVER_ENTITY_UNFETCHED");
+    waitForAllNotifications("CACHE_REMOVED", "EHCACHE_SERVER_STORE_RELEASED", "SERVER_ENTITY_UNFETCHED");
   }
 
   @Test

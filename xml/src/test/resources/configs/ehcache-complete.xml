@@ -72,7 +72,7 @@
       <ehcache:max-object-graph-size>10</ehcache:max-object-graph-size>
       <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
     </ehcache:heap-store-settings>
-    <ehcache:disk-store-settings thread-pool="pool-disk" writer-concurrency="10"/>
+    <ehcache:disk-store-settings thread-pool="pool-disk" writer-concurrency="10" disk-segments="2"/>
     <foo:foo/>
   </ehcache:cache>
 </ehcache:config>

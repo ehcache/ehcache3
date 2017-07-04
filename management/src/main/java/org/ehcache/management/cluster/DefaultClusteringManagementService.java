@@ -34,12 +34,8 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.management.entity.nms.agent.NmsAgentConfig;
-import org.terracotta.management.entity.nms.agent.NmsAgentVersion;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentEntity;
-import org.terracotta.management.entity.nms.agent.client.NmsAgentEntityFactory;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
@@ -61,7 +57,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
   private volatile NmsAgentService nmsAgentService;
-  private volatile ClientEntityFactory<NmsAgentEntity, NmsAgentConfig> nmsAgentFactory;
+  private volatile ClientEntityFactory<NmsAgentEntity, Void> nmsAgentFactory;
   private volatile InternalCacheManager cacheManager;
   private volatile ExecutorService managementCallExecutor;
   private volatile ClusteringService clusteringService;
@@ -88,11 +84,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this.collectorService.start(serviceProvider);
 
     EntityService entityService = serviceProvider.getService(EntityService.class);
-    this.nmsAgentFactory = entityService.newClientEntityFactory(
-        NmsAgentEntityFactory.ENTITYNAME,
-        NmsAgentEntity.class,
-        NmsAgentVersion.LATEST.version(),
-        new NmsAgentConfig());
+    this.nmsAgentFactory = entityService.newClientEntityFactory("NmsAgent", NmsAgentEntity.class, 1, null);
 
     this.cacheManager.registerListener(this);
   }
@@ -132,15 +124,8 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
         try {
           nmsAgentEntity = nmsAgentFactory.retrieve();
         } catch (EntityNotFoundException e) {
-          try {
-            nmsAgentFactory.create();
-          } catch (EntityAlreadyExistsException ignored) {
-          }
-          try {
-            nmsAgentEntity = nmsAgentFactory.retrieve();
-          } catch (EntityNotFoundException bigFailure) {
-            throw (AssertionError) new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " cannot be retrieved even after being created.").initCause(bigFailure.getCause());
-          }
+          // should never occur because entity is permanent
+          throw (AssertionError) new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " not found").initCause(e.getCause());
         }
         nmsAgentService = new NmsAgentService(nmsAgentEntity);
         nmsAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);

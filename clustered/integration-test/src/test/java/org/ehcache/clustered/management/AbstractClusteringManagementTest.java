@@ -46,9 +46,10 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -60,7 +61,6 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 
 public abstract class AbstractClusteringManagementTest {
@@ -157,23 +157,19 @@ public abstract class AbstractClusteringManagementTest {
       .getServerEntityIdentifier();
 
     // test_notifs_sent_at_CM_init
-    List<Message> messages = readMessages();
-    List<String> notificationTypes = notificationTypes(messages);
-
-    Map<String, List<String>> counts = notificationTypes.stream().collect(Collectors.groupingBy(o -> o));
-    assertThat(counts.get("CLIENT_CONNECTED"), hasSize(1));
-    assertThat(counts.get("CLIENT_REGISTRY_AVAILABLE"), hasSize(1));
-    assertThat(counts.get("CLIENT_TAGS_UPDATED"), hasSize(1));
-    assertThat(counts.get("EHCACHE_CLIENT_VALIDATED"), hasSize(1));
-    assertThat(counts.get("EHCACHE_RESOURCE_POOLS_CONFIGURED"), hasSize(1));
-    assertThat(counts.get("EHCACHE_SERVER_STORE_CREATED"), hasSize(3));
-    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(5));
-    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(8));
-    assertThat(counts.get("SERVER_ENTITY_DESTROYED"), hasSize(1));
-    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(10));
-    assertThat(counts.get("SERVER_ENTITY_UNFETCHED"), hasSize(3));
-
-    assertThat(readMessages(), hasSize(0));
+    waitForAllNotifications(
+      "CLIENT_CONNECTED",
+      "CLIENT_REGISTRY_AVAILABLE",
+      "CLIENT_TAGS_UPDATED",
+      "EHCACHE_CLIENT_VALIDATED",
+      "EHCACHE_RESOURCE_POOLS_CONFIGURED",
+      "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED",
+      "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
+      "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
+      "SERVER_ENTITY_DESTROYED",
+      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
+      "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_UNFETCHED"
+    );
 
     sendManagementCallOnEntityToCollectStats();
   }
@@ -204,16 +200,13 @@ public abstract class AbstractClusteringManagementTest {
   @Before
   public void init() throws Exception {
     if (nmsService != null) {
-      readMessages();
+      // this call clear the CURRRENT arrived messages, but be aware that some other messages can arrive just after the drain
+      nmsService.readMessages();
     }
   }
 
   protected static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
     return nmsService.readTopology();
-  }
-
-  protected static List<Message> readMessages() throws Exception {
-    return nmsService.readMessages();
   }
 
   protected static void sendManagementCallOnClientToCollectStats() throws Exception {
@@ -224,19 +217,11 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static List<ContextualStatistics> waitForNextStats() throws Exception {
     // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
-    while (!Thread.currentThread().isInterrupted()) {
-      List<ContextualStatistics> messages = readMessages()
-        .stream()
-        .filter(message -> message.getType().equals("STATISTICS"))
-        .flatMap(message -> message.unwrap(ContextualStatistics.class).stream())
-        .collect(Collectors.toList());
-      if (messages.isEmpty()) {
-        Thread.yield();
-      } else {
-        return messages;
-      }
-    }
-    return Collections.emptyList();
+    return nmsService.waitForMessage(message -> message.getType().equals("STATISTICS"))
+      .stream()
+      .filter(message -> message.getType().equals("STATISTICS"))
+      .flatMap(message -> message.unwrap(ContextualStatistics.class).stream())
+      .collect(Collectors.toList());
   }
 
   protected static List<String> notificationTypes(List<Message> messages) {
@@ -266,4 +251,22 @@ public abstract class AbstractClusteringManagementTest {
     nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
+  protected static List<ContextualNotification> waitForAllNotifications(String... notificationTypes) throws InterruptedException {
+    List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
+    // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
+    //System.out.println("waitForAllNotifications: " + waitingFor);
+    return nmsService.waitForMessage(message -> {
+      if (message.getType().equals("NOTIFICATION")) {
+        for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
+          if (waitingFor.remove(notification.getType())) {
+            //System.out.println(" - " + notification.getType());
+          }
+        }
+      }
+      return waitingFor.isEmpty();
+    }).stream()
+      .filter(message -> message.getType().equals("NOTIFICATION"))
+      .flatMap(message -> message.unwrap(ContextualNotification.class).stream())
+      .collect(Collectors.toList());
+  }
 }

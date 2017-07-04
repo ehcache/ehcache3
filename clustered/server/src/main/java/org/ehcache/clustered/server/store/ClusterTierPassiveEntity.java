@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveServerEntity;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 
 import java.util.concurrent.TimeoutException;
@@ -69,7 +70,11 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     }
     storeIdentifier = config.getStoreIdentifier();
     configuration = config.getConfiguration();
-    stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
+    try {
+      stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve EhcacheStateService: " + e.getMessage());
+    }
     if (stateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -254,5 +259,6 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     } catch (ClusterException e) {
       throw new AssertionError(e);
     }
+    management.close();
   }
 }

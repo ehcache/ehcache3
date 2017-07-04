@@ -285,8 +285,8 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>>();
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
         new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
 
@@ -338,7 +338,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -362,7 +362,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 

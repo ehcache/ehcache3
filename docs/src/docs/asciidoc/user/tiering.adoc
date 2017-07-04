@@ -158,6 +158,19 @@ NOTE: Ehcache 3 only offers persistence in the case of clean shutdowns (`close()
 If the JVM crashes there is no data integrity guarantee.
 At restart, Ehcache will detect that the `CacheManager` wasn't cleanly closed and will wipe the disk storage before using it.
 
+==== Segments
+
+Disk storage is separated into segments which provide concurrency access but also hold open file pointers.
+The default is 16.
+In some cases, you might want to reduce the concurrency and save resources by reducing the number of segments.
+
+[source%nowrap,java,indent=0]
+----
+include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
+----
+
+<1> Define an `OffHeapDiskStoreConfiguration` instance specifying the required number of segments.
+
 [[clustered-tier]]
 === Clustered
 

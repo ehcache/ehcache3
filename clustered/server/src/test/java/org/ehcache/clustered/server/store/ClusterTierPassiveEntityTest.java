@@ -34,14 +34,14 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -288,15 +288,18 @@ public class ClusterTierPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof PassiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
+    }
+
+    @Override
+    public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+      return Collections.singleton(getService(configuration));
     }
   }
 

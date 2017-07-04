@@ -31,10 +31,10 @@ import java.util.concurrent.BlockingQueue;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * InvocationScopedEventSinkTest

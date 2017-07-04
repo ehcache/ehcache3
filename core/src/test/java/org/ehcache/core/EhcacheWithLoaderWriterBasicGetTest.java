@@ -36,9 +36,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -179,7 +179,7 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
     ehcache.get("key");
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoaderWriter).load(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(StoreAccessException.class));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), (String) isNull(), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoadingOutcome.SUCCESS));
   }
@@ -355,7 +355,7 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
     ehcache.get("key");
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verify(this.cacheLoaderWriter).load(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), isNull(String.class), any(StoreAccessException.class));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), (String) isNull(), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoadingOutcome.SUCCESS));
   }

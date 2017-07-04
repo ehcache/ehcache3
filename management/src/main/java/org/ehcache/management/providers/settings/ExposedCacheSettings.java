@@ -73,15 +73,21 @@ class ExposedCacheSettings extends ExposedCacheBinding {
                   .set("type", unit instanceof MemoryUnit ? "MEMORY" : unit instanceof EntryUnit ? "ENTRY" : unit.getClass().getSimpleName().toUpperCase())
                   .set("size", ((SizedResourcePool) pool).getSize())
                   .set("unit", unit.toString());
-              //TODO: we need to have a better way to get the cluster "link"
               if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.DedicatedClusteredResourcePool")) {
                 settings.set("serverResource", Reflect.invoke(pool, "getFromResource", String.class));
+                settings.set("clusterTier", getClusterTierExposedAlias(cacheBinding.getAlias(), pool));
               }
             } else if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.SharedClusteredResourcePool")) {
               settings.set("serverResource", Reflect.invoke(pool, "getSharedResourcePool", String.class));
+              settings.set("clusterTier", getClusterTierExposedAlias(cacheBinding.getAlias(), pool));
             }
           }
         }));
   }
 
+
+  // TODO https://github.com/ehcache/ehcache3/issues/1983 -> retrieve cluster tier alias from resourcePool
+  public String getClusterTierExposedAlias(String alias, ResourcePool resourcePool) {
+    return alias;
+  }
 }

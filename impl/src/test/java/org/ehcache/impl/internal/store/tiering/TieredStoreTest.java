@@ -39,6 +39,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -62,8 +63,8 @@ import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -554,7 +555,7 @@ public class TieredStoreTest {
     barrier.await();
     t.join();
     verify(stringCachingTier, never()).getOrComputeIfAbsent(
-        org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
+      ArgumentMatchers.<String>any(), ArgumentMatchers.<Function<String, Store.ValueHolder<String>>>any());
   }
 
   @Test
@@ -573,7 +574,7 @@ public class TieredStoreTest {
     Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
-        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
+      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringCachingTier);
 
     SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
@@ -582,7 +583,7 @@ public class TieredStoreTest {
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
-        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
+      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
