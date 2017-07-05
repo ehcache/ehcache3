@@ -60,6 +60,7 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceException;
@@ -223,7 +224,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   @Override
-  public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(InvokeContext context, EhcacheEntityMessage message) {
     clearClientTrackedAtReconnectComplete();
 
     try {
@@ -231,9 +232,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isStoreOperationMessage(messageType)) {
-          return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
+          return invokeServerStoreOperation(context.getClientDescriptor(), (ServerStoreOpMessage) message);
         } else if (isLifecycleMessage(messageType)) {
-          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+          return invokeLifeCycleOperation(context.getClientDescriptor(), (LifecycleMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
           return invokeStateRepositoryOperation((StateRepositoryOpMessage) message);
         }

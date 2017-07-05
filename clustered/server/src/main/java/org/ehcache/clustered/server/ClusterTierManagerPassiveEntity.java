@@ -29,6 +29,7 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveServerEntity;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
@@ -60,7 +61,7 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
   }
 
   @Override
-  public void invoke(EhcacheEntityMessage message) {
+  public void invokePassive(InvokeContext context, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;

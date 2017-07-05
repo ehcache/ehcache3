@@ -38,6 +38,7 @@ import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
@@ -69,12 +70,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
-  private final IEntityMessenger entityMessenger;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
 
-  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusterTierManagerConfiguration config,
+  public ClusterTierManagerActiveEntity(ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
@@ -84,14 +84,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
-    }
-    try {
-      entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
-    } catch (ServiceException e) {
-      throw new ConfigurationException("Unable to retrieve IEntityMessenger: " + e.getMessage());
-    }
-    if (entityMessenger == null) {
-      throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     try {
       ehcacheStateService.configure();
@@ -143,13 +135,13 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   }
 
   @Override
-  public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(InvokeContext invokeContext, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isLifecycleMessage(messageType)) {
-          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+          return invokeLifeCycleOperation(invokeContext.getClientDescriptor(), (LifecycleMessage) message);
         }
       }
       throw new AssertionError("Unsupported message : " + message.getClass());
