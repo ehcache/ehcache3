@@ -35,6 +35,7 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
@@ -331,47 +332,17 @@ public class ClusterTierManagerActiveEntityTest {
 
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     UUID client2Id = UUID.randomUUID();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    assertThat(activeEntity.getConnectedClients(), containsInAnyOrder(client, client2));
+    TestInvokeContext context2 = new TestInvokeContext();
+    activeEntity.connected(context2.getClientDescriptor());
 
     MESSAGE_FACTORY.setClientId(client2Id);
-    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
-  }
-
-  @Test
-  public void testValidate1Client() throws Exception {
-    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfig);
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
-
-    activeEntity.disconnected(client);
-    assertThat(activeEntity.getConnectedClients(), is(Matchers.<ClientDescriptor>empty()));
-
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
-
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
+    assertSuccess(activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
   }
 
   @Test
@@ -389,10 +360,9 @@ public class ClusterTierManagerActiveEntityTest {
 
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
   }
 
   @Test
@@ -410,11 +380,10 @@ public class ClusterTierManagerActiveEntityTest {
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertFailure(activeEntity.invoke(client,
+    assertFailure(activeEntity.invokeActive(context,
         MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -437,11 +406,10 @@ public class ClusterTierManagerActiveEntityTest {
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    assertThat(activeEntity.getConnectedClients(), contains(client));
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertFailure(activeEntity.invoke(client,
+    assertFailure(activeEntity.invokeActive(context,
         MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -481,10 +449,10 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor validator = new TestClientDescriptor();
-    activeEntity.connected(validator);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertThat(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getResponseType(), is(EhcacheResponseType.SUCCESS));
+    assertThat(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getResponseType(), is(EhcacheResponseType.SUCCESS));
   }
 
   @Test
@@ -503,14 +471,14 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor validator = new TestClientDescriptor();
-    activeEntity.connected(validator);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
     ServerSideConfiguration validate = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("ternary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Pool names not equal.");
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Pool names not equal.");
   }
 
   @Test
@@ -529,14 +497,14 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor validator = new TestClientDescriptor();
-    activeEntity.connected(validator);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
     ServerSideConfiguration validate = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource2")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Default resource not aligned.");
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Default resource not aligned.");
   }
 
   @Test
@@ -555,14 +523,14 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor validator = new TestClientDescriptor();
-    activeEntity.connected(validator);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
     ServerSideConfiguration validate = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource1")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 36, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)),InvalidServerSideConfigurationException.class, "Pool 'secondary' not equal.");
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(validate)),InvalidServerSideConfigurationException.class, "Pool 'secondary' not equal.");
   }
 
   @Test
@@ -581,9 +549,9 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor validator = new TestClientDescriptor();
-    activeEntity.connected(validator);
-    assertSuccess(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(null)));
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(null)));
   }
 
   @Test
@@ -594,11 +562,11 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     try {
-      activeEntity.invoke(client, new InvalidMessage());
+      activeEntity.invokeActive(context, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
@@ -613,10 +581,10 @@ public class ClusterTierManagerActiveEntityTest {
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    activeEntity.invoke(client, MESSAGE_FACTORY.prepareForDestroy());
+    activeEntity.invokeActive(context, MESSAGE_FACTORY.prepareForDestroy());
 
     try {
       ehcacheStateService.validate(null);
@@ -636,10 +604,10 @@ public class ClusterTierManagerActiveEntityTest {
 
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(null)), DestroyInProgressException.class, "in progress for destroy");
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(null)), DestroyInProgressException.class, "in progress for destroy");
   }
 
 
@@ -691,6 +659,31 @@ public class ClusterTierManagerActiveEntityTest {
     @Override
     public String toString() {
       return "TestClientDescriptor[" + clientId + "]";
+    }
+  }
+
+  public static final class TestInvokeContext implements InvokeContext {
+
+    private final ClientDescriptor descriptor = new TestClientDescriptor();
+
+    @Override
+    public ClientDescriptor getClientDescriptor() {
+      return descriptor;
+    }
+
+    @Override
+    public long getCurrentTransactionId() {
+      return 1;
+    }
+
+    @Override
+    public long getOldestTransactionId() {
+      return 1;
+    }
+
+    @Override
+    public boolean isValidClientInformation() {
+      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 
