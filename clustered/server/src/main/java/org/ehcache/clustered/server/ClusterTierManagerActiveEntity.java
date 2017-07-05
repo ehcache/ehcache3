@@ -70,12 +70,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
-  private final IEntityMessenger entityMessenger;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
 
-  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusterTierManagerConfiguration config,
+  public ClusterTierManagerActiveEntity(ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
@@ -85,14 +84,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
-    }
-    try {
-      entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
-    } catch (ServiceException e) {
-      throw new ConfigurationException("Unable to retrieve IEntityMessenger: " + e.getMessage());
-    }
-    if (entityMessenger == null) {
-      throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     try {
       ehcacheStateService.configure();

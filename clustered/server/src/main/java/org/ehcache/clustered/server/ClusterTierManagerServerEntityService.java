@@ -74,7 +74,7 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
       throw new ConfigurationException("Unable to retrieve EhcacheStateService: " + e.getMessage());
     }
     Management management = new Management(registry, ehcacheStateService, true, clusterTierManagerConfiguration.getIdentifier());
-    return new ClusterTierManagerActiveEntity(registry, clusterTierManagerConfiguration, ehcacheStateService, management);
+    return new ClusterTierManagerActiveEntity(clusterTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override
