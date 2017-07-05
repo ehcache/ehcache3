@@ -55,7 +55,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class ClusterTierManagerPassiveEntityTest {
 
@@ -242,7 +241,7 @@ public class ClusterTierManagerPassiveEntityTest {
     final ClusterTierManagerPassiveEntity passiveEntity = new ClusterTierManagerPassiveEntity(configuration, ehcacheStateService, management);
 
     try {
-      passiveEntity.invoke(new InvalidMessage());
+      passiveEntity.invokePassive(null, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported EhcacheEntityMessage"));
@@ -260,7 +259,7 @@ public class ClusterTierManagerPassiveEntityTest {
     Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     final ClusterTierManagerPassiveEntity passiveEntity = new ClusterTierManagerPassiveEntity(configuration, ehcacheStateService, management);
 
-    passiveEntity.invoke(new LifecycleMessage.PrepareForDestroy());
+    passiveEntity.invokePassive(null, new LifecycleMessage.PrepareForDestroy());
 
     try {
       ehcacheStateService.validate(null);
