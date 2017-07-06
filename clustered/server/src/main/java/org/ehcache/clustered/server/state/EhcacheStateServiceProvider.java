@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
@@ -26,14 +27,18 @@ import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
+import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapresource.OffHeapResources;
 
 import com.tc.classloader.BuiltinService;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -47,6 +52,30 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
 
   private ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
   private OffHeapResources offHeapResourcesProvider;
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    for (Map.Entry<String, EhcacheStateService> entry : new HashMap<>(serviceMap).entrySet()) {
+      StateDumpCollector clusterTierManagerStateDump = dump.subStateDumpCollector(entry.getKey());
+      EhcacheStateService clusterTierManagerState = entry.getValue();
+
+      clusterTierManagerStateDump.addState("defaultServerResource", String.valueOf(clusterTierManagerState.getDefaultServerResource()));
+      clusterTierManagerStateDump.addState("configured", String.valueOf(clusterTierManagerState.isConfigured()));
+
+      StateDumpCollector poolsDump = clusterTierManagerStateDump.subStateDumpCollector("pools");
+      for (Map.Entry<String, ServerSideConfiguration.Pool> poolEntry : clusterTierManagerState.getSharedResourcePools().entrySet()) {
+        StateDumpCollector poolDump = poolsDump.subStateDumpCollector(poolEntry.getKey());
+        poolDump.addState("serverResource", poolEntry.getValue().getServerResource());
+        poolDump.addState("size", String.valueOf(poolEntry.getValue().getSize()));
+      }
+
+      StateDumpCollector storesDump = clusterTierManagerStateDump.subStateDumpCollector("stores");
+      int idx = 0;
+      for (String name : new HashSet<>(clusterTierManagerState.getStores())) {
+        storesDump.addState(String.valueOf(idx++), name);
+      }
+    }
+  }
 
   @Override
   public boolean initialize(ServiceProviderConfiguration configuration, PlatformConfiguration platformConfiguration) {

@@ -46,6 +46,7 @@ import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.TimeoutException;
 
@@ -64,6 +65,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   private final String storeIdentifier;
   private final ClusterTierManagement management;
   private final ServerStoreConfiguration configuration;
+  private final String managerIdentifier;
 
   public ClusterTierPassiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration config, KeySegmentMapper defaultMapper) throws ConfigurationException {
     if (config == null) {
@@ -71,6 +73,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     }
     storeIdentifier = config.getStoreIdentifier();
     configuration = config.getConfiguration();
+    managerIdentifier = config.getManagerIdentifier();
     try {
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
     } catch (ServiceException e) {
@@ -88,6 +91,11 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
 
   protected String getStoreIdentifier() {
     return storeIdentifier;
+  }
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClusterTierDump.dump(dump, managerIdentifier, storeIdentifier, configuration);
   }
 
   @Override

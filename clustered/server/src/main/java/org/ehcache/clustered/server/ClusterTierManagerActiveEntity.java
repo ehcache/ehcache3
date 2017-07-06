@@ -42,8 +42,10 @@ import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.entity.StateDumpCollector;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -73,9 +75,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
+  private final ClusterTierManagerConfiguration clusterTierManagerConfig;
 
   public ClusterTierManagerActiveEntity(ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
+    clusterTierManagerConfig = config;
     if (config == null) {
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
@@ -91,6 +95,23 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     } catch (ConfigurationException e) {
       ehcacheStateService.destroy();
       throw e;
+    }
+  }
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClusterTierManagerDump.dump(dump, clusterTierManagerConfig);
+    {
+      Map<ClientDescriptor, ClientState> clients = new HashMap<>(clientStateMap);
+      dump.addState("clientCount", String.valueOf(clients.size()));
+      StateDumpCollector clientsDump = dump.subStateDumpCollector("clients");
+      int idx = 0;
+      for (Map.Entry<ClientDescriptor, ClientState> entry : clients.entrySet()) {
+        StateDumpCollector clientDump = clientsDump.subStateDumpCollector(String.valueOf(idx++));
+        clientDump.addState("clientDescriptor", entry.getKey().toString());
+        clientDump.addState("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
+        clientDump.addState("attached", String.valueOf(entry.getValue().isAttached()));
+      }
     }
   }
 
