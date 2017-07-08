@@ -12,6 +12,7 @@ build/
 
 *.iml
 .idea
+out/
 
 .nb-gradle
 .nb-gradle-properties
