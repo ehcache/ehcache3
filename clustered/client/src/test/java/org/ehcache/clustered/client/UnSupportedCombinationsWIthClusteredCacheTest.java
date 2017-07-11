@@ -57,7 +57,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
 
   @Before
   public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.add("terracotta://localhost:9510/my-application",
+    UnitTestConnectionService.add("terracotta://localhost/my-application",
         new UnitTestConnectionService.PassthroughServerBuilder()
             .resource("primary-server-resource", 128, MemoryUnit.MB)
             .resource("secondary-server-resource", 96, MemoryUnit.MB)
@@ -66,7 +66,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
 
   @After
   public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost:9510/my-application");
+    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   @Test
@@ -74,7 +74,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
             .autoCreate());
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
@@ -102,7 +102,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
             .autoCreate());
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
@@ -132,7 +132,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
     try {
       CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
-          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")).autoCreate())
+          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")).autoCreate())
           .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))

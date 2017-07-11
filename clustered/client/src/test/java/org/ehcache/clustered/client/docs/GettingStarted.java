@@ -43,7 +43,7 @@ public class GettingStarted {
 
   @Before
   public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.add("terracotta://localhost:9510/my-application",
+    UnitTestConnectionService.add("terracotta://localhost/my-application",
         new UnitTestConnectionService.PassthroughServerBuilder()
             .resource("primary-server-resource", 128, MemoryUnit.MB)
             .resource("secondary-server-resource", 96, MemoryUnit.MB)
@@ -52,7 +52,7 @@ public class GettingStarted {
 
   @After
   public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost:9510/my-application");
+    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   @Test
@@ -60,7 +60,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerExample[]
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder() // <1>
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")) // <2>
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")) // <2>
                 .autoCreate()); // <3>
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <4>
 
@@ -73,7 +73,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerWithServerSideConfigExample[]
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")).autoCreate()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")).autoCreate()
                 .defaultServerResource("primary-server-resource") // <1>
                 .resourcePool("resource-pool-a", 28, MemoryUnit.MB, "secondary-server-resource") // <2>
                 .resourcePool("resource-pool-b", 32, MemoryUnit.MB)) // <3>
@@ -97,7 +97,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                     .autoCreate()
                     .defaultServerResource("primary-server-resource")
                     .resourcePool("resource-pool-a", 28, MemoryUnit.MB));
@@ -121,7 +121,7 @@ public class GettingStarted {
   public void explicitConsistencyConfiguration() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                     .autoCreate()
                     .defaultServerResource("primary-server-resource")
                     .resourcePool("resource-pool-a", 32, MemoryUnit.MB));
@@ -149,7 +149,7 @@ public class GettingStarted {
   public void clusteredCacheTieredExample() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
             .autoCreate()
             .defaultServerResource("primary-server-resource")
             .resourcePool("resource-pool-a", 32, MemoryUnit.MB));
@@ -178,7 +178,7 @@ public class GettingStarted {
   public void clusteredCacheManagerLifecycleExamples() throws Exception {
     // tag::clusteredCacheManagerLifecycle[]
     CacheManagerBuilder<PersistentCacheManager> autoCreate = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                 .autoCreate() // <1>
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -186,7 +186,7 @@ public class GettingStarted {
                     .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool"))));
 
     CacheManagerBuilder<PersistentCacheManager> expecting = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                 .expecting() // <2>
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -194,7 +194,7 @@ public class GettingStarted {
                     .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool"))));
 
     CacheManagerBuilder<PersistentCacheManager> configless = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")))
                 // <3>
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -217,7 +217,7 @@ public class GettingStarted {
     // tag::unspecifiedClusteredCacheExample[]
 
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilderAutoCreate = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                 .autoCreate()  // <1>
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"));
 
@@ -233,7 +233,7 @@ public class GettingStarted {
     Cache<Long, String> cacheDedicated = cacheManager1.createCache("my-dedicated-cache", cacheConfigDedicated);  // <3>
 
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilderExpecting = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
                 .expecting()  // <4>
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"));
 

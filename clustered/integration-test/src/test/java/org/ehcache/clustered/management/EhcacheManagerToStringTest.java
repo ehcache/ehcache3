@@ -117,7 +117,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
       assertThat(
           actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
           equalTo(
-              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1:9510", uri.getAuthority())
+              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1", uri.getAuthority())
           )
       );
 

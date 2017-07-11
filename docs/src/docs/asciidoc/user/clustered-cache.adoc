@@ -98,7 +98,7 @@ cd <path/to/terracotta/kit>/server/bin
 NOTE: You will need to have `JAVA_HOME` point to a Java 8 installation while starting the Terracotta server.
 
 Check for the below `INFO` log to confirm if the server started successfully,
-`Terracotta Server instance has started up as ACTIVE node on 0:0:0:0:0:0:0:0:9510 successfully, and is now ready for work.`
+`Terracotta Server instance has started up as ACTIVE node on 0:0:0:0:0:0:0:0:9410 successfully, and is now ready for work.`
 
 [[clustered-cache-manager]]
 == Creating a Cache Manager with Clustering Capabilities

@@ -77,7 +77,7 @@ import static org.mockito.Mockito.when;
 public class ClusteredStoreTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private ClusteredStore<Long, String> store;
 
@@ -112,7 +112,7 @@ public class ClusteredStoreTest {
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost:9510/my-application?auto-create");
+    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   @Test
