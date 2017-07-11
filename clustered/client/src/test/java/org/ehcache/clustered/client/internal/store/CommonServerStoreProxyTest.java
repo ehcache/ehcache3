@@ -47,7 +47,7 @@ import static org.junit.Assert.assertThat;
 public class CommonServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private static ClusterTierClientEntity clientEntity;
   private static CommonServerStoreProxy serverStoreProxy;

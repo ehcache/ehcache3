@@ -116,7 +116,7 @@ include::{sourcedir33}/clustered/client/src/test/java/org/ehcache/clustered/clie
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
 <2> Use the `ClusteringServiceConfigurationBuilder`{empty}'s static method `.cluster(URI)` for connecting the cache manager to the clustering storage at the
     URI specified that returns the clustering service configuration builder instance.
-    The sample URI provided in the example points to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (assuming the server is running on localhost and port *9510*); the query-param `auto-create`
+    The sample URI provided in the example points to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (assuming the server is running on localhost and port *9410*); the query-param `auto-create`
     creates the clustered storage in the server if it doesn't already exist.
 <3> Returns a fully initialized cache manager that can be used to create clustered caches.
 <4> Auto-create the clustered storage if it doesn't already exist.

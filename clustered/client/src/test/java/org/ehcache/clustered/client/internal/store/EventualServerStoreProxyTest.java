@@ -59,7 +59,7 @@ import static org.junit.Assert.fail;
 public class EventualServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
 
   private static ClusterTierClientEntity clientEntity1;
