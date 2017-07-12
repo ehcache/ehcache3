@@ -81,7 +81,7 @@ distributions {
         }
         exclude { f ->
           // Exclude tc's client subdir and README.txt - Issue 1273
-          f.path.contains('client/') || f.path.contains('README.txt')
+          f.path.contains('client/') || f.path.contains('README.txt') || f.path.contains('server/conf')
         }
         includeEmptyDirs = false
       }
