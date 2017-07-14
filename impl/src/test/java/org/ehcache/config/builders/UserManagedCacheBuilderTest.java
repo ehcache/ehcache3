@@ -133,6 +133,11 @@ public class UserManagedCacheBuilderTest {
     }
 
     @Override
+    public int size() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public void remove(final K key) {
       throw new UnsupportedOperationException("Implement me!");
     }

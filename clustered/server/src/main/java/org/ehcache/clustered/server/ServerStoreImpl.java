@@ -116,6 +116,11 @@ public class ServerStoreImpl implements ServerSideServerStore {
   }
 
   @Override
+  public int size() {
+    return (int) getSize();
+  }
+
+  @Override
   public long getTableCapacity() {
     return store.getTableCapacity();
   }

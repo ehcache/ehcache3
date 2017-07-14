@@ -22,6 +22,7 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
+import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 /**

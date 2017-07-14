@@ -18,6 +18,7 @@ package org.ehcache.clustered.server.offheap;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
@@ -207,6 +208,10 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
+  @Override
+  public int size() {
+    return (int) getSize();
+  }
 
   @Override
   public void clear() {

@@ -283,6 +283,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
+  public int size() {
+    return backingMap().size();
+  }
+
+  @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
     checkKey(key);

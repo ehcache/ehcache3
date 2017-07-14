@@ -135,6 +135,11 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
+  public int size() {
+    return realMap.size();
+  }
+
+  @Override
   public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
     return realMap.replace(key, oldValue, newValue);
   }

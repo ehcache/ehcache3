@@ -49,6 +49,20 @@ public class HeapChainImpl implements Chain {
   }
 
   @Override
+  public int size() {
+    if (first == null) {
+      return 0;
+    } else {
+      int nodeCounter = 0;
+      Iterator iterator = iterator();
+      while (iterator.hasNext()) {
+        nodeCounter++;
+      }
+      return nodeCounter;
+    }
+  }
+
+  @Override
   public Iterator<Element> iterator() {
     return new ChainIterator();
   }

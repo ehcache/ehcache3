@@ -167,6 +167,14 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * {@inheritDoc}
    */
   @Override
+  public int size() {
+    return cache.size();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void remove(K key) throws CacheWritingException {
     cache.remove(key);
   }

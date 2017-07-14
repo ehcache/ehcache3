@@ -345,6 +345,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
+  public int size() {
+    return map.size();
+  }
+
+  @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
     checkKey(key);

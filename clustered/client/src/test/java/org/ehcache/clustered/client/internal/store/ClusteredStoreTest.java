@@ -284,6 +284,8 @@ public class ClusteredStoreTest {
     store.put(2L, "two");
     store.put(3L, "three");
     assertThat(store.containsKey(1L), is(true));
+    assertThat(store.containsKey(2L), is(true));
+    assertThat(store.containsKey(3L), is(true));
 
     store.clear();
 

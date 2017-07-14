@@ -92,6 +92,13 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   boolean containsKey(K key) throws StoreAccessException;
 
   /**
+   * Returns the current count of Entries in the cache
+   *
+   * @return an int of the current size of the cache
+   */
+  int size();
+
+  /**
    * Maps the specified key to the specified value in this store.
    * Neither the key nor the value can be null.
    * <p>

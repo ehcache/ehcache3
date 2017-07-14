@@ -121,6 +121,11 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
+    public int size() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
     public PutStatus put(String key, String value) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }

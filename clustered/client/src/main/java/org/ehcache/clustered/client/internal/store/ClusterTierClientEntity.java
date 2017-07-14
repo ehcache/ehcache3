@@ -32,7 +32,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * ClusterTierClientEntity
  */
-public interface ClusterTierClientEntity extends Entity {
+public interface  ClusterTierClientEntity extends Entity {
 
   UUID getClientId();
 

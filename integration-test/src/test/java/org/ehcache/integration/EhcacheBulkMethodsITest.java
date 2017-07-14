@@ -547,6 +547,8 @@ public class EhcacheBulkMethodsITest {
       };
     }
 
+
+
     @Override
     public void releaseStore(Store<?, ?> resource) {
 

@@ -201,6 +201,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       return elements.iterator();
     }
 
+    @Override
+    public int size() {
+      return elements.size();
+    }
   }
 
   private static class PrimordialChain implements InternalChain {
