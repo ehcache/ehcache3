@@ -80,6 +80,13 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   boolean containsKey(K key);
 
   /**
+   * Returns the current count of Entries in the cache
+   *
+   * @return an int of the current size of the cache
+   */
+  int size();
+
+  /**
    * Removes the value, if any, associated with the provided key.
    *
    * @param key the key to remove the value for, may not be {@code null}

@@ -49,6 +49,8 @@ interface Backend<K, V> {
 
   OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> value);
 
+  int size();
+
   boolean remove(K key, OnHeapValueHolder<V> value);
 
   boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue);

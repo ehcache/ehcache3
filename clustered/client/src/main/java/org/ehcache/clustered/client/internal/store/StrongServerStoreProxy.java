@@ -260,6 +260,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public int size() {
+    return delegate.size();
+  }
+
+  @Override
   public void clear() throws TimeoutException {
     try {
       performWaitingForAllInvalidation(new NullaryFunction<Object>() {

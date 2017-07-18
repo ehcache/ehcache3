@@ -129,6 +129,11 @@ public class Util {
       }
 
       @Override
+      public int size() {
+        return list.size();
+      }
+
+      @Override
       public Iterator<Element> iterator() {
         return list.iterator();
       }

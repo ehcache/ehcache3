@@ -312,6 +312,11 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
+    public int size() {
+      return entries.size();
+    }
+
+    @Override
     public PutStatus put(final String key, final String value) throws StoreAccessException {
       this.checkFailingKey(key);
       FakeValueHolder toPut = new FakeValueHolder(value);

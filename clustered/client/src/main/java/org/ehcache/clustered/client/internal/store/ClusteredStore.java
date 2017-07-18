@@ -223,6 +223,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
+  public int size() {
+    return storeProxy.size();
+  }
+
+  @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
     PutStatus status = silentPut(key, value);

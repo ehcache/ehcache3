@@ -70,6 +70,11 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public int size() {
+    return delegate.size();
+  }
+
+  @Override
   public void clear() throws TimeoutException {
     delegate.clear();
   }

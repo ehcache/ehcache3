@@ -249,6 +249,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     public Iterator<Element> iterator() {
       return Collections.<Element>emptyList().iterator();
     }
+
+    @Override
+    public int size() {
+      return 0;
+    }
   };
 
   public static Chain chain(ByteBuffer... buffers) {
@@ -274,6 +279,11 @@ public class OffHeapChainMap<K> implements MapInternals {
       @Override
       public boolean isEmpty() {
         return elements.isEmpty();
+      }
+
+      @Override
+      public int size() {
+        return elements.size();
       }
     };
   }

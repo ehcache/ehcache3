@@ -76,6 +76,11 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
+  public int size() {
+    return 0;
+  }
+
+  @Override
   public PutStatus put(K key, V value) throws StoreAccessException {
     return PutStatus.PUT;
   }

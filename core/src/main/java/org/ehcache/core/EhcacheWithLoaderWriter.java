@@ -343,6 +343,14 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
+  public int size() {
+    return store.size();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void remove(K key) throws CacheWritingException {
     removeInternal(key); // ignore return value;
   }

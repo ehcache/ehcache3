@@ -49,5 +49,12 @@ public interface Chain extends Iterable<Element> {
    * @return whether the Chain is empty
    */
   boolean isEmpty();
+
+  /**
+   * Returns the number of elements in the data structure
+   *
+   * @return
+   */
+  int size();
 }
 

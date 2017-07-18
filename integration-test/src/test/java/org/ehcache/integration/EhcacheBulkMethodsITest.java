@@ -172,7 +172,6 @@ public class EhcacheBulkMethodsITest {
 
   }
 
-
   @Test
   public void testPutAll_store_throws_cache_exception() throws Exception {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
@@ -546,7 +545,7 @@ public class EhcacheBulkMethodsITest {
         }
       };
     }
-
+    
     @Override
     public void releaseStore(Store<?, ?> resource) {
 

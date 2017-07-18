@@ -227,6 +227,11 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public int size() {
+    return underlyingStore.size();
+  }
+
+  @Override
   public PutStatus put(K key, V value) throws StoreAccessException {
     checkKey(key);
     checkValue(value);

@@ -158,6 +158,13 @@ public class ReferenceStoreImpl implements ServerStore  {
   }
 
   @Override
+  public int size() {
+    return map.entrySet().stream()
+            .mapToInt(entry -> entry.getValue().size())
+            .sum();
+  }
+
+  @Override
   public void clear() {
     writeLockAll();
     try {

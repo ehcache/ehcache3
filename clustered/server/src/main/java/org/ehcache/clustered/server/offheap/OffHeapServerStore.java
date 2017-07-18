@@ -207,6 +207,10 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
+  @Override
+  public int size() {
+    return (int) getSize();
+  }
 
   @Override
   public void clear() {

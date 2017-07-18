@@ -121,6 +121,13 @@ public interface ServerStore {
   void replaceAtHead(long key, Chain expect, Chain update);
 
   /**
+   * Returns the size of the server side cache
+   *
+   * @return
+   */
+  int size();
+
+  /**
    * Removes all the mappings from this store. But this operation is not atomic.
    * If appends are happening in parallel, this operation does not guarantee an
    * empty store on the completion of this operation.

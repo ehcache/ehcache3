@@ -130,6 +130,11 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public int size() {
+    return authoritativeTier.size();
+  }
+
+  @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     try {
       return authoritativeTier.put(key, value);

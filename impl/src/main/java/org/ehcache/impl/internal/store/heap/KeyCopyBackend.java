@@ -214,6 +214,11 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
+  public int size() {
+    return keyCopyMap.size();
+  }
+
+  @Override
   public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
     return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
   }

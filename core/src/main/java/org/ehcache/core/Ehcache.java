@@ -240,6 +240,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
+  public int size() {
+    return store.size();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public void remove(K key) {
     removeInternal(key); // ignore return value;
   }
