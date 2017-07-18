@@ -24,7 +24,7 @@ import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.Named;
-import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.ExposedObject;
 import org.terracotta.management.registry.collect.StatisticProvider;
 
 import java.util.ArrayList;
