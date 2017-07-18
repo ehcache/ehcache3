@@ -42,8 +42,10 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
@@ -142,8 +144,10 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new StateTransitionException(e);
-        }  catch (Exception e) {
-          e.printStackTrace();
+        } catch (ExecutionException e) {
+          throw new StateTransitionException(e.getCause());
+        } catch (TimeoutException e) {
+          throw new StateTransitionException(e);
         }
 
         break;
