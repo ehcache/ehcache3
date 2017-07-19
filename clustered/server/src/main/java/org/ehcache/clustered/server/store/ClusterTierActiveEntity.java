@@ -309,7 +309,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private void attachStore(ClientDescriptor clientDescriptor, UUID clientId) {
     ClusterTierClientState clientState = new ClusterTierClientState(storeIdentifier, true, clientId);
     connectedClients.replace(clientDescriptor, clientState);
-    LOGGER.info("Client: {} with client ID: {} attached to cluster tier '{}'", clientDescriptor, storeIdentifier);
+    LOGGER.info("Client: {} with client ID: {} attached to cluster tier '{}'", clientDescriptor, clientId, storeIdentifier);
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
