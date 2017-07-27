@@ -38,6 +38,8 @@ import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.TestClientDescriptor;
+import org.ehcache.clustered.server.TestInvokeContext;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -52,7 +54,6 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
-import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -73,7 +74,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -233,9 +233,9 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -297,9 +297,9 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -361,9 +361,9 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -414,9 +414,9 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -472,9 +472,9 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -520,9 +520,9 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context1 = new TestInvokeContext();
-    InvokeContext context2 = new TestInvokeContext();
-    InvokeContext context3 = new TestInvokeContext();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
@@ -563,7 +563,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
@@ -579,7 +579,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
@@ -611,7 +611,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(activeEntity.getConnectedClients(), empty());
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     assertSuccess(
@@ -650,10 +650,10 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    InvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
     UUID client2Id = UUID.randomUUID();
@@ -677,7 +677,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     assertFailure(activeEntity.invokeActive(context,
@@ -694,7 +694,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName,
@@ -751,7 +751,7 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)));
@@ -764,7 +764,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
@@ -787,7 +787,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
@@ -815,7 +815,7 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration otherConfiguration = new ServerStoreConfigBuilder()
@@ -900,7 +900,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
 
@@ -918,7 +918,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
 
@@ -944,7 +944,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
 
@@ -1011,7 +1011,7 @@ public class ClusterTierActiveEntityTest {
     });
 
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
     activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration));
 
@@ -1038,7 +1038,7 @@ public class ClusterTierActiveEntityTest {
 
     IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
@@ -1059,7 +1059,7 @@ public class ClusterTierActiveEntityTest {
   public void testInvalidMessageThrowsError() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
     try {
@@ -1075,7 +1075,7 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
@@ -1102,7 +1102,7 @@ public class ClusterTierActiveEntityTest {
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
-    InvokeContext context = new TestInvokeContext();
+    TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
 
@@ -1225,42 +1225,6 @@ public class ClusterTierActiveEntityTest {
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
         keySerializerType, valueSerializerType, consistency);
-    }
-  }
-
-  private static final class TestClientDescriptor implements ClientDescriptor {
-    private static final AtomicInteger counter = new AtomicInteger(0);
-
-    private final int clientId = counter.incrementAndGet();
-
-    @Override
-    public String toString() {
-      return "TestClientDescriptor[" + clientId + "]";
-    }
-  }
-
-  private static final class TestInvokeContext implements InvokeContext {
-
-    private final ClientDescriptor clientDescriptor = new TestClientDescriptor();
-
-    @Override
-    public ClientDescriptor getClientDescriptor() {
-      return clientDescriptor;
-    }
-
-    @Override
-    public long getCurrentTransactionId() {
-      return 1;
-    }
-
-    @Override
-    public long getOldestTransactionId() {
-      return 1;
-    }
-
-    @Override
-    public boolean isValidClientInformation() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 
