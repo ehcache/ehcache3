@@ -31,7 +31,9 @@ import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.ServiceConfiguration;
@@ -647,42 +649,6 @@ public class ClusterTierManagerActiveEntityTest {
       } else {
         return new ServerSideConfiguration(defaultServerResource, pools);
       }
-    }
-  }
-
-  private static final class TestClientDescriptor implements ClientDescriptor {
-    private static final AtomicInteger counter = new AtomicInteger(0);
-
-    private final int clientId = counter.incrementAndGet();
-
-    @Override
-    public String toString() {
-      return "TestClientDescriptor[" + clientId + "]";
-    }
-  }
-
-  public static final class TestInvokeContext implements InvokeContext {
-
-    private final ClientDescriptor descriptor = new TestClientDescriptor();
-
-    @Override
-    public ClientDescriptor getClientDescriptor() {
-      return descriptor;
-    }
-
-    @Override
-    public long getCurrentTransactionId() {
-      return 1;
-    }
-
-    @Override
-    public long getOldestTransactionId() {
-      return 1;
-    }
-
-    @Override
-    public boolean isValidClientInformation() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 
