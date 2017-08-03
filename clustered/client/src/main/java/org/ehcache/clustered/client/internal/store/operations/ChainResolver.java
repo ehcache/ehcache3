@@ -134,9 +134,9 @@ public class ChainResolver<K, V> {
         ByteBuffer payload = codec.encode(resolvedOperation);
         chainBuilder = chainBuilder.add(payload);
       }
-      return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, keyMatch);
+      return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, keyMatch, expirationTime);
     } else {
-      return new ResolvedChain.Impl<K, V>(chain, key, result, 0);
+      return new ResolvedChain.Impl<K, V>(chain, key, result, 0, expirationTime);
     }
   }
 }
