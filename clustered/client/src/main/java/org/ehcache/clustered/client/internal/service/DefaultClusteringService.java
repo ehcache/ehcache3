@@ -246,18 +246,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void stop() {
     LOGGER.info("Closing connection to cluster {}", this.clusterUri);
 
-    /*
-     * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
-     * close operations will stall attempting to communicate with the server.  (EntityClientEndpointImpl.close()
-     * calls a "closeHook" method provided by ClientEntityManagerImpl which ultimately winds up in
-     * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
-     * take care of server-side cleanup in the event the server is connected.
-     */
     entityFactory = null;
     inMaintenance = false;
 
+    for (ClusterTierClientEntity clusterTierClientEntity : clusterTierEntities.values()) {
+      clusterTierClientEntity.close();
+    }
     clusterTierEntities.clear();
-    entity = null;
+    entity.close();
 
     closeConnection();
   }

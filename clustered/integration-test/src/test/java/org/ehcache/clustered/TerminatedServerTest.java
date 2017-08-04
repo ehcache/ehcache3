@@ -47,7 +47,6 @@ import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.ConnectionException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import com.tc.net.protocol.transport.ClientMessageTransport;
@@ -57,7 +56,6 @@ import com.tc.properties.TCPropertiesImpl;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -77,6 +75,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -162,7 +161,7 @@ public class TerminatedServerTest {
 
   private static Cluster createCluster() {
     try {
-      return new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+      return newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
     } catch (IllegalArgumentException e) {
       assumeNoException(e);
       return null;
@@ -205,7 +204,7 @@ public class TerminatedServerTest {
 
     cluster.getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(2, TimeUnit.SECONDS) {
+    new TimeLimitedTask<Void>(4, TimeUnit.SECONDS) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -217,7 +216,6 @@ public class TerminatedServerTest {
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheManagerCloseWithCaches() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -235,7 +233,7 @@ public class TerminatedServerTest {
 
     cluster.getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
+    new TimeLimitedTask<Void>(6, TimeUnit.SECONDS) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -356,7 +354,6 @@ public class TerminatedServerTest {
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheRemove() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()

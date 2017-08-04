@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -142,7 +143,20 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public void close() {
     reconnectListener = null;
     disconnectionListener = null;
-    endpoint.close();
+    try {
+      endpoint.release().get(2, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else {
+        throw new RuntimeException("Exception received trying to close", cause);
+      }
+    } catch (TimeoutException e) {
+      LOGGER.debug("Received TimeoutException trying to close", e);
+    }
   }
 
   @Override

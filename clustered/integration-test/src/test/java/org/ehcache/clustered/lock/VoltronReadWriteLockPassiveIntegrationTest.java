@@ -26,16 +26,16 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class VoltronReadWriteLockPassiveIntegrationTest {
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 2);
+  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).build();
 
   @Before
   public void waitForActive() throws Exception {

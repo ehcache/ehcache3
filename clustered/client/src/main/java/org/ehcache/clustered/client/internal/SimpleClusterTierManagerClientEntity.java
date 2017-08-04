@@ -40,6 +40,7 @@ import org.terracotta.exception.EntityException;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -104,7 +105,20 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   @Override
   public void close() {
-    endpoint.close();
+    try {
+      endpoint.release().get(2, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      } else {
+        throw new RuntimeException(cause);
+      }
+    } catch (TimeoutException e) {
+      LOGGER.debug("Received TimeoutException trying to close", e);
+    }
   }
 
   @Override
