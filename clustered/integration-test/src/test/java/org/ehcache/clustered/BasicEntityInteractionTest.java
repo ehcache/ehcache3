@@ -16,7 +16,6 @@
 package org.ehcache.clustered;
 
 import java.io.File;
-import java.util.Collections;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
@@ -33,7 +32,6 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static java.util.Collections.emptyMap;
@@ -41,6 +39,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicEntityInteractionTest {
 
@@ -52,7 +51,7 @@ public class BasicEntityInteractionTest {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
 
   @BeforeClass
