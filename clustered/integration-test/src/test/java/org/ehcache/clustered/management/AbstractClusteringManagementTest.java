@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.management;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.units.EntryUnit;
@@ -41,14 +39,15 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +61,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public abstract class AbstractClusteringManagementTest {
 
@@ -83,7 +83,8 @@ public abstract class AbstractClusteringManagementTest {
   protected static Connection managementConnection;
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
+                                              .withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void beforeClass() throws Exception {

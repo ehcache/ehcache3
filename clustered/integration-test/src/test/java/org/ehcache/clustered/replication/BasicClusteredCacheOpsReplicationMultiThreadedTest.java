@@ -17,7 +17,6 @@
 package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
@@ -37,7 +36,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
@@ -55,11 +53,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**
  * This test asserts Active-Passive fail-over with
@@ -94,7 +92,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 2, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {
