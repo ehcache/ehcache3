@@ -204,7 +204,7 @@ public class TerminatedServerTest {
 
     cluster.getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(2, TimeUnit.SECONDS) {
+    new TimeLimitedTask<Void>(4, TimeUnit.SECONDS) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -216,7 +216,6 @@ public class TerminatedServerTest {
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheManagerCloseWithCaches() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -234,7 +233,7 @@ public class TerminatedServerTest {
 
     cluster.getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
+    new TimeLimitedTask<Void>(6, TimeUnit.SECONDS) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -355,7 +354,6 @@ public class TerminatedServerTest {
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheRemove() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
