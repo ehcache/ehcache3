@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
-import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
@@ -33,13 +32,13 @@ import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class ClusterTierManagerClientEntityFactoryIntegrationTest {
 
@@ -54,7 +53,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection CONNECTION;
 
   @BeforeClass
