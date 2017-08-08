@@ -202,7 +202,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
         if (resolvedResult != null) {
           V value = resolvedResult.getValue();
-          holder = new ClusteredValueHolder<V>(value, resolvedChain.getExpirationTime());
+          long expirationTime = resolvedChain.getExpirationTime();
+          if (expirationTime == Long.MAX_VALUE) {
+            holder = new ClusteredValueHolder<V>(value);
+          } else {
+            holder = new ClusteredValueHolder<V>(value, expirationTime);
+          }
         }
       }
     } catch (RuntimeException re) {

@@ -63,7 +63,7 @@ public class ChainResolver<K, V> {
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
-    long expirationTime = Long.MIN_VALUE;
+    long expirationTime = Long.MAX_VALUE;
     int keyMatch = 0;
     boolean compacted = false;
     for (Element element : chain) {
@@ -79,9 +79,6 @@ public class ChainResolver<K, V> {
         if (expiry != Expirations.noExpiration()) {
           if(operation.isExpiryAvailable()) {
             expirationTime = operation.expirationTime();
-            if (expirationTime == Long.MIN_VALUE) {
-              continue;
-            }
             if (now >= expirationTime) {
               result = null;
             }
@@ -111,7 +108,7 @@ public class ChainResolver<K, V> {
             }
             compacted = true;
             if(duration.isInfinite()) {
-              expirationTime = Long.MIN_VALUE;
+              expirationTime = Long.MAX_VALUE;
               continue;
             }
             long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
