@@ -33,39 +33,24 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     throw new UnsupportedOperationException("This method is not supported on replication message");
   }
 
-  public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
-    private final UUID clientId;
+  public static class ChainReplicationMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
-    public ClientIDTrackerMessage(UUID clientId) {
+    private final UUID clientId;
+    private final long key;
+    private final Chain chain;
+    private final long currentTransactionId;
+    private final long oldestTransactionId;
+
+    public ChainReplicationMessage(long key, Chain chain, long currentTransactionId, long oldestTransactionId, UUID clientId) {
       this.clientId = clientId;
+      this.currentTransactionId = currentTransactionId;
+      this.oldestTransactionId = oldestTransactionId;
+      this.key = key;
+      this.chain = chain;
     }
 
     public UUID getClientId() {
       return clientId;
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for ClientIDTrackerMessage");
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CLIENT_ID_TRACK_OP;
-    }
-  }
-
-  public static class ChainReplicationMessage extends ClientIDTrackerMessage implements ConcurrentEntityMessage {
-
-    private final long key;
-    private final Chain chain;
-    private final long msgId;
-
-    public ChainReplicationMessage(long key, Chain chain, long msgId, UUID clientId) {
-      super(clientId);
-      this.msgId = msgId;
-      this.key = key;
-      this.chain = chain;
     }
 
     public long getKey() {
@@ -77,7 +62,11 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     }
 
     public long getId() {
-      return msgId;
+      return currentTransactionId;
+    }
+
+    public long getOldestTransactionId() {
+      return oldestTransactionId;
     }
 
     @Override

@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
-import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
@@ -48,14 +47,6 @@ public class ObservableClusterTierServerEntityService
     List<ObservableClusterTierActiveEntity> observables = new ArrayList<ObservableClusterTierActiveEntity>(servedActiveEntities.size());
     for (ClusterTierActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableClusterTierActiveEntity(servedActiveEntity));
-    }
-    return Collections.unmodifiableList(observables);
-  }
-
-  public List<ObservableClusterTierPassiveEntity> getServedPassiveEntities() throws Exception {
-    List<ObservableClusterTierPassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
-    for (ClusterTierPassiveEntity servedPassiveEntity : servedPassiveEntities) {
-      observables.add(new ObservableClusterTierPassiveEntity(servedPassiveEntity));
     }
     return Collections.unmodifiableList(observables);
   }
@@ -131,24 +122,5 @@ public class ObservableClusterTierServerEntityService
       field.setAccessible(true);
       return (Map)field.get(activeEntity);
     }
-  }
-
-  public static final class ObservableClusterTierPassiveEntity {
-    private final ClusterTierPassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
-
-    private ObservableClusterTierPassiveEntity(ClusterTierPassiveEntity passiveEntity) throws Exception {
-      this.passiveEntity = passiveEntity;
-      Field field = passiveEntity.getClass().getDeclaredField("stateService");
-      field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
-    }
-
-    public Map getMessageTrackerMap(String storeAlias) throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker(storeAlias).getClass().getDeclaredField("clientUUIDMessageTrackerMap");
-      field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker(storeAlias));
-    }
-
   }
 }

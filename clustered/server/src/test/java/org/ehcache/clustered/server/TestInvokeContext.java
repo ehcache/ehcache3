@@ -21,9 +21,17 @@ import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.InvokeContext;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public final class TestInvokeContext implements ActiveInvokeContext {
 
+  private final AtomicLong currentTransactionId = new AtomicLong();
+
   private final ClientDescriptor clientDescriptor = new TestClientDescriptor();
+
+  public void incrementCurrentTransactionId() {
+    currentTransactionId.incrementAndGet();
+  }
 
   @Override
   public ClientDescriptor getClientDescriptor() {
@@ -37,7 +45,7 @@ public final class TestInvokeContext implements ActiveInvokeContext {
 
   @Override
   public long getCurrentTransactionId() {
-    return 1;
+    return currentTransactionId.get();
   }
 
   @Override

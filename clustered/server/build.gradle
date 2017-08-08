@@ -32,6 +32,7 @@ dependencies {
     transitive = false
   }
   compile"org.terracotta.management.dist:mnm-common:$parent.managementVersion"
+  compile("org.terracotta:client-message-tracker:$parent.terracottaPlatformVersion")
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
   provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"

@@ -21,21 +21,25 @@ import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurati
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.service.ClusteredStateHolder;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.client.message.tracker.OOOMessageHandler;
+import org.terracotta.entity.ClientSourceId;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -43,30 +47,38 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
-import static org.ehcache.clustered.client.replication.ReplicationUtil.getEntity;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.getElement;
-import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.expiry.Expirations.noExpiration;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class ActivePassiveClientIdTest {
 
+  private static final String STRIPENAME = "stripe";
+  private static final String STRIPE_URI = "passthrough://" + STRIPENAME;
+
   private PassthroughClusterControl clusterControl;
-  private static String STRIPENAME = "stripe";
-  private static String STRIPE_URI = "passthrough://" + STRIPENAME;
+
   private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
   private ObservableClusterTierServerEntityService observableClusterTierServerEntityService;
+
+  private ClusteringService service;
+  private ServerStoreProxy storeProxy;
+
+  private ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity;
+  private ObservableClusterTierServerEntityService.ObservableClusterTierPassiveEntity passiveEntity;
+
+  private OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> activeMessageHandler;
+  private OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> passiveMessageHandler;
 
   @Before
   public void setUp() throws Exception {
@@ -88,91 +100,89 @@ public class ActivePassiveClientIdTest {
 
     clusterControl.waitForActive();
     clusterControl.waitForRunningPassivesInStandby();
+
+    ClusteringServiceConfiguration configuration =
+      ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
+        .autoCreate()
+        .build();
+
+    service = new ClusteringServiceFactory().create(configuration);
+
+    service.start(null);
+
+    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+      newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB))).build();
+
+    @SuppressWarnings("unchecked")
+    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test", config);
+
+    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+
+    activeEntity = observableClusterTierServerEntityService.getServedActiveEntities().get(0);
+    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
+
+    activeMessageHandler = activeEntity.getMessageHandler();
+    passiveMessageHandler = passiveEntity.getMessageHandler();
   }
 
   @After
   public void tearDown() throws Exception {
+    if(service.isConnected()) {
+      service.stop();
+    }
     UnitTestConnectionService.removeStripe(STRIPENAME);
     clusterControl.tearDown();
   }
 
   @Test
-  public void testClientIdGetsTrackedAtPassive() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
-            .build();
+  public void messageTrackedAndRemovedWhenClientLeaves() throws Exception {
+    Set<ClientSourceId> clientSourceIds = activeMessageHandler.getTrackedClients();
+    assertThat(clientSourceIds).hasSize(1); // one client tracked
 
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
-      newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
-    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
-      config);
-
-    ServerStoreProxy storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
-
-    ObservableClusterTierServerEntityService.ObservableClusterTierPassiveEntity ehcachePassiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
-
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
+    assertThat(responses).hasSize(0); // no message tracked right now
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(1));
+    assertThat(responses).hasSize(1); // should now track one message
 
-    service.stop();
+    assertThat(activeEntity.getAttachedClients()).hasSize(1); // make sure we currently have one client attached
 
-    CompletableFuture<Boolean> completableFuture = CompletableFuture.supplyAsync(() -> {
-      while (true) {
-        try {
-          if (ehcachePassiveEntity.getMessageTrackerMap("test").size() == 0) {
-            return true;
-          }
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    });
-    assertThat(completableFuture.get(2, TimeUnit.SECONDS), is(true));
+    service.stop(); // stop the service. It will remove the client
 
+    activeEntity.notifyDestroyed(clientSourceIds.iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
+
+    waitForPredicate(e -> activeEntity.getAttachedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
+
+    assertThat(activeMessageHandler.getTrackedClients()).isEmpty(); // all tracked messages for this client should have been removed
   }
 
   @Test
-  public void testNotTrackedMessages() throws Exception {
+  public void untrackedMessageAreNotStored() throws Exception {
+    Set<ClientSourceId> clientSourceIds = activeMessageHandler.getTrackedClients();
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
 
-    ClusteringServiceConfiguration configuration =
-            ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-                    .autoCreate()
-                    .build();
+    // Nothing tracked
+    assertThat(responses).isEmpty();
 
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
-            newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
-    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
-            config);
-
-    ServerStoreProxy storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
-
-    ObservableClusterTierServerEntityService.ObservableClusterTierPassiveEntity ehcachePassiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
-
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
-
-    List<Element> elements = new ArrayList<>();
+    List<Element> elements = new ArrayList<>(1);
     elements.add(getElement(createPayload(44L)));
 
-    storeProxy.replaceAtHead(44L, getChain(elements), getChain(new ArrayList<Element>()));
+    // Send a replace message, those are not tracked FIXME !!!
+    storeProxy.replaceAtHead(44L, getChain(elements), getChain(new ArrayList<>(0)));
 
+    // Not tracked as well
     storeProxy.get(42L);
 
-    assertThat(ehcachePassiveEntity.getMessageTrackerMap("test").size(), is(0));
-
-    service.stop();
-
+    assertThat(responses).isEmpty();
   }
 
+  private <T> void waitForPredicate(Predicate<T> predicate, long timeoutInMs) {
+    long now = System.currentTimeMillis();
+    while(predicate.test(null)) {
+      if((System.currentTimeMillis() - now) > timeoutInMs) {
+        fail("Waiting for attached client to disconnect timed-out");
+      }
+    }
+  }
 }

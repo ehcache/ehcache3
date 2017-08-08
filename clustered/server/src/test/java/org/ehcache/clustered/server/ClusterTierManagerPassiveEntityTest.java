@@ -19,12 +19,12 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -436,23 +436,6 @@ public class ClusterTierManagerPassiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

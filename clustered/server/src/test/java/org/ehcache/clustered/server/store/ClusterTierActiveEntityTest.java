@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
@@ -42,14 +41,15 @@ import org.ehcache.clustered.server.TestClientDescriptor;
 import org.ehcache.clustered.server.TestInvokeContext;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
-import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.terracotta.client.message.tracker.OOOMessageHandler;
+import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
@@ -74,6 +74,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -85,10 +86,10 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
@@ -216,7 +217,6 @@ public class ClusterTierActiveEntityTest {
   @Test
   public void testLoadExistingRegistersEvictionListener() throws Exception {
     EhcacheStateService stateService = mock(EhcacheStateService.class);
-    when(stateService.getClientMessageTracker(anyString())).thenReturn(mock(ClientMessageTracker.class));
 
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
@@ -991,46 +991,6 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
-  public void testPromotedActiveIgnoresDuplicateMessages() throws Exception {
-    defaultRegistry.getService(new EhcacheStoreStateServiceConfig(identifier, DEFAULT_MAPPER));
-    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
-    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
-
-    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker(defaultStoreName);
-
-    Random random = new Random();
-    Set<Long> msgIds = new HashSet<>();
-    random.longs(100).distinct().forEach(x -> {
-      msgIds.add(x);
-    });
-
-    Set<Long> applied = new HashSet<>();
-    msgIds.stream().limit(80).forEach(x -> {
-      applied.add(x);
-      clientMessageTracker.applied(x, CLIENT_ID);
-    });
-
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    TestInvokeContext context = new TestInvokeContext();
-    activeEntity.connected(context.getClientDescriptor());
-    activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration));
-
-    activeEntity.loadExisting();
-
-    IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
-
-    ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory(CLIENT_ID);
-    EhcacheEntityResponseFactory entityResponseFactory = new EhcacheEntityResponseFactory();
-    applied.forEach(y -> {
-      EhcacheEntityMessage message = serverStoreMessageFactory.appendOperation(y, createPayload(y));
-      message.setId(y);
-      assertThat(activeEntity.invokeActive(context, message), is(entityResponseFactory.success()));
-    });
-
-    verify(entityMessenger, times(0)).messageSelfAndDeferRetirement(any(), any());
-  }
-
-  @Test
   public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws Exception {
 
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
@@ -1071,7 +1031,7 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
-  public void testActiveDoesNotTrackMessagesByDefault() throws Exception {
+  public void testActiveTracksMessageDuplication() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
@@ -1108,19 +1068,18 @@ public class ClusterTierActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
+    context.incrementCurrentTransactionId();
+
     ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
     message.setId(123);
-    activeEntity.invokeActive(context, message);
+    EhcacheEntityResponse expected = activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
     message = messageFactory.appendOperation(2L, createPayload(1L));
     message.setId(123);
 
-    activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
-
-    ServerStoreOpMessage.GetMessage getMessage = messageFactory.getOperation(2L);
-    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invokeActive(context, getMessage);
-    assertThat(response.getChain().isEmpty(), is(true));
+    EhcacheEntityResponse actual = activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
+    assertThat(actual, sameInstance(expected));
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
@@ -1159,6 +1118,8 @@ public class ClusterTierActiveEntityTest {
           return (T) entityMonitoringService;
         } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
           return (T) entityManagementRegistry;
+        } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
+          return (T) new OOOMessageHandlerImpl(message -> true);
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1344,6 +1305,8 @@ public class ClusterTierActiveEntityTest {
         return (T) this.entityMessenger;
       } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
+      } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
+        return (T) new OOOMessageHandlerImpl(((OOOMessageHandlerConfiguration) serviceConfiguration).getTrackerPolicy());
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
@@ -1400,23 +1363,6 @@ public class ClusterTierActiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }
