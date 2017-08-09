@@ -148,16 +148,19 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     ClusterTierDump.dump(dump, managerIdentifier, storeIdentifier, configuration);
     {
       Map<ClientDescriptor, ClusterTierClientState> clients = new HashMap<>(connectedClients);
-      dump.addState("clientCount", String.valueOf(clients.size()));
-      StateDumpCollector clientsDump = dump.subStateDumpCollector("clients");
-      int idx = 0;
+
+      List<Map> allClients = new ArrayList<>(clients.size());
       for (Map.Entry<ClientDescriptor, ClusterTierClientState> entry : clients.entrySet()) {
-        StateDumpCollector clientDump = clientsDump.subStateDumpCollector(String.valueOf(idx++));
-        clientDump.addState("clientDescriptor", entry.getKey().toString());
-        clientDump.addState("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
-        clientDump.addState("storeIdentifier", entry.getValue().getStoreIdentifier());
-        clientDump.addState("attached", String.valueOf(entry.getValue().isAttached()));
+        Map<String,String> clientMap = new HashMap<>(4);
+        clientMap.put("clientDescriptor", entry.getKey().toString());
+        clientMap.put("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
+        clientMap.put("storeIdentifier", entry.getValue().getStoreIdentifier());
+        clientMap.put("attached", String.valueOf(entry.getValue().isAttached()));
+        allClients.add(clientMap);
       }
+      dump.addState("clientCount", String.valueOf(allClients.size()));
+      dump.addState("clients", allClients);
+
     }
   }
 
