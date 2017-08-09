@@ -74,19 +74,11 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
       }
       // dump the shared holders.
       if(!sharedHolders.isEmpty()) {
-        StateDumpCollector sharedDump = holdersDump.subStateDumpCollector("shared");
-        int idx = 0;
-        for (ClientDescriptor holder : sharedHolders) {
-          sharedDump.addState(String.valueOf(idx++), String.valueOf(holder));
-        }
+        holdersDump.addState("shared", sharedHolders);
       }
     }
     {
-      StateDumpCollector releaseListenersDump = dump.subStateDumpCollector("releaseListeners");
-      int idx = 0;
-      for (ClientDescriptor releaseListener : new HashSet<>(releaseListeners)) {
-        releaseListenersDump.addState(String.valueOf(idx++), String.valueOf(releaseListener));
-      }
+      dump.addState("releaseListeners", releaseListeners);
     }
   }
 

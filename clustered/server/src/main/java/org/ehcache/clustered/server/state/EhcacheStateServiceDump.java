@@ -20,6 +20,7 @@ import org.terracotta.entity.StateDumpCollector;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class EhcacheStateServiceDump {
   public static void dump(EhcacheStateService clusterTierManagerState, StateDumpCollector clusterTierManagerStateDump) {
@@ -33,10 +34,7 @@ public class EhcacheStateServiceDump {
       poolDump.addState("size", String.valueOf(poolEntry.getValue().getSize()));
     }
 
-    StateDumpCollector storesDump = clusterTierManagerStateDump.subStateDumpCollector("stores");
-    int idx = 0;
-    for (String name : new HashSet<>(clusterTierManagerState.getStores())) {
-      storesDump.addState(String.valueOf(idx++), name);
-    }
+    Set<String> stores = new HashSet<>(clusterTierManagerState.getStores());
+    clusterTierManagerStateDump.addState("stores", stores);
   }
 }

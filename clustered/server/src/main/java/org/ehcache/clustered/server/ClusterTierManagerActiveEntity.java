@@ -40,9 +40,11 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.StateDumpCollector;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -99,15 +101,17 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     ClusterTierManagerDump.dump(dump, clusterTierManagerConfig);
     {
       Map<ClientDescriptor, ClientState> clients = new HashMap<>(clientStateMap);
-      dump.addState("clientCount", String.valueOf(clients.size()));
-      StateDumpCollector clientsDump = dump.subStateDumpCollector("clients");
-      int idx = 0;
+
+      List<Map> allClients = new ArrayList<>();
       for (Map.Entry<ClientDescriptor, ClientState> entry : clients.entrySet()) {
-        StateDumpCollector clientDump = clientsDump.subStateDumpCollector(String.valueOf(idx++));
-        clientDump.addState("clientDescriptor", entry.getKey().toString());
-        clientDump.addState("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
-        clientDump.addState("attached", String.valueOf(entry.getValue().isAttached()));
+        Map<String,String> clientMap = new HashMap<>(3);
+        clientMap.put("clientDescriptor", entry.getKey().toString());
+        clientMap.put("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
+        clientMap.put("attached", String.valueOf(entry.getValue().isAttached()));
+        allClients.add(clientMap);
       }
+      dump.addState("clientCount", String.valueOf(allClients.size()));
+      dump.addState("clients", allClients);
     }
   }
 
