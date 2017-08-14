@@ -16,26 +16,40 @@
 import scripts.*
 import org.gradle.internal.jvm.Jvm
 
-buildscript {
-  repositories {
-    mavenCentral()
+// This adds tasks to auto close or release nexus staging repos
+// see https://github.com/Codearte/gradle-nexus-staging-plugin/
+plugins {
+  id 'io.codearte.nexus-staging' version '0.9.0'
+}
+
+if (deployUrl.contains('nexus')) {
+  //internal terracotta config, shorten url for this plugin to end at local/
+  project.nexusStaging {
+    serverUrl = deployUrl.replaceAll(~/local\/.*$/, "local/")
+    packageGroup = 'Ehcache OS' //internal staging repository name
   }
-  dependencies {
-    classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+  ext {
+    deployUser = tcDeployUser
+    deployPwd = tcDeployPassword
+  }
+} else {
+  project.nexusStaging {
+    packageGroup = 'org.ehcache' //Sonatype staging repository name
+  }
+  ext {
+    deployUser = sonatypeUser
+    deployPwd = sonatypePwd
   }
 }
 
-// This adds tasks to auto close or release nexus staging repos
-// see https://github.com/Codearte/gradle-nexus-staging-plugin/
-project.plugins.apply 'io.codearte.nexus-staging'
 project.nexusStaging {
-  username = project.sonatypeUser
-  password = project.sonatypePwd
-  packageGroup = 'org.ehcache'
+  username = project.ext.deployUser
+  password = project.ext.deployPwd
+  logger.warn("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
 // Disable automatic promotion for added safety
-closeAndPromoteRepository.enabled = false
+closeAndReleaseRepository.enabled = false
 
 
 ext {
@@ -68,17 +82,6 @@ ext {
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
 
-if (deployUrl.contains('nexus')) {
-  ext {
-    deployUser = tcDeployUser
-    deployPwd = tcDeployPassword
-  }
-} else {
-  ext {
-    deployUser = sonatypeUser
-    deployPwd = sonatypePwd
-  }
-}
 
 // Java 6 build setup
 def java6Error = 'Set the poperty \'java6Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 6 installation'
