@@ -65,10 +65,10 @@ ext {
   ehcache2Version = '2.10.3'
 
   // Clustered
-  terracottaPlatformVersion = '5.3.0-pre31'
+  terracottaPlatformVersion = '5.3.0-pre33'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.3.0-pre13'
-  terracottaCoreVersion = '5.3.0-pre25'
+  terracottaApisVersion = '1.3.0-pre14'
+  terracottaCoreVersion = '5.3.0-pre27'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
   terracottaPassthroughTestingVersion = '1.3.0-pre15'
