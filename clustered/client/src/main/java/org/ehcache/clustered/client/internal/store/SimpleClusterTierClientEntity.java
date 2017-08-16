@@ -90,13 +90,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate() {
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
-      public void handleMessage(EntityResponse messageFromServer) {
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
         LOGGER.trace("Entity response received from server: {}", messageFromServer);
-        if (messageFromServer instanceof EhcacheEntityResponse) {
-          fireResponseEvent((EhcacheEntityResponse) messageFromServer);
-        }
+        fireResponseEvent(messageFromServer);
       }
 
       @Override
