@@ -21,4 +21,7 @@ services:
         clusterUri: terracotta://server-1/my-server-entity-2
         readOperationTimeout: TimeoutDuration{20 SECONDS}
         autoCreate: true
+        defaultServerResource: primary-server-resource
+            resourcePools:
+                resource-pool-a: [33554432 bytes from '<default>']
     - org.ehcache.management.registry.DefaultManagementRegistryConfiguration

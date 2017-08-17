@@ -94,7 +94,8 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         // cluster config
         .with(ClusteringServiceConfigurationBuilder.cluster(uri)
             .autoCreate()
-            .defaultServerResource("primary-server-resource"))
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 32, MemoryUnit.MB))
         // management config
         .using(new DefaultManagementRegistryConfiguration()
             .addTags("webapp-1", "server-node-1")
