@@ -250,11 +250,10 @@ public class ClusteringServiceConfiguration
   }
 
   private String readablePoolsString() {
-    String pools = "resourcePools:\n";
+    StringBuilder pools = new StringBuilder("resourcePools:\n");
     for(Map.Entry entry : serverConfiguration.getResourcePools().entrySet()) {
-      pools += "        " + entry.getKey() + ": " + entry.getValue() + "\n";
+      pools.append("        " + entry.getKey() + ": " + entry.getValue() + "\n");
     }
-
-    return pools;
+    return pools.toString();
   }
 }
