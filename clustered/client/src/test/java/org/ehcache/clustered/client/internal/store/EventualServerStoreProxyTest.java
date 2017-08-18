@@ -267,17 +267,9 @@ public class EventualServerStoreProxyTest {
 
   private static void assertThatClientsWaitingForInvalidationIsEmpty() throws Exception {
     ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity activeEntity = observableEhcacheServerEntityService.getServedActiveEntities().get(0);
-    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-      while (true) {
-      try {
-        if (activeEntity.getClientsWaitingForInvalidation().size() == 0) {
-          return true;
-        }
-      } catch (Exception e) {
-      }
-    }
-    });
-    assertThat(future.get(5, TimeUnit.SECONDS), is(true));
+    long now = System.currentTimeMillis();
+    while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
   }
 
 }
