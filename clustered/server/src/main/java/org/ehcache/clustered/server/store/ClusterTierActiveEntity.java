@@ -42,6 +42,7 @@ import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.ServerStoreCompatibility;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
@@ -59,6 +60,7 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
 import org.terracotta.entity.IEntityMessenger;
@@ -122,6 +124,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ClusterTierManagement management;
   private final String managerIdentifier;
   private final Object inflightInvalidationsMutex = new Object();
+  private final int lastConcurrencyKey;
   private volatile List<InvalidationTuple> inflightInvalidations;
 
   @SuppressWarnings("unchecked")
@@ -133,6 +136,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     configuration = entityConfiguration.getConfiguration();
     managerIdentifier = entityConfiguration.getManagerIdentifier();
     responseFactory = new EhcacheEntityResponseFactory();
+    lastConcurrencyKey = defaultMapper.getSegments() + 1; // all our segments plus the first key which is the lifecycle key
     try {
       clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
@@ -627,6 +631,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         size.set(0);
       }
     }
+
+    // Sync message tracker as well, to prevent duplicates received on the passive
+    // We do it once on the last concurrency key
+    if (concurrencyKey == lastConcurrencyKey) {
+      syncChannel.synchronizeToPassive(new EhcacheMessageTrackerMessage(messageHandler));
+    }
+
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }
 

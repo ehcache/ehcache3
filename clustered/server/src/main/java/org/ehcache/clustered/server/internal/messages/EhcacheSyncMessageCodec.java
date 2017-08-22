@@ -18,6 +18,8 @@ package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.internal.messages.ChainCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +41,12 @@ import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.ehcache.clustered.common.internal.store.Util.marshall;
 import static org.ehcache.clustered.common.internal.store.Util.unmarshall;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.DATA;
+import static org.ehcache.clustered.server.internal.messages.SyncMessageType.MESSAGE_TRACKER;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.STATE_REPO;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_FIELD_NAME;
@@ -58,6 +62,9 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final String STATE_REPO_ENTRIES_SUB_STRUCT = "mappings";
   private static final String STATE_REPO_VALUE_FIELD = "value";
   private static final String STATE_REPO_MAP_NAME_FIELD = "mapName";
+  private static final String MESSAGE_TRACKER_CLIENTS_STRUCT = "clients";
+  private static final String MESSAGE_TRACKER_RESPONSES_STRUCT = "responses";
+  private static final String MESSAGE_TRACKER_RESPONSE_FIELD = "response";
 
   private static final Struct CHAIN_MAP_ENTRY_STRUCT = newStructBuilder()
     .int64(KEY_FIELD, 10)
@@ -81,43 +88,94 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .structs(STATE_REPO_ENTRIES_SUB_STRUCT, 40, STATE_REPO_ENTRY_STRUCT)
     .build();
 
-  public EhcacheSyncMessageCodec() {
+  private static final Struct MESSAGE_TRACKER_RESPONSE_STRUCT = newStructBuilder()
+    .int64(MSG_ID_FIELD, 10)
+    .byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD, 20)
+    .build();
+
+  private static final Struct MESSAGE_TRACKER_CLIENT_STRUCT = newStructBuilder()
+    .int64(KEY_FIELD, 10)
+    .structs(MESSAGE_TRACKER_RESPONSES_STRUCT, 20, MESSAGE_TRACKER_RESPONSE_STRUCT)
+    .build();
+
+  private static final Struct MESSAGE_TRACKER_SYNC_STRUCT = newStructBuilder()
+    .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
+    .structs(MESSAGE_TRACKER_CLIENTS_STRUCT, 20, MESSAGE_TRACKER_CLIENT_STRUCT)
+    .build();
+
+  private ResponseCodec responseCodec;
+
+  public EhcacheSyncMessageCodec(ResponseCodec responseCodec) {
+    this.responseCodec = responseCodec;
   }
 
   @Override
   public byte[] encode(final int concurrencyKey, final EhcacheEntityMessage message) throws MessageCodecException {
     if (message instanceof EhcacheSyncMessage) {
       EhcacheSyncMessage syncMessage = (EhcacheSyncMessage) message;
-      StructEncoder<Void> encoder;
       switch (syncMessage.getMessageType()) {
-        case DATA: {
-          encoder = DATA_SYNC_STRUCT.encoder();
-          EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage)syncMessage;
-          encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, DATA);
-          encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
-            dataSyncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
-              entryEncoder.int64(KEY_FIELD, entry.getKey());
-              entryEncoder.struct(CHAIN_FIELD, entry.getValue(), CHAIN_ENCODER_FUNCTION);
-            });
-          return encoder.encode().array();
-        }
-        case STATE_REPO: {
-          encoder = STATE_REPO_SYNC_STRUCT.encoder();
-          EhcacheStateRepoSyncMessage stateRepoSyncMessage = (EhcacheStateRepoSyncMessage) syncMessage;
-          encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, STATE_REPO)
-            .string(SERVER_STORE_NAME_FIELD, stateRepoSyncMessage.getCacheId())
-            .string(STATE_REPO_MAP_NAME_FIELD, stateRepoSyncMessage.getMapId());
-          encoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT, stateRepoSyncMessage.getMappings().entrySet(),
-            (entryEncoder, entry) -> entryEncoder.byteBuffer(KEY_FIELD, wrap(marshall(entry.getKey())))
-              .byteBuffer(STATE_REPO_VALUE_FIELD, wrap(marshall(entry.getValue()))));
-          return encoder.encode().array();
-        }
+        case DATA:
+          return encoreDataSync((EhcacheDataSyncMessage) syncMessage);
+        case STATE_REPO:
+          return encoreStateRepoSync((EhcacheStateRepoSyncMessage) syncMessage);
+        case MESSAGE_TRACKER:
+          return encoreMessageTrackerSync((EhcacheMessageTrackerMessage) syncMessage);
         default:
           throw new IllegalArgumentException("Sync message codec can not encode " + syncMessage.getMessageType());
       }
     } else {
-      throw new IllegalArgumentException(this.getClass().getName() + " can not encode " + message + " which is not a " + EhcacheSyncMessage.class);
+      throw new IllegalArgumentException(this.getClass().getName() + " can not encode " + message + " which is not a " + EhcacheSyncMessage.class.getName());
     }
+  }
+
+  private byte[] encoreMessageTrackerSync(EhcacheMessageTrackerMessage syncMessage) {
+    StructEncoder<Void> encoder = MESSAGE_TRACKER_SYNC_STRUCT.encoder();
+    EhcacheMessageTrackerMessage messageTrackerMessage = syncMessage;
+    encoder
+      .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, MESSAGE_TRACKER)
+      .structs(MESSAGE_TRACKER_CLIENTS_STRUCT, messageTrackerMessage.getTrackedMessages().entrySet(),
+        (clientEncoder, entry) -> {
+          Map<Long, EhcacheEntityResponse> responses = entry.getValue();
+          // Skip clients without tracked messages. It is useless to send them
+          if(!responses.isEmpty()) {
+            clientEncoder.int64(KEY_FIELD, entry.getKey());
+            clientEncoder.structs(MESSAGE_TRACKER_RESPONSES_STRUCT, responses.entrySet(),
+              (responseEncoder, response) -> {
+                responseEncoder.int64(MSG_ID_FIELD, response.getKey());
+                responseEncoder.byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD, encodeResponse(response.getValue()));
+              });
+          }
+        });
+    return encoder.encode().array();
+  }
+
+  private ByteBuffer encodeResponse(EhcacheEntityResponse response) {
+    return ByteBuffer.wrap(responseCodec.encode(response));
+  }
+
+  private byte[] encoreStateRepoSync(EhcacheStateRepoSyncMessage syncMessage) {
+    StructEncoder<Void> encoder = STATE_REPO_SYNC_STRUCT.encoder();
+    EhcacheStateRepoSyncMessage stateRepoSyncMessage = syncMessage;
+    encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, STATE_REPO)
+      .string(SERVER_STORE_NAME_FIELD, stateRepoSyncMessage.getCacheId())
+      .string(STATE_REPO_MAP_NAME_FIELD, stateRepoSyncMessage.getMapId());
+    encoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT, stateRepoSyncMessage.getMappings().entrySet(),
+      (entryEncoder, entry) -> entryEncoder.byteBuffer(KEY_FIELD, wrap(marshall(entry.getKey())))
+        .byteBuffer(STATE_REPO_VALUE_FIELD, wrap(marshall(entry.getValue()))));
+    return encoder.encode().array();
+  }
+
+  private byte[] encoreDataSync(EhcacheDataSyncMessage syncMessage) {
+    StructEncoder<Void> encoder;
+    encoder = DATA_SYNC_STRUCT.encoder();
+    EhcacheDataSyncMessage dataSyncMessage = syncMessage;
+    encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, DATA);
+    encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
+      dataSyncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
+        entryEncoder.int64(KEY_FIELD, entry.getKey());
+        entryEncoder.struct(CHAIN_FIELD, entry.getValue(), CHAIN_ENCODER_FUNCTION);
+      });
+    return encoder.encode().array();
   }
 
   @Override
@@ -133,31 +191,69 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       return null;
     }
 
+    // Now that we have the type, go back to the beginning of the message to re-read it into the actual message
+    message.rewind();
+
     switch (enm.get()) {
       case DATA:
-        message.rewind();
-        decoder = DATA_SYNC_STRUCT.decoder(message);
-        Map<Long, Chain> chainMap = decodeChainMapEntries(decoder);
-        return new EhcacheDataSyncMessage(chainMap);
+        return decodeDataSync(message);
       case STATE_REPO:
-        message.rewind();
-        decoder = STATE_REPO_SYNC_STRUCT.decoder(message);
-        String storeId = decoder.string(SERVER_STORE_NAME_FIELD);
-        String mapId = decoder.string(STATE_REPO_MAP_NAME_FIELD);
-        ConcurrentMap<Object, Object> mappings = new ConcurrentHashMap<>();
-        StructArrayDecoder<StructDecoder<Void>> structsDecoder = decoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT);
-        if (structsDecoder != null) {
-          while (structsDecoder.hasNext()) {
-            StructDecoder<StructArrayDecoder<StructDecoder<Void>>> structDecoder = structsDecoder.next();
-            Object key = unmarshall(structDecoder.byteBuffer(KEY_FIELD));
-            Object value = unmarshall(structDecoder.byteBuffer(STATE_REPO_VALUE_FIELD));
-            mappings.put(key, value);
-          }
-        }
-        return new EhcacheStateRepoSyncMessage(storeId, mapId, mappings);
+        return decodeStateRepoSync(message);
+      case MESSAGE_TRACKER:
+        return decodeMessageTracker(message);
       default:
         throw new AssertionError("Cannot happen given earlier checks");
     }
+  }
+
+  private EhcacheSyncMessage decodeMessageTracker(ByteBuffer message) {
+    StructDecoder<Void> decoder = MESSAGE_TRACKER_SYNC_STRUCT.decoder(message);
+    Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages = new HashMap<>();
+    StructArrayDecoder<StructDecoder<Void>> clientsDecoder = decoder.structs(MESSAGE_TRACKER_CLIENTS_STRUCT);
+    if(clientsDecoder != null) {
+      while(clientsDecoder.hasNext()) {
+        StructDecoder<StructArrayDecoder<StructDecoder<Void>>> clientDecoder = clientsDecoder.next();
+        Long clientId = clientDecoder.int64(KEY_FIELD);
+        HashMap<Long, EhcacheEntityResponse> responses = new HashMap<>();
+        trackedMessages.put(clientId, responses);
+        StructArrayDecoder<StructDecoder<StructArrayDecoder<StructDecoder<Void>>>> responsesDecoder = clientDecoder.structs(MESSAGE_TRACKER_RESPONSES_STRUCT);
+        if(responses != null) {
+          while (responsesDecoder.hasNext()) {
+            StructDecoder<StructArrayDecoder<StructDecoder<StructArrayDecoder<StructDecoder<Void>>>>> responseDecoder = responsesDecoder.next();
+            Long transactionId = responseDecoder.int64(MSG_ID_FIELD);
+            ByteBuffer bb = responseDecoder.byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD);
+            byte[] encodedResponse = new byte[bb.remaining()];
+            bb.get(encodedResponse);
+            EhcacheEntityResponse res = responseCodec.decode(encodedResponse);
+            responses.put(transactionId, res);
+          }
+        }
+      }
+    }
+    return new EhcacheMessageTrackerMessage(trackedMessages);
+  }
+
+  private EhcacheSyncMessage decodeStateRepoSync(ByteBuffer message) {
+    StructDecoder<Void> decoder = STATE_REPO_SYNC_STRUCT.decoder(message);
+    String storeId = decoder.string(SERVER_STORE_NAME_FIELD);
+    String mapId = decoder.string(STATE_REPO_MAP_NAME_FIELD);
+    ConcurrentMap<Object, Object> mappings = new ConcurrentHashMap<>();
+    StructArrayDecoder<StructDecoder<Void>> structsDecoder = decoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT);
+    if (structsDecoder != null) {
+      while (structsDecoder.hasNext()) {
+        StructDecoder<StructArrayDecoder<StructDecoder<Void>>> structDecoder = structsDecoder.next();
+        Object key = unmarshall(structDecoder.byteBuffer(KEY_FIELD));
+        Object value = unmarshall(structDecoder.byteBuffer(STATE_REPO_VALUE_FIELD));
+        mappings.put(key, value);
+      }
+    }
+    return new EhcacheStateRepoSyncMessage(storeId, mapId, mappings);
+  }
+
+  private EhcacheSyncMessage decodeDataSync(ByteBuffer message) {
+    StructDecoder<Void> decoder = DATA_SYNC_STRUCT.decoder(message);
+    Map<Long, Chain> chainMap = decodeChainMapEntries(decoder);
+    return new EhcacheDataSyncMessage(chainMap);
   }
 
   private Map<Long, Chain> decodeChainMapEntries(StructDecoder<Void> decoder) {

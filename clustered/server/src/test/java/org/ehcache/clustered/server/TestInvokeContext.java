@@ -19,7 +19,6 @@ package org.ehcache.clustered.server;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
-import org.terracotta.entity.InvokeContext;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -55,7 +54,7 @@ public final class TestInvokeContext implements ActiveInvokeContext {
 
   @Override
   public boolean isValidClientInformation() {
-    throw new UnsupportedOperationException("TODO Implement me!");
+    return true;
   }
 
   @Override
