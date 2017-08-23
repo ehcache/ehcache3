@@ -103,11 +103,10 @@ if (hasProperty('testVM')) {
       break
     case '8':
       if (JavaVersion.current().isJava8()) {
-        testJava = Jvm.current();
+        testJava = Jvm.current()
       } else {
         assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
         testJava = Jvm.discovered(new File(java7Home), JavaVersion.VERSION_1_8)
-        break
       }
       break
     case '9':
@@ -116,8 +115,8 @@ if (hasProperty('testVM')) {
       } else {
         assert hasProperty('java9Home'): 'Set the poperty \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
         testJava = Jvm.discovered(new File(java9Home), JavaVersion.VERSION_1_9)
-        break;
       }
+      break
     default:
       throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 7, 8 or 9")
   }
@@ -240,9 +239,6 @@ subprojects {
   }
   tasks.withType(Test) {
     executable = testJava.javaExecutable
-    if (testJava.javaVersion.isJava9Compatible()) {
-      jvmArgs += '--permit-illegal-access'
-    }
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
