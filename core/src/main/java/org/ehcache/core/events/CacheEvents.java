@@ -122,6 +122,10 @@ public final class CacheEvents {
       return src;
     }
 
+    @Override
+    public String toString() {
+      return getType() + " on " + src + " key,oldValue,newValue='" + getKey() + "','" + getOldValue() + "','" + getNewValue() + "'";
+    }
   }
 
   private final static class ExpiryEvent<K, V> extends BaseCacheEvent<K, V> {
