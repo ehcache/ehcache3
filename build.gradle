@@ -220,6 +220,14 @@ subprojects {
     findbugs.toolVersion = parent.findbugsVersion
   }
 
+  findbugsMain {
+    reports {
+      // Switch from xml to html by changing these flags
+      xml.enabled = true
+      html.enabled = false
+    }
+  }
+
   jacoco {
     toolVersion = '0.7.9'
   }
