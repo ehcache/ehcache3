@@ -446,6 +446,17 @@ public class TieredStore<K, V> implements Store<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       TieredStore tieredStore = (TieredStore) resource;
+      // Stop propagating invalidation to higher tier since they will be released before the authoritative tier
+      // and thus not be in a state when they can invalidate anymore
+      tieredStore.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
+        @Override
+        public void invalidateAll() throws StoreAccessException {
+        }
+
+        @Override
+        public void invalidateAllWithHash(long hash) throws StoreAccessException {
+        }
+      });
       entry.getKey().releaseCachingTier(tieredStore.realCachingTier);
       entry.getValue().releaseAuthoritativeTier(tieredStore.authoritativeTier);
     }
