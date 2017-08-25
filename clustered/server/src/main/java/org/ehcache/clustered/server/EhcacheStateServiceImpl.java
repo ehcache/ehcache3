@@ -26,8 +26,6 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigu
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
-import org.ehcache.clustered.server.state.ClientMessageTracker;
-import org.ehcache.clustered.server.state.DefaultClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -114,7 +112,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
-  private final Map<String, ClientMessageTracker> messageTrackers = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, InvalidationTracker> invalidationTrackers = new ConcurrentHashMap<>();
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;
@@ -140,7 +137,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     if (store == null) {
       LOGGER.warn("Cluster tier {} not properly recovered on fail over.", name);
     }
-    messageTrackers.get(name).stopTracking();
     invalidationTrackers.remove(name);
     return store;
   }
@@ -419,7 +415,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
     stores.put(name, serverStore);
     if (!forActive) {
-      this.messageTrackers.put(name, new DefaultClientMessageTracker());
       if (serverStoreConfiguration.getConsistency() == Consistency.EVENTUAL) {
         this.invalidationTrackers.put(name, new InvalidationTrackerImpl());
       }
@@ -440,7 +435,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       store.close();
     }
     stateRepositoryManager.destroyStateRepository(name);
-    messageTrackers.remove(name);
     this.invalidationTrackers.remove(name);
   }
 
@@ -503,11 +497,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   @Override
   public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
-  }
-
-  @Override
-  public ClientMessageTracker getClientMessageTracker(String name) {
-    return this.messageTrackers.get(name);
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {

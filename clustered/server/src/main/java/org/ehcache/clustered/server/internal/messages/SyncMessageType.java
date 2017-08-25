@@ -28,12 +28,14 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 @CommonComponent
 public enum SyncMessageType {
   STATE_REPO,
-  DATA;
+  DATA,
+  MESSAGE_TRACKER;
 
   public static final String SYNC_MESSAGE_TYPE_FIELD_NAME = "msgType";
   public static final int SYNC_MESSAGE_TYPE_FIELD_INDEX = 10;
   public static final EnumMapping<SyncMessageType> SYNC_MESSAGE_TYPE_MAPPING = newEnumMappingBuilder(SyncMessageType.class)
     .mapping(STATE_REPO, 1)
     .mapping(DATA, 10)
+    .mapping(MESSAGE_TRACKER, 20)
     .build();
 }

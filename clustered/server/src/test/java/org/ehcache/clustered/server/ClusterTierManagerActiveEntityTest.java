@@ -20,7 +20,6 @@ import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
@@ -28,14 +27,12 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
-import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
@@ -51,7 +48,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -777,23 +773,6 @@ public class ClusterTierManagerActiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

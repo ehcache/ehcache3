@@ -50,7 +50,6 @@ public enum EhcacheMessageType {
 
   // Passive replication messages
   CHAIN_REPLICATION_OP,
-  CLIENT_ID_TRACK_OP,
   CLEAR_INVALIDATION_COMPLETE,
   INVALIDATION_COMPLETE;
 
@@ -74,7 +73,6 @@ public enum EhcacheMessageType {
     .mapping(ENTRY_SET, 43)
 
     .mapping(CHAIN_REPLICATION_OP, 61)
-    .mapping(CLIENT_ID_TRACK_OP, 62)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
     .mapping(INVALIDATION_COMPLETE, 64)
     .build();
@@ -94,7 +92,16 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
+  /**
+   * All not idempotent messages are tracked. One exception is {@link #CLEAR}. It is idempotent but also a pretty costly operation so we prefer to avoid
+   * to do it twice.
+   */
+  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET, GET_AND_APPEND, APPEND, CLEAR);
+  public static boolean isTrackedOperationMessage(EhcacheMessageType value) {
+    return TRACKED_OPERATION_MESSAGES.contains(value);
+  }
+
+  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
   public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
     return PASSIVE_REPLICATION_MESSAGES.contains(value);
   }

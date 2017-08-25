@@ -64,8 +64,6 @@ public interface EhcacheStateService {
 
   StateRepositoryManager getStateRepositoryManager();
 
-  ClientMessageTracker getClientMessageTracker(String name);
-
   InvalidationTracker getInvalidationTracker(String name);
 
   void loadExisting(ServerSideConfiguration configuration);
