@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.serialization.Serializer Serializer} SPI in Ehcache.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.spi.serialization;
+
+import org.osgi.annotation.versioning.Version;

@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.copy.Copier Copier} SPI in Ehcache.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.spi.copy;
+
+import org.osgi.annotation.versioning.Version;

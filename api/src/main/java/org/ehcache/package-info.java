@@ -18,4 +18,7 @@
  * Main Ehcache API, including {@link org.ehcache.CacheManager cache managers} and
  * {@link org.ehcache.Cache caches}.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache;
+
+import org.osgi.annotation.versioning.Version;

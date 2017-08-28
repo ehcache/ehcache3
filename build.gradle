@@ -155,6 +155,7 @@ subprojects {
   }
 
   dependencies {
+    compile "org.osgi:org.osgi.annotation:6.0.0"
     compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:1.7.1', 'org.hamcrest:hamcrest-library:1.3'

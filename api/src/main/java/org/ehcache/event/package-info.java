@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.event.CacheEvent CacheEvent} and related types.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.event;
+
+import org.osgi.annotation.versioning.Version;

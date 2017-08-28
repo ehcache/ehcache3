@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.service.Service Service} SPI related in Ehcache.
  */
+@Version("1.0.0.${tstamp}")
 package org.ehcache.spi.service;
+
+import org.osgi.annotation.versioning.Version;
