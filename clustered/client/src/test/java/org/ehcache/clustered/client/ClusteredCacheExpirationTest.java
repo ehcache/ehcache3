@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -70,7 +69,7 @@ public class ClusteredCacheExpirationTest {
             .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }
 
-  private Expiry<Object, Object> onSecondExpiration() {
+  private Expiry<Object, Object> oneSecondExpiration() {
     return Expirations.timeToLiveExpiration(Duration.of(1, TimeUnit.SECONDS));
   }
 
@@ -89,7 +88,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testGetExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(onSecondExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
       Map<String, TierStatistics> tierStatistics = statisticsService.getCacheStatistics(CLUSTERED_CACHE).getTierStatistics();
@@ -139,7 +138,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testPutIfAbsentExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(onSecondExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
 
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(CLUSTERED_CACHE, Long.class, String.class);
