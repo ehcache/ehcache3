@@ -39,18 +39,11 @@ public final class JavaExec {
     Process process = builder.inheritIO().start();
 
     return CompletableFuture.supplyAsync(() -> {
-      boolean interrupted = false;
-      try {
-        while (process.isAlive()) {
-          try {
-            process.waitFor();
-          } catch (InterruptedException e) {
-            interrupted = true;
-          }
-        }
-      } finally {
-        if (interrupted) {
-          Thread.currentThread().interrupt();
+      while (process.isAlive()) {
+        try {
+          process.waitFor();
+        } catch (InterruptedException e) {
+          // This should not happen but continue spinning if it does since the actual process is not done yet
         }
       }
       return process.exitValue();
@@ -58,4 +51,3 @@ public final class JavaExec {
   }
 
 }
-
