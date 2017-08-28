@@ -40,7 +40,7 @@ closeAndPromoteRepository.enabled = false
 
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.2.3-SNAPSHOT'
+  baseVersion = findProperty('overrideVersion') ?: '3.2.3'
 
   // Third parties
   offheapVersion = '2.3.2'
