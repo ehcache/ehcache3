@@ -58,7 +58,7 @@ sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir
     // matching the package of the test class
-    output.resourcesDir = "$buildDir/classes/test"
+    output.resourcesDir = java.outputDir
   }
 }
 

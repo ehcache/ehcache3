@@ -178,12 +178,12 @@ subprojects {
   }
 
   task slowTest(type: Test) {
-    testClassesDir = sourceSets.slowTest.output.classesDir
+    testClassesDirs = sourceSets.slowTest.output.classesDirs
     classpath += sourceSets.slowTest.runtimeClasspath
 
     binResultsDir file("$buildDir/slow-tests-results/binary/$name")
-    reports.junitXml.destination = "$buildDir/slow-tests-results"
-    reports.html.destination = "$buildDir/reports/slow-tests"
+    reports.junitXml.destination = file("$buildDir/slow-tests-results")
+    reports.html.destination = file("$buildDir/reports/slow-tests")
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
