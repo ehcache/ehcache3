@@ -1,6 +1,6 @@
 ---
 ---
-= Ehcache 3.3 Documentation
+= Ehcache 3.4 Documentation
 ifndef::sourcedir34[]
 include::common.adoc[]
 endif::sourcedir34[]
