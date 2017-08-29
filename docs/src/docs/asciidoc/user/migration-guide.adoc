@@ -1,9 +1,9 @@
 ---
 ---
 = Migration Guide
-ifndef::sourcedir33[]
+ifndef::sourcedir34[]
 include::common.adoc[]
-endif::sourcedir33[]
+endif::sourcedir34[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -27,7 +27,7 @@ Before adding, we verify the expiry and set it on the `Element` only when differ
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
+include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
 ----
 
 <1> Expiry duration defined at the cache level.
@@ -42,7 +42,7 @@ having dedicated logic in the methods called during the lifecycle of added and u
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir33}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
 ----
 
 <1> Defining custom expiry to be called during the lifecycle of added mappings.

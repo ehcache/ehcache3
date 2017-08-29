@@ -1,9 +1,9 @@
 ---
 ---
 = Ehcache XSDs
-ifndef::sourcedir33[]
+ifndef::sourcedir34[]
 include::common.adoc[]
-endif::sourcedir33[]
+endif::sourcedir34[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -31,7 +31,7 @@ endif::notBuildingForSite[]
 
 [source,xml,indent=0]
 ----
-include::{sourcedir33}/107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
+include::{sourcedir34}/107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
 ----
 
 [[core]]
@@ -39,7 +39,7 @@ include::{sourcedir33}/107/src/test/resources/org/ehcache/docs/public-xsds-locat
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir33}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
+include::{sourcedir34}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 ----
 
 [[jsr-107-extension]]
@@ -47,12 +47,12 @@ include::{sourcedir33}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir33}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
+include::{sourcedir34}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
 ----
 
 == XA transactions extension
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir33}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
+include::{sourcedir34}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
 ----
