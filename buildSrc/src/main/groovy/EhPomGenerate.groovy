@@ -37,15 +37,13 @@ class EhPomGenerate implements Plugin<Project> {
 
     def mavenTempResourcePath = "${project.buildDir}/mvn/META-INF/maven/${project.group}/${project.archivesBaseName}"
 
-    // Write pom to temp location to be picked up later,
-    // generatePomFileForMavenJavaPublication task comes from maven-publish.
     project.model {
+      // Write pom to temp location to be picked up later,
+      // generatePomFileForMavenJavaPublication task comes from maven-publish.
       tasks.generatePomFileForMavenJavaPublication {
         destination = project.file("$mavenTempResourcePath/pom.xml")
       }
-    }
-    //ensure that we generate maven stuff
-    project.model {
+      //ensure that we generate maven stuff
       tasks.processResources {
         dependsOn project.tasks.generatePomFileForMavenJavaPublication
         dependsOn project.tasks.writeMavenProperties
