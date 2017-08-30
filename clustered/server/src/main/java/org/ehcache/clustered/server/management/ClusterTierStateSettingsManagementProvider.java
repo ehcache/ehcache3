@@ -28,20 +28,20 @@ import java.util.Collections;
 
 @Named("ClusterTierClientStateSettings")
 @RequiredContext({@Named("consumerId"), @Named("clientId"), @Named("type")})
-class ClusterTierStateSettingsManagementProvider extends ClientBindingManagementProvider<ClusterTierClientStateBinding> {
+class ClusterTierStateSettingsManagementProvider extends ClientBindingManagementProvider<ClusterTierClientDescriptorBinding> {
 
   ClusterTierStateSettingsManagementProvider() {
-    super(ClusterTierClientStateBinding.class);
+    super(ClusterTierClientDescriptorBinding.class);
   }
 
   @Override
-  protected ExposedClusterTierStateBinding internalWrap(Context context, ClusterTierClientStateBinding managedObject) {
+  protected ExposedClusterTierStateBinding internalWrap(Context context, ClusterTierClientDescriptorBinding managedObject) {
     return new ExposedClusterTierStateBinding(context, managedObject);
   }
 
-  private static class ExposedClusterTierStateBinding extends ExposedClientBinding<ClusterTierClientStateBinding> {
+  private static class ExposedClusterTierStateBinding extends ExposedClientBinding<ClusterTierClientDescriptorBinding> {
 
-    ExposedClusterTierStateBinding(Context context, ClusterTierClientStateBinding clientBinding) {
+    ExposedClusterTierStateBinding(Context context, ClusterTierClientDescriptorBinding clientBinding) {
       super(context, clientBinding);
     }
 
@@ -52,11 +52,7 @@ class ClusterTierStateSettingsManagementProvider extends ClientBindingManagement
 
     @Override
     public Collection<? extends Descriptor> getDescriptors() {
-      ClusterTierClientState clientState = getClientBinding().getValue();
-      return Collections.singleton(new Settings(getContext())
-        .set("attached", clientState.isAttached())
-        .set("store", clientState.getStoreIdentifier())
-      );
+      return Collections.singleton(new Settings(getContext()));
     }
   }
 

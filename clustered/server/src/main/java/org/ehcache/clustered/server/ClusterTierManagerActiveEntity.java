@@ -60,13 +60,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerActiveEntity.class);
 
-  /**
-   * Tracks the state of a connected client.  An entry is added to this map when the
-   * {@link #connected(ClientDescriptor)} method is invoked for a client and removed when the
-   * {@link #disconnected(ClientDescriptor)} method is invoked for the client.
-   */
-  private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
-
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
@@ -74,6 +67,17 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
   private final ClusterTierManagerConfiguration clusterTierManagerConfig;
+
+  /**
+   * Only used for subclassing when testing
+   */
+  protected ClusterTierManagerActiveEntity() {
+    responseFactory = null;
+    ehcacheStateService = null;
+    management = null;
+    configuration = null;
+    clusterTierManagerConfig = null;
+  }
 
   public ClusterTierManagerActiveEntity(ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
@@ -99,60 +103,18 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void addStateTo(StateDumpCollector dump) {
     ClusterTierManagerDump.dump(dump, clusterTierManagerConfig);
-    {
-      Map<ClientDescriptor, ClientState> clients = new HashMap<>(clientStateMap);
-
-      List<Map> allClients = new ArrayList<>();
-      for (Map.Entry<ClientDescriptor, ClientState> entry : clients.entrySet()) {
-        Map<String,String> clientMap = new HashMap<>(3);
-        clientMap.put("clientDescriptor", entry.getKey().toString());
-        clientMap.put("clientIdentifier", String.valueOf(entry.getValue().getClientIdentifier()));
-        clientMap.put("attached", String.valueOf(entry.getValue().isAttached()));
-        allClients.add(clientMap);
-      }
-      dump.addState("clientCount", String.valueOf(allClients.size()));
-      dump.addState("clients", allClients);
-    }
-  }
-
-  /**
-   * Gets the map of connected clients along with the server stores each is using.
-   * If the client is using no stores, the set of stores will be empty for that client.
-   *
-   * @return an unmodifiable copy of the connected client map
-   */
-  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  Set<ClientDescriptor> getConnectedClients() {
-    final Set<ClientDescriptor> clients = new HashSet<>();
-    for (Entry<ClientDescriptor, ClientState> entry : clientStateMap.entrySet()) {
-      clients.add(entry.getKey());
-    }
-    return Collections.unmodifiableSet(clients);
   }
 
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    if (!clientStateMap.containsKey(clientDescriptor)) {
-      LOGGER.info("Connecting {}", clientDescriptor);
-      ClientState clientState = new ClientState();
-      clientStateMap.put(clientDescriptor, clientState);
-      management.clientConnected(clientDescriptor, clientState);
-    } else {
-      // This is logically an AssertionError
-      LOGGER.error("Client {} already registered as connected", clientDescriptor);
-    }
+    LOGGER.info("Connecting {}", clientDescriptor);
+    management.clientConnected(clientDescriptor);
   }
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
-    ClientState clientState = clientStateMap.remove(clientDescriptor);
-    if (clientState == null) {
-      // This is logically an AssertionError
-      LOGGER.error("Client {} not registered as connected", clientDescriptor);
-    } else {
-      LOGGER.info("Disconnecting {}", clientDescriptor);
-      management.clientDisconnected(clientDescriptor, clientState);
-    }
+    LOGGER.info("Disconnecting {}", clientDescriptor);
+    management.clientDisconnected(clientDescriptor);
   }
 
   @Override
@@ -176,15 +138,10 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
-    }
     ClusterTierManagerReconnectMessage reconnectMessage = reconnectMessageCodec.decodeReconnectMessage(extendedReconnectData);
-    clientState.attach(reconnectMessage.getClientId());
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
-    management.clientReconnected(clientDescriptor, clientState);
+    management.clientReconnected(clientDescriptor);
   }
 
   @Override
@@ -206,13 +163,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
     management.init();
     management.sharedPoolsConfigured();
-  }
-
-  private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the cluster tier manager");
-    }
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
@@ -258,26 +208,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
-    validateClientConnected(clientDescriptor);
-    ClientState clientState = clientStateMap.get(clientDescriptor);
-    UUID clientId = clientState.getClientIdentifier();
-    if (clientId != null) {
-      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientId);
-    }
-    if (getTrackedClients().contains(message.getClientId())) {
-      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked.");
-    }
-
     ehcacheStateService.validate(message.getConfiguration());
-    clientState.attach(message.getClientId());
-    management.clientValidated(clientDescriptor, clientState);
+    management.clientValidated(clientDescriptor);
   }
-
-  private Set<UUID> getTrackedClients() {
-    return clientStateMap.entrySet().stream()
-      .filter(entry -> entry.getValue().isAttached())
-      .map(entry -> entry.getValue().getClientIdentifier())
-      .collect(Collectors.toSet());
-  }
-
 }

@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
-import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
@@ -36,7 +35,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -129,10 +127,6 @@ public class ObservableClusterTierServerEntityService
       return activeEntity.getConnectedClients();
     }
 
-    public Set<ClientDescriptor> getAttachedClients() {
-      return activeEntity.getAttachedClients();
-    }
-
     @SuppressWarnings("unchecked")
     public ConcurrentMap<Integer, ClusterTierActiveEntity.InvalidationHolder> getClientsWaitingForInvalidation() throws Exception {
       Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
@@ -151,13 +145,11 @@ public class ObservableClusterTierServerEntityService
 
   public static final class ObservableClusterTierPassiveEntity {
     private final ClusterTierPassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
 
     private ObservableClusterTierPassiveEntity(ClusterTierPassiveEntity passiveEntity) throws Exception {
       this.passiveEntity = passiveEntity;
       Field field = passiveEntity.getClass().getDeclaredField("stateService");
       field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
     }
 
     public void notifyDestroyed(ClientSourceId sourceId) {

@@ -146,13 +146,13 @@ public class ActivePassiveClientIdTest {
 
     assertThat(responses).hasSize(1); // should now track one message
 
-    assertThat(activeEntity.getAttachedClients()).hasSize(1); // make sure we currently have one client attached
+    assertThat(activeEntity.getConnectedClients()).hasSize(1); // make sure we currently have one client attached
 
     service.stop(); // stop the service. It will remove the client
 
     activeEntity.notifyDestroyed(clientSourceIds.iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
 
-    waitForPredicate(e -> activeEntity.getAttachedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
+    waitForPredicate(e -> activeEntity.getConnectedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
 
     assertThat(activeMessageHandler.getTrackedClients()).isEmpty(); // all tracked messages for this client should have been removed
   }
@@ -212,7 +212,7 @@ public class ActivePassiveClientIdTest {
     activeEntity.notifyDestroyed(clientSourceIds.iterator().next());
     passiveEntity.notifyDestroyed(clientSourceIds.iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
 
-    waitForPredicate(e -> activeEntity.getAttachedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
+    waitForPredicate(e -> activeEntity.getConnectedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
 
     assertThat(passiveMessageHandler.getTrackedClients()).isEmpty(); // all tracked messages for this client should have been removed
   }

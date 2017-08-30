@@ -13,31 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
 
-import java.util.UUID;
+package org.ehcache.clustered.server.management;
 
-/**
- * Represents a client's state against an {@link ClusterTierManagerActiveEntity}.
- */
-public class ClientState {
-  /**
-   * Indicates if the client has either configured or validated with clustered store manager.
-   */
-  private boolean attached = false;
-  private UUID clientId;
+import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 
-  public boolean isAttached() {
-    return attached;
+final class ClusterTierClientDescriptorBinding extends ClientBinding {
+
+  ClusterTierClientDescriptorBinding(ClientDescriptor clientDescriptor) {
+    super(clientDescriptor, clientDescriptor); // No actual value so just pass twice the same (value can't be null)
   }
-
-  public UUID getClientIdentifier() {
-    return clientId;
-  }
-
-  void attach(UUID clientId) {
-    this.attached = true;
-    this.clientId = clientId;
-  }
-
 }

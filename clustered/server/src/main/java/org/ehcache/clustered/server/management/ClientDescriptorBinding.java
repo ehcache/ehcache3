@@ -13,21 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.server.management;
 
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 
-final class ClusterTierClientStateBinding extends ClientBinding {
+final class ClientDescriptorBinding extends ClientBinding {
 
-  ClusterTierClientStateBinding(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
-    super(clientDescriptor, clientState);
+  ClientDescriptorBinding(ClientDescriptor clientDescriptor) {
+    super(clientDescriptor, clientDescriptor); // No actual value so just pass twice the same (value can't be null)
   }
-
-  @Override
-  public ClusterTierClientState getValue() {
-    return (ClusterTierClientState) super.getValue();
-  }
-
 }

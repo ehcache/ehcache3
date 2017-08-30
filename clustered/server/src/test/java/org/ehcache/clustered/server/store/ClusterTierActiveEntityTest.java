@@ -559,22 +559,6 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
-  public void testConnectedButNotAttachedClientFailsInvokingServerStoreOperation() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-
-    TestInvokeContext context = new TestInvokeContext();
-    activeEntity.connected(context.getClientDescriptor());
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
-
-    assertFailure(
-        activeEntity.invokeActive(context, messageFactory.appendOperation(1L, createPayload(1L))),
-        LifecycleException.class, "Client not attached to cluster tier 'store'"
-    );
-  }
-
-  @Test
   public void testWithAttachmentSucceedsInvokingServerStoreOperation() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
@@ -618,7 +602,7 @@ public class ClusterTierActiveEntityTest {
         activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
-    assertThat(activeEntity.getAttachedClients(), contains(context.getClientDescriptor()));
+    assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
 
     /*
      * Ensure the dedicated resource pool remains after client disconnect.
@@ -668,8 +652,8 @@ public class ClusterTierActiveEntityTest {
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(MemoryUnit.MEGABYTES.toBytes(1L)));
 
     assertThat(activeEntity.getConnectedClients(), hasSize(2));
-    assertThat(activeEntity.getAttachedClients(), contains(context2.getClientDescriptor()));
-    assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
+    assertThat(activeEntity.getConnectedClients(), containsInAnyOrder(context.getClientDescriptor(), context2.getClientDescriptor()));
+    assertThat(defaultRegistry.getStoreManagerService().getStores(), contains(defaultStoreName));
   }
 
   @Test
@@ -756,7 +740,7 @@ public class ClusterTierActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)));
 
-    assertThat(activeEntity.getAttachedClients(), contains(context.getClientDescriptor()));
+    assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
   }
 
   @Test
