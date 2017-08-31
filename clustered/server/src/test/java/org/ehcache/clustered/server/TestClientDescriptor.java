@@ -26,6 +26,10 @@ public final class TestClientDescriptor implements ClientDescriptor {
 
   private final int clientId = counter.incrementAndGet();
 
+  public static ClientDescriptor create() {
+    return new TestClientDescriptor();
+  }
+
   @Override
   public ClientSourceId getSourceId() {
     return new TestClientSourceId(clientId);
@@ -36,4 +40,22 @@ public final class TestClientDescriptor implements ClientDescriptor {
     return "TestClientDescriptor[" + clientId + "]";
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    TestClientDescriptor that = (TestClientDescriptor) o;
+
+    return clientId == that.clientId;
+  }
+
+  @Override
+  public int hashCode() {
+    return clientId;
+  }
 }

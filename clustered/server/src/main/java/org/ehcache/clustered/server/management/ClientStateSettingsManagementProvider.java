@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.server.management;
 
-import org.ehcache.clustered.server.ClientState;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
@@ -25,34 +24,29 @@ import org.terracotta.management.service.monitoring.registry.provider.ClientBind
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
-import java.util.TreeSet;
 
 @Named("ClientStateSettings")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
-class ClientStateSettingsManagementProvider extends ClientBindingManagementProvider<ClientStateBinding> {
+class ClientStateSettingsManagementProvider extends ClientBindingManagementProvider<ClientDescriptorBinding> {
 
   ClientStateSettingsManagementProvider() {
-    super(ClientStateBinding.class);
+    super(ClientDescriptorBinding.class);
   }
 
   @Override
-  protected ExposedClientStateBinding internalWrap(Context context, ClientStateBinding managedObject) {
+  protected ExposedClientStateBinding internalWrap(Context context, ClientDescriptorBinding managedObject) {
     return new ExposedClientStateBinding(context, managedObject);
   }
 
-  private static class ExposedClientStateBinding extends ExposedClientBinding<ClientStateBinding> {
+  private static class ExposedClientStateBinding extends ExposedClientBinding<ClientDescriptorBinding> {
 
-    ExposedClientStateBinding(Context context, ClientStateBinding clientBinding) {
+    ExposedClientStateBinding(Context context, ClientDescriptorBinding clientBinding) {
       super(context.with("type", "ClientState"), clientBinding);
     }
 
     @Override
     public Collection<? extends Descriptor> getDescriptors() {
-      ClientState clientState = getClientBinding().getValue();
-      return Collections.singleton(new Settings(getContext())
-        .set("attached", clientState.isAttached())
-      );
+      return Collections.singleton(new Settings(getContext()));
     }
   }
 

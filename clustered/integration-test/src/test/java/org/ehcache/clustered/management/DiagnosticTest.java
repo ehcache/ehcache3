@@ -27,11 +27,10 @@ import org.terracotta.connection.entity.EntityRef;
 import java.net.URI;
 import java.util.Properties;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertThat;
 
 public class DiagnosticTest extends AbstractClusteringManagementTest {
 
@@ -65,30 +64,25 @@ public class DiagnosticTest extends AbstractClusteringManagementTest {
     String dump = diagnostics.getClusterState();
 
     // ClusterTierManagerActiveEntity
-    assertThat(dump, containsString("clientCount="));
-    assertThat(dump, containsString("clientDescriptor="));
-    assertThat(dump, containsString("clientIdentifier="));
-    assertThat(dump, containsString("attached="));
+    assertThat(dump).contains("clientCount=");
+    assertThat(dump).contains("clientDescriptor=");
 
     // ClusterTierManagerDump
-    assertThat(dump, containsString("managerIdentifier="));
-    assertThat(dump, containsString("defaultServerResource=primary-server-resource"));
-    assertThat(dump, containsString("serverResource="));
-    assertThat(dump, containsString("size="));
+    assertThat(dump).contains("managerIdentifier=");
+    assertThat(dump).contains("defaultServerResource=primary-server-resource");
+    assertThat(dump).contains("serverResource=");
+    assertThat(dump).contains("size=");
 
     // EhcacheStateServiceProvider
-    assertThat(dump, containsString("configured=true"));
-
-    // ClusterTierActiveEntity
-    assertThat(dump, containsString("storeIdentifier="));
+    assertThat(dump).contains("configured=true");
 
     // ClusterTierDump
-    assertThat(dump, containsString("storedKeyType="));
-    assertThat(dump, containsString("storedValueType="));
-    assertThat(dump, containsString("keySerializerType="));
-    assertThat(dump, containsString("valueSerializerType="));
-    assertThat(dump, containsString("consistency="));
-    assertThat(dump, containsString("resourceName="));
+    assertThat(dump).contains("storedKeyType=");
+    assertThat(dump).contains("storedValueType=");
+    assertThat(dump).contains("keySerializerType=");
+    assertThat(dump).contains("valueSerializerType=");
+    assertThat(dump).contains("consistency=");
+    assertThat(dump).contains("resourceName=");
   }
 
 }
