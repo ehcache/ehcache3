@@ -33,7 +33,7 @@ class EhPomGenerate implements Plugin<Project> {
 
     def utils = new Utils(project.baseVersion, project.logger)
 
-    project.plugins.apply "maven-publish" // for generating pom.*
+    project.plugins.apply 'maven-publish' // for generating pom.*
 
     def mavenTempResourcePath = "${project.buildDir}/mvn/META-INF/maven/${project.group}/${project.archivesBaseName}"
 
@@ -69,7 +69,21 @@ class EhPomGenerate implements Plugin<Project> {
                 dep.appendNode('version', it.version)
                 dep.appendNode('scope', 'compile')
               }
+              project.configurations.pomOnlyCompile.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'compile')
+              }
               project.configurations.shadowProvided.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'provided')
+              }
+              project.configurations.pomOnlyProvided.dependencies.each {
                 def dep = asNode().dependencies[0].appendNode('dependency')
                 dep.appendNode('groupId', it.group)
                 dep.appendNode('artifactId', it.name)
@@ -87,9 +101,9 @@ class EhPomGenerate implements Plugin<Project> {
       doLast {
         def propertyFile = project.file "$mavenTempResourcePath/pom.properties"
         def props = new Properties()
-        props.setProperty("version", project.version)
-        props.setProperty("groupId", project.group)
-        props.setProperty("artifactId", project.archivesBaseName)
+        props.setProperty('version', project.version)
+        props.setProperty('groupId', project.group)
+        props.setProperty('artifactId', project.archivesBaseName)
         props.store propertyFile.newWriter(), null
       }
     }
