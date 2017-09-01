@@ -19,8 +19,15 @@ import org.gradle.internal.jvm.Jvm
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+ext {
+  compatVersion = '3.4.0' // Replace with NOT_YET when baseline does not exit
+  mnmCompatVersion = '5.3.1'
+}
+
 configurations {
   serverLibs
+  compatKit
+  compatServerLibs
 }
 
 dependencies {
@@ -52,6 +59,13 @@ dependencies {
   serverLibs ("org.terracotta.management.dist:mnm-server:$parent.managementVersion") {
     exclude group:'org.terracotta.management.dist', module:'mnm-common'
   }
+
+  // Kit for compatibility tests
+  compatKit group: 'org.ehcache', name: 'ehcache-clustered', version: compatVersion, classifier: 'kit', ext: 'zip'
+  compatServerLibs ("org.terracotta.management.dist:mnm-server:$mnmCompatVersion") {
+    exclude group:'org.terracotta.management.dist', module:'mnm-common'
+  }
+
 }
 
 task unzipKit(type: Copy) {
@@ -60,10 +74,24 @@ task unzipKit(type: Copy) {
   into 'build/ehcache-kit'
 }
 
+task unzipCompatKit(type: Copy) {
+  dependsOn configurations.compatKit
+  from { // use of closure defers evaluation until execution time
+    configurations.compatKit.collect { zipTree(it) }
+  }
+  into 'build/ehcache-kit-compat'
+}
+
 task copyServerLibs(type: Copy) {
   dependsOn unzipKit
   from project.configurations.serverLibs
   into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
+}
+
+task copyCompatServerLibs(type: Copy) {
+  dependsOn unzipCompatKit
+  from project.configurations.compatServerLibs
+  into "$unzipCompatKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$compatVersion-kit/server/plugins/lib"
 }
 
 compileTestJava {
@@ -92,6 +120,15 @@ test {
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
+}
+
+task compatTest(type: Test, dependsOn: [copyCompatServerLibs, compileTestJava]) {
+  executable = Jvm.current().javaExecutable
+  testClassesDir = sourceSets.test.output.classesDir
+  // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
+  environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
+  //If this directory does not exist, tests will fail with a cryptic assert failure
+  systemProperty 'kitInstallationPath', "$unzipCompatKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$compatVersion-kit"
 }
 
 tasks.withType(JavaCompile) {
