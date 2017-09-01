@@ -21,7 +21,6 @@ import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
@@ -29,15 +28,9 @@ import org.terracotta.management.service.monitoring.EntityManagementRegistry;
 import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 
 import java.io.Closeable;
-import java.util.Collections;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_ATTACHED;
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_CLIENT_RECONNECTED;
 import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_CREATED;
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_RELEASED;
 
 public class ClusterTierManagement implements Closeable {
 
@@ -59,12 +52,6 @@ public class ClusterTierManagement implements Closeable {
     }
 
     if (managementRegistry != null) {
-
-      if (active) {
-        // expose settings about attached stores
-        managementRegistry.addManagementProvider(new ClusterTierStateSettingsManagementProvider());
-      }
-
       // expose settings about server stores
       managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider(clusterTierManagerIdentifier));
       // expose settings about pools
@@ -105,36 +92,4 @@ public class ClusterTierManagement implements Closeable {
     }
   }
 
-  public void clientConnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientConnected({})", clientDescriptor);
-      managementRegistry.registerAndRefresh(new ClusterTierClientDescriptorBinding(clientDescriptor));
-    }
-  }
-
-  public void clientDisconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientDisconnected({})", clientDescriptor);
-      ClusterTierClientDescriptorBinding clientStateBinding = new ClusterTierClientDescriptorBinding(clientDescriptor);
-      managementRegistry.pushServerEntityNotification(clientStateBinding, EHCACHE_SERVER_STORE_RELEASED.name());
-      managementRegistry.unregisterAndRefresh(clientStateBinding);
-    }
-  }
-
-  public void clientReconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientReconnected({})", clientDescriptor);
-      managementRegistry.pushServerEntityNotification(new ClusterTierClientDescriptorBinding(clientDescriptor), EHCACHE_SERVER_STORE_CLIENT_RECONNECTED.name());
-    }
-  }
-
-  public void clientValidated(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientValidated({})", clientDescriptor);
-      ClusterTierClientDescriptorBinding clientStateBinding = new ClusterTierClientDescriptorBinding(clientDescriptor);
-      managementRegistry.unregister(clientStateBinding);
-      managementRegistry.registerAndRefresh(clientStateBinding).thenRun(() ->
-        managementRegistry.pushServerEntityNotification(clientStateBinding, EHCACHE_SERVER_STORE_ATTACHED.name()));
-    }
-  }
 }
