@@ -37,15 +37,13 @@ class EhPomGenerate implements Plugin<Project> {
 
     def mavenTempResourcePath = "${project.buildDir}/mvn/META-INF/maven/${project.group}/${project.archivesBaseName}"
 
-    // Write pom to temp location to be picked up later,
-    // generatePomFileForMavenJavaPublication task comes from maven-publish.
     project.model {
+      // Write pom to temp location to be picked up later,
+      // generatePomFileForMavenJavaPublication task comes from maven-publish.
       tasks.generatePomFileForMavenJavaPublication {
         destination = project.file("$mavenTempResourcePath/pom.xml")
       }
-    }
-    //ensure that we generate maven stuff
-    project.model {
+      //ensure that we generate maven stuff
       tasks.processResources {
         dependsOn project.tasks.generatePomFileForMavenJavaPublication
         dependsOn project.tasks.writeMavenProperties
@@ -59,6 +57,27 @@ class EhPomGenerate implements Plugin<Project> {
           artifactId project.archivesBaseName
           from project.components.java
           utils.pomFiller(pom, project.subPomName, project.subPomDesc)
+          if (project.hasProperty('shadowJar')) {
+            pom.withXml {
+              if (asNode().dependencies.isEmpty()) {
+                asNode().appendNode('dependencies')
+              }
+              project.configurations.shadowCompile.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'compile')
+              }
+              project.configurations.shadowProvided.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'provided')
+              }
+            }
+          }
         }
       }
     }
