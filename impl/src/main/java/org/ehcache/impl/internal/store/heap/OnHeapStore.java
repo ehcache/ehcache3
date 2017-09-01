@@ -1295,8 +1295,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           final Map.Entry<? extends K, ? extends V> next = iterator.next();
 
           K computedKey = next.getKey();
-          V computedValue = next.getValue();
           checkKey(computedKey);
+
+          V computedValue = next.getValue();
           if (computedValue == null) {
             return null;
           }
