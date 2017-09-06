@@ -503,12 +503,12 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
    *
    * @param context context of the message
    * @param message message to be forwarded
-   * @param result resulting chain to send
+   * @param newChain resulting chain to send
    */
-  private void sendMessageToSelfAndDeferRetirement(ActiveInvokeContext context, KeyBasedServerStoreOpMessage message, Chain result) {
+  private void sendMessageToSelfAndDeferRetirement(ActiveInvokeContext context, KeyBasedServerStoreOpMessage message, Chain newChain) {
     try {
       long clientId = context.getClientSource().toLong();
-      entityMessenger.messageSelfAndDeferRetirement(message, new PassiveReplicationMessage.ChainReplicationMessage(message.getKey(), result,
+      entityMessenger.messageSelfAndDeferRetirement(message, new PassiveReplicationMessage.ChainReplicationMessage(message.getKey(), newChain,
         context.getCurrentTransactionId(), context.getOldestTransactionId(), new UUID(clientId, clientId)));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
