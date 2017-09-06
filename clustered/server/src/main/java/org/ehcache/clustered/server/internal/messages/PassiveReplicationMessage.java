@@ -20,8 +20,15 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * This message is sent by the Active Entity to Passive Entity.
@@ -49,6 +56,13 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
       this.chain = chain;
     }
 
+    private Chain dropLastElement(Chain chain) {
+      List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
+        .collect(Collectors.toList());
+      elements.remove(elements.size() -1); // remove last
+      return Util.getChain(elements);
+    }
+
     public UUID getClientId() {
       return clientId;
     }
@@ -57,8 +71,18 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
       return key;
     }
 
+    /**
+     * @return chain that needs to be save in the store
+     */
     public Chain getChain() {
       return chain;
+    }
+
+    /**
+     * @return result that should be returned is the original message is sent again to this server after a failover
+     */
+    public Chain getResult() {
+      return dropLastElement(chain);
     }
 
     public long getId() {

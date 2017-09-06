@@ -22,6 +22,7 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
@@ -173,7 +174,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           }
         } else if (isPassiveReplicationMessage(messageType)) {
           try {
-            invokeRetirementMessages((PassiveReplicationMessage)message);
+            return invokeRetirementMessages((PassiveReplicationMessage)message);
           } catch (ClusterException e) {
             LOGGER.error("Unexpected exception raised during operation: " + message, e);
           }
@@ -216,7 +217,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     }
   }
 
-  private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
+  private EhcacheEntityResponse invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
 
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
@@ -231,7 +232,9 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           stateService.getInvalidationTracker(storeIdentifier).trackHashInvalidation(retirementMessage.getKey());
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
-        break;
+        // Returns the real original result of the operation. We consider that it's always a GET_AND_APPEND since APPEND
+        // is unused right now. Other types of messages are not tracked so we don't care that they return the right result
+        return new EhcacheEntityResponseFactory().response(retirementMessage.getResult());
       case INVALIDATION_COMPLETE:
         if (isEventual()) {
           InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage) message;
@@ -246,6 +249,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
       default:
         throw new AssertionError("Unsupported Retirement Message : " + message);
     }
+    return null;
   }
 
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
