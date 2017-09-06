@@ -100,14 +100,21 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         .using(new DefaultManagementRegistryConfiguration()
             .addTags("webapp-1", "server-node-1")
             .setCacheManagerAlias("my-super-cache-manager"))
-        // cache config
-        .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+        // cache clustered dedicated
+        .withCache("cache-dedicated", CacheConfigurationBuilder.newCacheConfigurationBuilder(
             String.class, String.class,
             newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(1, MemoryUnit.MB)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .build())
+        // cache clustered shared
+        .withCache("cache-shared", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+          String.class, String.class,
+          newResourcePoolsBuilder()
+            .heap(1, MemoryUnit.MB)
+            .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))
+          .build())
         .build(true);
 
     try {
