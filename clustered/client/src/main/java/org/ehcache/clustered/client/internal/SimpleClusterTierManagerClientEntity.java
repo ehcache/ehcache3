@@ -25,11 +25,9 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Fail
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
@@ -49,7 +47,6 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
 
-  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
 
@@ -58,22 +55,6 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
-      @Override
-      public void handleMessage(EhcacheEntityResponse messageFromServer) {
-        // Nothing to do
-      }
-
-      @Override
-      public byte[] createExtendedReconnectData() {
-        return null;
-      }
-
-      @Override
-      public void didDisconnectUnexpectedly() {
-        // Nothing to do
-      }
-    });
   }
 
   @Override
