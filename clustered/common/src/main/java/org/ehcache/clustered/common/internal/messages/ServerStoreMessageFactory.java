@@ -37,10 +37,6 @@ public class ServerStoreMessageFactory {
     return new ServerStoreOpMessage.GetAndAppendMessage(key, payload, clientId);
   }
 
-  public ServerStoreOpMessage.AppendMessage appendOperation(long key, ByteBuffer payload) {
-    return new ServerStoreOpMessage.AppendMessage(key, payload, clientId);
-  }
-
   public ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(key, expect, update, clientId);
   }

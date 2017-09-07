@@ -65,11 +65,6 @@ public class ServerStoreImpl implements ServerSideServerStore {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) {
-    store.append(key, payLoad);
-  }
-
-  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     return store.getAndAppend(key, payLoad);
   }

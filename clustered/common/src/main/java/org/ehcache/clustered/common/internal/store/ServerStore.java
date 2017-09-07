@@ -50,18 +50,6 @@ public interface ServerStore {
   Chain get(long key) throws TimeoutException;
 
   /**
-   * Appends the provided binary to Chain associated with key atomically.
-   * While appending, the payLoad is stored in {@link Element}.
-   * Note that the {@code payLoad}'s position and limit are left untouched.
-   *
-   * @param key to which the payLoad has to be appended
-   * @param payLoad to be appended
-   *
-   * @throws TimeoutException if the append exceeds the timeout configured for mutative operations
-   */
-  void append(long key, ByteBuffer payLoad) throws TimeoutException;
-
-  /**
    * The Chain associated with key, previous to append is returned.
    * An empty Chain if no mapping existed previously.
    * The operation atomically appends payLoad and returns the previously associated Chain

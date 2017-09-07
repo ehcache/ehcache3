@@ -55,11 +55,6 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) throws TimeoutException {
-    delegate.append(key, payLoad);
-  }
-
-  @Override
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return delegate.getAndAppend(key, payLoad);
   }

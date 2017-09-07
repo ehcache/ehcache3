@@ -45,7 +45,7 @@ public abstract class ServerStoreTest {
 
   private static void populateStore(ServerStore store) throws Exception {
     for(int i = 1 ; i <= 16; i++) {
-      store.append(i, createPayload(i));
+      store.getAndAppend(i, createPayload(i));
     }
   }
 
@@ -92,25 +92,6 @@ public abstract class ServerStoreTest {
   }
 
   @Test
-  public void testAppendNoMappingExists() throws Exception {
-    ServerStore store = newStore();
-    store.append(1, createPayload(1));
-    Chain chain = store.get(1);
-    assertThat(chain.isEmpty(), is(false));
-    assertChainAndReverseChainOnlyHave(chain, 1);
-  }
-
-  @Test
-  public void testAppendMappingExists() throws Exception {
-    ServerStore store = newStore();
-    populateStore(store);
-    store.append(2, createPayload(22));
-    Chain chain = store.get(2);
-    assertThat(chain.isEmpty(), is(false));
-    assertChainAndReverseChainOnlyHave(chain, 2, 22);
-  }
-
-  @Test
   public void testGetAndAppendNoMappingExists() throws Exception {
     ServerStore store = newStore();
     Chain chain = store.getAndAppend(1, createPayload(1));
@@ -141,8 +122,8 @@ public abstract class ServerStoreTest {
     Chain chain = store.get(1);
     assertChainAndReverseChainOnlyHave(chain, 11);
 
-    store.append(2, createPayload(22));
-    store.append(2, createPayload(222));
+    store.getAndAppend(2, createPayload(22));
+    store.getAndAppend(2, createPayload(222));
 
     existingMapping = store.get(2);
 
@@ -160,17 +141,17 @@ public abstract class ServerStoreTest {
 
     Chain existingMapping = store.get(1);
 
-    store.append(1, createPayload(11));
+    store.getAndAppend(1, createPayload(11));
 
     store.replaceAtHead(1, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(111))));
     Chain chain = store.get(1);
 
     assertChainAndReverseChainOnlyHave(chain, 111, 11);
 
-    store.append(2, createPayload(22));
+    store.getAndAppend(2, createPayload(22));
     existingMapping = store.get(2);
 
-    store.append(2, createPayload(222));
+    store.getAndAppend(2, createPayload(222));
 
     store.replaceAtHead(2, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(2222))));
 
@@ -183,8 +164,8 @@ public abstract class ServerStoreTest {
     ServerStore store = newStore();
     populateStore(store);
 
-    store.append(1, createPayload(11));
-    store.append(1, createPayload(111));
+    store.getAndAppend(1, createPayload(11));
+    store.getAndAppend(1, createPayload(111));
 
     Chain mappingReadFirst = store.get(1);
     store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(111))));
@@ -192,22 +173,12 @@ public abstract class ServerStoreTest {
     Chain current = store.get(1);
     assertChainAndReverseChainOnlyHave(current, 111);
 
-    store.append(1, createPayload(1111));
+    store.getAndAppend(1, createPayload(1111));
     store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(11111))));
 
     Chain toVerify = store.get(1);
 
     assertChainAndReverseChainOnlyHave(toVerify, 111, 1111);
-  }
-
-
-  @Test
-  public void test_append_doesNotConsumeBuffer() throws Exception {
-    ServerStore store = newStore();
-    ByteBuffer payload = createPayload(1L);
-
-    store.append(1L, payload);
-    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
   }
 
   @Test

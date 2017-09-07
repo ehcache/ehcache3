@@ -32,7 +32,7 @@ public class ServerStoreMessageFactoryTest {
 
   @Test
   public void testAppendMessage() {
-    ServerStoreOpMessage.AppendMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.GetAndAppendMessage appendMessage = MESSAGE_FACTORY.getAndAppendOperation(1L, createPayload(1L));
 
     assertThat(appendMessage.getKey(), is(1L));
     assertThat(readPayLoad(appendMessage.getPayload()), is(1L));
@@ -40,7 +40,7 @@ public class ServerStoreMessageFactoryTest {
 
   @Test
   public void testGetMessage() {
-    ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) MESSAGE_FACTORY.getOperation(2L);
+    ServerStoreOpMessage.GetMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
 
     assertThat(getMessage.getKey(), is(2L));
   }

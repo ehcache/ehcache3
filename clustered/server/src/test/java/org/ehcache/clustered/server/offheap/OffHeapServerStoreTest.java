@@ -106,31 +106,6 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   }
 
   @Test
-  public void test_append_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
-    OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
-    final OffHeapChainMap<Object> offHeapChainMap = getOffHeapChainMapMock();
-    doThrow(OversizeMappingException.class).when(offHeapChainMap).append(any(Object.class), any(ByteBuffer.class));
-
-    when(store.segmentFor(anyLong())).then(new Answer<Object>() {
-      int invocations = 0;
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        if (invocations++ < 10) {
-          return offHeapChainMap;
-        } else {
-          return invocation.callRealMethod();
-        }
-      }
-    });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
-
-    ByteBuffer payload = createPayload(1L);
-
-    store.append(1L, payload);
-    assertThat(payload.remaining(), is(8));
-  }
-
-  @Test
   public void test_getAndAppend_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
     OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
     final OffHeapChainMap<Object> offHeapChainMap = getOffHeapChainMapMock();

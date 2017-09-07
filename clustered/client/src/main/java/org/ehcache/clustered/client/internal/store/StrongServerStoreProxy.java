@@ -226,21 +226,6 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) throws TimeoutException {
-    try {
-      performWaitingForHashInvalidation(key, new NullaryFunction<Void>() {
-        @Override
-        public Void apply() throws TimeoutException {
-          delegate.append(key, payLoad);
-          return null;
-        }
-      });
-    } catch (InterruptedException ie) {
-      throw new RuntimeException(ie);
-    }
-  }
-
-  @Override
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     try {
       return performWaitingForHashInvalidation(key, new NullaryFunction<Chain>() {

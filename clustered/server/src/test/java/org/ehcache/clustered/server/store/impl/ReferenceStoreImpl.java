@@ -69,23 +69,6 @@ public class ReferenceStoreImpl implements ServerStore  {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) {
-    Lock lock =  getLock(key).writeLock();
-    lock.lock();
-    try {
-      Chain mapping = map.get(key);
-      if (mapping == null) {
-        map.put(key, new HeapChainImpl(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad)));
-        return;
-      }
-      Chain newMapping = cast(mapping).append(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad));
-      map.put(key, newMapping);
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     Lock lock =  getLock(key).writeLock();
     lock.lock();

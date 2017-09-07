@@ -39,18 +39,18 @@ public class ServerStoreOpCodecTest {
   @Test
   public void testAppendMessageCodec() {
 
-    ServerStoreOpMessage.AppendMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.GetAndAppendMessage appendMessage = MESSAGE_FACTORY.getAndAppendOperation(1L, createPayload(1L));
     appendMessage.setId(42L);
 
     byte[] encoded = STORE_OP_CODEC.encode(appendMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(appendMessage.getMessageType(), wrap(encoded));
-    ServerStoreOpMessage.AppendMessage decodedAppendMessage = (ServerStoreOpMessage.AppendMessage) decodedMsg;
+    ServerStoreOpMessage.GetAndAppendMessage decodedAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage) decodedMsg;
 
     assertThat(decodedAppendMessage.getKey(), is(1L));
     assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
     assertThat(decodedAppendMessage.getId(), is(42L));
     assertThat(decodedAppendMessage.getClientId(), is(CLIENT_ID));
-    assertThat(decodedAppendMessage.getMessageType(), is(EhcacheMessageType.APPEND));
+    assertThat(decodedAppendMessage.getMessageType(), is(EhcacheMessageType.GET_AND_APPEND));
   }
 
   @Test

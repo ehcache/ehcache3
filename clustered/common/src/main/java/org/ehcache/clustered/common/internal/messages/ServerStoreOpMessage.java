@@ -99,27 +99,6 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   }
 
-  public static class AppendMessage extends KeyBasedServerStoreOpMessage {
-
-    private final ByteBuffer payload;
-
-    AppendMessage(long key, ByteBuffer payload, UUID clientId) {
-      super(key);
-      this.payload = payload;
-      this.clientId = clientId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.APPEND;
-    }
-
-    public ByteBuffer getPayload() {
-      return payload;
-    }
-
-  }
-
   public static class ReplaceAtHeadMessage extends KeyBasedServerStoreOpMessage {
 
     private final Chain expect;

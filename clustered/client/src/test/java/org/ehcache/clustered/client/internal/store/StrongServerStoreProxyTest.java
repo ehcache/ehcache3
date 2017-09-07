@@ -150,7 +150,7 @@ public class StrongServerStoreProxyTest {
 
     final int ITERATIONS = 40;
     for (int i = 0; i < ITERATIONS; i++) {
-      serverStoreProxy1.append(i, createPayload(i, 512 * 1024));
+      serverStoreProxy1.getAndAppend(i, createPayload(i, 512 * 1024));
     }
 
     int evictionCount = 0;
@@ -194,7 +194,7 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    serverStoreProxy1.append(1L, createPayload(1L));
+    serverStoreProxy1.getAndAppend(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
     serverStoreProxy2.removeInvalidationListener(listener);
@@ -230,14 +230,14 @@ public class StrongServerStoreProxyTest {
     EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
+        serverStoreProxy1.getAndAppend(1L, createPayload(1L));
         return null;
       }
     });
     EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
+        serverStoreProxy1.getAndAppend(1L, createPayload(1L));
         return null;
       }
     });
@@ -358,7 +358,7 @@ public class StrongServerStoreProxyTest {
     serverStoreProxy2.addInvalidationListener(listener);
 
     try {
-      serverStoreProxy1.append(1L, createPayload(1L));
+      serverStoreProxy1.getAndAppend(1L, createPayload(1L));
       fail("expected RuntimeException");
     } catch (RuntimeException re) {
       assertThat(re.getCause(), instanceOf(IllegalStateException.class));

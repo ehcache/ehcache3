@@ -320,25 +320,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
           throw new AssertionError("Server side store is not expected to throw timeout exception");
         }
       }
-      case APPEND: {
-        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-
-        InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
-        if (invalidationTracker != null) {
-          invalidationTracker.trackHashInvalidation(appendMessage.getKey());
-        }
-
-        final Chain newChain;
-        try {
-          cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-          newChain = cacheStore.get(appendMessage.getKey());
-        } catch (TimeoutException e) {
-          throw new AssertionError("Server side store is not expected to throw timeout exception");
-        }
-        sendMessageToSelfAndDeferRetirement(activeInvokeContext, appendMessage, newChain);
-        invalidateHashForClient(clientDescriptor, appendMessage.getKey());
-        return responseFactory.success();
-      }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
         LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());

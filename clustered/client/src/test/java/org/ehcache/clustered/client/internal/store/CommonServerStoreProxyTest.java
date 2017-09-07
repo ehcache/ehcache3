@@ -96,29 +96,6 @@ public class CommonServerStoreProxyTest {
   }
 
   @Test
-  public void testAppendKeyNotPresent() throws Exception {
-    serverStoreProxy.append(2, createPayload(2));
-
-    Chain chain = serverStoreProxy.get(2);
-    assertThat(chain.isEmpty(), is(false));
-    assertThat(readPayLoad(chain.iterator().next().getPayload()), is(2L));
-  }
-
-  @Test
-  public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
-
-    serverStoreProxy.append(3L, createPayload(3L));
-    serverStoreProxy.append(3L, createPayload(33L));
-    serverStoreProxy.append(3L, createPayload(333L));
-
-    Chain chain = serverStoreProxy.get(3L);
-
-    assertThat(chain.isEmpty(), is(false));
-
-    assertChainHas(chain, 3L, 33L, 333l);
-  }
-
-  @Test
   public void testGetAndAppendKeyNotPresent() throws Exception {
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
@@ -143,9 +120,9 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testReplaceAtHeadSuccessFull() throws Exception {
-    serverStoreProxy.append(20L, createPayload(200L));
-    serverStoreProxy.append(20L, createPayload(2000L));
-    serverStoreProxy.append(20L, createPayload(20000L));
+    serverStoreProxy.getAndAppend(20L, createPayload(200L));
+    serverStoreProxy.getAndAppend(20L, createPayload(2000L));
+    serverStoreProxy.getAndAppend(20L, createPayload(20000L));
 
     Chain expect = serverStoreProxy.get(20L);
     Chain update = getChain(false, createPayload(400L));
@@ -155,8 +132,8 @@ public class CommonServerStoreProxyTest {
     Chain afterReplace = serverStoreProxy.get(20L);
     assertChainHas(afterReplace, 400L);
 
-    serverStoreProxy.append(20L, createPayload(4000L));
-    serverStoreProxy.append(20L, createPayload(40000L));
+    serverStoreProxy.getAndAppend(20L, createPayload(4000L));
+    serverStoreProxy.getAndAppend(20L, createPayload(40000L));
 
     serverStoreProxy.replaceAtHead(20L, afterReplace, getChain(false, createPayload(800L)));
 
@@ -167,7 +144,7 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testClear() throws Exception {
-    serverStoreProxy.append(1L, createPayload(100L));
+    serverStoreProxy.getAndAppend(1L, createPayload(100L));
 
     serverStoreProxy.clear();
     Chain chain = serverStoreProxy.get(1);

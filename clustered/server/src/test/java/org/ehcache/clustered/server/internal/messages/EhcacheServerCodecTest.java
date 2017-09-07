@@ -58,7 +58,7 @@ public class EhcacheServerCodecTest {
 
       @Override
       public EhcacheMessageType getMessageType() {
-        return EhcacheMessageType.APPEND;
+        return EhcacheMessageType.GET_AND_APPEND;
       }
     };
     serverCodec.encodeMessage(lifecycleMessage);

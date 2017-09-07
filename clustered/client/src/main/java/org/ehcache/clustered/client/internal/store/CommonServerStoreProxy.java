@@ -155,17 +155,6 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) throws TimeoutException {
-    try {
-      entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-  }
-
-  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {

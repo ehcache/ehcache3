@@ -42,7 +42,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -156,7 +155,7 @@ public class EventualServerStoreProxyTest {
 
     final int ITERATIONS = 40;
     for (int i = 0; i < ITERATIONS; i++) {
-      serverStoreProxy1.append(i, createPayload(i, 512 * 1024));
+      serverStoreProxy1.getAndAppend(i, createPayload(i, 512 * 1024));
     }
 
     int evictionCount = 0;
@@ -204,7 +203,7 @@ public class EventualServerStoreProxyTest {
     };
     serverStoreProxy1.addInvalidationListener(listener);
 
-    serverStoreProxy2.append(1L, createPayload(1L));
+    serverStoreProxy2.getAndAppend(1L, createPayload(1L));
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));

@@ -89,37 +89,6 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) {
-    try {
-      segmentFor(key).append(key, payLoad);
-    } catch (OversizeMappingException e) {
-      if (handleOversizeMappingException(key)) {
-        try {
-          segmentFor(key).append(key, payLoad);
-          return;
-        } catch (OversizeMappingException ex) {
-          //ignore
-        }
-      }
-
-      writeLockAll();
-      try {
-        do {
-          try {
-            segmentFor(key).append(key, payLoad);
-            return;
-          } catch (OversizeMappingException ex) {
-            e = ex;
-          }
-        } while (handleOversizeMappingException(key));
-        throw e;
-      } finally {
-        writeUnlockAll();
-      }
-    }
-  }
-
-  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     try {
       return segmentFor(key).getAndAppend(key, payLoad);

@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
@@ -45,15 +44,6 @@ import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 public class ServerStoreOpCodec {
 
   private static final Struct GET_AND_APPEND_MESSAGE_STRUCT = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .int64(KEY_FIELD, 30)
-    .byteBuffer("payload", 40)
-    .build();
-
-  private static final Struct APPEND_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -111,15 +101,6 @@ public class ServerStoreOpCodec {
           .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
           .int64(MSG_ID_FIELD, message.getId())
           .int64(KEY_FIELD, getMessage.getKey())
-          .encode()
-          .array();
-      case APPEND:
-        AppendMessage appendMessage = (AppendMessage) message;
-        encoder = APPEND_MESSAGE_STRUCT.encoder();
-        messageCodecUtils.encodeMandatoryFields(encoder, message);
-        return encoder
-          .int64(KEY_FIELD, appendMessage.getKey())
-          .byteBuffer("payload", appendMessage.getPayload())
           .encode()
           .array();
       case GET_AND_APPEND:
@@ -188,16 +169,6 @@ public class ServerStoreOpCodec {
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         GetAndAppendMessage message = new GetAndAppendMessage(key, payload, uuid);
-        message.setId(msgId);
-        return message;
-      }
-      case APPEND: {
-        decoder = APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
-        Long msgId = decoder.int64(MSG_ID_FIELD);
-        UUID uuid = messageCodecUtils.decodeUUID(decoder);
-        Long key = decoder.int64(KEY_FIELD);
-        ByteBuffer payload = decoder.byteBuffer("payload");
-        AppendMessage message = new AppendMessage(key, payload, uuid);
         message.setId(msgId);
         return message;
       }

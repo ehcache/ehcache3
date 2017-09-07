@@ -36,7 +36,6 @@ public enum EhcacheMessageType {
 
   // ServerStore operation messages
   GET_AND_APPEND,
-  APPEND,
   REPLACE,
   CLIENT_INVALIDATION_ACK,
   CLIENT_INVALIDATION_ALL_ACK,
@@ -61,7 +60,6 @@ public enum EhcacheMessageType {
     .mapping(PREPARE_FOR_DESTROY, 3)
 
     .mapping(GET_AND_APPEND, 21)
-    .mapping(APPEND, 22)
     .mapping(REPLACE, 23)
     .mapping(CLIENT_INVALIDATION_ACK, 24)
     .mapping(CLIENT_INVALIDATION_ALL_ACK, 25)
@@ -82,7 +80,7 @@ public enum EhcacheMessageType {
     return LIFECYCLE_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE);
+  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE);
   public static boolean isStoreOperationMessage(EhcacheMessageType value) {
     return STORE_OPERATION_MESSAGES.contains(value);
   }
@@ -96,7 +94,7 @@ public enum EhcacheMessageType {
    * All not idempotent messages are tracked. One exception is {@link #CLEAR}. It is idempotent but also a pretty costly operation so we prefer to avoid
    * to do it twice.
    */
-  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET, GET_AND_APPEND, APPEND, CLEAR);
+  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET, GET_AND_APPEND, CLEAR);
   public static boolean isTrackedOperationMessage(EhcacheMessageType value) {
     return TRACKED_OPERATION_MESSAGES.contains(value);
   }

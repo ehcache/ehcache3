@@ -261,7 +261,7 @@ public class ClusterTierActiveEntityTest {
 
     // perform an append
     assertSuccess(
-        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.getAndAppendOperation(1L, createPayload(1L)))
     );
 
     // assert that an invalidation request is pending
@@ -389,7 +389,7 @@ public class ClusterTierActiveEntityTest {
 
     // perform an append
     assertSuccess(
-        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.getAndAppendOperation(1L, createPayload(1L)))
     );
 
     // disconnect client2
@@ -500,7 +500,7 @@ public class ClusterTierActiveEntityTest {
 
     // perform an append
     assertSuccess(
-        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.getAndAppendOperation(1L, createPayload(1L)))
     );
 
     // disconnect client1
@@ -574,7 +574,7 @@ public class ClusterTierActiveEntityTest {
     );
 
     assertSuccess(
-        activeEntity.invokeActive(context, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(1L, createPayload(1L)))
     );
 
     EhcacheEntityResponse response = activeEntity.invokeActive(context, messageFactory.getOperation(1L));
@@ -912,9 +912,9 @@ public class ClusterTierActiveEntityTest {
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
-    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(1L, payload)));
-    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(-2L, payload)));
-    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(17L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(1L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(-2L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(17L, payload)));
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
@@ -938,11 +938,11 @@ public class ClusterTierActiveEntityTest {
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
-    ServerStoreOpMessage.AppendMessage testMessage = messageFactory.appendOperation(1L, payload);
+    ServerStoreOpMessage.GetAndAppendMessage testMessage = messageFactory.getAndAppendOperation(1L, payload);
     activeEntity.invokeActive(context, testMessage);
-    activeEntity.invokeActive(context, messageFactory.appendOperation(-2L, payload));
-    activeEntity.invokeActive(context, messageFactory.appendOperation(17L, payload));
-    activeEntity.invokeActive(context, messageFactory.appendOperation(33L, payload));
+    activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(-2L, payload));
+    activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(17L, payload));
+    activeEntity.invokeActive(context, messageFactory.getAndAppendOperation(33L, payload));
 
     System.setProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP, "512");
     ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
@@ -1025,12 +1025,12 @@ public class ClusterTierActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.GetAndAppendMessage message = messageFactory.getAndAppendOperation(1L, createPayload(1L));
     message.setId(123);
     activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
-    message = messageFactory.appendOperation(2L, createPayload(1L));
+    message = messageFactory.getAndAppendOperation(2L, createPayload(1L));
     message.setId(123);
 
     activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
@@ -1054,12 +1054,12 @@ public class ClusterTierActiveEntityTest {
 
     context.incrementCurrentTransactionId();
 
-    ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.GetAndAppendMessage message = messageFactory.getAndAppendOperation(1L, createPayload(1L));
     message.setId(123);
     EhcacheEntityResponse expected = activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
-    message = messageFactory.appendOperation(2L, createPayload(1L));
+    message = messageFactory.getAndAppendOperation(2L, createPayload(1L));
     message.setId(123);
 
     EhcacheEntityResponse actual = activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
@@ -1067,7 +1067,7 @@ public class ClusterTierActiveEntityTest {
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
+    if (response.getResponseType() == EhcacheResponseType.FAILURE) {
       throw ((EhcacheEntityResponse.Failure) response).getCause();
     }
   }
