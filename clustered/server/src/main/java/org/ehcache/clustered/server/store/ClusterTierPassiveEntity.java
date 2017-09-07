@@ -84,7 +84,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     try {
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
       messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        new MessageTrackerPolicy(type -> type == CHAIN_REPLICATION_OP)));
+        new MessageTrackerPolicy(EhcacheMessageType::isTrackedOperationMessage)));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
