@@ -43,10 +43,12 @@ class EhPomGenerate implements Plugin<Project> {
       tasks.generatePomFileForMavenJavaPublication {
         destination = project.file("$mavenTempResourcePath/pom.xml")
       }
-      //ensure that we generate maven stuff
-      tasks.processResources {
-        dependsOn project.tasks.generatePomFileForMavenJavaPublication
-        dependsOn project.tasks.writeMavenProperties
+    }
+
+    //ensure that we generate maven stuff and delay resolution as the first task is created dynamically
+    project.processResources.dependsOn {
+      project.tasks.findAll { task ->
+        task.name == 'generatePomFileForMavenJavaPublication' || task.name == 'writeMavenProperties'
       }
     }
 
@@ -99,6 +101,7 @@ class EhPomGenerate implements Plugin<Project> {
     // Write pom.properties to temp location
     project.task('writeMavenProperties') {
       doLast {
+        project.file(mavenTempResourcePath).mkdirs()
         def propertyFile = project.file "$mavenTempResourcePath/pom.properties"
         def props = new Properties()
         props.setProperty('version', project.version)
