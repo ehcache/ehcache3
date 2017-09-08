@@ -115,7 +115,7 @@ public class DuplicateTest {
       // Failover to mirror when put & replication are in progress
       CLUSTER.getClusterControl().terminateActive();
 
-      puts.get(10, TimeUnit.SECONDS);
+      puts.get(30, TimeUnit.SECONDS);
 
       //Verify cache entries on mirror
       for (int i = 0; i < numEntries; i++) {
