@@ -55,7 +55,6 @@ import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.TimeoutException;
 
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CHAIN_REPLICATION_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
@@ -154,42 +153,34 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   }
 
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
-    try {
-      if (message instanceof EhcacheOperationMessage) {
-        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-        EhcacheMessageType messageType = operationMessage.getMessageType();
+    if (message instanceof EhcacheOperationMessage) {
+      EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+      EhcacheMessageType messageType = operationMessage.getMessageType();
+      try {
         if (isStoreOperationMessage(messageType)) {
-          try {
-            invokeServerStoreOperation((ServerStoreOpMessage)message);
-          } catch (ClusterException e) {
-            // Store operation should not be critical enough to fail a passive
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          invokeServerStoreOperation((ServerStoreOpMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
-          try {
-            stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
-          } catch (ClusterException e) {
-            // State repository operations should not be critical enough to fail a passive
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          return stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage) message);
         } else if (isPassiveReplicationMessage(messageType)) {
-          try {
-            return invokeRetirementMessages((PassiveReplicationMessage)message);
-          } catch (ClusterException e) {
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          return invokeRetirementMessages((PassiveReplicationMessage) message);
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
-      } else if (message instanceof EhcacheSyncMessage) {
-        invokeSyncOperation(context, (EhcacheSyncMessage) message);
-      } else {
-        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
+      } catch (ClusterException e) {
+        // The above operations are not critical enough to fail a passive, so just log the exception
+        LOGGER.error("Unexpected exception raised during operation: " + message, e);
       }
-    } catch (ClusterException e) {
-      // Reaching here means a lifecycle or sync operation failed
-      throw new IllegalStateException("A lifecycle or sync operation failed", e);
+    } else if (message instanceof EhcacheSyncMessage) {
+      try {
+        invokeSyncOperation(context, (EhcacheSyncMessage) message);
+      } catch (ClusterException e) {
+        throw new IllegalStateException("Sync operation failed", e);
+      }
+    } else {
+      throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
+
+    // Default response for messages not returning anything specific
     return EhcacheEntityResponse.Success.INSTANCE;
   }
 
