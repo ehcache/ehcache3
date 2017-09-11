@@ -151,17 +151,18 @@ public class ClusterTierPassiveEntityTest {
 
     UUID clientId = new UUID(3, 3);
 
-    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(1, chain, 2L, 1L, clientId);
+    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
     passiveEntity.invokePassive(context, message1);
 
     // Should be added
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(1).isEmpty(), is(false));
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
-    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
+    Chain emptyChain = Util.getChain(true);
+    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
     passiveEntity.invokePassive(context, message2);
 
-    // Should not be added, it should be a duplicate
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(true));
+    // Should not be cleared, message is a duplicate
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
     PassiveReplicationMessage message3 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 3L, 1L, clientId);
     passiveEntity.invokePassive(context, message3);
@@ -324,7 +325,9 @@ public class ClusterTierPassiveEntityTest {
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        return (T) new OOOMessageHandlerImpl(((OOOMessageHandlerConfiguration) serviceConfiguration).getTrackerPolicy());
+        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

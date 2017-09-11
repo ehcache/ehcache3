@@ -60,6 +60,7 @@ import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
+import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
 import org.terracotta.entity.IEntityMessenger;
@@ -86,6 +87,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.stream.Collectors.toMap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -95,6 +97,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
 
 /**
  * ClusterTierActiveEntity
@@ -120,7 +123,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ClusterTierManagement management;
   private final String managerIdentifier;
   private final Object inflightInvalidationsMutex = new Object();
-  private final int lastConcurrencyKey;
   private volatile List<InvalidationTuple> inflightInvalidations;
   private final Set<ClientDescriptor> connectedClients = ConcurrentHashMap.newKeySet();
 
@@ -133,13 +135,12 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     configuration = entityConfiguration.getConfiguration();
     managerIdentifier = entityConfiguration.getManagerIdentifier();
     responseFactory = new EhcacheEntityResponseFactory();
-    lastConcurrencyKey = defaultMapper.getSegments() + 1; // all our segments plus the first key which is the lifecycle key
     try {
       clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
       entityMessenger = registry.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
-      messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        new MessageTrackerPolicy(EhcacheMessageType::isTrackedOperationMessage)));
+      messageHandler = registry.getService(new OOOMessageHandlerConfiguration<EhcacheEntityMessage, EhcacheEntityResponse>(managerIdentifier + "###" + storeIdentifier,
+        ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -147,6 +148,14 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     management = new ClusterTierManagement(registry, stateService, true, storeIdentifier, entityConfiguration.getManagerIdentifier());
+  }
+
+  static boolean isTrackedMessage(EhcacheEntityMessage msg) {
+    if (msg instanceof EhcacheOperationMessage) {
+      return EhcacheMessageType.isTrackedOperationMessage(((EhcacheOperationMessage) msg).getMessageType());
+    } else {
+      return false;
+    }
   }
 
   @Override
@@ -589,14 +598,17 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         size.set(0);
       }
     }
-
-    // Sync message tracker as well, to prevent duplicates received on the passive
-    // We do it once on the last concurrency key
-    if (concurrencyKey == lastConcurrencyKey) {
-      syncChannel.synchronizeToPassive(new EhcacheMessageTrackerMessage(messageHandler));
-    }
+    sendMessageTrackerReplication(syncChannel, concurrencyKey - 1);
 
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
+  }
+
+  private void sendMessageTrackerReplication(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
+    Map<Long, Map<Long, EhcacheEntityResponse>> clientSourceIdTrackingMap = messageHandler.getTrackedClients()
+      .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(concurrencyKey, clientSourceId)));
+    if (!clientSourceIdTrackingMap.isEmpty()) {
+      syncChannel.synchronizeToPassive(new EhcacheMessageTrackerMessage(concurrencyKey, clientSourceIdTrackingMap));
+    }
   }
 
   @Override

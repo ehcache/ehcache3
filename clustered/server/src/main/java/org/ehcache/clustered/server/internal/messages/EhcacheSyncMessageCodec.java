@@ -65,6 +65,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final String MESSAGE_TRACKER_CLIENTS_STRUCT = "clients";
   private static final String MESSAGE_TRACKER_RESPONSES_STRUCT = "responses";
   private static final String MESSAGE_TRACKER_RESPONSE_FIELD = "response";
+  private static final String MESSAGE_TRACKER_SEGMENT_FIELD = "segment";
 
   private static final Struct CHAIN_MAP_ENTRY_STRUCT = newStructBuilder()
     .int64(KEY_FIELD, 10)
@@ -101,6 +102,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final Struct MESSAGE_TRACKER_SYNC_STRUCT = newStructBuilder()
     .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
     .structs(MESSAGE_TRACKER_CLIENTS_STRUCT, 20, MESSAGE_TRACKER_CLIENT_STRUCT)
+    .int32(MESSAGE_TRACKER_SEGMENT_FIELD, 30)
     .build();
 
   private ResponseCodec responseCodec;
@@ -115,11 +117,11 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       EhcacheSyncMessage syncMessage = (EhcacheSyncMessage) message;
       switch (syncMessage.getMessageType()) {
         case DATA:
-          return encoreDataSync((EhcacheDataSyncMessage) syncMessage);
+          return encodeDataSync((EhcacheDataSyncMessage) syncMessage);
         case STATE_REPO:
           return encoreStateRepoSync((EhcacheStateRepoSyncMessage) syncMessage);
         case MESSAGE_TRACKER:
-          return encoreMessageTrackerSync((EhcacheMessageTrackerMessage) syncMessage);
+          return encodeMessageTrackerSync((EhcacheMessageTrackerMessage) syncMessage);
         default:
           throw new IllegalArgumentException("Sync message codec can not encode " + syncMessage.getMessageType());
       }
@@ -128,7 +130,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     }
   }
 
-  private byte[] encoreMessageTrackerSync(EhcacheMessageTrackerMessage syncMessage) {
+  private byte[] encodeMessageTrackerSync(EhcacheMessageTrackerMessage syncMessage) {
     StructEncoder<Void> encoder = MESSAGE_TRACKER_SYNC_STRUCT.encoder();
     EhcacheMessageTrackerMessage messageTrackerMessage = syncMessage;
     encoder
@@ -145,7 +147,8 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
                 responseEncoder.byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD, encodeResponse(response.getValue()));
               });
           }
-        });
+        })
+      .int32(MESSAGE_TRACKER_SEGMENT_FIELD, messageTrackerMessage.getSegmentId());
     return encoder.encode().array();
   }
 
@@ -165,7 +168,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     return encoder.encode().array();
   }
 
-  private byte[] encoreDataSync(EhcacheDataSyncMessage syncMessage) {
+  private byte[] encodeDataSync(EhcacheDataSyncMessage syncMessage) {
     StructEncoder<Void> encoder;
     encoder = DATA_SYNC_STRUCT.encoder();
     EhcacheDataSyncMessage dataSyncMessage = syncMessage;
@@ -230,7 +233,8 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
         }
       }
     }
-    return new EhcacheMessageTrackerMessage(trackedMessages);
+    Integer segmentId = decoder.int32(MESSAGE_TRACKER_SEGMENT_FIELD);
+    return new EhcacheMessageTrackerMessage(segmentId, trackedMessages);
   }
 
   private EhcacheSyncMessage decodeStateRepoSync(ByteBuffer message) {
