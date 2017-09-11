@@ -204,8 +204,14 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         break;
       case MESSAGE_TRACKER:
         EhcacheMessageTrackerMessage messageTrackerMessage = (EhcacheMessageTrackerMessage) message;
-        messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
-          messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
+        if (messageTrackerMessage.getSegmentId() != EhcacheMessageTrackerMessage.UNKNOWN_SEGMENT) {
+          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+            messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
+        } else {
+          // This happens when a 3.4.0 server is the one sending the message
+          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+            messageHandler.loadOnSync(context.makeClientSourceId(key), value));
+        }
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());
