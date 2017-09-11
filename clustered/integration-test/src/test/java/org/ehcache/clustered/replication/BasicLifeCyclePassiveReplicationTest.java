@@ -17,6 +17,7 @@
 package org.ehcache.clustered.replication;
 
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.After;
@@ -38,7 +39,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicLifeCyclePassiveReplicationTest {
+public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"

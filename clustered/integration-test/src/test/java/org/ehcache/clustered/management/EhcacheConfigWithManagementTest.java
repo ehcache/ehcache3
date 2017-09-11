@@ -16,6 +16,7 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -34,7 +35,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class EhcacheConfigWithManagementTest {
+public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"

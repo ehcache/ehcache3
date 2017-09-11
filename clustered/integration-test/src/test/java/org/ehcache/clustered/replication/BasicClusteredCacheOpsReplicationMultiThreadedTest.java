@@ -18,6 +18,7 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -71,7 +72,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
  * Finally the same key set correctness is asserted.
  */
 @RunWith(Parameterized.class)
-public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
+public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends ClusteredTests {
 
   private static final int NUM_OF_THREADS = 10;
   private static final int JOB_SIZE = 100;

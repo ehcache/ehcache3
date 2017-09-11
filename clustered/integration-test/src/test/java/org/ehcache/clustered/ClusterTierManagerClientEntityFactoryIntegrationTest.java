@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class ClusterTierManagerClientEntityFactoryIntegrationTest {
+public class ClusterTierManagerClientEntityFactoryIntegrationTest extends ClusteredTests {
 
   private static final Map<String, Pool> EMPTY_RESOURCE_MAP = Collections.emptyMap();
 
