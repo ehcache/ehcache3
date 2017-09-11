@@ -24,7 +24,6 @@ import org.terracotta.entity.ConcurrencyStrategy;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 import static org.hamcrest.CoreMatchers.allOf;
@@ -82,20 +81,6 @@ public class DefaultConcurrencyStrategyTest {
   }
 
   private static class NonConcurrentTestEntityMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
   }
 
   private static class ConcurrentTestEntityMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
@@ -109,21 +94,6 @@ public class DefaultConcurrencyStrategyTest {
     @Override
     public long concurrencyKey() {
       return key;
-    }
-
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 

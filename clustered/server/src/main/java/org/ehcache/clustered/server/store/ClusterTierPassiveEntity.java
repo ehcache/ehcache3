@@ -122,17 +122,18 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   public void invokePassive(InvokeContext context, EhcacheEntityMessage message) throws EntityUserException {
     InvokeContext realContext = context;
     // For ChainReplicationMessage, we need to recreate the real client context from the one stored in the message. Because the current
-    // context comes from the active message. That's not what we want.
+    // context comes from the active message. That's not what we want. So instead we recreate a new context using the original client
+    // id and transaction id stored in the message
     if (message instanceof ChainReplicationMessage) {
       realContext = new InvokeContext() {
         @Override
         public ClientSourceId getClientSource() {
-          return context.makeClientSourceId(message.getClientId().getLeastSignificantBits());
+          return context.makeClientSourceId(((ChainReplicationMessage) message).getClientId());
         }
 
         @Override
         public long getCurrentTransactionId() {
-          return message.getId();
+          return ((ChainReplicationMessage) message).getTransactionId();
         }
 
         @Override
@@ -222,8 +223,8 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
 
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
-        LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage) message;
+        LOGGER.debug("Chain Replication message for transactionId {} & clientId {}", retirementMessage.getTransactionId(), retirementMessage.getClientId());
         ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client

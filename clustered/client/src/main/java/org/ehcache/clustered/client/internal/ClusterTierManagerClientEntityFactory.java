@@ -42,7 +42,6 @@ import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -245,7 +244,6 @@ public class ClusterTierManagerClientEntityFactory {
     InternalClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity(null);
-      entity.setClientId(UUID.randomUUID());
     } catch (EntityNotFoundException e) {
       // Ignore - means entity does not exist
       return;
@@ -295,7 +293,7 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(UUID clientId, String clusterTierManagerIdentifier,
+  public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
                                                                    boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
     EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
@@ -318,7 +316,6 @@ public class ClusterTierManagerClientEntityFactory {
         }
         try {
           InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-          entity.setClientId(clientId);
           entity.setStoreIdentifier(storeIdentifier);
           entity.setTimeouts(entityTimeouts);
           return entity;
@@ -331,7 +328,6 @@ public class ClusterTierManagerClientEntityFactory {
     } else {
       try {
         InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-        entity.setClientId(clientId);
         entity.setStoreIdentifier(storeIdentifier);
         entity.setTimeouts(entityTimeouts);
         return entity;

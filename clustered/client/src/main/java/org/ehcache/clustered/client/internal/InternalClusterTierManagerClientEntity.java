@@ -16,15 +16,10 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.UUID;
-
 /**
  * InternalClusterTierManagerClientEntity
  */
 public interface InternalClusterTierManagerClientEntity extends ClusterTierManagerClientEntity {
 
   void setTimeouts(Timeouts timeouts);
-
-  void setClientId(UUID clientId);
-
 }

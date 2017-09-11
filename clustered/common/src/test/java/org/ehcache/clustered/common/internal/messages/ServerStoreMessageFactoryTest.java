@@ -28,7 +28,7 @@ import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 public class ServerStoreMessageFactoryTest {
 
-  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory(UUID.randomUUID());
+  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory();
 
   @Test
   public void testAppendMessage() {
@@ -40,7 +40,7 @@ public class ServerStoreMessageFactoryTest {
 
   @Test
   public void testGetMessage() {
-    ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) MESSAGE_FACTORY.getOperation(2L);
+    ServerStoreOpMessage.GetMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
 
     assertThat(getMessage.getKey(), is(2L));
   }

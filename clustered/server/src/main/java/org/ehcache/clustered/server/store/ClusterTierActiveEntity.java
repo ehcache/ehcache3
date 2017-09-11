@@ -347,7 +347,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());
+        LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), context.getClientSource().toLong());
 
         InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
         if (invalidationTracker != null) {
@@ -515,7 +515,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     try {
       long clientId = context.getClientSource().toLong();
       entityMessenger.messageSelfAndDeferRetirement(message, new PassiveReplicationMessage.ChainReplicationMessage(message.getKey(), newChain,
-        context.getCurrentTransactionId(), context.getOldestTransactionId(), new UUID(clientId, clientId)));
+        context.getCurrentTransactionId(), context.getOldestTransactionId(), clientId));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
@@ -552,7 +552,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
     if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
       Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
-      LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", reconnectMessage.getClientId(), storeIdentifier, invalidationsInProgress
+      LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", clientDescriptor.getSourceId().toLong(), storeIdentifier, invalidationsInProgress
           .size());
       inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
     }
