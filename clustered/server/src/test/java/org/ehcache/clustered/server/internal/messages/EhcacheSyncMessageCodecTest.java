@@ -15,16 +15,12 @@
  */
 package org.ehcache.clustered.server.internal.messages;
 
-import org.assertj.core.util.Sets;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.TestClientSourceId;
 import org.junit.Test;
-import org.terracotta.client.message.tracker.OOOMessageHandler;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,11 +57,7 @@ public class EhcacheSyncMessageCodecTest {
 
   @Test
   public void testMessageTrackerSyncEncodeDecode_emptyMessage() throws Exception {
-    @SuppressWarnings("unchecked")
-    OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> handler = mock(OOOMessageHandler.class);
-    when(handler.getTrackedClients()).thenReturn(Collections.emptySet());
-
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(handler);
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, new HashMap<>());
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
     assertThat(decoded.getTrackedMessages()).isEmpty();
@@ -73,11 +65,10 @@ public class EhcacheSyncMessageCodecTest {
 
   @Test
   public void testMessageTrackerSyncEncodeDecode_clientWithoutMessage() throws Exception {
-    @SuppressWarnings("unchecked")
-    OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> handler = mock(OOOMessageHandler.class);
-    when(handler.getTrackedClients()).thenReturn(Collections.singleton(new TestClientSourceId(1)));
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackerMap = new HashMap<>();
+    trackerMap.put(1L, new HashMap<>());
 
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(handler);
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
     assertThat(decoded.getTrackedMessages()).isEmpty();
@@ -100,20 +91,19 @@ public class EhcacheSyncMessageCodecTest {
     when(responseCodec.decode(argThat(a -> a != null && a.length == 4))).thenReturn(r4);
     when(responseCodec.decode(argThat(a -> a != null && a.length == 5))).thenReturn(r5);
 
-    @SuppressWarnings("unchecked")
-    OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> handler = mock(OOOMessageHandler.class);
-    when(handler.getTrackedClients()).thenReturn(Sets.newLinkedHashSet(id1, id2));
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackerMap = new HashMap<>();
+
 
     Map<Long, EhcacheEntityResponse> responses1 = new HashMap<>();
     responses1.put(3L, r3);
     responses1.put(4L, r4);
-    when(handler.getTrackedResponses(id1)).thenReturn(responses1);
+    trackerMap.put(1L, responses1);
 
     Map<Long, EhcacheEntityResponse> responses2 = new HashMap<>();
     responses2.put(5L, r5);
-    when(handler.getTrackedResponses(id2)).thenReturn(responses2);
+    trackerMap.put(2L, responses2);
 
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(handler);
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
 

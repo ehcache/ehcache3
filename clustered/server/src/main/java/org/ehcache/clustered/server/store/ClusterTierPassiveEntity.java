@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.entity.ClientSourceId;
+import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
 import org.terracotta.entity.InvokeContext;
@@ -58,6 +59,7 @@ import java.util.concurrent.TimeoutException;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
 
 /**
  * ClusterTierPassiveEntity
@@ -83,7 +85,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     try {
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
       messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        new MessageTrackerPolicy(EhcacheMessageType::isTrackedOperationMessage)));
+        ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -147,6 +149,11 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         public ClientSourceId makeClientSourceId(long l) {
           return context.makeClientSourceId(l);
         }
+
+        @Override
+        public int getConcurrencyKey() {
+          return context.getConcurrencyKey();
+        }
       };
     }
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
@@ -189,10 +196,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
         ServerSideServerStore store = stateService.getStore(storeIdentifier);
-        dataSyncMessage.getChainMap().entrySet().forEach(entry -> {
-          store.put(entry.getKey(), entry.getValue());
-
-        });
+        dataSyncMessage.getChainMap().forEach(store::put);
         break;
       case STATE_REPO:
         EhcacheStateRepoSyncMessage stateRepoSyncMessage = (EhcacheStateRepoSyncMessage) message;
@@ -200,8 +204,14 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         break;
       case MESSAGE_TRACKER:
         EhcacheMessageTrackerMessage messageTrackerMessage = (EhcacheMessageTrackerMessage) message;
-        messageTrackerMessage.getTrackedMessages().entrySet().forEach(e ->
-          messageHandler.loadOnSync(context.makeClientSourceId(e.getKey()), e.getValue()));
+        if (messageTrackerMessage.getSegmentId() != EhcacheMessageTrackerMessage.UNKNOWN_SEGMENT) {
+          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+            messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
+        } else {
+          // This happens when a 3.4.0 server is the one sending the message
+          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+            messageHandler.loadOnSync(context.makeClientSourceId(key), value));
+        }
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());

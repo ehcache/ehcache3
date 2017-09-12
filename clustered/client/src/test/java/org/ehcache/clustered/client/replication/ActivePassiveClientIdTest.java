@@ -39,7 +39,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
-import org.terracotta.entity.ClientSourceId;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -49,7 +48,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,6 +63,8 @@ public class ActivePassiveClientIdTest {
 
   private static final String STRIPENAME = "stripe";
   private static final String STRIPE_URI = "passthrough://" + STRIPENAME;
+  private static final int KEY_ENDS_UP_IN_SEGMENT_11 = 11;
+
 
   private PassthroughClusterControl clusterControl;
 
@@ -136,34 +136,28 @@ public class ActivePassiveClientIdTest {
 
   @Test
   public void messageTrackedAndRemovedWhenClientLeaves() throws Exception {
-    Set<ClientSourceId> clientSourceIds = activeMessageHandler.getTrackedClients();
-    assertThat(clientSourceIds).hasSize(1); // one client tracked
-
-    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
-    assertThat(responses).hasSize(0); // no message tracked right now
+    assertThat(activeMessageHandler.getTrackedClients().count()).isZero(); // no client tracked
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, activeMessageHandler.getTrackedClients().findFirst().get());
     assertThat(responses).hasSize(1); // should now track one message
 
     assertThat(activeEntity.getConnectedClients()).hasSize(1); // make sure we currently have one client attached
 
     service.stop(); // stop the service. It will remove the client
 
-    activeEntity.notifyDestroyed(clientSourceIds.iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
+    activeEntity.notifyDestroyed(activeMessageHandler.getTrackedClients().iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
 
     waitForPredicate(e -> activeEntity.getConnectedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
 
-    assertThat(activeMessageHandler.getTrackedClients()).isEmpty(); // all tracked messages for this client should have been removed
+    assertThat(activeMessageHandler.getTrackedClients().count()).isZero(); // all tracked messages for this client should have been removed
   }
 
   @Test
   public void untrackedMessageAreNotStored() throws Exception {
-    Set<ClientSourceId> clientSourceIds = activeMessageHandler.getTrackedClients();
-    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
-
     // Nothing tracked
-    assertThat(responses).isEmpty();
+    assertThat(activeMessageHandler.getTrackedClients().count()).isZero();
 
     List<Element> elements = new ArrayList<>(1);
     elements.add(getElement(createPayload(44L)));
@@ -174,7 +168,7 @@ public class ActivePassiveClientIdTest {
     // Not tracked as well
     storeProxy.get(42L);
 
-    assertThat(responses).isEmpty();
+    assertThat(activeMessageHandler.getTrackedClients().count()).isZero();
   }
 
   @Test
@@ -190,31 +184,29 @@ public class ActivePassiveClientIdTest {
     passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(1);
     passiveMessageHandler = passiveEntity.getMessageHandler();
 
-    Set<ClientSourceId> clientSourceIds = passiveMessageHandler.getTrackedClients();
-    assertThat(clientSourceIds).hasSize(1); // one client tracked
+    assertThat(passiveMessageHandler.getTrackedClients().count()).isEqualTo(1L); // one client tracked
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
+    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
     assertThat(responses).hasSize(1); // one message should have sync
   }
 
   @Test
   public void messageTrackedAndRemovedByPassiveWhenClientLeaves() throws Exception {
-    Set<ClientSourceId> clientSourceIds = passiveMessageHandler.getTrackedClients();
-    assertThat(clientSourceIds).isEmpty(); // nothing tracked right now
+    assertThat(passiveMessageHandler.getTrackedClients().count()).isZero(); // nothing tracked right now
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponses(clientSourceIds.iterator().next());
+    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
     assertThat(responses).hasSize(1); // should now track one message
 
     service.stop(); // stop the service. It will remove the client
 
-    activeEntity.notifyDestroyed(clientSourceIds.iterator().next());
-    passiveEntity.notifyDestroyed(clientSourceIds.iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
+    activeEntity.notifyDestroyed(passiveMessageHandler.getTrackedClients().iterator().next());
+    passiveEntity.notifyDestroyed(passiveMessageHandler.getTrackedClients().iterator().next()); // Notify that the client was removed. A real clustered server will do that. But the Passthrough doesn't. So we simulate it
 
     waitForPredicate(e -> activeEntity.getConnectedClients().size() > 0, 2000); // wait for the client to be removed, might be async, so we wait
 
-    assertThat(passiveMessageHandler.getTrackedClients()).isEmpty(); // all tracked messages for this client should have been removed
+    assertThat(passiveMessageHandler.getTrackedClients().count()).isZero(); // all tracked messages for this client should have been removed
   }
 
   private <T> void waitForPredicate(Predicate<T> predicate, long timeoutInMs) {
