@@ -21,8 +21,16 @@ import java.util.Set;
 
 public class ClusterTierReconnectMessage {
 
-  private final Set<Long> hashInvalidationsInProgress = new HashSet<>();
+  private final Set<Long> hashInvalidationsInProgress;
   private boolean clearInProgress = false;
+
+  public ClusterTierReconnectMessage() {
+    hashInvalidationsInProgress = new HashSet<>();
+  }
+
+  public ClusterTierReconnectMessage(Set<Long> hashInvalidationsInProgress) {
+    this.hashInvalidationsInProgress = hashInvalidationsInProgress;
+  }
 
   public void addInvalidationsInProgress(Set<Long> hashInvalidationsInProgress) {
     this.hashInvalidationsInProgress.addAll(hashInvalidationsInProgress);

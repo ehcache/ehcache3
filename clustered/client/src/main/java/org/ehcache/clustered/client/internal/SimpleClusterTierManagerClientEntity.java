@@ -19,7 +19,6 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
@@ -32,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
@@ -39,7 +39,6 @@ import org.terracotta.exception.EntityException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -49,8 +48,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SimpleClusterTierManagerClientEntity implements InternalClusterTierManagerClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
-
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
 
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
@@ -69,8 +66,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
       @Override
       public byte[] createExtendedReconnectData() {
-        ClusterTierManagerReconnectMessage reconnectMessage = new ClusterTierManagerReconnectMessage();
-        return reconnectMessageCodec.encode(reconnectMessage);
+        return null;
       }
 
       @Override

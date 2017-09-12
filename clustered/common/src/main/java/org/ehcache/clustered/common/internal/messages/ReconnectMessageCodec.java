@@ -39,8 +39,6 @@ public class ReconnectMessageCodec {
     .bool(CLEAR_IN_PROGRESS_FIELD, 30)
     .build();
 
-  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
-
   public byte[] encode(ClusterTierReconnectMessage reconnectMessage) {
     StructEncoder<Void> encoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.encoder();
     ArrayEncoder<Long, StructEncoder<Void>> arrayEncoder = encoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
@@ -51,28 +49,22 @@ public class ReconnectMessageCodec {
     return encoder.encode().array();
   }
 
-  public byte[] encode(ClusterTierManagerReconnectMessage reconnectMessage) {
-    return CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.encoder()
-      .encode().array();
-  }
-
-  public ClusterTierManagerReconnectMessage decodeReconnectMessage(byte[] payload) {
-    return new ClusterTierManagerReconnectMessage();
-  }
-
   public ClusterTierReconnectMessage decode(byte[] payload) {
     StructDecoder<Void> decoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload));
     ArrayDecoder<Long, StructDecoder<Void>> arrayDecoder = decoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
-    Set<Long> hashes = new HashSet<>();
+
+    Set<Long> hashes;
     if (arrayDecoder != null) {
+      hashes = new HashSet<Long>(arrayDecoder.length());
       for (int i = 0; i < arrayDecoder.length(); i++) {
         hashes.add(arrayDecoder.value());
       }
+    } else {
+      hashes = new HashSet<Long>(0);
     }
-    Boolean clearInProgress = decoder.bool(CLEAR_IN_PROGRESS_FIELD);
+    ClusterTierReconnectMessage message = new ClusterTierReconnectMessage(hashes);
 
-    ClusterTierReconnectMessage message = new ClusterTierReconnectMessage();
-    message.addInvalidationsInProgress(hashes);
+    Boolean clearInProgress = decoder.bool(CLEAR_IN_PROGRESS_FIELD);
     if (clearInProgress != null && clearInProgress) {
       message.clearInProgress();
     }

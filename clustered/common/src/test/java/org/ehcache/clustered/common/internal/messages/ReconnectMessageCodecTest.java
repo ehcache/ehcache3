@@ -56,9 +56,4 @@ public class ReconnectMessageCodecTest {
     assertThat(decoded.isClearInProgress(), is(true));
   }
 
-  @Test
-  public void testClusterTierManagerReconnectCodec() {
-    ClusterTierManagerReconnectMessage message = new ClusterTierManagerReconnectMessage();
-    reconnectMessageCodec.decodeReconnectMessage(reconnectMessageCodec.encode(message));
-  }
 }
