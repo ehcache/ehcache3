@@ -211,7 +211,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
     connectedClients.add(clientDescriptor);
-    management.clientConnected(clientDescriptor);
   }
 
   @Override
@@ -232,7 +231,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
 
     connectedClients.remove(clientDescriptor);
-    management.clientDisconnected(clientDescriptor);
   }
 
   @Override
@@ -285,7 +283,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     ServerSideServerStore store = stateService.getStore(storeIdentifier);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-      management.clientValidated(clientDescriptor);
     } else {
       throw new InvalidStoreException("cluster tier '" + storeIdentifier + "' does not exist");
     }
@@ -550,8 +547,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
     connectedClients.add(clientDescriptor);
-
-    management.clientReconnected(clientDescriptor);
   }
 
   private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {

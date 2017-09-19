@@ -18,7 +18,6 @@ package org.ehcache.clustered.server.management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
@@ -26,12 +25,8 @@ import org.terracotta.management.service.monitoring.EntityManagementRegistry;
 import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 
 import java.io.Closeable;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_RECONNECTED;
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_CLIENT_VALIDATED;
 import static org.ehcache.clustered.server.management.Notification.EHCACHE_RESOURCE_POOLS_CONFIGURED;
 
 public class Management implements Closeable {
@@ -53,13 +48,8 @@ public class Management implements Closeable {
     }
 
     if (managementRegistry != null) {
-
-      if (active) {
-        // expose settings about attached stores
-        managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
-      }
-
       registerClusterTierManagerSettingsProvider();
+
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
@@ -106,29 +96,6 @@ public class Management implements Closeable {
     }
   }
 
-  public void clientConnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientConnected({})", clientDescriptor);
-      managementRegistry.registerAndRefresh(new ClientDescriptorBinding(clientDescriptor));
-    }
-  }
-
-
-  public void clientDisconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientDisconnected({})", clientDescriptor);
-      managementRegistry.unregisterAndRefresh(new ClientDescriptorBinding(clientDescriptor));
-    }
-  }
-
-  public void clientReconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientReconnected({})", clientDescriptor);
-      managementRegistry.refresh(); // required because ClientState fields have been modified
-      managementRegistry.pushServerEntityNotification(new ClientDescriptorBinding(clientDescriptor), EHCACHE_CLIENT_RECONNECTED.name());
-    }
-  }
-
   public void sharedPoolsConfigured() {
     if (managementRegistry != null) {
       LOGGER.trace("sharedPoolsConfigured()");
@@ -144,11 +111,4 @@ public class Management implements Closeable {
     }
   }
 
-  public void clientValidated(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientValidated({})", clientDescriptor);
-      managementRegistry.refresh(); // required because ClientState fields have been modified
-      managementRegistry.pushServerEntityNotification(new ClientDescriptorBinding(clientDescriptor), EHCACHE_CLIENT_VALIDATED.name());
-    }
-  }
 }
