@@ -68,8 +68,6 @@ public interface CacheOperationOutcomes {
     /** put. */
     PUT,
     /** updated. */
-    UPDATED,
-    /** no op. */
     NOOP,
     /** failure */
     FAILURE

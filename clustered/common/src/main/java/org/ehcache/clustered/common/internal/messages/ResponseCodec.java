@@ -187,14 +187,14 @@ public class ResponseCodec {
     buffer.rewind();
     switch (opCode) {
       case SUCCESS:
-        return EhcacheEntityResponse.Success.INSTANCE;
+        return EhcacheEntityResponse.success();
       case FAILURE:
         decoder = FAILURE_RESPONSE_STRUCT.decoder(buffer);
         ClusterException exception = ExceptionCodec.decode(decoder.struct(EXCEPTION_FIELD));
-        return new EhcacheEntityResponse.Failure(exception.withClientStackTrace());
+        return EhcacheEntityResponse.failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         decoder = GET_RESPONSE_STRUCT.decoder(buffer);
-        return new EhcacheEntityResponse.GetResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
+        return EhcacheEntityResponse.getResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
       case HASH_INVALIDATION_DONE: {
         decoder = HASH_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
@@ -230,7 +230,7 @@ public class ResponseCodec {
         for (int i = 0; i < storesDecoder.length(); i++) {
           stores.add(storesDecoder.value());
         }
-        return new PrepareForDestroy(stores);
+        return EhcacheEntityResponse.prepareForDestroy(stores);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
