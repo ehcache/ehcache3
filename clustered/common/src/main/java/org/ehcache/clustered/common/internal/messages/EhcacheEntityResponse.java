@@ -222,4 +222,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static EhcacheEntityResponse success() {
+    return EhcacheEntityResponse.Success.INSTANCE;
+  }
+
+  public static EhcacheEntityResponse failure(ClusterException cause) {
+    return new EhcacheEntityResponse.Failure(cause);
+  }
+
+  public static EhcacheEntityResponse response(Chain chain) {
+    return new EhcacheEntityResponse.GetResponse(chain);
+  }
 }

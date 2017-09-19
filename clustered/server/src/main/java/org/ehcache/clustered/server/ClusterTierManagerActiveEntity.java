@@ -22,7 +22,6 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidOperationExceptio
 import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
@@ -40,6 +39,8 @@ import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 
@@ -48,7 +49,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerActiveEntity.class);
 
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
-  private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
@@ -59,7 +59,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    * Only used for subclassing when testing
    */
   protected ClusterTierManagerActiveEntity() {
-    responseFactory = null;
     ehcacheStateService = null;
     management = null;
     configuration = null;
@@ -73,7 +72,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     this.configuration = config.getConfiguration();
-    this.responseFactory = new EhcacheEntityResponseFactory();
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
@@ -114,10 +112,10 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       }
       throw new AssertionError("Unsupported message : " + message.getClass());
     } catch (ClusterException e) {
-      return responseFactory.failure(e);
+      return failure(e);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
-      return responseFactory.failure(new InvalidOperationException(e));
+      return failure(new InvalidOperationException(e));
     }
   }
 
@@ -157,7 +155,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       default:
         throw new AssertionError("Unsupported LifeCycle operation " + message);
     }
-    return responseFactory.success();
+    return success();
   }
 
   private EhcacheEntityResponse prepareForDestroy() {

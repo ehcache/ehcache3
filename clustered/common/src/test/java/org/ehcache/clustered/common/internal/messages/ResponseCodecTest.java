@@ -25,6 +25,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.response;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.hamcrest.Matchers.equalTo;
@@ -33,14 +35,13 @@ import static org.junit.Assert.assertThat;
 
 public class ResponseCodecTest {
 
-  private static final EhcacheEntityResponseFactory RESPONSE_FACTORY = new EhcacheEntityResponseFactory();
   private static final ResponseCodec RESPONSE_CODEC = new ResponseCodec();
   private static final long KEY = 42L;
   private static final int INVALIDATION_ID = 134;
 
   @Test
   public void testFailureResponseCodec() {
-    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new IllegalMessageException("Test Exception"));
+    EhcacheEntityResponse failure = failure(new IllegalMessageException("Test Exception"));
 
     EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(failure));
 
@@ -49,7 +50,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testGetResponseCodec() {
-    EhcacheEntityResponse getResponse = RESPONSE_FACTORY.response(getChain(false,
+    EhcacheEntityResponse getResponse = response(getChain(false,
         createPayload(1L), createPayload(11L), createPayload(111L)));
 
     EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(getResponse));

@@ -288,8 +288,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
     checkValue(value);
 
-    final AtomicBoolean added = new AtomicBoolean();
-    final AtomicReference<OffHeapValueHolder<V>> replacedVal = new AtomicReference<OffHeapValueHolder<V>>(null);
+    final AtomicBoolean put = new AtomicBoolean();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
 
     final long now = timeSource.getTimeMillis();
@@ -304,32 +303,31 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
           if (mappedValue == null) {
             OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
-            added.set(newValue != null);
+            put.set(newValue != null);
             return newValue;
           } else {
             OffHeapValueHolder<V> newValue = newUpdatedValueHolder(key, value, mappedValue, now, eventSink);
-            replacedVal.set(mappedValue);
+            put.set(true);
             return newValue;
           }
         }
       };
       computeWithRetry(key, mappingFunction, false);
       eventDispatcher.releaseEventSink(eventSink);
-      if (replacedVal.get() != null) {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-        return PutStatus.UPDATE;
-      } else if (added.get()) {
+      if (put.get()) {
         putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
         return PutStatus.PUT;
       } else {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+        putObserver.end(StoreOperationOutcomes.PutOutcome.NOOP);
         return PutStatus.NOOP;
       }
     } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
+      putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
       throw caex;
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
       throw re;
     }
   }

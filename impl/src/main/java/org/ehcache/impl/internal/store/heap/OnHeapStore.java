@@ -378,7 +378,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             } else {
               updateUsageInBytesIfRequired(- mappedValue.size());
             }
-            statOutcome.set(StoreOperationOutcomes.PutOutcome.REPLACED);
+            statOutcome.set(StoreOperationOutcomes.PutOutcome.PUT);
             return newValue;
           }
         }
@@ -390,8 +390,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       StoreOperationOutcomes.PutOutcome outcome = statOutcome.get();
       putObserver.end(outcome);
       switch (outcome) {
-        case REPLACED:
-          return PutStatus.UPDATE;
         case PUT:
           return PutStatus.PUT;
         case NOOP:
@@ -401,6 +399,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
       handleRuntimeException(re);
       return PutStatus.NOOP;
     }
