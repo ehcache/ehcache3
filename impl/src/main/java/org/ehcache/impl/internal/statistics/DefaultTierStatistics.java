@@ -106,12 +106,6 @@ class DefaultTierStatistics implements TierStatistics {
         return getPuts();
       }
     });
-    addKnownStatistic(knownStatistics, tierName, "UpdateCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getUpdates();
-      }
-    });
     addKnownStatistic(knownStatistics, tierName, "RemovalCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
@@ -223,19 +217,11 @@ class DefaultTierStatistics implements TierStatistics {
   public long getPuts() {
     return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT)) +
            putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT)) +
-           put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
            compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT)) +
            computeIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT)) +
            replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
            conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) -
            compensatingCounters.puts;
-  }
-
-  public long getUpdates() {
-    return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
-           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
-           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) -
-           compensatingCounters.updates;
   }
 
   public long getRemovals() {
@@ -274,23 +260,21 @@ class DefaultTierStatistics implements TierStatistics {
     final long hits;
     final long misses;
     final long puts;
-    final long updates;
     final long removals;
     final long evictions;
     final long expirations;
 
-    private CompensatingCounters(long hits, long misses, long puts, long updates, long removals, long evictions, long expirations) {
+    private CompensatingCounters(long hits, long misses, long puts, long removals, long evictions, long expirations) {
       this.hits = hits;
       this.misses = misses;
       this.puts = puts;
-      this.updates = updates;
       this.removals = removals;
       this.evictions = evictions;
       this.expirations = expirations;
     }
 
     static CompensatingCounters empty() {
-      return new CompensatingCounters(0, 0, 0, 0, 0, 0, 0);
+      return new CompensatingCounters(0, 0, 0, 0, 0, 0);
     }
 
     CompensatingCounters snapshot(DefaultTierStatistics statistics) {
@@ -298,7 +282,6 @@ class DefaultTierStatistics implements TierStatistics {
         statistics.getHits() + hits,
         statistics.getMisses() + misses,
         statistics.getPuts() + puts,
-        statistics.getUpdates() + updates,
         statistics.getRemovals() + removals,
         statistics.getEvictions() + evictions,
         statistics.getExpirations() + expirations

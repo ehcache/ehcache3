@@ -517,7 +517,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for APPEND"));
     }
   }
 

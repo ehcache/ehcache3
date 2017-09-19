@@ -513,7 +513,7 @@ public class ClusterTierManagerActiveEntityTest {
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
+    if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
       throw ((Failure) response).getCause();
     }
   }

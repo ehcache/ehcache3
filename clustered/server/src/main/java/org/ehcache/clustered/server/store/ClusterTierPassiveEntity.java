@@ -22,7 +22,6 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
@@ -45,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.entity.ClientSourceId;
-import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
 import org.terracotta.entity.InvokeContext;
@@ -56,6 +54,8 @@ import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.TimeoutException;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
@@ -188,7 +188,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     }
 
     // Default response for messages not returning anything specific
-    return EhcacheEntityResponse.Success.INSTANCE;
+    return success();
   }
 
   private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) throws ClusterException {
@@ -235,7 +235,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         // Returns the real original result of the operation. We consider that it's always a GET_AND_APPEND since APPEND
         // is unused right now. Other types of messages are not tracked so we don't care that they return the right result
-        return new EhcacheEntityResponseFactory().response(retirementMessage.getResult());
+        return getResponse(retirementMessage.getResult());
       case INVALIDATION_COMPLETE:
         if (isEventual()) {
           InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage) message;

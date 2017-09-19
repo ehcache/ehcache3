@@ -156,12 +156,20 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
+    EhcacheEntityResponse response;
     try {
-      entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true);
+      response = entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
+    }
+    if (response != null && (EhcacheResponseType.SUCCESS.equals(response.getResponseType())
+      || EhcacheResponseType.GET_RESPONSE.equals(response.getResponseType()))) {
+      return;
+    } else {
+      throw new ServerStoreProxyException("Response for append operation was invalid : " +
+                                          (response != null ? response.getResponseType() : "null message"));
     }
   }
 

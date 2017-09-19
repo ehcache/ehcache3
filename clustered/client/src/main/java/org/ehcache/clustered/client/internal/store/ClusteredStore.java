@@ -237,9 +237,6 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       case PUT:
         putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
         break;
-      case UPDATE:
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-        break;
       case NOOP:
         putObserver.end(StoreOperationOutcomes.PutOutcome.NOOP);
         break;
@@ -254,19 +251,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-      if(resolvedChain.getResolvedResult(key) == null) {
-        return PutStatus.PUT;
-      } else {
-
-        if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-          Chain compactedChain = resolvedChain.getCompactedChain();
-          storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-        }
-
-        return PutStatus.UPDATE;
-      }
+      storeProxy.append(extractedKey, payload);
+      return PutStatus.PUT;
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return PutStatus.NOOP;
@@ -496,7 +482,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       Map<K, V> entriesToRemap = putAllFunction.getEntriesToRemap();
       for(Map.Entry<K, V> entry: entriesToRemap.entrySet()) {
         PutStatus putStatus = silentPut(entry.getKey(), entry.getValue());
-        if(putStatus == PutStatus.PUT || putStatus == PutStatus.UPDATE) {
+        if(putStatus == PutStatus.PUT) {
           putAllFunction.getActualPutCount().incrementAndGet();
           valueHolderMap.put(entry.getKey(), new ClusteredValueHolder<V>(entry.getValue()));
         }

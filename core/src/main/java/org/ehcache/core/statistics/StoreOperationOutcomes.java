@@ -47,13 +47,13 @@ public interface StoreOperationOutcomes {
      */
     PUT,
     /**
-     * replaced
-     */
-    REPLACED,
-    /**
      * no-op
      */
-    NOOP
+    NOOP,
+    /**
+     * failure
+     */
+    FAILURE
   }
 
   /**
