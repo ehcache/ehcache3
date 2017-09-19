@@ -307,9 +307,7 @@ public abstract class EhcacheBasicCrudBase {
     public PutStatus put(final String key, final String value) throws StoreAccessException {
       this.checkFailingKey(key);
       FakeValueHolder toPut = new FakeValueHolder(value);
-      if (this.entries.put(key, toPut) != null) {
-        return PutStatus.UPDATE;
-      }
+      this.entries.put(key, toPut);
       return PutStatus.PUT;
     }
 

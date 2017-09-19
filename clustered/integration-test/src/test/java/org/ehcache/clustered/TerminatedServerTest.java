@@ -517,6 +517,7 @@ public class TerminatedServerTest extends ClusteredTests {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
+      //Final timeout occurs on the cleanup which is a remove (hence a GET_AND_APPEND)
       assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
