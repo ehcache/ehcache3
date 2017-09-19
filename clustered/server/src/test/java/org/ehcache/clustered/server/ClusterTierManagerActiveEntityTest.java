@@ -58,8 +58,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class ClusterTierManagerActiveEntityTest {
 
@@ -81,53 +79,6 @@ public class ClusterTierManagerActiveEntityTest {
   }
 
   /**
-   * Ensures that a client connection is properly tracked.
-   */
-  @Test
-  public void testConnected() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-    verify(management).clientConnected(client);
-  }
-
-  @Test
-  public void testConnectedAgain() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    activeEntity.connected(client);
-    verify(management, times(2)).clientConnected(client);
-  }
-
-  @Test
-  public void testConnectedSecond() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    verify(management).clientConnected(client2);
-  }
-
-  /**
    * Ensures a disconnect for a non-connected client does not throw.
    */
   @Test
@@ -140,48 +91,6 @@ public class ClusterTierManagerActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.disconnected(client);
     // Not expected to fail ...
-  }
-
-  /**
-   * Ensures the disconnect of a connected client is properly tracked.
-   */
-  @Test
-  public void testDisconnected() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    activeEntity.disconnected(client);
-
-    verify(management).clientDisconnected(client);
-  }
-
-  /**
-   * Ensures the disconnect of a connected client is properly tracked and does not affect others.
-   */
-  @Test
-  public void testDisconnectedSecond() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    verify(management).clientConnected(client2);
-
-    activeEntity.disconnected(client);
-
-    verify(management).clientDisconnected(client);
   }
 
   /**
@@ -204,7 +113,6 @@ public class ClusterTierManagerActiveEntityTest {
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(configuration, ehcacheStateService, management);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
-    verify(management).clientConnected(client);
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
 
