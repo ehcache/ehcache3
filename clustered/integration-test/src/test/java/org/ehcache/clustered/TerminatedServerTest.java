@@ -484,7 +484,7 @@ public class TerminatedServerTest {
     assertThat(value.hasNext(), is(false));
   }
 
-  @Test
+  @Test @Ignore
   public void testTerminationThenPut() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
