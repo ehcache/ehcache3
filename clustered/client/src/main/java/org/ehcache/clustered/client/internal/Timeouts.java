@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * Describes the timeouts for {@link ClusterTierManagerClientEntity} operations.  Use
@@ -52,6 +53,11 @@ public final class Timeouts {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public static LongSupplier nanosStartingFromNow(TimeoutDuration timeout) {
+    long end = System.nanoTime() + timeout.toNanos();
+    return () -> end - System.nanoTime();
   }
 
   @Override
