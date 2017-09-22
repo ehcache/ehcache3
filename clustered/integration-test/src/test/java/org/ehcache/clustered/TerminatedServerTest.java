@@ -485,6 +485,7 @@ public class TerminatedServerTest {
   }
 
   @Test
+  @Ignore("cannot currently timeout an append call")
   public void testTerminationThenPut() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
