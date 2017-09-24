@@ -20,7 +20,7 @@ Advanced topics::
 - link:./thread-pools{outfilesuffix}[Thread Pools]
 - link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
 - link:./xa{outfilesuffix}[Transactions support]
-- link:./writers{outfilesuffix}[Cache Writers]
+- link:./writers{outfilesuffix}[Cache Loaders and Writers]
 - link:./usermanaged{outfilesuffix}[User managed caches]
 - link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
 - link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
