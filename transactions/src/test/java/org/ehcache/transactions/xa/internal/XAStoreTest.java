@@ -238,14 +238,11 @@ public class XAStoreTest {
     {
       assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
 
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
-          assertThat(xaStore.put(1L, "uno"), equalTo(Store.PutStatus.NOOP));
-          testTransactionManager.commit();
-          return null;
-        }
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
+        assertThat(xaStore.put(1L, "uno"), equalTo(Store.PutStatus.NOOP));
+        testTransactionManager.commit();
+        return null;
       });
 
       assertThat(xaStore.put(1L, "eins"), equalTo(Store.PutStatus.UPDATE));
@@ -265,16 +262,13 @@ public class XAStoreTest {
     {
       assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
 
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.remove(1L), is(false));
+        assertThat(xaStore.remove(1L), is(false));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
 
       assertThat(xaStore.put(1L, "een"), equalTo(Store.PutStatus.UPDATE));
@@ -294,16 +288,13 @@ public class XAStoreTest {
     {
       assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
 
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.get(1L), is(nullValue()));
+        assertThat(xaStore.get(1L), is(nullValue()));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
 
       assertThat(xaStore.put(1L, "yksi"), equalTo(Store.PutStatus.UPDATE));
@@ -315,26 +306,23 @@ public class XAStoreTest {
   }
 
   private void executeWhileIn2PC(final AtomicReference<Throwable> exception, final Callable callable) {
-    testTransactionManager.getCurrentTransaction().registerTwoPcListener(new TwoPcListener() {
-      @Override
-      public void inMiddleOf2PC() {
-        try {
-          Thread t = new Thread() {
-            @Override
-            public void run() {
-              try {
-                // this runs while the committing TX is in-doubt
-                callable.call();
-              } catch (Throwable t) {
-                exception.set(t);
-              }
+    testTransactionManager.getCurrentTransaction().registerTwoPcListener(() -> {
+      try {
+        Thread t = new Thread() {
+          @Override
+          public void run() {
+            try {
+              // this runs while the committing TX is in-doubt
+              callable.call();
+            } catch (Throwable t) {
+              exception.set(t);
             }
-          };
-          t.start();
-          t.join();
-        } catch (Throwable e) {
-          exception.set(e);
-        }
+          }
+        };
+        t.start();
+        t.join();
+      } catch (Throwable e) {
+        exception.set(e);
       }
     });
   }
@@ -457,16 +445,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.putIfAbsent(1L, "un"), is(nullValue()));
+        assertThat(xaStore.putIfAbsent(1L, "un"), is(nullValue()));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -513,16 +498,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
+        assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -541,16 +523,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
+        assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -596,16 +575,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.replace(1L, "un"), is(nullValue()));
+        assertThat(xaStore.replace(1L, "un"), is(nullValue()));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -624,16 +600,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.replace(1L, "un"), is(nullValue()));
+        assertThat(xaStore.replace(1L, "un"), is(nullValue()));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -677,16 +650,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.replace(1L, "eins", "one"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
+        assertThat(xaStore.replace(1L, "eins", "one"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -705,16 +675,13 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       xaStore.put(1L, "eins");
-      executeWhileIn2PC(exception, new Callable() {
-        @Override
-        public Object call() throws Exception {
-          testTransactionManager.begin();
+      executeWhileIn2PC(exception, () -> {
+        testTransactionManager.begin();
 
-          assertThat(xaStore.replace(1L, "one", "un"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
+        assertThat(xaStore.replace(1L, "one", "un"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
 
-          testTransactionManager.commit();
-          return null;
-        }
+        testTransactionManager.commit();
+        return null;
       });
     }
     testTransactionManager.commit();
@@ -736,31 +703,22 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return "one";
-        }
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return "one";
       });
       assertThat(computed1.value(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("one"));
-          return "un";
-        }
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("one"));
+        return "un";
       });
       assertThat(computed2.value(), equalTo("un"));
-      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("un"));
-          return null;
-        }
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("un"));
+        return null;
       });
       assertThat(computed3, is(nullValue()));
     }
@@ -770,22 +728,16 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return "one";
-        }
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return "one";
       }, () -> Boolean.FALSE);
       assertThat(computed1.value(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("one"));
-          return null;
-        }
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("one"));
+        return null;
       }, () -> Boolean.FALSE);
       assertThat(computed2, is(nullValue()));
     }
@@ -795,22 +747,16 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return "one";
-        }
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return "one";
       });
       assertThat(computed1.value(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("one"));
-          return null;
-        }
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("one"));
+        return null;
       });
       assertThat(computed2, is(nullValue()));
     }
@@ -820,22 +766,16 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return "one";
-        }
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return "one";
       });
       assertThat(computed1.value(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("one"));
-          return "un";
-        }
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("one"));
+        return "un";
       });
       assertThat(computed2.value(), equalTo("un"));
     }
@@ -845,13 +785,10 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("un"));
-          return "eins";
-        }
+      Store.ValueHolder<String> computed = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("un"));
+        return "eins";
       });
       assertThat(computed.value(), equalTo("eins"));
     }
@@ -861,13 +798,10 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("eins"));
-          return null;
-        }
+      Store.ValueHolder<String> computed = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("eins"));
+        return null;
       });
       assertThat(computed, is(nullValue()));
     }
@@ -877,31 +811,22 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, equalTo("eins"));
-          return null;
-        }
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, equalTo("eins"));
+        return null;
       });
       assertThat(computed1, is(nullValue()));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return null;
-        }
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return null;
       });
       assertThat(computed2, is(nullValue()));
-      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
-        @Override
-        public String apply(Long aLong, String s) {
-          assertThat(aLong, is(1L));
-          assertThat(s, is(nullValue()));
-          return "uno";
-        }
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, (aLong, s) -> {
+        assertThat(aLong, is(1L));
+        assertThat(s, is(nullValue()));
+        return "uno";
       });
       assertThat(computed3.value(), equalTo("uno"));
     }
@@ -951,20 +876,14 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.computeIfAbsent(1L, new Function<Long, String>() {
-        @Override
-        public String apply(Long aLong) {
-          assertThat(aLong, is(1L));
-          return "one";
-        }
+      Store.ValueHolder<String> computed1 = xaStore.computeIfAbsent(1L, aLong -> {
+        assertThat(aLong, is(1L));
+        return "one";
       });
       assertThat(computed1.value(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.computeIfAbsent(1L, new Function<Long, String>() {
-        @Override
-        public String apply(Long aLong) {
-          fail("should not be absent");
-          throw new AssertionError();
-        }
+      Store.ValueHolder<String> computed2 = xaStore.computeIfAbsent(1L, aLong -> {
+        fail("should not be absent");
+        throw new AssertionError();
       });
       assertThat(computed2.value(), equalTo("one"));
     }
@@ -974,23 +893,17 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.computeIfAbsent(1L, new Function<Long, String>() {
-        @Override
-        public String apply(Long aLong) {
-          fail("should not be absent");
-          throw new AssertionError();
-        }
+      Store.ValueHolder<String> computed1 = xaStore.computeIfAbsent(1L, aLong -> {
+        fail("should not be absent");
+        throw new AssertionError();
       });
       assertThat(computed1.value(), equalTo("one"));
 
       xaStore.remove(1L);
 
-      Store.ValueHolder<String> computed2 = xaStore.computeIfAbsent(1L, new Function<Long, String>() {
-        @Override
-        public String apply(Long aLong) {
-          assertThat(aLong, is(1L));
-          return "un";
-        }
+      Store.ValueHolder<String> computed2 = xaStore.computeIfAbsent(1L, aLong -> {
+        assertThat(aLong, is(1L));
+        return "un";
       });
       assertThat(computed2.value(), equalTo("un"));
     }
@@ -1185,18 +1098,15 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Map<Long, Store.ValueHolder<String>> computedMap = xaStore.bulkCompute(asSet(1L, 2L, 3L), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends Long, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Long, ? extends String>> entries) {
-          Map<Long, String> result = new HashMap<Long, String>();
-          for (Map.Entry<? extends Long, ? extends String> entry : entries) {
-            Long key = entry.getKey();
-            String value = entry.getValue();
-            assertThat(value, is(nullValue()));
-            result.put(key, "stuff#" + key);
-          }
-          return result.entrySet();
+      Map<Long, Store.ValueHolder<String>> computedMap = xaStore.bulkCompute(asSet(1L, 2L, 3L), entries -> {
+        Map<Long, String> result = new HashMap<Long, String>();
+        for (Map.Entry<? extends Long, ? extends String> entry : entries) {
+          Long key = entry.getKey();
+          String value = entry.getValue();
+          assertThat(value, is(nullValue()));
+          result.put(key, "stuff#" + key);
         }
+        return result.entrySet();
       });
 
       assertThat(computedMap.size(), is(3));
@@ -1205,32 +1115,29 @@ public class XAStoreTest {
       assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
 
 
-      computedMap = xaStore.bulkCompute(asSet(0L, 1L, 3L), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends Long, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Long, ? extends String>> entries) {
-          Map<Long, String> result = new HashMap<Long, String>();
-          for (Map.Entry<? extends Long, ? extends String> entry : entries) {
-            Long key = entry.getKey();
-            String value = entry.getValue();
+      computedMap = xaStore.bulkCompute(asSet(0L, 1L, 3L), entries -> {
+        Map<Long, String> result = new HashMap<Long, String>();
+        for (Map.Entry<? extends Long, ? extends String> entry : entries) {
+          Long key = entry.getKey();
+          String value = entry.getValue();
 
-            switch (key.intValue()) {
-              case 0:
-                assertThat(value, is(nullValue()));
-                break;
-              case 1:
-              case 3:
-                assertThat(value, equalTo("stuff#" + key));
-                break;
-            }
-
-            if (key != 3L) {
-              result.put(key, "otherStuff#" + key);
-            } else {
-              result.put(key, null);
-            }
+          switch (key.intValue()) {
+            case 0:
+              assertThat(value, is(nullValue()));
+              break;
+            case 1:
+            case 3:
+              assertThat(value, equalTo("stuff#" + key));
+              break;
           }
-          return result.entrySet();
+
+          if (key != 3L) {
+            result.put(key, "otherStuff#" + key);
+          } else {
+            result.put(key, null);
+          }
         }
+        return result.entrySet();
       });
 
       assertThat(computedMap.size(), is(3));
@@ -1266,15 +1173,12 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Map<Long, Store.ValueHolder<String>> computedMap = xaStore.bulkComputeIfAbsent(asSet(1L, 2L, 3L), new Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends Long, ? extends String>> apply(Iterable<? extends Long> keys) {
-          Map<Long, String> result = new HashMap<Long, String>();
-          for (Long key : keys) {
-            result.put(key, "stuff#" + key);
-          }
-          return result.entrySet();
+      Map<Long, Store.ValueHolder<String>> computedMap = xaStore.bulkComputeIfAbsent(asSet(1L, 2L, 3L), keys -> {
+        Map<Long, String> result = new HashMap<Long, String>();
+        for (Long key : keys) {
+          result.put(key, "stuff#" + key);
         }
+        return result.entrySet();
       });
 
       assertThat(computedMap.size(), is(3));
@@ -1282,23 +1186,20 @@ public class XAStoreTest {
       assertThat(computedMap.get(2L).value(), equalTo("stuff#2"));
       assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
 
-      computedMap = xaStore.bulkComputeIfAbsent(asSet(0L, 1L, 3L), new Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends Long, ? extends String>> apply(Iterable<? extends Long> keys) {
-          Map<Long, String> result = new HashMap<Long, String>();
-          for (Long key : keys) {
-            switch (key.intValue()) {
-              case 0:
-                result.put(key, "otherStuff#" + key);
-                break;
-              case 1:
-              case 3:
-                fail("key " + key + " should not be absent");
-                break;
-            }
+      computedMap = xaStore.bulkComputeIfAbsent(asSet(0L, 1L, 3L), keys -> {
+        Map<Long, String> result = new HashMap<Long, String>();
+        for (Long key : keys) {
+          switch (key.intValue()) {
+            case 0:
+              result.put(key, "otherStuff#" + key);
+              break;
+            case 1:
+            case 3:
+              fail("key " + key + " should not be absent");
+              break;
           }
-          return result.entrySet();
         }
+        return result.entrySet();
       });
 
       assertThat(computedMap.size(), is(3));
@@ -1321,12 +1222,9 @@ public class XAStoreTest {
   public void testCustomEvictionAdvisor() throws Exception {
     final AtomicBoolean invoked = new AtomicBoolean();
 
-    EvictionAdvisor<Long, SoftLock> evictionAdvisor = new EvictionAdvisor<Long, SoftLock>() {
-      @Override
-      public boolean adviseAgainstEviction(Long key, SoftLock value) {
-        invoked.set(true);
-        return false;
-      }
+    EvictionAdvisor<Long, SoftLock> evictionAdvisor = (key, value) -> {
+      invoked.set(true);
+      return false;
     };
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
         evictionAdvisor, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()

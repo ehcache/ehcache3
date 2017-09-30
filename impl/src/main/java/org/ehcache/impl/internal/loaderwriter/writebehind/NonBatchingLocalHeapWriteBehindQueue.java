@@ -64,17 +64,13 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   protected void addOperation(final SingleOperation<K, V> operation) {
     latest.put(operation.getKey(), operation);
 
-    submit(new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          operation.performOperation(cacheLoaderWriter);
-        } catch (Exception e) {
-          LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
-        } finally {
-          latest.remove(operation.getKey(), operation);
-        }
+    submit(() -> {
+      try {
+        operation.performOperation(cacheLoaderWriter);
+      } catch (Exception e) {
+        LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
+      } finally {
+        latest.remove(operation.getKey(), operation);
       }
     });
   }

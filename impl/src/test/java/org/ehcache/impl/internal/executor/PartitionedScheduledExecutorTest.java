@@ -76,13 +76,7 @@ public class PartitionedScheduledExecutorTest {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          semaphore.acquireUninterruptibly();
-        }
-      });
+      executor.execute(() -> semaphore.acquireUninterruptibly());
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -108,23 +102,11 @@ public class PartitionedScheduledExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
-      });
+      executor.submit(() -> jobSemaphore.acquireUninterruptibly());
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
@@ -156,25 +138,12 @@ public class PartitionedScheduledExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
       final AtomicBoolean called = new AtomicBoolean();
-      Callable<?> leftBehind = new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          called.set(true);
-          return null;
-        }
-      };
-      executor.submit(leftBehind);
+      executor.submit(() -> called.set(true));
       testSemaphore.acquireUninterruptibly();
       assertThat(executor.shutdownNow(), hasSize(1));
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
@@ -203,17 +172,12 @@ public class PartitionedScheduledExecutorTest {
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          try {
-            jobSemaphore.acquire();
-          } catch (InterruptedException e) {
-            interrupted.set(true);
-          }
-          return null;
+      executor.submit(() -> {
+        testSemaphore.release();
+        try {
+          jobSemaphore.acquire();
+        } catch (InterruptedException e) {
+          interrupted.set(true);
         }
       });
       testSemaphore.acquireUninterruptibly();
@@ -242,17 +206,12 @@ public class PartitionedScheduledExecutorTest {
       final AtomicInteger interrupted = new AtomicInteger();
 
       for (int i = 0; i < jobCount; i++) {
-        executor.submit(new Callable<Void>() {
-
-          @Override
-          public Void call() throws Exception {
-            testSemaphore.release();
-            try {
-              jobSemaphore.acquire();
-            } catch (InterruptedException e) {
-              interrupted.incrementAndGet();
-            }
-            return null;
+        executor.submit(() -> {
+          testSemaphore.release();
+          try {
+            jobSemaphore.acquire();
+          } catch (InterruptedException e) {
+            interrupted.incrementAndGet();
           }
         });
       }
@@ -277,13 +236,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-          Assert.fail("Should not run!");
-        }
-      }, 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
 
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -302,13 +255,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(new Runnable() {
-
-        @Override
-        public void run() {
-          Assert.fail("Should not run!");
-        }
-      }, 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
 
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -327,12 +274,8 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleAtFixedRate(new Runnable() {
-
-        @Override
-        public void run() {
-          //no-op
-        }
+      ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> {
+        //no-op
       }, 2, 1, MINUTES);
 
       assertThat(executor.shutdownNow(), hasSize(1));
@@ -352,13 +295,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(new Runnable() {
-
-        @Override
-        public void run() {
-          Assert.fail("Should not run!");
-        }
-      }, 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
 
       assertThat(executor.shutdownNow(), hasSize(1));
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -377,13 +314,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.schedule(new Runnable() {
-
-        @Override
-        public void run() {
-          Assert.fail("Should not run!");
-        }
-      }, 2, MINUTES);
+      ScheduledFuture<?> future = executor.schedule(() -> Assert.fail("Should not run!"), 2, MINUTES);
 
       List<Runnable> remainingTasks = executor.shutdownNow();
       assertThat(remainingTasks, hasSize(1));
@@ -407,12 +338,8 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.schedule(new Runnable() {
-
-        @Override
-        public void run() {
-          //no-op
-        }
+      ScheduledFuture<?> future = executor.schedule(() -> {
+        //no-op
       }, 200, MILLISECONDS);
 
       executor.shutdown();
@@ -428,23 +355,11 @@ public class PartitionedScheduledExecutorTest {
 
   @Test
   public void testScheduledTasksRunOnDeclaredPool() throws InterruptedException, ExecutionException {
-    ExecutorService worker = Executors.newSingleThreadExecutor(new ThreadFactory() {
-
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "testScheduledTasksRunOnDeclaredPool");
-      }
-    });
+    ExecutorService worker = Executors.newSingleThreadExecutor(r -> new Thread(r, "testScheduledTasksRunOnDeclaredPool"));
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<Thread> future = executor.schedule(new Callable<Thread>() {
-
-        @Override
-        public Thread call() {
-          return Thread.currentThread();
-        }
-      }, 0, MILLISECONDS);
+      ScheduledFuture<Thread> future = executor.schedule(() -> Thread.currentThread(), 0, MILLISECONDS);
 
       assertThat(waitFor(future).getName(), is("testScheduledTasksRunOnDeclaredPool"));
       executor.shutdown();

@@ -172,14 +172,11 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
     Batch(int size) {
       this.batchSize = size;
-      this.expireTask = scheduledExecutor.schedule(new Runnable() {
-        @Override
-        public void run() {
-          synchronized (BatchingLocalHeapWriteBehindQueue.this) {
-            if (openBatch == Batch.this) {
-              submit(openBatch);
-              openBatch = null;
-            }
+      this.expireTask = scheduledExecutor.schedule(() -> {
+        synchronized (BatchingLocalHeapWriteBehindQueue.this) {
+          if (openBatch == Batch.this) {
+            submit(openBatch);
+            openBatch = null;
           }
         }
       }, maxWriteDelayMs, MILLISECONDS);

@@ -396,11 +396,8 @@ public class ConfigurationMergerTest {
   }
 
   private <T> Factory<T> throwingFactory() {
-    return new Factory<T>() {
-      @Override
-      public T create() {
-        throw new UnsupportedOperationException("Boom");
-      }
+    return (Factory<T>) () -> {
+      throw new UnsupportedOperationException("Boom");
     };
   }
 

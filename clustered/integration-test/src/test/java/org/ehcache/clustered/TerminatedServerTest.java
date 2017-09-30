@@ -771,39 +771,36 @@ public class TerminatedServerTest {
      */
     private Future<Void> interruptAfter(final long interval, final TimeUnit unit) {
       final Thread targetThread = Thread.currentThread();
-      FutureTask<Void> killer = new FutureTask<Void>(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            unit.sleep(interval);
-            if (!isDone && targetThread.isAlive()) {
-              synchronized (lock) {
-                if (isDone) {
-                  return;       // Let test win completion race
-                }
-                isExpired = true;
-                System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
-                    testName.getMethodName());
-                Diagnostics.threadDump(System.out);
-                targetThread.interrupt();
+      FutureTask<Void> killer = new FutureTask<Void>(() -> {
+        try {
+          unit.sleep(interval);
+          if (!isDone && targetThread.isAlive()) {
+            synchronized (lock) {
+              if (isDone) {
+                return;       // Let test win completion race
               }
-
-            /*                NEVER DO THIS AT HOME!
-             * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
-             * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
-             * looping wait where the interrupt status is recorded but ignored until the awaited event
-             * occurs.
-             */
-              unit.timedJoin(targetThread, interval);
-              if (!isDone && targetThread.isAlive()) {
-                System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
-                    testName.getMethodName(), targetThread);
-                targetThread.stop();   // Deprecated - BAD CODE!
-              }
+              isExpired = true;
+              System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
+                  testName.getMethodName());
+              Diagnostics.threadDump(System.out);
+              targetThread.interrupt();
             }
-          } catch (InterruptedException e) {
-            // Interrupted when canceled; simple exit
+
+          /*                NEVER DO THIS AT HOME!
+           * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
+           * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
+           * looping wait where the interrupt status is recorded but ignored until the awaited event
+           * occurs.
+           */
+            unit.timedJoin(targetThread, interval);
+            if (!isDone && targetThread.isAlive()) {
+              System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
+                  testName.getMethodName(), targetThread);
+              targetThread.stop();   // Deprecated - BAD CODE!
+            }
           }
+        } catch (InterruptedException e) {
+          // Interrupted when canceled; simple exit
         }
       }, null);
       Thread killerThread = new Thread(killer, "Timeout Task - " + testName.getMethodName());

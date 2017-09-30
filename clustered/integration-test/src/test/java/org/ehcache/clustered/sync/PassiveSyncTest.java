@@ -126,17 +126,14 @@ public class PassiveSyncTest extends ClusteredTests {
 
       final CountDownLatch latch = new CountDownLatch(1);
       final AtomicBoolean complete = new AtomicBoolean(false);
-      Thread lifeCycleThread = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          while (!complete.get()) {
-            try {
-              latch.await();
-              clusteredCacheManagerBuilder.build(true);
-              Thread.sleep(200);
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-            }
+      Thread lifeCycleThread = new Thread(() -> {
+        while (!complete.get()) {
+          try {
+            latch.await();
+            clusteredCacheManagerBuilder.build(true);
+            Thread.sleep(200);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
           }
         }
       });

@@ -43,59 +43,50 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
   private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
-      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
+      = new ConcurrentHashMap<>();
 
   CommonServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
     this.cacheId = cacheId;
     this.messageFactory = messageFactory;
     this.entity = entity;
-    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
-        long key = response.getKey();
-        LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", cacheId, key);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>) response -> {
+      long key = response.getKey();
+      LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", cacheId, key);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateHash(key);
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>) response -> {
+      final long key = response.getKey();
+      final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
+      LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateHash(key);
+      }
 
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
-        }
+      try {
+        LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+        entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false);
+      } catch (Exception e) {
+        //TODO: what should be done here?
+        LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>) response -> {
+      final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateAll();
-        }
+      LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateAll();
+      }
 
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-          entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
-        }
+      try {
+        LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
+        entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false);
+      } catch (Exception e) {
+        //TODO: what should be done here?
+        LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
       }
     });
 

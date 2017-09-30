@@ -68,14 +68,11 @@ public class EhcacheBulkMethodsTest {
   @Test
   public void testGetAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = (Function)invocation.getArguments()[1];
-        function.apply(invocation.getArguments()[0]);
+    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
+      Function function = (Function)invocation.getArguments()[1];
+      function.apply(invocation.getArguments()[0]);
 
-        return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
-      }
+      return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
     });
 
     InternalCache<Number, CharSequence> ehcache = getCache(store);

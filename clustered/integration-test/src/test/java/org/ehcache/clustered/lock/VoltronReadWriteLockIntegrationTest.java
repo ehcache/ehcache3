@@ -70,12 +70,9 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
       Hold hold = lock.writeLock();
 
-      Future<Void> waiter = async(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          lock.writeLock().unlock();
-          return null;
-        }
+      Future<Void> waiter = async(() -> {
+        lock.writeLock().unlock();
+        return null;
       });
 
       try {
@@ -102,12 +99,9 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
       final Connection clientB = CLUSTER.newConnection();
       try {
-        Future<Void> waiter = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
-            return null;
-          }
+        Future<Void> waiter = async(() -> {
+          new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+          return null;
         });
 
         try {
@@ -130,23 +124,20 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
   @Test
   public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
     final AtomicBoolean condition = new AtomicBoolean(true);
-    Callable<Void> task = new Callable<Void>() {
-      @Override
-      public Void call() throws Exception {
-        Connection client = CLUSTER.newConnection();
-        VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
+    Callable<Void> task = () -> {
+      Connection client = CLUSTER.newConnection();
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
 
-        while (condition.get()) {
-          Hold hold = lock.tryWriteLock();
-          if (hold == null) {
-            lock.readLock().unlock();
-          } else {
-            condition.set(false);
-            hold.unlock();
-          }
+      while (condition.get()) {
+        Hold hold = lock.tryWriteLock();
+        if (hold == null) {
+          lock.readLock().unlock();
+        } else {
+          condition.set(false);
+          hold.unlock();
         }
-        return null;
       }
+      return null;
     };
 
     ExecutorService executor = Executors.newCachedThreadPool();

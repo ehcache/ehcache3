@@ -92,12 +92,7 @@ public class ChainResolver<K, V> {
                   continue;
                 }
               } else {
-                duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
-                  @Override
-                  public V value() {
-                    return previousResult.getValue();
-                  }
-                }, result.getValue());
+                duration = expiry.getExpiryForUpdate(key, previousResult::getValue, result.getValue());
                 if (duration == null) {
                   continue;
                 }

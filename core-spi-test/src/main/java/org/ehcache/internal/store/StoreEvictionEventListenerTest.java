@@ -100,12 +100,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.compute(k2, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        return v2;
-      }
-    });
+    kvStore.compute(k2, (mappedKey, mappedValue) -> v2);
     verifyListenerInteractions(listener);
   }
 
@@ -114,12 +109,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.computeIfAbsent(k2, new Function<K, V>() {
-      @Override
-      public V apply(K mappedKey) {
-        return v2;
-      }
-    });
+    kvStore.computeIfAbsent(k2, mappedKey -> v2);
     verifyListenerInteractions(listener);
   }
 

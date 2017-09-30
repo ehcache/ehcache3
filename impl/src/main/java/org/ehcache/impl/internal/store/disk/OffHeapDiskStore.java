@@ -519,15 +519,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
     proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
 
-    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, new InvocationHandler() {
-
-      @Override
-      public Object invoke(Object o, Method method, Object[] os) throws Throwable {
-        if (method.getDeclaringClass().equals(Persistent.class)) {
-          return null;
-        } else {
-          return method.invoke(normal, os);
-        }
+    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, (o, method, os) -> {
+      if (method.getDeclaringClass().equals(Persistent.class)) {
+        return null;
+      } else {
+        return method.invoke(normal, os);
       }
     });
   }

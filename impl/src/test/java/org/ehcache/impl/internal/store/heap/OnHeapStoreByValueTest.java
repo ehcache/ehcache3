@@ -74,20 +74,15 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(),
         keyCopier, new SerializingCopier<Long>(new JavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
 
-    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
+    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, key -> new AbstractValueHolder<Long>(-1, -1) {
       @Override
-      public ValueHolder<Long> apply(final Long key) {
-        return new AbstractValueHolder<Long>(-1, -1) {
-          @Override
-          public Long value() {
-            return key * 1000L;
-          }
+      public Long value() {
+        return key * 1000L;
+      }
 
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
       }
     });
     assertThat(computed.value(), is(1000L));

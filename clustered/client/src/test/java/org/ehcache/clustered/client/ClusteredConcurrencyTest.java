@@ -91,31 +91,28 @@ public class ClusteredConcurrencyTest {
   }
 
   private Runnable content(final CountDownLatch latch) {
-    return new Runnable() {
-      @Override
-      public void run() {
+    return () -> {
+      try {
+        CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
+          .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 32, MemoryUnit.MB)
+            .resourcePool("resource-pool-b", 32, MemoryUnit.MB, "secondary-server-resource"))
+          .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+            .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+
+        latch.countDown();
         try {
-          CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
-              .defaultServerResource("primary-server-resource")
-              .resourcePool("resource-pool-a", 32, MemoryUnit.MB)
-              .resourcePool("resource-pool-b", 32, MemoryUnit.MB, "secondary-server-resource"))
-            .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-              ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
-              .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
-
-          latch.countDown();
-          try {
-            latch.await();
-          } catch (InterruptedException e) {
-            // continue
-          }
-
-          clusteredCacheManagerBuilder.build(true);
-        } catch (Throwable t) {
-          exception.compareAndSet(null, t); // only keep the first exception
+          latch.await();
+        } catch (InterruptedException e) {
+          // continue
         }
+
+        clusteredCacheManagerBuilder.build(true);
+      } catch (Throwable t) {
+        exception.compareAndSet(null, t); // only keep the first exception
       }
     };
   }

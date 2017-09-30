@@ -75,11 +75,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     final K key = factory.createKey(13);
     try {
-      kvStore.compute(key, new BiFunction() {
-        @Override
-        public Object apply(Object key, Object oldValue) {
-          return value; // returning wrong value type from function
-        }
+      kvStore.compute(key, (BiFunction) (key1, oldValue) -> {
+        return value; // returning wrong value type from function
       });
       throw new AssertionError();
     } catch (ClassCastException e) {
@@ -107,12 +104,10 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore2.compute(key, new BiFunction() { // wrong key type
-            @Override
-            public Object apply(Object key, Object oldValue) {
-              throw new AssertionError();
-            }
-          });
+      // wrong key type
+      kvStore2.compute(key, (key1, oldValue) -> {
+        throw new AssertionError();
+      });
       throw new AssertionError();
     } catch (ClassCastException e) {
       // expected
@@ -129,12 +124,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     final V value = factory.createValue(153);
 
     try {
-      kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K keyParam, V oldValue) {
-          return value;
-        }
-      });
+      kvStore.compute(key, (keyParam, oldValue) -> value);
       assertThat(kvStore.get(key).value(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -153,12 +143,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K keyParam, V oldValue) {
-          return value2;
-        }
-      });
+      kvStore.compute(key, (keyParam, oldValue) -> value2);
       assertThat(kvStore.get(key).value(), is(value2));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -174,12 +159,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K keyParam, V oldValue) {
-          return null;
-        }
-      });
+      kvStore.compute(key, (keyParam, oldValue) -> null);
       assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -199,11 +179,8 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).value(), is(value));
 
-      kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K keyParam, V oldValue) {
-          throw re;
-        }
+      kvStore.compute(key, (keyParam, oldValue) -> {
+        throw re;
       });
     } catch (RuntimeException e) {
       assertThat(e, is(re));
@@ -225,12 +202,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
 
-      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return v;
-        }
-      }, () -> false);
+      Store.ValueHolder<V> result = kvStore.compute(key, (k, v) -> v, () -> false);
       assertThat(result.value(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -249,12 +221,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
 
-      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return newValue;
-        }
-      }, () -> false);
+      Store.ValueHolder<V> result = kvStore.compute(key, (k, v) -> newValue, () -> false);
       assertThat(result.value(), is(newValue));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

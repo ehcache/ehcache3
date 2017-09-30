@@ -241,11 +241,8 @@ public abstract class EhcacheBasicCrudBase {
    */
   protected static class FakeStore implements Store<String, String> {
 
-    private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
-      @Override
-      public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
-        // noop
-      }
+    private final CacheConfigurationChangeListener cacheConfigurationChangeListener = event -> {
+      // noop
     };
 
     private static final Supplier<Boolean> REPLACE_EQUAL_TRUE = () -> true;
@@ -568,15 +565,12 @@ public abstract class EhcacheBasicCrudBase {
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
       for (final String key : keys) {
         final ValueHolder<String> newValue = this.compute(key,
-            new BiFunction<String, String, String>() {
-              @Override
-              public String apply(final String key, final String oldValue) {
-                final Entry<String, String> entry = new AbstractMap.SimpleEntry<String, String>(key, oldValue);
-                final Entry<? extends String, ? extends String> remappedEntry =
-                    remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
-                return remappedEntry.getValue();
-              }
-            },
+          (key1, oldValue) -> {
+            final Entry<String, String> entry = new AbstractMap.SimpleEntry<String, String>(key1, oldValue);
+            final Entry<? extends String, ? extends String> remappedEntry =
+                remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
+            return remappedEntry.getValue();
+          },
             replaceEqual);
 
         resultMap.put(key, newValue);
@@ -598,13 +592,10 @@ public abstract class EhcacheBasicCrudBase {
         throws StoreAccessException {
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
       for (final String key : keys) {
-        final ValueHolder<String> newValue = this.computeIfAbsent(key, new Function<String, String>() {
-          @Override
-          public String apply(final String key) {
-            final Map.Entry<? extends String, ? extends String> entry =
-                mappingFunction.apply(Collections.singleton(key)).iterator().next();
-            return entry.getValue();
-          }
+        final ValueHolder<String> newValue = this.computeIfAbsent(key, key1 -> {
+          final Entry<? extends String, ? extends String> entry =
+              mappingFunction.apply(Collections.singleton(key1)).iterator().next();
+          return entry.getValue();
         });
         resultMap.put(key, newValue);
       }

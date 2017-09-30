@@ -554,15 +554,12 @@ public class DefaultSerializationProviderTest {
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     DiskResourceService diskResourceService = mock(DiskResourceService.class);
     when(diskResourceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
-          .thenReturn(new FileBasedPersistenceContext() {
-            @Override
-            public File getDirectory() {
-              try {
-                return tempFolder.newFolder();
-              } catch (IOException e) {
-                fail("unable to create persistence ");
-                return null;
-              }
+          .thenReturn(() -> {
+            try {
+              return tempFolder.newFolder();
+            } catch (IOException e) {
+              fail("unable to create persistence ");
+              return null;
             }
           });
     when(serviceProvider.getService(DiskResourceService.class)).thenReturn(diskResourceService);

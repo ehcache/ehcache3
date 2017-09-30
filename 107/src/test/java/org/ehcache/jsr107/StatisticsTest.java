@@ -210,12 +210,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAverageGetTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAverageGetTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAverageGetTime(), greaterThan(0.0f));
   }
 
@@ -229,12 +224,7 @@ public class StatisticsTest {
     heapCache.put("key", "value");
     heapCache.put("key", "value");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAveragePutTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAveragePutTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAveragePutTime(), greaterThan(0.0f));
   }
 
@@ -254,12 +244,7 @@ public class StatisticsTest {
     heapCache.remove("key3");
     heapCache.remove("key4");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAverageRemoveTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAverageRemoveTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAverageRemoveTime(), greaterThan(0.0f));
   }
 

@@ -65,31 +65,18 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ChainBuilder newChainBuilder() {
-    return new ChainBuilder() {
-      @Override
-      public Chain build(Element... elements) {
-        ByteBuffer[] buffers = new ByteBuffer[elements.length];
-        for (int i = 0; i < buffers.length; i++) {
-          buffers[i] = elements[i].getPayload();
-        }
-        return OffHeapChainMap.chain(buffers);
+    return elements -> {
+      ByteBuffer[] buffers = new ByteBuffer[elements.length];
+      for (int i = 0; i < buffers.length; i++) {
+        buffers[i] = elements[i].getPayload();
       }
+      return OffHeapChainMap.chain(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return new ElementBuilder() {
-      @Override
-      public Element build(final ByteBuffer payLoad) {
-        return new Element() {
-          @Override
-          public ByteBuffer getPayload() {
-            return payLoad;
-          }
-        };
-      }
-    };
+    return payLoad -> () -> payLoad;
   }
 
   @Test

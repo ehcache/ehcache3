@@ -424,13 +424,10 @@ public class DefaultClusteringServiceTest {
             .autoCreate()
             .build();
 
-    Callable<DefaultClusteringService> task = new Callable<DefaultClusteringService>() {
-      @Override
-      public DefaultClusteringService call() throws Exception {
-        DefaultClusteringService service = new DefaultClusteringService(configuration);
-        service.start(null);
-        return service;
-      }
+    Callable<DefaultClusteringService> task = () -> {
+      DefaultClusteringService service = new DefaultClusteringService(configuration);
+      service.start(null);
+      return service;
     };
 
     ExecutorService executor = Executors.newCachedThreadPool();

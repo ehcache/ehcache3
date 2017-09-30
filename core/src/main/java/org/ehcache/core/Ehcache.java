@@ -664,12 +664,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
-        store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-          @Override
-          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> absentKeys) {
-            return cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet();
-          }
-        });
+        store.bulkComputeIfAbsent(keys, absentKeys -> cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet());
       } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
       }
@@ -692,16 +687,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
-        store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-          @Override
-          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(
-              Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
-            Collection<K> keys = new ArrayList<K>();
-            for (Map.Entry<? extends K, ? extends V> entry : entries) {
-              keys.add(entry.getKey());
-            }
-            return cacheLoaderWriterLoadAllForKeys(keys, loadFunction).entrySet();
+        store.bulkCompute(keys, entries -> {
+          Collection<K> keys1 = new ArrayList<K>();
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+            keys1.add(entry.getKey());
           }
+          return cacheLoaderWriterLoadAllForKeys(keys1, loadFunction).entrySet();
         });
       } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
@@ -716,37 +707,34 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getObserver.begin();
 
       try {
-        BiFunction<K, V, V> fn = new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            if (mappedValue == null) {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
-            } else {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
-            }
-
-            V newValue = computeFunction.apply(mappedKey, mappedValue);
-
-            if (newValue == mappedValue) {
-              if (! replaceEqual.get()) {
-                return mappedValue;
-              }
-            }
-
-            if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
-              return null;
-            }
-
-            if (withStatsAndEvents.get()) {
-              if (newValue == null) {
-                removeObserver.end(RemoveOutcome.SUCCESS);
-              } else {
-                putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
-              }
-            }
-
-            return newValue;
+        BiFunction<K, V, V> fn = (mappedKey, mappedValue) -> {
+          if (mappedValue == null) {
+            getObserver.end(GetOutcome.MISS);
+          } else {
+            getObserver.end(GetOutcome.HIT);
           }
+
+          V newValue = computeFunction.apply(mappedKey, mappedValue);
+
+          if (newValue == mappedValue) {
+            if (! replaceEqual.get()) {
+              return mappedValue;
+            }
+          }
+
+          if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
+            return null;
+          }
+
+          if (withStatsAndEvents.get()) {
+            if (newValue == null) {
+              removeObserver.end(RemoveOutcome.SUCCESS);
+            } else {
+              putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
+            }
+          }
+
+          return newValue;
         };
 
         store.compute(key, fn, replaceEqual);
@@ -762,13 +750,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       final AtomicReference<V> existingValue = new AtomicReference<V>();
       try {
-        store.compute(key, new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            existingValue.set(mappedValue);
+        store.compute(key, (mappedKey, mappedValue) -> {
+          existingValue.set(mappedValue);
 
-            return null;
-          }
+          return null;
         });
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
@@ -793,17 +778,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       final AtomicReference<V> existingValue = new AtomicReference<V>();
       try {
-        store.compute(key, new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            existingValue.set(mappedValue);
+        store.compute(key, (mappedKey, mappedValue) -> {
+          existingValue.set(mappedValue);
 
-            if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
-              return null;
-            }
-
-            return value;
+          if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
+            return null;
           }
+
+          return value;
         });
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);

@@ -62,25 +62,20 @@ public class IteratorTest {
     CacheManager cacheManager = provider.getCacheManager(new URI("test://testIterateExpiredReturnsNull"), new DefaultConfiguration(getClass().getClassLoader(), timeSourceConfiguration));
 
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
-        .setExpiryPolicyFactory(new Factory<ExpiryPolicy>() {
+        .setExpiryPolicyFactory(() -> new ExpiryPolicy() {
           @Override
-          public ExpiryPolicy create() {
-            return new ExpiryPolicy() {
-              @Override
-              public Duration getExpiryForCreation() {
-                return Duration.ETERNAL;
-              }
+          public Duration getExpiryForCreation() {
+            return Duration.ETERNAL;
+          }
 
-              @Override
-              public Duration getExpiryForAccess() {
-                return new Duration(TimeUnit.SECONDS, 1L);
-              }
+          @Override
+          public Duration getExpiryForAccess() {
+            return new Duration(TimeUnit.SECONDS, 1L);
+          }
 
-              @Override
-              public Duration getExpiryForUpdate() {
-                return Duration.ZERO;
-              }
-            };
+          @Override
+          public Duration getExpiryForUpdate() {
+            return Duration.ZERO;
           }
         })
         .setTypes(Number.class, CharSequence.class));

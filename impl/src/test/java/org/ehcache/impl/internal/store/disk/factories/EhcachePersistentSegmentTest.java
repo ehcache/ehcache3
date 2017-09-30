@@ -103,11 +103,8 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutAdvisedAgainstEvictionComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcachePersistentSegment<String, String> segment = createTestSegment((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.put("please-do-not-evict-me", "value");
@@ -119,11 +116,8 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutPinnedAdvisedAgainstEvictionComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcachePersistentSegment<String, String> segment = createTestSegment((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.putPinned("please-do-not-evict-me", "value");

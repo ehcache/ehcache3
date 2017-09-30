@@ -155,19 +155,16 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
 
   @Override
   public V compute(K key, final BiFunction<K, V, V> mappingFunction, final boolean pin) {
-    MetadataTuple<V> result = computeWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
-      @Override
-      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
-        V oldValue = current == null ? null : current.value();
-        V newValue = mappingFunction.apply(k, oldValue);
+    MetadataTuple<V> result = computeWithMetadata(key, (k, current) -> {
+      V oldValue = current == null ? null : current.value();
+      V newValue = mappingFunction.apply(k, oldValue);
 
-        if (newValue == null) {
-          return null;
-        } else if (oldValue == newValue) {
-          return metadataTuple(newValue, (pin ? PINNED : 0) | current.metadata());
-        } else {
-          return metadataTuple(newValue, (pin ? PINNED : 0) | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
-        }
+      if (newValue == null) {
+        return null;
+      } else if (oldValue == newValue) {
+        return metadataTuple(newValue, (pin ? PINNED : 0) | current.metadata());
+      } else {
+        return metadataTuple(newValue, (pin ? PINNED : 0) | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
       }
     });
     return result == null ? null : result.value();
@@ -175,19 +172,16 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
 
   @Override
   public V computeIfPresent(K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
-    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
-      @Override
-      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
-        V oldValue = current.value();
-        V newValue = mappingFunction.apply(k, oldValue);
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, (k, current) -> {
+      V oldValue = current.value();
+      V newValue = mappingFunction.apply(k, oldValue);
 
-        if (newValue == null) {
-          return null;
-        } else if (oldValue == newValue) {
-          return current;
-        } else {
-          return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
-        }
+      if (newValue == null) {
+        return null;
+      } else if (oldValue == newValue) {
+        return current;
+      } else {
+        return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
       }
     });
     return result == null ? null : result.value();
@@ -195,19 +189,16 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
 
   @Override
   public V computeIfPresentAndPin(final K key, final BiFunction<K, V, V> mappingFunction) {
-    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
-      @Override
-      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
-        V oldValue = current.value();
-        V newValue = mappingFunction.apply(k, oldValue);
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, (k, current) -> {
+      V oldValue = current.value();
+      V newValue = mappingFunction.apply(k, oldValue);
 
-        if (newValue == null) {
-          return null;
-        } else if (oldValue == newValue) {
-          return metadataTuple(newValue, PINNED | current.metadata());
-        } else {
-          return metadataTuple(newValue, PINNED | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
-        }
+      if (newValue == null) {
+        return null;
+      } else if (oldValue == newValue) {
+        return metadataTuple(newValue, PINNED | current.metadata());
+      } else {
+        return metadataTuple(newValue, PINNED | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
       }
     });
     return result == null ? null : result.value();
@@ -216,27 +207,24 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
     final AtomicBoolean unpin = new AtomicBoolean();
-    computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
-      @Override
-      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
-        if ((current.metadata() & Metadata.PINNED) != 0) {
-          V oldValue = current.value();
-          V newValue = remappingFunction.apply(k, oldValue);
-          Boolean unpinLocal = unpinFunction.apply(oldValue);
+    computeIfPresentWithMetadata(key, (k, current) -> {
+      if ((current.metadata() & Metadata.PINNED) != 0) {
+        V oldValue = current.value();
+        V newValue = remappingFunction.apply(k, oldValue);
+        Boolean unpinLocal = unpinFunction.apply(oldValue);
 
-          if (newValue == null) {
-            unpin.set(true);
-            return null;
-          } else if (oldValue == newValue) {
-            unpin.set(unpinLocal);
-            return metadataTuple(oldValue, current.metadata() & (unpinLocal ? ~Metadata.PINNED : -1));
-          } else {
-            unpin.set(false);
-            return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
-          }
+        if (newValue == null) {
+          unpin.set(true);
+          return null;
+        } else if (oldValue == newValue) {
+          unpin.set(unpinLocal);
+          return metadataTuple(oldValue, current.metadata() & (unpinLocal ? ~Metadata.PINNED : -1));
         } else {
-          return current;
+          unpin.set(false);
+          return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
         }
+      } else {
+        return current;
       }
     });
     return unpin.get();

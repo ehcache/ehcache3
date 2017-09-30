@@ -118,11 +118,7 @@ public class PooledExecutionServiceTest {
     final CountDownLatch latch = new CountDownLatch(1);
 
     pooledExecutionService.getScheduledExecutor("allThreadsAreStopped")
-      .execute(new Runnable() {
-        @Override
-        public void run() {
-          latch.countDown();
-        }});
+      .execute(() -> latch.countDown());
 
     assertThat(latch.await(30, TimeUnit.SECONDS)).isTrue();
 

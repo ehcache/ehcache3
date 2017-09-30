@@ -64,11 +64,6 @@ public class ExpirationsTest {
   }
 
   private ValueSupplier<Object> holderOf(final Object obj) {
-    return new ValueSupplier<Object>() {
-      @Override
-      public Object value() {
-        return obj;
-      }
-    };
+    return () -> obj;
   }
 }

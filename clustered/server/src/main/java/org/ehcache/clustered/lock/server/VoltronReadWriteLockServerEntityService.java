@@ -91,11 +91,6 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
   }
 
   private static final <T> ServiceConfiguration<T> config(final Class<T> klazz) {
-    return new ServiceConfiguration<T>() {
-      @Override
-      public Class<T> getServiceType() {
-        return klazz;
-      }
-    };
+    return () -> klazz;
   }
 }

@@ -651,22 +651,19 @@ public class XAStore<K, V> implements Store<K, V> {
     for (K key : keys) {
       checkKey(key);
 
-      final ValueHolder<V> newValue = compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(final K k, final V oldValue) {
-          final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
-          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
-          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
-          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+      final ValueHolder<V> newValue = compute(key, (k, oldValue) -> {
+        final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
+        final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
+        final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+        final Map.Entry<? extends K, ? extends V> next = iterator.next();
 
-          K key = next.getKey();
-          V value = next.getValue();
-          checkKey(key);
-          if (value != null) {
-            checkValue(value);
-          }
-          return value;
+        K key1 = next.getKey();
+        V value = next.getValue();
+        checkKey(key1);
+        if (value != null) {
+          checkValue(value);
         }
+        return value;
       }, replaceEqual);
       result.put(key, newValue);
     }
@@ -678,24 +675,21 @@ public class XAStore<K, V> implements Store<K, V> {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
 
     for (final K key : keys) {
-      final ValueHolder<V> newValue = computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(final K k) {
-          final Iterable<K> keySet = Collections.singleton(k);
-          final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
-          final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
-          final Map.Entry<? extends K, ? extends V> next = iterator.next();
+      final ValueHolder<V> newValue = computeIfAbsent(key, keyParam -> {
+        final Iterable<K> keySet = Collections.singleton(keyParam);
+        final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = mappingFunction.apply(keySet);
+        final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
+        final Map.Entry<? extends K, ? extends V> next = iterator.next();
 
-          K computedKey = next.getKey();
-          V computedValue = next.getValue();
-          checkKey(computedKey);
-          if (computedValue == null) {
-            return null;
-          }
-
-          checkValue(computedValue);
-          return computedValue;
+        K computedKey = next.getKey();
+        V computedValue = next.getValue();
+        checkKey(computedKey);
+        if (computedValue == null) {
+          return null;
         }
+
+        checkValue(computedValue);
+        return computedValue;
       });
       result.put(key, newValue);
     }

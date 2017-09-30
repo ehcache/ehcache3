@@ -90,12 +90,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(store);
 
     try {
-      store.compute(factory.createKey(125L), new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return factory.createValue(215L);
-        }
-      });
+      store.compute(factory.createKey(125L), (k, v) -> factory.createValue(215L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -107,12 +102,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(store);
 
     try {
-      store.computeIfAbsent(factory.createKey(125L), new Function<K, V>() {
-        @Override
-        public V apply(K k) {
-          return factory.createValue(125L);
-        }
-      });
+      store.computeIfAbsent(factory.createKey(125L), k -> factory.createValue(125L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

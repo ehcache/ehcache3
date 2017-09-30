@@ -258,36 +258,34 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   public void removeAllStoreCallsMethodTwice() throws Exception {
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     final List<String> removed = new ArrayList<String>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        @SuppressWarnings("unchecked")
-        Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
-        for (String key : i) {
-          removed.add(key);
-        }
-        return null;
+    doAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
+      for (String key : i) {
+        removed.add(key);
       }
+      return null;
     }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
     final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
-        Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = new HashMap<String, String>((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
-        function.apply(arg);
-        function.apply(arg);
-        return null;
-      }
-    });
-
     Set<String> keys = new HashSet<String>() {{
       add("1");
       add("2");
     }};
+
+    HashMap<String, String> entriesMap = new HashMap<>();
+    entriesMap.put("1", "one");
+    entriesMap.put("2", "two");
+
+    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(invocation -> {
+      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
+      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = entriesMap.entrySet();
+      function.apply(arg);
+      function.apply(arg);
+      return null;
+    });
 
     ehcache.removeAll(keys);
 

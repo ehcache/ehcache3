@@ -121,11 +121,8 @@ public class ConcurrentHashMapITest {
         final ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<String, Long>();
         map.put(key, 0L);
 
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                for(Long val = map.get(key); val < top && map.replace(key, val, val + 1); val = map.get(key));
-            }
+        final Runnable runnable = () -> {
+            for(Long val = map.get(key); val < top && map.replace(key, val, val + 1); val = map.get(key));
         };
 
         Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors() * 2];

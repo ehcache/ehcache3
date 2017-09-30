@@ -66,12 +66,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     this.noopCachingTier = new NoopCachingTier<K, V>(authoritativeTier);
 
 
-    this.realCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
-      @Override
-      public void onInvalidation(K key, ValueHolder<V> valueHolder) {
-        TieredStore.this.authoritativeTier.flush(key, valueHolder);
-      }
-    });
+    this.realCachingTier.setInvalidationListener((key, valueHolder) -> TieredStore.this.authoritativeTier.flush(key, valueHolder));
 
     this.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
       @Override
@@ -93,14 +88,11 @@ public class TieredStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     try {
-      return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
-        @Override
-        public ValueHolder<V> apply(K key) {
-          try {
-            return authoritativeTier.getAndFault(key);
-          } catch (StoreAccessException cae) {
-            throw new ComputationException(cae);
-          }
+      return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
+        try {
+          return authoritativeTier.getAndFault(keyParam);
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
         }
       });
     } catch (ComputationException ce) {
@@ -263,14 +255,11 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     try {
-      return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
-        @Override
-        public ValueHolder<V> apply(K k) {
-          try {
-            return authoritativeTier.computeIfAbsentAndFault(k, mappingFunction);
-          } catch (StoreAccessException cae) {
-            throw new ComputationException(cae);
-          }
+      return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
+        try {
+          return authoritativeTier.computeIfAbsentAndFault(keyParam, mappingFunction);
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
         }
       });
     } catch (ComputationException ce) {
