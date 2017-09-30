@@ -3426,7 +3426,7 @@ class ForkJoinPool extends AbstractExecutorService {
         modifyThreadPermission = new RuntimePermission("modifyThread");
 
         common = java.security.AccessController.doPrivileged
-            ((PrivilegedAction<ForkJoinPool>) () -> makeCommonPool());
+            ((PrivilegedAction<ForkJoinPool>) ForkJoinPool::makeCommonPool);
         int par = common.config & SMASK; // report 1 even if threads disabled
         commonParallelism = par > 0 ? par : 1;
     }

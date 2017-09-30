@@ -967,7 +967,7 @@ public class ClusterTierActiveEntityTest {
     InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
 
     Random random = new Random();
-    random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.trackHashInvalidation(x));
+    random.ints(0, 100).limit(10).forEach(invalidationTracker::trackHashInvalidation);
 
     activeEntity.loadExisting();
 

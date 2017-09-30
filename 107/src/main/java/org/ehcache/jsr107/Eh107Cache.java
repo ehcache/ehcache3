@@ -135,27 +135,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, keysIterable -> {
-        try {
-          Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
-          HashMap<K, V> resultMap = new HashMap<>();
-          for (K key : keysIterable) {
-            resultMap.put(key, loadResult.get(key));
-          }
-          return resultMap;
-        } catch (Exception e) {
-          final CacheLoaderException cle;
-          if (e instanceof CacheLoaderException) {
-            cle = (CacheLoaderException) e;
-          } else if (e.getCause() instanceof CacheLoaderException) {
-            cle = (CacheLoaderException) e.getCause();
-          } else {
-            cle = new CacheLoaderException(e);
-          }
-
-          throw cle;
-        }
-      });
+      jsr107Cache.loadAll(keys, replaceExistingValues, this::loadAllFunction);
     } catch (Exception e) {
       final CacheLoaderException cle;
       if (e instanceof CacheLoaderException) {
@@ -171,6 +151,28 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     completionListener.onCompletion();
+  }
+
+  private Map<K, V> loadAllFunction(Iterable<? extends K> keysIterable) {
+    try {
+      Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
+      HashMap<K, V> resultMap = new HashMap<>();
+      for (K key : keysIterable) {
+        resultMap.put(key, loadResult.get(key));
+      }
+      return resultMap;
+    } catch (Exception e) {
+      final CacheLoaderException cle;
+      if (e instanceof CacheLoaderException) {
+        cle = (CacheLoaderException) e;
+      } else if (e.getCause() instanceof CacheLoaderException) {
+        cle = (CacheLoaderException) e.getCause();
+      } else {
+        cle = new CacheLoaderException(e);
+      }
+
+      throw cle;
+    }
   }
 
   @Override

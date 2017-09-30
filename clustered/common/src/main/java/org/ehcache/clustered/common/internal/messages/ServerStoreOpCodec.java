@@ -31,7 +31,6 @@ import org.terracotta.runnel.encoding.StructEncoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
@@ -137,8 +136,8 @@ public class ServerStoreOpCodec {
         messageCodecUtils.encodeMandatoryFields(encoder, message);
         return encoder
           .int64(KEY_FIELD, replaceAtHeadMessage.getKey())
-          .struct("expect", replaceAtHeadMessage.getExpect(), CHAIN_ENCODER_FUNCTION)
-          .struct("update", replaceAtHeadMessage.getUpdate(), CHAIN_ENCODER_FUNCTION)
+          .struct("expect", replaceAtHeadMessage.getExpect(), ChainCodec::encode)
+          .struct("update", replaceAtHeadMessage.getUpdate(), ChainCodec::encode)
           .encode()
           .array();
       case CLIENT_INVALIDATION_ACK:

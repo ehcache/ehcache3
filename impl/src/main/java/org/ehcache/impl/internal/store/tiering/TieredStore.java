@@ -66,7 +66,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     this.noopCachingTier = new NoopCachingTier<>(authoritativeTier);
 
 
-    this.realCachingTier.setInvalidationListener((key, valueHolder) -> TieredStore.this.authoritativeTier.flush(key, valueHolder));
+    this.realCachingTier.setInvalidationListener(TieredStore.this.authoritativeTier::flush);
 
     this.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
       @Override

@@ -40,7 +40,7 @@ import java.util.TreeMap;
 @StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = (o1, o2) -> o1.getName().compareTo(o2.getName());
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = Comparator.comparing(StatisticDescriptor::getName);
 
   private final StatisticsService statisticsService;
 

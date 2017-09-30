@@ -36,12 +36,12 @@ import org.ehcache.spi.service.Service;
  */
 public class OnDemandExecutionService implements ExecutionService {
 
-  private static final RejectedExecutionHandler WAIT_FOR_SPACE = (r, tpe) -> {
+  private static void rejectedExecutionHandler(Runnable r, ThreadPoolExecutor executor) {
     boolean interrupted = false;
     try {
       while (true) {
         try {
-          tpe.getQueue().put(r);
+          executor.getQueue().put(r);
           return;
         } catch (InterruptedException ex) {
           interrupted = true;
@@ -52,7 +52,7 @@ public class OnDemandExecutionService implements ExecutionService {
         Thread.currentThread().interrupt();
       }
     }
-  };
+  }
 
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
@@ -61,14 +61,14 @@ public class OnDemandExecutionService implements ExecutionService {
 
   @Override
   public ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias),  WAIT_FOR_SPACE);
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias),  OnDemandExecutionService::rejectedExecutionHandler);
     executor.allowCoreThreadTimeOut(true);
     return unconfigurableExecutorService(executor);
   }
 
   @Override
   public ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias), WAIT_FOR_SPACE);
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 30, TimeUnit.SECONDS, queue, ThreadFactoryUtil.threadFactory(poolAlias), OnDemandExecutionService::rejectedExecutionHandler);
     executor.allowCoreThreadTimeOut(true);
     return unconfigurableExecutorService(executor);
   }

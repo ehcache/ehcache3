@@ -72,7 +72,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   public void setEvictionListener(final ServerStoreEvictionListener listener) {
-    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = key -> listener.onEviction(key);
+    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = listener::onEviction;
     for (OffHeapChainMap<Long> segment : segments) {
       segment.setEvictionListener(chainMapEvictionListener);
     }
