@@ -25,9 +25,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
@@ -54,6 +51,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
@@ -439,12 +439,7 @@ public abstract class AbstractOffHeapStoreTest {
       public String apply(String s, String s2) {
         return s2;
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
 
     assertThat(result, valueHeld("value"));
   }
@@ -462,12 +457,7 @@ public abstract class AbstractOffHeapStoreTest {
       public String apply(String s, String s2) {
         return "newValue";
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
 
     assertThat(result, valueHeld("newValue"));
   }

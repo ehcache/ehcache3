@@ -18,7 +18,6 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
@@ -26,18 +25,17 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
-import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BiFunction;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;

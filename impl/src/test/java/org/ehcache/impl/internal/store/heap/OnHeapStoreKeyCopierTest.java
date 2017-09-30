@@ -20,9 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -38,6 +35,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
@@ -58,18 +58,8 @@ public class OnHeapStoreKeyCopierTest {
 
   private static final Key KEY = new Key("WHat?");
   public static final String VALUE = "TheAnswer";
-  public static final NullaryFunction<Boolean> NOT_REPLACE_EQUAL = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return false;
-    }
-  };
-  public static final NullaryFunction<Boolean> REPLACE_EQUAL = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return true;
-    }
-  };
+  public static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
+  public static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
 
   @Parameterized.Parameters(name = "copyForRead: {0} - copyForWrite: {1}")
   public static Collection<Object[]> config() {

@@ -17,7 +17,6 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
@@ -26,6 +25,7 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;

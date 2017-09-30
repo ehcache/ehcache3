@@ -32,9 +32,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -80,6 +77,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.transaction.HeuristicMixedException;
 import javax.transaction.HeuristicRollbackException;
@@ -777,12 +777,7 @@ public class XAStoreTest {
           assertThat(s, is(nullValue()));
           return "one";
         }
-      }, new NullaryFunction<Boolean>() {
-        @Override
-        public Boolean apply() {
-          return Boolean.FALSE;
-        }
-      });
+      }, () -> Boolean.FALSE);
       assertThat(computed1.value(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
         @Override
@@ -791,12 +786,7 @@ public class XAStoreTest {
           assertThat(s, equalTo("one"));
           return null;
         }
-      }, new NullaryFunction<Boolean>() {
-        @Override
-        public Boolean apply() {
-          return Boolean.FALSE;
-        }
-      });
+      }, () -> Boolean.FALSE);
       assertThat(computed2, is(nullValue()));
     }
     testTransactionManager.commit();

@@ -28,9 +28,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.expiry.Duration;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
@@ -70,6 +67,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
@@ -109,12 +109,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
-  private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return Boolean.FALSE;
-    }
-  };
+  private static final Supplier<Boolean> REPLACE_FALSE = () -> Boolean.FALSE;
 
   /**
    * Constructs a new {@code EhcacheWithLoaderWriter} based on the provided parameters.
@@ -265,17 +260,14 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     checkNonNull(key, value);
     final AtomicReference<V> previousMapping = new AtomicReference<V>();
 
-    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
-      @Override
-      public V apply(final K key, final V previousValue) {
-        previousMapping.set(previousValue);
-        try {
-          cacheLoaderWriter.write(key, value);
-        } catch (Exception e) {
-          throw new StorePassThroughException(newCacheWritingException(e));
-        }
-        return value;
+    final BiFunction<K, V, V> remappingFunction = memoize((key1, previousValue) -> {
+      previousMapping.set(previousValue);
+      try {
+        cacheLoaderWriter.write(key1, value);
+      } catch (Exception e) {
+        throw new StorePassThroughException(newCacheWritingException(e));
       }
+      return value;
     });
 
     try {
@@ -1223,7 +1215,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
     @Override
     public void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
-        final NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter, final NullaryFunction<Boolean> withStatsAndEvents) {
+        final Supplier<Boolean> replaceEqual, final Supplier<Boolean> invokeWriter, final Supplier<Boolean> withStatsAndEvents) {
       putObserver.begin();
       removeObserver.begin();
       getObserver.begin();
@@ -1241,12 +1233,12 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
             V newValue = computeFunction.apply(mappedKey, mappedValue);
 
             if (newValue == mappedValue) {
-              if (! replaceEqual.apply()) {
+              if (! replaceEqual.get()) {
                 return mappedValue;
               }
             }
 
-            if (invokeWriter.apply()) {
+            if (invokeWriter.get()) {
               try {
                 if (newValue != null) {
                   cacheLoaderWriter.write(mappedKey, newValue);
@@ -1262,7 +1254,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
               return null;
             }
 
-            if (withStatsAndEvents.apply()) {
+            if (withStatsAndEvents.get()) {
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {

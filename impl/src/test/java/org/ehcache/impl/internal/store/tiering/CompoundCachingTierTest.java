@@ -16,8 +16,6 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
@@ -32,6 +30,8 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.hamcrest.Matchers.nullValue;

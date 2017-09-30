@@ -16,13 +16,13 @@
 package org.ehcache.core;
 
 import java.util.*;
+import java.util.function.Function;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;

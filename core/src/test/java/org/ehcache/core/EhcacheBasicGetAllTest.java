@@ -20,7 +20,6 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -32,6 +31,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_A;
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_B;

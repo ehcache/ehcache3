@@ -25,8 +25,6 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -47,6 +45,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;

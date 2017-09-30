@@ -44,10 +44,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-import org.ehcache.config.EvictionAdvisor;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.config.EvictionAdvisor;
 
 import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
 

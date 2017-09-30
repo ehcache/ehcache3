@@ -31,9 +31,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -91,6 +88,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
@@ -209,12 +209,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome> silentInvalidateAllObserver;
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome> silentInvalidateAllWithHashObserver;
 
-  private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return Boolean.TRUE;
-    }
-  };
+  private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   public OnHeapStore(final Configuration<K, V> config, final TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher) {
     if (keyCopier == null) {
@@ -720,9 +715,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
       final long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
-        final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+        final Fault<V> fault = new Fault<V>(new Supplier<ValueHolder<V>>() {
           @Override
-          public ValueHolder<V> apply() {
+          public ValueHolder<V> get() {
             return source.apply(key);
           }
         });
@@ -740,9 +735,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           expireMappingUnderLock(key, cachedValue);
 
           // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
-          final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
+          final Fault<V> fault = new Fault<V>(new Supplier<ValueHolder<V>>() {
             @Override
-            public ValueHolder<V> apply() {
+            public ValueHolder<V> get() {
               return source.apply(key);
             }
           });
@@ -1012,12 +1007,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     private static final int FAULT_ID = -1;
 
     @IgnoreSizeOf
-    private final NullaryFunction<ValueHolder<V>> source;
+    private final Supplier<ValueHolder<V>> source;
     private ValueHolder<V> value;
     private Throwable throwable;
     private boolean complete;
 
-    public Fault(final NullaryFunction<ValueHolder<V>> source) {
+    public Fault(final Supplier<ValueHolder<V>> source) {
       super(FAULT_ID, 0, true);
       this.source = source;
     }
@@ -1034,7 +1029,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       synchronized (this) {
         if (!complete) {
           try {
-            complete(source.apply());
+            complete(source.get());
           } catch (Throwable e) {
             fail(e);
           }
@@ -1135,7 +1130,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
     computeObserver.begin();
     checkKey(key);
 
@@ -1165,7 +1160,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               updateUsageInBytesIfRequired(- mappedValue.size());
             }
             return null;
-          } else if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
+          } else if ((eq(existingValue, computedValue)) && (!replaceEqual.get())) {
             if (mappedValue != null) {
               OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
               outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
@@ -1325,7 +1320,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
     // The Store here is free to slice & dice the keys as it sees fit
     // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!

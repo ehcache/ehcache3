@@ -23,9 +23,6 @@ import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -39,6 +36,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -365,21 +365,21 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
         return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
       }
-    }, new NullaryFunction<Boolean>() {
+    }, new Supplier<Boolean>() {
       @Override
-      public Boolean apply() {
+      public Boolean get() {
         MutableEntry mutableEntry = mutableEntryRef.get();
         return mutableEntry.shouldReplace();
       }
-    }, new NullaryFunction<Boolean>() {
+    }, new Supplier<Boolean>() {
       @Override
-      public Boolean apply() {
+      public Boolean get() {
         MutableEntry mutableEntry = mutableEntryRef.get();
         return mutableEntry.shouldInvokeWriter();
       }
-    }, new NullaryFunction<Boolean>() {
+    }, new Supplier<Boolean>() {
       @Override
-      public Boolean apply() {
+      public Boolean get() {
         MutableEntry mutableEntry = mutableEntryRef.get();
         return mutableEntry.shouldGenerateEvent();
       }

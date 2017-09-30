@@ -19,7 +19,6 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.spi.store.StoreAccessException;
@@ -27,8 +26,6 @@ import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -50,6 +47,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
@@ -455,12 +455,7 @@ public class ByteAccountingTest {
       public String apply(String s, String s2) {
         return s2;
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
