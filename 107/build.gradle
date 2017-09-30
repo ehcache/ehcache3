@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
 apply plugin: EhDeploy
 
 configurations {
@@ -63,9 +61,6 @@ task unpackTckTests(type: Copy) {
 }
 
 task tckTest(type: Test, dependsOn: unpackTckTests) {
-  if (!testJava.javaVersion.isJava7Compatible()) {
-    executable = Jvm.current().javaExecutable
-  }
   testClassesDirs = sourceSets.tckTest.output.classesDirs
   classpath += sourceSets.tckTest.runtimeClasspath
 

@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 configurations {
   serverLibs
 }
@@ -66,23 +61,9 @@ task copyServerLibs(type: Copy) {
   into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
-compileTestJava {
-  options.forkOptions.javaHome = Jvm.current().javaHome
-}
-
 test {
   dependsOn copyServerLibs
-  if (testJava.javaVersion.isJava8Compatible()) {
-    environment 'JAVA_HOME', testJava.javaHome
-  } else {
-    executable = Jvm.current().javaExecutable
-    environment 'JAVA_HOME', Jvm.current().javaHome
-  }
-  //TC Server Cannot Parse Java 9 VM Version String
-  if (testJava.javaVersion.isJava9Compatible()) {
-    //environment 'JAVA_OPTS', '--add-modules java.xml.bind'
-    environment 'JAVA_HOME', Jvm.current().javaHome
-  }
+  environment 'JAVA_HOME', testJava.javaHome
   // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   if (testJava.javaVersion.isJava9Compatible()) {
