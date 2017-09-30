@@ -104,7 +104,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<Key, String>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
   }
 
   @Test
@@ -232,7 +232,7 @@ public class OnHeapStoreKeyCopierTest {
 
   @Test
   public void testBulkCompute() throws StoreAccessException {
-    final AtomicReference<Key> keyRef = new AtomicReference<Key>();
+    final AtomicReference<Key> keyRef = new AtomicReference<>();
     store.bulkCompute(singleton(KEY), entries -> {
       Key key = entries.iterator().next().getKey();
       if (copyForRead || copyForWrite) {

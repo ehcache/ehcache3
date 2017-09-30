@@ -60,7 +60,7 @@ public final class StoreSupport {
 
     final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     int highRank = 0;
-    List<Store.Provider> rankingProviders = new ArrayList<Store.Provider>();
+    List<Store.Provider> rankingProviders = new ArrayList<>();
     for (final Store.Provider provider : storeProviders) {
       int rank = provider.rank(resourceTypes, serviceConfigs);
       if (rank > highRank) {

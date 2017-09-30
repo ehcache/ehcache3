@@ -87,7 +87,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void mergeConfigNoTemplateNoLoaderWriter() {
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
     assertThat(configHolder.cacheResources.getExpiryPolicy().getExpiryForCreation(42L, "Yay!"), is(Duration.INFINITE));
@@ -107,7 +107,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107ExpiryGetsRegistered() {
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     RecordingFactory<CreatedExpiryPolicy> factory = factoryOf(new CreatedExpiryPolicy(javax.cache.expiry.Duration.FIVE_MINUTES));
     configuration.setExpiryPolicyFactory(factory);
 
@@ -121,7 +121,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107LoaderGetsRegistered() {
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     CacheLoader<Object, Object> mock = mock(CacheLoader.class);
     RecordingFactory<CacheLoader<Object, Object>> factory = factoryOf(mock);
     configuration.setReadThrough(true).setCacheLoaderFactory(factory);
@@ -134,7 +134,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107WriterGetsRegistered() {
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     CacheWriter<Object, Object> mock = mock(CacheWriter.class);
     RecordingFactory<CacheWriter<Object, Object>> factory = factoryOf(mock);
     configuration.setWriteThrough(true).setCacheWriterFactory(factory);
@@ -147,7 +147,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void looksUpTemplateName() {
-    merger.mergeConfigurations("cache", new MutableConfiguration<Object, Object>());
+    merger.mergeConfigurations("cache", new MutableConfiguration<>());
 
     verify(jsr107Service).getTemplateNameForCache("cache");
   }
@@ -156,7 +156,7 @@ public class ConfigurationMergerTest {
   public void loadsTemplateWhenNameFound() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
 
-    merger.mergeConfigurations("cache", new MutableConfiguration<Object, Object>());
+    merger.mergeConfigurations("cache", new MutableConfiguration<>());
 
     verify(xmlConfiguration).newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class);
   }
@@ -168,7 +168,7 @@ public class ConfigurationMergerTest {
         newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withExpiry(Expirations.timeToLiveExpiration(new Duration(5, TimeUnit.MINUTES)))
     );
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     RecordingFactory<CreatedExpiryPolicy> factory = factoryOf(new CreatedExpiryPolicy(javax.cache.expiry.Duration.FIVE_MINUTES));
     configuration.setExpiryPolicyFactory(factory);
 
@@ -189,7 +189,7 @@ public class ConfigurationMergerTest {
         newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheLoaderWriterConfiguration((Class)null))
     );
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     CacheLoader<Object, Object> mock = mock(CacheLoader.class);
     RecordingFactory<CacheLoader<Object, Object>> factory = factoryOf(mock);
     configuration.setReadThrough(true).setCacheLoaderFactory(factory);
@@ -210,7 +210,7 @@ public class ConfigurationMergerTest {
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class))
         .thenReturn(builder);
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();  //store-by-value by default
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();  //store-by-value by default
 
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
@@ -229,9 +229,9 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107LoaderInitFailureClosesExpiry() throws Exception {
-    ExpiryPolicy expiryPolicy = mock(ExpiryPolicy.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
+    ExpiryPolicy expiryPolicy = mock(ExpiryPolicy.class, new MockSettingsImpl<>().extraInterfaces(Closeable.class));
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     Factory<CacheLoader<Object, Object>> factory = throwingFactory();
     configuration.setExpiryPolicyFactory(factoryOf(expiryPolicy))
         .setReadThrough(true)
@@ -247,10 +247,10 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107ListenerFactoryInitFailureClosesExpiryLoader() throws Exception {
-    ExpiryPolicy expiryPolicy = mock(ExpiryPolicy.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
-    CacheLoader<Object, Object> loader = mock(CacheLoader.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
+    ExpiryPolicy expiryPolicy = mock(ExpiryPolicy.class, new MockSettingsImpl<>().extraInterfaces(Closeable.class));
+    CacheLoader<Object, Object> loader = mock(CacheLoader.class, new MockSettingsImpl<>().extraInterfaces(Closeable.class));
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     configuration.setExpiryPolicyFactory(factoryOf(expiryPolicy))
         .setReadThrough(true)
         .setCacheLoaderFactory(factoryOf(loader))
@@ -269,7 +269,7 @@ public class ConfigurationMergerTest {
   public void jsr107LoaderInitAlways() {
     CacheLoader<Object, Object> loader = mock(CacheLoader.class);
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     RecordingFactory<CacheLoader<Object, Object>> factory = factoryOf(loader);
     configuration.setCacheLoaderFactory(factory);
 
@@ -282,7 +282,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void setReadThroughWithoutLoaderFails() {
-    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> config = new MutableConfiguration<>();
     config.setTypes(Long.class, String.class);
     config.setReadThrough(true);
 
@@ -296,7 +296,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void setWriteThroughWithoutWriterFails() {
-    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> config = new MutableConfiguration<>();
     config.setTypes(Long.class, String.class);
     config.setWriteThrough(true);
 
@@ -314,31 +314,31 @@ public class ConfigurationMergerTest {
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
-    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
     stringCacheConfiguration.setTypes(Long.class, String.class);
     ConfigurationMerger.ConfigHolder<Long, String> configHolder1 = merger.mergeConfigurations("stringCache", stringCacheConfiguration);
 
     assertDefaultCopier(configHolder1.cacheConfiguration.getServiceConfigurations());
 
-    MutableConfiguration<Long, Double> doubleCacheConfiguration  = new MutableConfiguration<Long, Double>();
+    MutableConfiguration<Long, Double> doubleCacheConfiguration  = new MutableConfiguration<>();
     doubleCacheConfiguration.setTypes(Long.class, Double.class);
     ConfigurationMerger.ConfigHolder<Long, Double> configHolder2 = merger.mergeConfigurations("doubleCache", doubleCacheConfiguration);
 
     assertDefaultCopier(configHolder2.cacheConfiguration.getServiceConfigurations());
 
-    MutableConfiguration<Long, Character> charCacheConfiguration  = new MutableConfiguration<Long, Character>();
+    MutableConfiguration<Long, Character> charCacheConfiguration  = new MutableConfiguration<>();
     charCacheConfiguration.setTypes(Long.class, Character.class);
     ConfigurationMerger.ConfigHolder<Long, Character> configHolder3 = merger.mergeConfigurations("charCache", charCacheConfiguration);
 
     assertDefaultCopier(configHolder3.cacheConfiguration.getServiceConfigurations());
 
-    MutableConfiguration<Long, Float> floatCacheConfiguration  = new MutableConfiguration<Long, Float>();
+    MutableConfiguration<Long, Float> floatCacheConfiguration  = new MutableConfiguration<>();
     floatCacheConfiguration.setTypes(Long.class, Float.class);
     ConfigurationMerger.ConfigHolder<Long, Float> configHolder4 = merger.mergeConfigurations("floatCache", floatCacheConfiguration);
 
     assertDefaultCopier(configHolder4.cacheConfiguration.getServiceConfigurations());
 
-    MutableConfiguration<Long, Integer> integerCacheConfiguration  = new MutableConfiguration<Long, Integer>();
+    MutableConfiguration<Long, Integer> integerCacheConfiguration  = new MutableConfiguration<>();
     integerCacheConfiguration.setTypes(Long.class, Integer.class);
     ConfigurationMerger.ConfigHolder<Long, Integer> configHolder5 = merger.mergeConfigurations("integerCache", integerCacheConfiguration);
 
@@ -352,7 +352,7 @@ public class ConfigurationMergerTest {
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
-    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
     stringCacheConfiguration.setTypes(Long.class, String.class);
     ConfigurationMerger.ConfigHolder<Long, String> configHolder1 = merger.mergeConfigurations("stringCache", stringCacheConfiguration);
 
@@ -374,7 +374,7 @@ public class ConfigurationMergerTest {
 
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypesWithoutTemplates() {
-    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
     stringCacheConfiguration.setTypes(Long.class, String.class);
     ConfigurationMerger.ConfigHolder<Long, String> configHolder1 = merger.mergeConfigurations("stringCache", stringCacheConfiguration);
 
@@ -402,7 +402,7 @@ public class ConfigurationMergerTest {
   }
 
   private <T> RecordingFactory<T> factoryOf(final T instance) {
-    return new RecordingFactory<T>(instance);
+    return new RecordingFactory<>(instance);
   }
 
   private static class RecordingFactory<T> implements Factory<T> {

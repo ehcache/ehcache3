@@ -119,7 +119,7 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
     static {
       primitiveClasses.put("boolean", boolean.class);
       primitiveClasses.put("byte", byte.class);

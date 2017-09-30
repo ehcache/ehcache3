@@ -97,7 +97,7 @@ public class Util {
   }
 
   public static Chain getChain(boolean isSequenced, ByteBuffer... buffers) {
-    List<Element> elements = new ArrayList<Element>();
+    List<Element> elements = new ArrayList<>();
     long counter = 0;
     for (final ByteBuffer buffer : buffers) {
       if (isSequenced) {

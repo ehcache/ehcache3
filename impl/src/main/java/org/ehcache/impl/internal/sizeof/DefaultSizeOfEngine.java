@@ -43,7 +43,7 @@ public class DefaultSizeOfEngine implements SizeOfEngine {
     this.maxObjectGraphSize = maxObjectGraphSize;
     this.maxObjectSize = maxObjectSize;
     this.sizeOf = SizeOf.newInstance(filterSource.getFilters());
-    this.onHeapKeyOffset = sizeOf.deepSizeOf(new CopiedOnHeapKey<Object>(new Object(), new IdentityCopier<Object>()));
+    this.onHeapKeyOffset = sizeOf.deepSizeOf(new CopiedOnHeapKey<>(new Object(), new IdentityCopier<>()));
     this.chmTreeBinOffset = sizeOf.deepSizeOf(ConcurrentHashMap.FAKE_TREE_BIN);
   }
 

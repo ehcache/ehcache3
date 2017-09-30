@@ -22,6 +22,6 @@ package org.ehcache.transactions.xa.internal.journal;
 public class TransientJournalTest extends AbstractJournalTest {
   @Override
   protected Journal<Long> createJournal() {
-    return new TransientJournal<Long>();
+    return new TransientJournal<>();
   }
 }

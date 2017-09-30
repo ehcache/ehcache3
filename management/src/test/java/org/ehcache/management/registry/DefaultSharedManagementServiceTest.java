@@ -125,10 +125,10 @@ public class DefaultSharedManagementServiceTest {
 
     assertThat(contextContainer2.getSubContexts().size(), equalTo(2));
     assertThat(contextContainer2.getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(1).getName(), equalTo("cacheName"));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getName(), equalTo("cacheName"));
 
-    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
-    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
   }
 
   @Test

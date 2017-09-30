@@ -45,7 +45,7 @@ final class FileUtils {
   private static final int DEL = 0x7F;
   private static final char ESCAPE = '%';
 
-  private static final Set<Character> ILLEGALS = new HashSet<Character>();
+  private static final Set<Character> ILLEGALS = new HashSet<>();
   static {
     ILLEGALS.add('/');
     ILLEGALS.add('\\');
@@ -113,7 +113,7 @@ final class FileUtils {
   }
 
   private static boolean recursiveDelete(File file) {
-    Deque<File> toDelete = new ArrayDeque<File>();
+    Deque<File> toDelete = new ArrayDeque<>();
     toDelete.push(file);
     while (!toDelete.isEmpty()) {
       File target = toDelete.pop();

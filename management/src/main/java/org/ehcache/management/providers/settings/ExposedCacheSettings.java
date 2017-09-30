@@ -46,9 +46,9 @@ class ExposedCacheSettings extends ExposedCacheBinding {
   @Override
   public Collection<Settings> getDescriptors() {
     final CacheConfiguration<?, ?> cacheConfig = cacheBinding.getCache().getRuntimeConfiguration();
-    List<ResourceType<?>> resourceTypes = new ArrayList<ResourceType<?>>(cacheConfig.getResourcePools().getResourceTypeSet());
+    List<ResourceType<?>> resourceTypes = new ArrayList<>(cacheConfig.getResourcePools().getResourceTypeSet());
     Collections.sort(resourceTypes, RESOURCE_TYPE_COMPARATOR);
-    Map<String, ResourceType<?>> map = new LinkedHashMap<String, ResourceType<?>>();
+    Map<String, ResourceType<?>> map = new LinkedHashMap<>();
     for (ResourceType<?> type : resourceTypes) {
       map.put(type.toString(), type);
     }

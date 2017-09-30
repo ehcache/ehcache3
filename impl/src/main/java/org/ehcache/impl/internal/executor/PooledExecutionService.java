@@ -48,7 +48,7 @@ public class PooledExecutionService implements ExecutionService {
 
   private final String defaultPoolAlias;
   private final Map<String, PoolConfiguration> poolConfigurations;
-  private final Map<String, ThreadPoolExecutor> pools = new ConcurrentHashMap<String, ThreadPoolExecutor>(8, .75f, 1);
+  private final Map<String, ThreadPoolExecutor> pools = new ConcurrentHashMap<>(8, .75f, 1);
 
   private volatile boolean running = false;
   private volatile OutOfBandScheduledExecutor scheduledExecutor;
@@ -60,7 +60,7 @@ public class PooledExecutionService implements ExecutionService {
 
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
-    return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>()));
+    return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<>()));
   }
 
   @Override
@@ -157,7 +157,7 @@ public class PooledExecutionService implements ExecutionService {
   }
 
   private static ThreadPoolExecutor createPool(String alias, PoolConfiguration config) {
-    return new ThreadPoolExecutor(config.minSize(), config.maxSize(), 10, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), ThreadFactoryUtil.threadFactory(alias));
+    return new ThreadPoolExecutor(config.minSize(), config.maxSize(), 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), ThreadFactoryUtil.threadFactory(alias));
   }
 
   private static void destroyPool(String alias, ThreadPoolExecutor executor) {

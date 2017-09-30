@@ -61,7 +61,7 @@ public class DefaultCacheLoaderWriterProviderTest {
     final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .build();
 
-    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
     caches.put("foo", cacheConfiguration);
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));
@@ -77,7 +77,7 @@ public class DefaultCacheLoaderWriterProviderTest {
         .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .build();
 
-    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
     caches.put("foo", cacheConfiguration);
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));

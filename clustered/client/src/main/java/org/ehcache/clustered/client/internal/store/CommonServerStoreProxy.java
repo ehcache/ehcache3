@@ -41,7 +41,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreMessageFactory messageFactory;
   private final ClusterTierClientEntity entity;
 
-  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
+  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<>();
   private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
       = new ConcurrentHashMap<>();
 

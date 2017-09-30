@@ -1188,7 +1188,7 @@ public class ClusterTierActiveEntityTest {
     private ClientCommunicator clientCommunicator;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     private final Map<String, ServerSideConfiguration.Pool> sharedPools = new HashMap<>();
 
@@ -1246,7 +1246,7 @@ public class ClusterTierActiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }

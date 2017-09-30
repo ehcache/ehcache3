@@ -49,7 +49,7 @@ public class ClassInstanceProvider<K, T> {
   /**
    * Instances provided by this provider vs their counts.
    */
-  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
+  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   protected final Set<T> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<T, Boolean>());
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;

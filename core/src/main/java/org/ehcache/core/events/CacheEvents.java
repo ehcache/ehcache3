@@ -38,7 +38,7 @@ public final class CacheEvents {
    * @return an expiry cache event
    */
   public static <K, V> CacheEvent<K, V> expiry(K expiredKey, V expiredValue, Cache<K, V> source) {
-    return new ExpiryEvent<K, V>(expiredKey, expiredValue, source);
+    return new ExpiryEvent<>(expiredKey, expiredValue, source);
   }
 
   /**
@@ -53,7 +53,7 @@ public final class CacheEvents {
    * @return an evicted cache event
    */
   public static <K, V> CacheEvent<K, V> eviction(K evictedKey, V evictedValue, Cache<K, V> source) {
-    return new EvictionEvent<K, V>(evictedKey, evictedValue, source);
+    return new EvictionEvent<>(evictedKey, evictedValue, source);
   }
 
   /**
@@ -68,7 +68,7 @@ public final class CacheEvents {
    * @return a created cache event
    */
   public static <K, V> CacheEvent<K, V> creation(K newKey, V newValue, Cache<K, V> source) {
-    return new CreationEvent<K, V>(newKey, newValue, source);
+    return new CreationEvent<>(newKey, newValue, source);
   }
 
   /**
@@ -83,7 +83,7 @@ public final class CacheEvents {
    * @return a removed cache event
    */
   public static <K, V> CacheEvent<K, V> removal(K removedKey, V removedValue, Cache<K, V> source) {
-    return new RemovalEvent<K, V>(removedKey, removedValue, source);
+    return new RemovalEvent<>(removedKey, removedValue, source);
   }
 
   /**
@@ -99,7 +99,7 @@ public final class CacheEvents {
    * @return an updated cache event
    */
   public static <K, V> CacheEvent<K, V> update(K key, V oldValue, V newValue, Cache<K, V> source) {
-    return new UpdateEvent<K, V>(key, oldValue, newValue, source);
+    return new UpdateEvent<>(key, oldValue, newValue, source);
   }
 
   private static abstract class BaseCacheEvent<K, V> implements CacheEvent<K, V> {

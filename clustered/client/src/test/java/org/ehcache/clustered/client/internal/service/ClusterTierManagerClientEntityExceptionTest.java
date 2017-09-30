@@ -141,14 +141,14 @@ public class ClusterTierManagerClientEntityExceptionTest {
   private <K, V> Store.Configuration<K, V> getDedicatedStoreConfig(
       String targetResource, DefaultSerializationProvider serializationProvider, Class<K> keyType, Class<V> valueType)
       throws org.ehcache.spi.serialization.UnsupportedTypeException {
-    return new StoreConfigurationImpl<K, V>(
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated(targetResource, 8, MemoryUnit.MB)))
-            .build(),
-        StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY,
-        serializationProvider.createKeySerializer(keyType, getClass().getClassLoader()),
-        serializationProvider.createValueSerializer(valueType, getClass().getClassLoader()));
+    return new StoreConfigurationImpl<>(
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(targetResource, 8, MemoryUnit.MB)))
+        .build(),
+      StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY,
+      serializationProvider.createKeySerializer(keyType, getClass().getClassLoader()),
+      serializationProvider.createValueSerializer(valueType, getClass().getClassLoader()));
   }
 
   private ClusteringService.ClusteredCacheIdentifier getClusteredCacheIdentifier(

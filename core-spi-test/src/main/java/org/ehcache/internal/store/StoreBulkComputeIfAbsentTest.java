@@ -65,7 +65,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -88,8 +88,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    Map<K, V> mappedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    Map<K, V> mappedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -113,9 +113,9 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingIsSameInTheStoreForEntriesReturnedWithDifferentValueFromMappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    Map<K, V> mappedEntries = new HashMap<K, V>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    Map<K, V> mappedEntries = new HashMap<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -130,7 +130,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (K key : entries) {
           update.put(key, computedEntries.get(key));
         }
@@ -148,7 +148,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
 
@@ -173,8 +173,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void computeValuesForEveryKeyUsingAMappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -185,7 +185,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
     try {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (K key : entries) {
           update.put(key, computedEntries.get(key));
         }
@@ -203,8 +203,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -216,7 +216,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (K key : entries) {
           if (factory.getKeyType() == String.class) {
             update.put((K)new StringBuffer(key.toString()), computedEntries.get(key));
@@ -237,8 +237,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongValueType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -250,7 +250,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (K key : entries) {
           if (factory.getKeyType() == String.class) {
             update.put(key, (V)new StringBuffer(computedEntries.get(key).toString()));

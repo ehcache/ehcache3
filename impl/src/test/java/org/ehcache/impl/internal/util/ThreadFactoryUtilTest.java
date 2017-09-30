@@ -31,7 +31,7 @@ public class ThreadFactoryUtilTest {
 
   @Test
   public void testCreatedThreadIsInFactoryCreatorsThreadGroup() throws Exception {
-    final AtomicReference<String> threadGroupName = new AtomicReference<String>();
+    final AtomicReference<String> threadGroupName = new AtomicReference<>();
     final ThreadFactory myPool = ThreadFactoryUtil.threadFactory("ThreadFactoryUtilTest-pool");
 
     ThreadGroup testGroup = new ThreadGroup("ThreadFactoryUtilTest-testGroup");

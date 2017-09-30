@@ -41,7 +41,8 @@ public class ConditionalReplaceOperationTest {
     Long key = 1L;
     String newValue = "The one";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis());
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, TIME_SOURCE
+      .getTimeMillis());
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
@@ -78,7 +79,7 @@ public class ConditionalReplaceOperationTest {
     blob.put(newValue.getBytes());
     blob.flip();
 
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(blob, keySerializer, valueSerializer);
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<>(blob, keySerializer, valueSerializer);
     assertEquals(key, operation.getKey());
     assertEquals(newValue, operation.getValue());
     assertEquals(oldValue, operation.getOldValue());
@@ -89,10 +90,11 @@ public class ConditionalReplaceOperationTest {
     Long key = 1L;
     String newValue = "The value";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis());
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, TIME_SOURCE
+      .getTimeMillis());
 
     ConditionalReplaceOperation<Long, String> decodedOperation =
-        new ConditionalReplaceOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
+      new ConditionalReplaceOperation<>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
     assertEquals(key, decodedOperation.getKey());
     assertEquals(newValue, decodedOperation.getValue());
   }
@@ -100,20 +102,20 @@ public class ConditionalReplaceOperationTest {
   @Test(expected = IllegalArgumentException.class)
   public void testDecodeThrowsOnInvalidType() throws Exception {
     ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new ConditionalReplaceOperation<Long, String>(buffer, keySerializer, valueSerializer);
+    new ConditionalReplaceOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Test
   public void testApply() throws Exception {
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(1L, "one", "two", System.currentTimeMillis());
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<>(1L, "one", "two", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(operation, result);
 
-    anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    anotherOperation = new PutOperation<>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }

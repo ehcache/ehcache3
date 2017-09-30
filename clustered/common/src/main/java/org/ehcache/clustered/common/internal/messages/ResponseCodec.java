@@ -229,7 +229,7 @@ public class ResponseCodec {
       case PREPARE_FOR_DESTROY: {
         decoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.decoder(buffer);
         ArrayDecoder<String, StructDecoder<Void>> storesDecoder = decoder.strings(STORES_FIELD);
-        Set<String> stores = new HashSet<String>();
+        Set<String> stores = new HashSet<>();
         for (int i = 0; i < storesDecoder.length(); i++) {
           stores.add(storesDecoder.value());
         }

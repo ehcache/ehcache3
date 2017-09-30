@@ -50,7 +50,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
+    keyCopyMap = new ConcurrentHashMap<>();
   }
 
   @Override
@@ -65,7 +65,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
     if (candidate == null) {
       return null;
     } else {
-      return new AbstractMap.SimpleEntry<K, OnHeapValueHolder<V>>(candidate.getKey().getActualKeyObject(), candidate.getValue());
+      return new AbstractMap.SimpleEntry<>(candidate.getKey().getActualKeyObject(), candidate.getValue());
     }
   }
 
@@ -135,7 +135,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
       @Override
       public Map.Entry<K, OnHeapValueHolder<V>> next() {
         Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry = iter.next();
-        return new AbstractMap.SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue());
+        return new AbstractMap.SimpleEntry<>(entry.getKey().getActualKeyObject(), entry.getValue());
       }
 
       @Override
@@ -153,12 +153,12 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
 
   @Override
   public Backend<K, V> clear() {
-    return new KeyCopyBackend<K, V>(byteSized, keyCopier);
+    return new KeyCopyBackend<>(byteSized, keyCopier);
   }
 
   @Override
   public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
-    Map<K, OnHeapValueHolder<V>> result = new HashMap<K, OnHeapValueHolder<V>>();
+    Map<K, OnHeapValueHolder<V>> result = new HashMap<>();
     Map<OnHeapKey<K>, OnHeapValueHolder<V>> removed = keyCopyMap.removeAllWithHash(hash);
     long delta = 0L;
     for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed.entrySet()) {
@@ -181,11 +181,11 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   private OnHeapKey<K> makeKey(K key) {
-    return new CopiedOnHeapKey<K>(key, keyCopier);
+    return new CopiedOnHeapKey<>(key, keyCopier);
   }
 
   private OnHeapKey<K> lookupOnlyKey(K key) {
-    return new LookupOnlyOnHeapKey<K>(key);
+    return new LookupOnlyOnHeapKey<>(key);
   }
 
   @Override

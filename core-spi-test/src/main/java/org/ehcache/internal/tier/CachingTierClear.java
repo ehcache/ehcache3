@@ -74,7 +74,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
     when(originalValueHolder.value()).thenReturn(originalValue);
 
     try {
-      List<K> keys = new ArrayList<K>();
+      List<K> keys = new ArrayList<>();
       for (int i = 0; i < nbMappings; i++) {
         K key = factory.createKey(i);
 

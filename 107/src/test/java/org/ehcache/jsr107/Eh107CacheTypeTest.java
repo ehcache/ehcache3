@@ -36,7 +36,7 @@ public class Eh107CacheTypeTest {
     CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
-    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
     javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
 
     cache.put(1l, "one");
@@ -67,7 +67,7 @@ public class Eh107CacheTypeTest {
     CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
-    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
     cache1Conf.setTypes(Long.class, String.class);
     javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
 
@@ -93,7 +93,7 @@ public class Eh107CacheTypeTest {
     CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
-    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
     cache1Conf.setTypes(Long.class, String.class);
     javax.cache.Cache<Long, String> cache = cacheManager.createCache("defaultCache", cache1Conf);
     @SuppressWarnings("unchecked")
@@ -109,7 +109,7 @@ public class Eh107CacheTypeTest {
         provider.getCacheManager(this.getClass()
             .getResource("/ehcache-107-types.xml")
             .toURI(), getClass().getClassLoader());
-    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
     javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
     cacheManager.unwrap(org.ehcache.CacheManager.class).removeCache(cache.getName());
     try {
@@ -126,7 +126,7 @@ public class Eh107CacheTypeTest {
         provider.getCacheManager(this.getClass()
             .getResource("/ehcache-107-types.xml")
             .toURI(), getClass().getClassLoader());
-    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
     javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
     cacheManager.unwrap(org.ehcache.CacheManager.class).removeCache(cache.getName());
     cacheManager.close();

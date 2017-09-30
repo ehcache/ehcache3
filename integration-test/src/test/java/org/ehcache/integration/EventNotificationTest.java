@@ -80,7 +80,7 @@ public class EventNotificationTest {
     assertEquals(0, listener2.updated.get());
     assertEquals(0, listener2.removed.get());
 
-    Map<Long, String> entries = new HashMap<Long, String>();
+    Map<Long, String> entries = new HashMap<>();
     entries.put(2L, "2");
     entries.put(3L, "3");
     cache.putAll(entries);
@@ -147,7 +147,7 @@ public class EventNotificationTest {
     assertEquals(4, listener2.updated.get());
     assertEquals(1, listener2.removed.get());
 
-    Set<Long> keys = new HashSet<Long>();
+    Set<Long> keys = new HashSet<>();
     keys.add(1L);
     cache.getAll(keys);
     assertEquals(3, listener1.created.get());
@@ -401,7 +401,7 @@ public class EventNotificationTest {
     private AtomicInteger removed = new AtomicInteger();
     private AtomicInteger expired = new AtomicInteger();
     private AtomicInteger eventCounter = new AtomicInteger();
-    private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<EventType, Integer>();
+    private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<>();
 
     @Override
     public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {

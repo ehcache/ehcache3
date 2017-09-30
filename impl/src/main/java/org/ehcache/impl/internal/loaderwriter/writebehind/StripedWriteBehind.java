@@ -37,15 +37,15 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
   private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
   private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
-  private final List<WriteBehind<K, V>> stripes = new ArrayList<WriteBehind<K, V>>();
+  private final List<WriteBehind<K, V>> stripes = new ArrayList<>();
 
   public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       if (config.getBatchingConfiguration() == null) {
-        this.stripes.add(new NonBatchingLocalHeapWriteBehindQueue<K, V>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+        this.stripes.add(new NonBatchingLocalHeapWriteBehindQueue<>(executionService, defaultThreadPool, config, cacheLoaderWriter));
       } else {
-        this.stripes.add(new BatchingLocalHeapWriteBehindQueue<K, V>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+        this.stripes.add(new BatchingLocalHeapWriteBehindQueue<>(executionService, defaultThreadPool, config, cacheLoaderWriter));
       }
     }
   }
@@ -80,7 +80,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-    Map<K, V> entries = new HashMap<K, V>();
+    Map<K, V> entries = new HashMap<>();
     for (K k : keys) {
       entries.put(k, load(k)) ;
     }

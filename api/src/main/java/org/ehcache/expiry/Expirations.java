@@ -67,7 +67,7 @@ public final class Expirations {
    * @return an {@link Expiry} builder
    */
   public static <K, V> ExpiryBuilder<K, V> builder() {
-    return new ExpiryBuilder<K, V>();
+    return new ExpiryBuilder<>();
   }
 
   private Expirations() {
@@ -209,7 +209,7 @@ public final class Expirations {
      * @return an {@link Expiry}
      */
     public Expiry<K, V> build() {
-      return new BaseExpiry<K, V>(create, access, update);
+      return new BaseExpiry<>(create, access, update);
     }
   }
 }

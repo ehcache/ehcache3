@@ -27,25 +27,25 @@ public abstract class CachingTierSPITest<K, V> {
 
   @Test
   public void testGetOrComputeIfAbsent() throws Exception {
-    CachingTierGetOrComputeIfAbsent<K, V> testSuite = new CachingTierGetOrComputeIfAbsent<K, V>(getCachingTierFactory());
+    CachingTierGetOrComputeIfAbsent<K, V> testSuite = new CachingTierGetOrComputeIfAbsent<>(getCachingTierFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testCachingTierRemove() throws Exception {
-    CachingTierRemove<K, V> testSuite = new CachingTierRemove<K, V>(getCachingTierFactory());
+    CachingTierRemove<K, V> testSuite = new CachingTierRemove<>(getCachingTierFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testCachingTierClear() throws Exception {
-    CachingTierClear<K, V> testSuite = new CachingTierClear<K, V>(getCachingTierFactory());
+    CachingTierClear<K, V> testSuite = new CachingTierClear<>(getCachingTierFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 
   @Test
   public void testCachingTierInvalidate() throws Exception {
-    CachingTierInvalidate<K, V> testSuite = new CachingTierInvalidate<K, V>(getCachingTierFactory());
+    CachingTierInvalidate<K, V> testSuite = new CachingTierInvalidate<>(getCachingTierFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 

@@ -330,8 +330,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   private void registerStatistic(Object context, String name, String observerName, String tag, String propertyKey, Callable<Number> callable) {
-    Set<String> tags = new HashSet<String>(Arrays.asList(tag,"tier"));
-    Map<String, Object> properties = new HashMap<String, Object>();
+    Set<String> tags = new HashSet<>(Arrays.asList(tag, "tier"));
+    Map<String, Object> properties = new HashMap<>();
     properties.put("discriminator", tag);
     properties.put(propertyKey, name);
 

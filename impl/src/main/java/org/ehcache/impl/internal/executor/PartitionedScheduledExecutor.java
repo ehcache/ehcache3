@@ -147,7 +147,7 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
     shutdown = true;
     try {
       termination = scheduler.schedule(null, () -> {
-        List<Runnable> abortedTasks = new ArrayList<Runnable>();
+        List<Runnable> abortedTasks = new ArrayList<>();
         for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
           Runnable job = it.next();
 

@@ -369,7 +369,7 @@ public class XmlConfigurationTest {
 
     assertNotSame(cl, cl2);
 
-    Map<String, ClassLoader> loaders = new HashMap<String, ClassLoader>();
+    Map<String, ClassLoader> loaders = new HashMap<>();
     loaders.put("bar", cl2);
     XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
 
@@ -396,7 +396,9 @@ public class XmlConfigurationTest {
     assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
-    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
+    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
+      .get("baz")
+      .getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
     Collections.sort(orderedServiceConfigurations, (o1, o2) -> o1.getClass().getName().compareTo(o2.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();

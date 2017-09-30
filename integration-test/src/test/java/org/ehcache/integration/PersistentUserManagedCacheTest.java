@@ -49,7 +49,7 @@ public class PersistentUserManagedCacheTest {
     {
       LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder));
       PersistentUserManagedCache<Long, Foo> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, Foo.class)
-          .with(new UserManagedPersistenceContext<Long, Foo>("cache-name", persistenceService))
+          .with(new UserManagedPersistenceContext<>("cache-name", persistenceService))
           .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
               .heap(10L, EntryUnit.ENTRIES)
               .disk(10L, MemoryUnit.MB, true))
@@ -62,7 +62,7 @@ public class PersistentUserManagedCacheTest {
     {
       LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder));
       PersistentUserManagedCache<Long, Foo> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, Foo.class)
-          .with(new UserManagedPersistenceContext<Long, Foo>("cache-name", persistenceService))
+          .with(new UserManagedPersistenceContext<>("cache-name", persistenceService))
           .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
               .heap(10L, EntryUnit.ENTRIES)
               .disk(10L, MemoryUnit.MB, true))

@@ -77,7 +77,7 @@ public class ReconnectMessageCodec {
     StructDecoder<Void> decoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload));
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
     ArrayDecoder<Long, StructDecoder<Void>> arrayDecoder = decoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
-    Set<Long> hashes = new HashSet<Long>();
+    Set<Long> hashes = new HashSet<>();
     if (arrayDecoder != null) {
       for (int i = 0; i < arrayDecoder.length(); i++) {
         hashes.add(arrayDecoder.value());

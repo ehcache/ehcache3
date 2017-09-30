@@ -76,7 +76,7 @@ public class DataStore {
   }
 
   public synchronized List<String> findAllPeeps() throws Exception {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     //find from cache 1st
     List<String> fromCache = dataCache.getFromCache();
     if (fromCache != null) {

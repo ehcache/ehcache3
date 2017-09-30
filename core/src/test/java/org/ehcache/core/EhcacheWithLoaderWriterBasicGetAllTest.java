@@ -3428,7 +3428,8 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicGetAllTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -3448,7 +3449,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
    *    in the order observed by the captor.
    */
   private Set<String> getLoadAllArgs() {
-    final Set<String> loadAllArgs = new LinkedHashSet<String>();
+    final Set<String> loadAllArgs = new LinkedHashSet<>();
     for (final Set<String> set : this.loadAllCaptor.getAllValues()) {
       loadAllArgs.addAll(set);
     }

@@ -55,7 +55,7 @@ public class ScopedStoreEventDispatcherTest {
 
   @Test
   public void testRegistersOrderingChange() {
-    ScopedStoreEventDispatcher<Object, Object> dispatcher = new ScopedStoreEventDispatcher<Object, Object>(1);
+    ScopedStoreEventDispatcher<Object, Object> dispatcher = new ScopedStoreEventDispatcher<>(1);
 
     assertThat(dispatcher.isEventOrdering(), is(false));
     dispatcher.setEventOrdering(true);
@@ -67,7 +67,7 @@ public class ScopedStoreEventDispatcherTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedUnordered() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
@@ -82,7 +82,7 @@ public class ScopedStoreEventDispatcherTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedOrdered() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
@@ -97,7 +97,7 @@ public class ScopedStoreEventDispatcherTest {
 
   @Test
   public void testEventFiltering() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class, withSettings().verboseLogging());
     dispatcher.addEventListener(listener);
@@ -120,15 +120,15 @@ public class ScopedStoreEventDispatcherTest {
 
   @Test
   public void testOrderedEventDelivery() throws Exception {
-    final ScopedStoreEventDispatcher<Long, Boolean> dispatcher = new ScopedStoreEventDispatcher<Long, Boolean>(4);
+    final ScopedStoreEventDispatcher<Long, Boolean> dispatcher = new ScopedStoreEventDispatcher<>(4);
     dispatcher.setEventOrdering(true);
-    final ConcurrentHashMap<Long, Long> map = new ConcurrentHashMap<Long, Long>();
+    final ConcurrentHashMap<Long, Long> map = new ConcurrentHashMap<>();
     final long[] keys = new long[] { 1L, 42L, 256L };
     map.put(keys[0], 125L);
     map.put(keys[1], 42 * 125L);
     map.put(keys[2], 256 * 125L);
 
-    final ConcurrentHashMap<Long, Long> resultMap = new ConcurrentHashMap<Long, Long>(map);
+    final ConcurrentHashMap<Long, Long> resultMap = new ConcurrentHashMap<>(map);
     dispatcher.addEventListener(event -> {
       if (event.getNewValue()) {
         resultMap.compute(event.getKey(), (key, value) -> value + 10L);

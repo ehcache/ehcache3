@@ -79,7 +79,7 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
       Function function = (Function)invocation.getArguments()[1];
       function.apply(invocation.getArguments()[0]);
 
-      final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<Number, ValueHolder<CharSequence>>();
+      final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<>();
       loaderValues.put(1, valueHolder((CharSequence)"one"));
       loaderValues.put(2, valueHolder((CharSequence)"two"));
       loaderValues.put(3, null);

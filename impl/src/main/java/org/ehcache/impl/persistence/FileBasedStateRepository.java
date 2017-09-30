@@ -58,7 +58,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
       throw new IllegalArgumentException(directory + " is not a directory");
     }
     this.dataDirectory = directory;
-    knownHolders = new ConcurrentHashMap<String, Tuple>();
+    knownHolders = new ConcurrentHashMap<>();
     loadMaps();
   }
 
@@ -113,7 +113,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
     Tuple result = knownHolders.get(name);
     if (result == null) {
-      StateHolder<K, V> holder = new TransientStateHolder<K, V>();
+      StateHolder<K, V> holder = new TransientStateHolder<>();
       result = knownHolders.putIfAbsent(name, new Tuple(nextIndex.getAndIncrement(), holder));
 
       if (result == null) {

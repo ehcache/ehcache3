@@ -57,7 +57,7 @@ public class OversizeMappingTest {
   private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
-    return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
+    return new OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
@@ -104,7 +104,7 @@ public class OversizeMappingTest {
       public int getDispatcherConcurrency() {
         return 0;
       }
-    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<K, V>());
+    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<>());
   }
 
   private static void assertNullMapping(OnHeapStore<String, String> store) throws Exception {

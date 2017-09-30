@@ -79,7 +79,7 @@ public final class ChainCodec {
   public static Chain decode(StructDecoder<?> decoder) {
     StructArrayDecoder<? extends StructDecoder<?>> elementsDecoder = decoder.structs("elements");
 
-    final List<Element> elements = new ArrayList<Element>();
+    final List<Element> elements = new ArrayList<>();
     for (int i = 0; i < elementsDecoder.length(); i++) {
       StructDecoder<?> elementDecoder = elementsDecoder.next();
       Long sequence = elementDecoder.int64("sequence");

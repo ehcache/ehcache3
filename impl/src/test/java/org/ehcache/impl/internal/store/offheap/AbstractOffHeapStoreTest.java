@@ -116,7 +116,7 @@ public abstract class AbstractOffHeapStoreTest {
 
     offHeapStore.put("1", "one");
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
     offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     timeSource.advanceTime(20);
@@ -130,14 +130,14 @@ public abstract class AbstractOffHeapStoreTest {
   public void testInstallMapping() throws Exception {
     offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
-    assertThat(offHeapStore.installMapping("1", key -> new SimpleValueHolder<String>("one", timeSource.getTimeMillis(), 15)).value(), equalTo("one"));
+    assertThat(offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("one", timeSource.getTimeMillis(), 15)).value(), equalTo("one"));
 
     validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InstallMappingOutcome.PUT));
 
     timeSource.advanceTime(20);
 
     try {
-      offHeapStore.installMapping("1", key -> new SimpleValueHolder<String>("un", timeSource.getTimeMillis(), 15));
+      offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("un", timeSource.getTimeMillis(), 15));
       fail("expected AssertionError");
     } catch (AssertionError ae) {
       // expected
@@ -148,7 +148,7 @@ public abstract class AbstractOffHeapStoreTest {
   public void testInvalidateKeyAbsent() throws Exception {
     offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
     offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     offHeapStore.invalidate("1");
@@ -162,7 +162,7 @@ public abstract class AbstractOffHeapStoreTest {
 
     offHeapStore.put("1", "one");
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
     offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     offHeapStore.invalidate("1");
@@ -233,8 +233,8 @@ public abstract class AbstractOffHeapStoreTest {
       ((AbstractValueHolder) firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
       timeSource.advanceTime(10);
       ((AbstractValueHolder) secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
-      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<String>(firstValueHolder)), is(false));
-      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<String>(secondValueHolder)), is(true));
+      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(firstValueHolder)), is(false));
+      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(secondValueHolder)), is(true));
       timeSource.advanceTime(10); // this should NOT affect
       assertThat(offHeapStore.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(secondValueHolder.creationTime(TimeUnit.MILLISECONDS) + 20));
     } finally {
@@ -252,7 +252,7 @@ public abstract class AbstractOffHeapStoreTest {
       final Store.ValueHolder<String> valueHolder = offHeapStore.getAndFault(key);
       timeSource.advanceTime(1);
       ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), new Duration(1L, TimeUnit.MILLISECONDS));
-      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<String>(valueHolder)), is(true));
+      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(valueHolder)), is(true));
     }
     assertThat(offHeapStore.getAndFault(key).hits(), is(5L));
   }
@@ -261,7 +261,7 @@ public abstract class AbstractOffHeapStoreTest {
   public void testExpiryEventFiredOnExpiredCachedEntry() throws StoreAccessException {
     offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
 
-    final List<String> expiredKeys = new ArrayList<String>();
+    final List<String> expiredKeys = new ArrayList<>();
     offHeapStore.getStoreEventSource().addEventListener(event -> {
       if (event.getType() == EventType.EXPIRED) {
         expiredKeys.add(event.getKey());
@@ -285,7 +285,7 @@ public abstract class AbstractOffHeapStoreTest {
   public void testGetWithExpiryOnAccess() throws Exception {
     offHeapStore = createAndInitStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
     offHeapStore.put("key", "value");
-    final AtomicReference<String> expired = new AtomicReference<String>();
+    final AtomicReference<String> expired = new AtomicReference<>();
     offHeapStore.getStoreEventSource().addEventListener(event -> {
       if (event.getType() == EventType.EXPIRED) {
         expired.set(event.getKey());
@@ -451,14 +451,14 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("key3", "value3");
     offHeapStore.put("key4", "value4");
 
-    final List<String> expiredKeys = new ArrayList<String>();
+    final List<String> expiredKeys = new ArrayList<>();
     offHeapStore.getStoreEventSource().addEventListener(event -> {
       if (event.getType() == EventType.EXPIRED) {
         expiredKeys.add(event.getKey());
       }
     });
 
-    List<String> iteratedKeys = new ArrayList<String>();
+    List<String> iteratedKeys = new ArrayList<>();
     Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
     while(iterator.hasNext()) {
       iteratedKeys.add(iterator.next().getKey());

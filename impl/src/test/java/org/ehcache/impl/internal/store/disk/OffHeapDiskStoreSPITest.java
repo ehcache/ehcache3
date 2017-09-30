@@ -67,7 +67,7 @@ import static org.mockito.Mockito.when;
 public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
-  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -103,8 +103,8 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
 
       private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
+        Serializer<String> keySerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
 
         try {
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -115,14 +115,14 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
-          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-              evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
-          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
-                  diskResourceService.createPersistenceContextWithin(space, "store"),
-                  new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
-                  config, timeSource,
-                  new TestStoreEventDispatcher<String, String>(),
-                  unit.toBytes(diskPool.getSize()));
+          Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
+          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<>(
+            diskResourceService.createPersistenceContextWithin(space, "store"),
+            new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+            config, timeSource,
+            new TestStoreEventDispatcher<>(),
+            unit.toBytes(diskPool.getSize()));
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;
@@ -140,7 +140,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public Store.ValueHolder<String> newValueHolder(String value) {
-        return new BasicOffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
+        return new BasicOffHeapValueHolder<>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
       }
 
       @Override
