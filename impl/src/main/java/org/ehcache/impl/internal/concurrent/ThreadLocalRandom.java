@@ -27,19 +27,18 @@ import java.net.NetworkInterface;
 import java.security.PrivilegedAction;
 import java.util.Enumeration;
 import java.util.Random;
+import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.ehcache.impl.internal.concurrent.ForkJoinTask;
-import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
+import java.util.function.DoubleConsumer;
+import java.util.function.IntConsumer;
+import java.util.function.LongConsumer;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.StreamSupport;
 
 /**
- * <b>*** WARNING IF YOU'RE USING THIS CLASS WITH JDK 8 OR ABOVE ***
- * <br/>
- * BY ALL MEANS, DO <u>NOT</u> USE THE <code>ints()</code>, <code>longs()</code> or <code>doubles()</code> METHODS.
- * USE THE <code>_ints()</code>, <code>_longs()</code> or <code>_doubles()</code> ONES INSTEAD.
- * </b>
- * <p>
  * A random number generator isolated to the current thread.  Like the
  * global {@link java.util.Random} generator used by the {@link
  * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized
@@ -48,7 +47,7 @@ import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
  * than shared {@code Random} objects in concurrent programs will
  * typically encounter much less overhead and contention.  Use of
  * {@code ThreadLocalRandom} is particularly appropriate when multiple
- * tasks (for example, each a {@link ForkJoinTask}) use random numbers
+ * tasks (for example, each a {@link java.util.concurrent.ForkJoinTask}) use random numbers
  * in parallel in thread pools.
  *
  * <p>Usages of this class should typically be of the form:
@@ -542,7 +541,7 @@ class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public IntStream _ints(long streamSize) {
+    public IntStream ints(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.intStream
@@ -561,7 +560,7 @@ class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code int} values
      * @since 1.8
      */
-    public IntStream _ints() {
+    public IntStream ints() {
         return StreamSupport.intStream
             (new RandomIntsSpliterator
              (0L, Long.MAX_VALUE, Integer.MAX_VALUE, 0),
@@ -583,7 +582,7 @@ class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public IntStream _ints(long streamSize, int randomNumberOrigin,
+    public IntStream ints(long streamSize, int randomNumberOrigin,
                           int randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -611,7 +610,7 @@ class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public IntStream _ints(int randomNumberOrigin, int randomNumberBound) {
+    public IntStream ints(int randomNumberOrigin, int randomNumberBound) {
         if (randomNumberOrigin >= randomNumberBound)
             throw new IllegalArgumentException(BadRange);
         return StreamSupport.intStream
@@ -630,7 +629,7 @@ class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public LongStream _longs(long streamSize) {
+    public LongStream longs(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.longStream
@@ -649,7 +648,7 @@ class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code long} values
      * @since 1.8
      */
-    public LongStream _longs() {
+    public LongStream longs() {
         return StreamSupport.longStream
             (new RandomLongsSpliterator
              (0L, Long.MAX_VALUE, Long.MAX_VALUE, 0L),
@@ -671,7 +670,7 @@ class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public LongStream _longs(long streamSize, long randomNumberOrigin,
+    public LongStream longs(long streamSize, long randomNumberOrigin,
                             long randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -719,7 +718,7 @@ class ThreadLocalRandom extends Random {
      *         less than zero
      * @since 1.8
      */
-    public DoubleStream _doubles(long streamSize) {
+    public DoubleStream doubles(long streamSize) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
         return StreamSupport.doubleStream
@@ -739,7 +738,7 @@ class ThreadLocalRandom extends Random {
      * @return a stream of pseudorandom {@code double} values
      * @since 1.8
      */
-    public DoubleStream _doubles() {
+    public DoubleStream doubles() {
         return StreamSupport.doubleStream
             (new RandomDoublesSpliterator
              (0L, Long.MAX_VALUE, Double.MAX_VALUE, 0.0),
@@ -762,7 +761,7 @@ class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public DoubleStream _doubles(long streamSize, double randomNumberOrigin,
+    public DoubleStream doubles(long streamSize, double randomNumberOrigin,
                                 double randomNumberBound) {
         if (streamSize < 0L)
             throw new IllegalArgumentException(BadSize);
@@ -790,7 +789,7 @@ class ThreadLocalRandom extends Random {
      *         is greater than or equal to {@code randomNumberBound}
      * @since 1.8
      */
-    public DoubleStream _doubles(double randomNumberOrigin, double randomNumberBound) {
+    public DoubleStream doubles(double randomNumberOrigin, double randomNumberBound) {
         if (!(randomNumberOrigin < randomNumberBound))
             throw new IllegalArgumentException(BadRange);
         return StreamSupport.doubleStream
