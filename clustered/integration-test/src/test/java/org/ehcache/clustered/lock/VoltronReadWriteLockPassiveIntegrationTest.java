@@ -47,8 +47,7 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
   @Test
   public void testSingleThreadSingleClientInteraction() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
 
       Hold hold = lock.writeLock();
@@ -57,15 +56,12 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
       CLUSTER.getClusterControl().startOneServer();
 
       hold.unlock();
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testMultipleThreadsSingleConnection() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
 
       Hold hold = lock.writeLock();
@@ -95,51 +91,42 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
       hold.unlock();
 
       waiter.get();
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testMultipleClients() throws Throwable {
-    Connection clientA = CLUSTER.newConnection();
-    try {
+    try (Connection clientA = CLUSTER.newConnection();
+         Connection clientB = CLUSTER.newConnection()) {
       VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, "test");
 
       Hold hold = lockA.writeLock();
 
-      final Connection clientB = CLUSTER.newConnection();
+      Future<Void> waiter = async(() -> {
+        new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+        return null;
+      });
+
       try {
-        Future<Void> waiter = async(() -> {
-          new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
-          return null;
-        });
-
-        try {
-          waiter.get(100, TimeUnit.MILLISECONDS);
-          fail("TimeoutException expected");
-        } catch (TimeoutException e) {
-          //expected
-        }
-
-        CLUSTER.getClusterControl().terminateActive();
-        CLUSTER.getClusterControl().startOneServer();
-
-        try {
-          waiter.get(100, TimeUnit.MILLISECONDS);
-          fail("TimeoutException expected");
-        } catch (TimeoutException e) {
-          //expected
-        }
-
-        hold.unlock();
-
-        waiter.get();
-      } finally {
-        clientB.close();
+        waiter.get(100, TimeUnit.MILLISECONDS);
+        fail("TimeoutException expected");
+      } catch (TimeoutException e) {
+        //expected
       }
-    } finally {
-      clientA.close();
+
+      CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.getClusterControl().startOneServer();
+
+      try {
+        waiter.get(100, TimeUnit.MILLISECONDS);
+        fail("TimeoutException expected");
+      } catch (TimeoutException e) {
+        //expected
+      }
+
+      hold.unlock();
+
+      waiter.get();
     }
   }
 }
