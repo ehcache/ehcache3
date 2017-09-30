@@ -337,9 +337,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
       };
 
       return (ObjectStreamClass) oin.readObject();
-    } catch (ClassNotFoundException e) {
-      throw new AssertionError(e);
-    } catch (IOException e) {
+    } catch (ClassNotFoundException | IOException e) {
       throw new AssertionError(e);
     }
   }

@@ -278,12 +278,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
         return PutStatus.NOOP;
       }
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 
@@ -322,12 +319,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
         return resultHolder;
       }
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 
@@ -451,12 +445,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
       }
       return resultHolder;
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 
@@ -502,12 +493,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return ReplaceStatus.MISS_NOT_PRESENT;
         }
       }
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 
@@ -629,12 +617,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
       }
       return result;
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 
@@ -712,12 +697,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
       }
       return computeResult;
-    } catch (StoreAccessException caex) {
+    } catch (StoreAccessException | RuntimeException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
     }
   }
 

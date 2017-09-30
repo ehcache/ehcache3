@@ -176,9 +176,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   private static <T extends Entity> void fetchEntity(Connection connection, Class<T> aClass, String myCacheManager) throws EntityNotFoundException, ConnectionException {
     try {
       connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity(null).close();
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    } catch (EntityVersionMismatchException e) {
+    } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
       throw new AssertionError(e);
     }
   }

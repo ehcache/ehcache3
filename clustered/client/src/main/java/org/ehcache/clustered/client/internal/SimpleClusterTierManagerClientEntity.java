@@ -133,9 +133,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
         .prepareForDestroy(), true);
       return response.getStores();
-    } catch (ClusterException e) {
-      // TODO handle this
-    } catch (TimeoutException e) {
+    } catch (ClusterException | TimeoutException e) {
       // TODO handle this
     }
     return null;
@@ -151,9 +149,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
+    } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;

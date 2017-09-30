@@ -138,10 +138,7 @@ public class ClusterTierManagerClientEntityFactory {
         }
       } catch (EntityConfigurationException e) {
         throw new ClusterTierManagerCreationException("Unable to configure cluster tier manager for id " + identifier, e);
-      } catch (EntityNotProvidedException e) {
-        LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
-        throw new AssertionError(e);
-      } catch (EntityVersionMismatchException e) {
+      } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
         LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       }
@@ -353,9 +350,7 @@ public class ClusterTierManagerClientEntityFactory {
       if (!entityRef.destroy()) {
         throw new CachePersistenceException("Cannot destroy cluster tier '" + storeIdentifier + "': in use by other client(s)");
       }
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    } catch (PermanentEntityException e) {
+    } catch (EntityNotProvidedException | PermanentEntityException e) {
       throw new AssertionError(e);
     }
   }

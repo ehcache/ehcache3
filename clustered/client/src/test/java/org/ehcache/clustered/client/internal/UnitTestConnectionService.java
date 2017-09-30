@@ -169,10 +169,8 @@ public class UnitTestConnectionService implements ConnectionService {
       try {
         LOGGER.warn("Force close {}", formatConnectionId(connection));
         connection.close();
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // Ignored in case connection is already closed
-      } catch (IOException e) {
-        // Ignored
       }
     }
     stripeDescriptor.removeConnections();
@@ -222,10 +220,8 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError e) {
+        } catch (AssertionError | IOException e) {
           // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
-        } catch (IOException e) {
-          // Ignored
         }
       }
 
