@@ -87,29 +87,19 @@ ext {
 
 
 // Java 6 build setup
-def java6Error = 'Set the poperty \'java6Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 6 installation'
-assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run and a configured Java 6 installation\n' + java6Error
-assert hasProperty('java6Home') : 'The Ehcache 3 build requires a configured Java 6 installation\n' + java6Error
-def java6 = Jvm.discovered(new File(java6Home), JavaVersion.VERSION_1_6)
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
-  testJava = java6
+  testJava = Jvm.current()
 }
 
 if (hasProperty('testVM')) {
   switch (testVM) {
-    case '6':
-      testJava = java6
-      break
-    case '7':
-      assert hasProperty('java7Home') : 'Set the poperty \'java7Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
-      testJava = Jvm.discovered(new File(java7Home), JavaVersion.VERSION_1_7)
-      break
     case '8':
       if (JavaVersion.current().isJava8()) {
         testJava = Jvm.current()
       } else {
-        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
-        testJava = Jvm.discovered(new File(java7Home), JavaVersion.VERSION_1_8)
+        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 8 installation'
+        testJava = Jvm.discovered(new File(java8Home), JavaVersion.VERSION_1_8)
       }
       break
     case '9':
@@ -121,7 +111,7 @@ if (hasProperty('testVM')) {
       }
       break
     default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 7, 8 or 9")
+      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 8 or 9")
   }
 }
 
@@ -137,8 +127,8 @@ subprojects {
 
   archivesBaseName = "ehcache-${project.name}"
 
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 
   repositories {
     if (project.hasProperty('mvnlocal')) {
@@ -245,7 +235,6 @@ subprojects {
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
-      forkOptions.javaHome = java6.javaHome
     }
   }
   tasks.withType(Test) {
