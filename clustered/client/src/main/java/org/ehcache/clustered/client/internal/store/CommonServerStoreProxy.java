@@ -22,7 +22,13 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Clie
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +44,10 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private static final Logger LOGGER = LoggerFactory.getLogger(CommonServerStoreProxy.class);
 
   private final String cacheId;
-  private final ServerStoreMessageFactory messageFactory;
   private final ClusterTierClientEntity entity;
 
-  CommonServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory,
-                         final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
+  CommonServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
     this.cacheId = cacheId;
-    this.messageFactory = messageFactory;
     this.entity = entity;
     entity.addResponseListener(ServerInvalidateHash.class, response -> {
       long key = response.getKey();
@@ -60,7 +63,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        entity.invokeAndWaitForSend(messageFactory.clientInvalidationAck(key, invalidationId), false);
+        entity.invokeAndWaitForSend(new ClientInvalidationAck(key, invalidationId), false);
       } catch (Exception e) {
         //TODO: what should be done here?
         LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
@@ -74,7 +77,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-        entity.invokeAndWaitForSend(messageFactory.clientInvalidationAllAck(invalidationId), false);
+        entity.invokeAndWaitForSend(new ClientInvalidationAllAck(invalidationId), false);
       } catch (Exception e) {
         //TODO: what should be done here?
         LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
@@ -101,7 +104,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public Chain get(long key) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invokeAndWaitForComplete(messageFactory.getOperation(key), false);
+      response = entity.invokeAndWaitForComplete(new GetMessage(key), false);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -118,7 +121,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
     try {
-      entity.invokeAndWaitForReceive(messageFactory.appendOperation(key, payLoad), true);
+      entity.invokeAndWaitForReceive(new AppendMessage(key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -128,7 +131,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invokeAndWaitForRetired(messageFactory.getAndAppendOperation(key, payLoad), true);
+      response = entity.invokeAndWaitForRetired(new GetAndAppendMessage(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -146,7 +149,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invokeAndWaitForSend(messageFactory.replaceAtHeadOperation(key, expect, update), false);
+      entity.invokeAndWaitForSend(new ReplaceAtHeadMessage(key, expect, update), false);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -155,7 +158,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     try {
-      entity.invokeAndWaitForRetired(messageFactory.clearOperation(), true);
+      entity.invokeAndWaitForRetired(new ServerStoreOpMessage.ClearMessage(), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {

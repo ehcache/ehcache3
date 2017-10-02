@@ -27,13 +27,12 @@ import static org.junit.Assert.assertThat;
 
 public class ServerStoreOpCodecTest {
 
-  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory();
   private static final ServerStoreOpCodec STORE_OP_CODEC = new ServerStoreOpCodec();
 
   @Test
   public void testAppendMessageCodec() {
 
-    ServerStoreOpMessage.AppendMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.AppendMessage appendMessage = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
 
     byte[] encoded = STORE_OP_CODEC.encode(appendMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(appendMessage.getMessageType(), wrap(encoded));
@@ -46,7 +45,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testGetMessageCodec() {
-    ServerStoreOpMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
+    ServerStoreOpMessage getMessage = new ServerStoreOpMessage.GetMessage(2L);
 
     byte[] encoded = STORE_OP_CODEC.encode(getMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getMessage.getMessageType(), wrap(encoded));
@@ -58,7 +57,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testGetAndAppendMessageCodec() {
-    ServerStoreOpMessage getAndAppendMessage = MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
+    ServerStoreOpMessage getAndAppendMessage = new ServerStoreOpMessage.GetAndAppendMessage(10L, createPayload(10L));
 
     byte[] encoded = STORE_OP_CODEC.encode(getAndAppendMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getAndAppendMessage.getMessageType(), wrap(encoded));
@@ -71,7 +70,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testReplaceAtHeadMessageCodec() {
-    ServerStoreOpMessage replaceAtHeadMessage = MESSAGE_FACTORY.replaceAtHeadOperation(10L,
+    ServerStoreOpMessage replaceAtHeadMessage = new ServerStoreOpMessage.ReplaceAtHeadMessage(10L,
         getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
         getChain(false, createPayload(2000L)));
 
@@ -87,7 +86,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testClearMessageCodec() throws Exception {
-    ServerStoreOpMessage clearMessage = MESSAGE_FACTORY.clearOperation();
+    ServerStoreOpMessage clearMessage = new ServerStoreOpMessage.ClearMessage();
 
     byte[] encoded = STORE_OP_CODEC.encode(clearMessage);
     ServerStoreOpMessage decodedMsg = (ServerStoreOpMessage) STORE_OP_CODEC.decode(clearMessage.getMessageType(), wrap(encoded));
@@ -97,7 +96,7 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testClientInvalidationAckMessageCodec() throws Exception {
-    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(42L,123);
+    ServerStoreOpMessage invalidationAckMessage = new ServerStoreOpMessage.ClientInvalidationAck(42L,123);
 
     byte[] encoded = STORE_OP_CODEC.encode(invalidationAckMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(invalidationAckMessage.getMessageType(), wrap(encoded));

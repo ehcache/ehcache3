@@ -49,7 +49,7 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+    public ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
     }

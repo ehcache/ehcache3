@@ -17,9 +17,9 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -64,7 +64,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", new ServerStoreMessageFactory(), clientEntity1, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         store1InvalidatedHashes.add(hash);
@@ -75,7 +75,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
         fail("should not be called");
       }
     });
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         store2InvalidatedHashes.add(hash);
@@ -120,8 +120,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -145,8 +145,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         if (!invalidating.compareAndSet(false, true)) {
@@ -193,8 +193,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -218,8 +218,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -244,8 +244,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -290,8 +290,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", true);
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", false);
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         clientEntity1.fireDisconnectionEvent();
@@ -316,8 +316,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testClearInvalidationUnblockedByDisconnection", true);
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testClearInvalidationUnblockedByDisconnection", false);
 
-    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", new ServerStoreMessageFactory(), clientEntity1, null);
-    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity1, null);
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
