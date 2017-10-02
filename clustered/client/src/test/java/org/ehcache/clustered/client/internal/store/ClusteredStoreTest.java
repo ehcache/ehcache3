@@ -21,6 +21,7 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
@@ -102,7 +103,7 @@ public class ClusteredStoreTest {
     ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
     ServerStoreMessageFactory factory = new ServerStoreMessageFactory();
-    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, factory, clientEntity);
+    ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, factory, clientEntity, mock(InvalidationListener.class));
 
     TestTimeSource testTimeSource = new TestTimeSource();
 
