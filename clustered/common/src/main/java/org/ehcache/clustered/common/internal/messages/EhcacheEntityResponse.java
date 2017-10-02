@@ -222,6 +222,28 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static class ResolveRequest extends EhcacheEntityResponse {
+
+    private final long key;
+
+    ResolveRequest(long key) {
+      this.key = key;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.RESOLVE_REQUEST;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    public Chain getChain() {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   public static EhcacheEntityResponse success() {
     return EhcacheEntityResponse.Success.INSTANCE;
   }
@@ -232,5 +254,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public static EhcacheEntityResponse response(Chain chain) {
     return new EhcacheEntityResponse.GetResponse(chain);
+  }
+
+  public static ResolveRequest resolveRequest(long key) {
+    return new ResolveRequest(key);
   }
 }
