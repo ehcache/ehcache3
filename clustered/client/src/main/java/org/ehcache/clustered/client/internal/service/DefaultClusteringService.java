@@ -39,7 +39,6 @@ import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
@@ -413,13 +412,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity, invalidation);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity, invalidation);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);

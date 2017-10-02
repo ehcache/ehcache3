@@ -17,31 +17,16 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
-import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
-import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terracotta.connection.Connection;
 
-import java.net.URI;
-import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -75,7 +60,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", new ServerStoreMessageFactory(), clientEntity1, new ServerStoreProxy.InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         store1InvalidatedHashes.add(hash);
@@ -86,7 +71,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
         fail("should not be called");
       }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", new ServerStoreMessageFactory(), clientEntity2, new ServerStoreProxy.InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         store2InvalidatedHashes.add(hash);
@@ -135,7 +120,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", new ServerStoreMessageFactory(), clientEntity1, new ServerStoreProxy.InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -147,7 +132,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
         throw new AssertionError("Should not be called");
       }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", new ServerStoreMessageFactory(), clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, null);
 
     serverStoreProxy2.append(1L, createPayload(1L));
 
@@ -165,7 +150,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", new ServerStoreMessageFactory(), clientEntity1, new ServerStoreProxy.InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -177,7 +162,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
         throw new AssertionError("Should not be called");
       }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", new ServerStoreMessageFactory(), clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, null);
 
     serverStoreProxy2.getAndAppend(1L, createPayload(1L));
 
@@ -194,7 +179,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity1, new ServerStoreProxy.InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity1, new InvalidationListener() {
       @Override
       public void onInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -206,7 +191,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
         latch.countDown();
       }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testAllInvalidationListener", new ServerStoreMessageFactory(), clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity2, null);
 
     serverStoreProxy2.clear();
 

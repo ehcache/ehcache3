@@ -22,7 +22,6 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService.Passthrou
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
@@ -34,7 +33,6 @@ import org.terracotta.connection.Connection;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.UUID;
 
 public abstract class AbstractServerStoreProxyTest {
 
