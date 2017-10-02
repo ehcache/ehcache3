@@ -15,13 +15,11 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ReconnectListener;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.AllInvalidationDone;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.HashInvalidationDone;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +43,8 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final AtomicReference<CountDownLatch> invalidateAllLatch = new AtomicReference<CountDownLatch>();
   private final ClusterTierClientEntity entity;
 
-  public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory,
-                                final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
-    this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity, invalidation);
+  public StrongServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
+    this.delegate = new CommonServerStoreProxy(cacheId, entity, invalidation);
     this.entity = entity;
     entity.setReconnectListener(new ReconnectListener() {
       @Override

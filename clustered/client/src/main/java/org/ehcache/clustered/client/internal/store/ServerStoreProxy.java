@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 
 /**
