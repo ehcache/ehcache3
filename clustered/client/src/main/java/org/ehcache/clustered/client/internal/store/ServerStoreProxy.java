@@ -47,20 +47,6 @@ public interface ServerStoreProxy extends ServerStore {
   String getCacheId();
 
   /**
-   * Add a listener called when invalidation requests arrive.
-   *
-   * @param listener the listener to add
-   */
-  void addInvalidationListener(InvalidationListener listener);
-
-  /**
-   * Remove a listener
-   *
-   * @param listener the listener to remove
-   */
-  boolean removeInvalidationListener(InvalidationListener listener);
-
-  /**
    * Closes this proxy.
    */
   void close();

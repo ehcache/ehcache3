@@ -45,8 +45,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final AtomicReference<CountDownLatch> invalidateAllLatch = new AtomicReference<>();
   private final ClusterTierClientEntity entity;
 
-  public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
-    this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity);
+  public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory,
+                                final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
+    this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity, invalidation);
     this.entity = entity;
     delegate.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, this::hashInvalidationDoneResponseListener);
     delegate.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
@@ -190,16 +191,6 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   @Override
   public String getCacheId() {
     return delegate.getCacheId();
-  }
-
-  @Override
-  public void addInvalidationListener(InvalidationListener listener) {
-    delegate.addInvalidationListener(listener);
-  }
-
-  @Override
-  public boolean removeInvalidationListener(InvalidationListener listener) {
-    return delegate.removeInvalidationListener(listener);
   }
 
   @Override
