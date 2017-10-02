@@ -30,6 +30,7 @@ import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServic
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -372,7 +373,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
-                                                     Consistency configuredConsistency) throws CachePersistenceException {
+                                                     Consistency configuredConsistency,
+                                                     InvalidationListener invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -419,10 +421,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);

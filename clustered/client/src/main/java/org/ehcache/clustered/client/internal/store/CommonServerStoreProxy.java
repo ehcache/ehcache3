@@ -16,7 +16,11 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -24,10 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -41,34 +41,28 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreMessageFactory messageFactory;
   private final ClusterTierClientEntity entity;
 
-  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
-  private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
-      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
-
-  CommonServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
+  CommonServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory,
+                         final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
     this.cacheId = cacheId;
     this.messageFactory = messageFactory;
     this.entity = entity;
-    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+
+    entity.addResponseListener(ServerInvalidateHash.class, new ResponseListener<ServerInvalidateHash>() {
       @Override
-      public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
+      public void onResponse(ServerInvalidateHash response) {
         long key = response.getKey();
         LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", cacheId, key);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
+        invalidation.onInvalidateHash(key);
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+    entity.addResponseListener(ClientInvalidateHash.class, new ClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final long key = response.getKey();
         final int invalidationId = response.getInvalidationId();
 
         LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
+        invalidation.onInvalidateHash(key);
 
         try {
           LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
@@ -79,15 +73,13 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+    entity.addResponseListener(ClientInvalidateAll.class, new ResponseListener<ClientInvalidateAll>() {
       @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
+      public void onResponse(ClientInvalidateAll response) {
         final int invalidationId = response.getInvalidationId();
 
         LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateAll();
-        }
+        invalidation.onInvalidateAll();
 
         try {
           LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
@@ -98,16 +90,6 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-
-    addResponseListenersToEntity();
-  }
-
-  @SuppressWarnings("unchecked")
-  private void addResponseListenersToEntity() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
-        this.responseListeners.entrySet()) {
-      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (SimpleClusterTierClientEntity.ResponseListener)classResponseListenerEntry.getValue());
-    }
   }
 
   @Override
@@ -115,19 +97,8 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     return cacheId;
   }
 
-  @Override
-  public void addInvalidationListener(InvalidationListener listener) {
-    invalidationListeners.add(listener);
-  }
-
-  @Override
-  public boolean removeInvalidationListener(InvalidationListener listener) {
-    return invalidationListeners.remove(listener);
-  }
-
   <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, SimpleClusterTierClientEntity.ResponseListener<T> listener) {
-    this.responseListeners.put(listenerClass, listener);
-    this.entity.addResponseListener(listenerClass, listener);
+    entity.addResponseListener(listenerClass, listener);
   }
 
   @SuppressWarnings("unchecked")

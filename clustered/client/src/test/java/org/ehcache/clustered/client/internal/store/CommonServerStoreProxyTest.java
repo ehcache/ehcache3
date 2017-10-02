@@ -44,52 +44,25 @@ import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class CommonServerStoreProxyTest {
+public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
-  private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
-
-  private static ClusterTierClientEntity clientEntity;
-  private static CommonServerStoreProxy serverStoreProxy;
-
-  @BeforeClass
-  public static void setUp() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new PassthroughServerBuilder()
-            .resource("defaultResource", 128, MemoryUnit.MB)
-            .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
-
-    ServerSideConfiguration serverConfig =
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
-    entityFactory.create("TestCacheManager", serverConfig);
-
+  private static ClusterTierClientEntity createClientEntity(String name) throws Exception {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
       .getName(), null);
-    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity.validate(serverStoreConfiguration);
-    serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity);
-  }
 
-  @AfterClass
-  public static void tearDown() throws Exception {
-    serverStoreProxy = null;
-    if (clientEntity != null) {
-      clientEntity.close();
-      clientEntity = null;
-    }
+    return createClientEntity(name, serverStoreConfiguration, true);
 
-    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test
   public void testGetKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetKeyNotPresent", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
+
     Chain chain = serverStoreProxy.get(1);
 
     assertThat(chain.isEmpty(), is(true));
@@ -97,6 +70,9 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testAppendKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testAppendKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testAppendKeyNotPresent", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
+
     serverStoreProxy.append(2, createPayload(2));
 
     Chain chain = serverStoreProxy.get(2);
@@ -106,6 +82,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAfterMultipleAppendsOnSameKey");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAfterMultipleAppendsOnSameKey", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
 
     serverStoreProxy.append(3L, createPayload(3L));
     serverStoreProxy.append(3L, createPayload(33L));
@@ -120,6 +98,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAndAppendKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendKeyNotPresent", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
     assertThat(chain.isEmpty(), is(true));
@@ -132,6 +112,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAndAppendMultipleTimesOnSameKey() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendMultipleTimesOnSameKey");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendMultipleTimesOnSameKey", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
     serverStoreProxy.getAndAppend(5L, createPayload(5L));
     serverStoreProxy.getAndAppend(5L, createPayload(55L));
     serverStoreProxy.getAndAppend(5L, createPayload(555L));
@@ -143,6 +125,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testReplaceAtHeadSuccessFull() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testReplaceAtHeadSuccessFull");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testReplaceAtHeadSuccessFull", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
     serverStoreProxy.append(20L, createPayload(200L));
     serverStoreProxy.append(20L, createPayload(2000L));
     serverStoreProxy.append(20L, createPayload(20000L));
@@ -167,6 +151,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testClear() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testClear");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testClear", new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity, null);
     serverStoreProxy.append(1L, createPayload(100L));
 
     serverStoreProxy.clear();

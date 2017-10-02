@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
@@ -50,6 +51,7 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -78,7 +80,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
@@ -92,7 +93,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final String STATISTICS_TAG = "Clustered";
   private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
-  static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.chain.compaction.threshold";
+  static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.client.chain.compaction.threshold";
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
   private final int chainCompactionLimit;
@@ -675,7 +676,38 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       final ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
       ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
       try {
-        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
+        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
+          new InvalidationListener() {
+            @Override
+            public void onInvalidateHash(long hash) {
+              EvictionOutcome result = EvictionOutcome.SUCCESS;
+              clusteredStore.evictionObserver.begin();
+              if (clusteredStore.invalidationValve != null) {
+                try {
+                  LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+                  clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+                } catch (StoreAccessException sae) {
+                  //TODO: what should be done here? delegate to resilience strategy?
+                  LOGGER.error("Error invalidating hash {}", hash, sae);
+                  result = StoreOperationOutcomes.EvictionOutcome.FAILURE;
+                }
+              }
+              clusteredStore.evictionObserver.end(result);
+            }
+
+            @Override
+            public void onInvalidateAll() {
+              if (clusteredStore.invalidationValve != null) {
+                try {
+                  LOGGER.debug("CLIENT: calling invalidation valve for all");
+                  clusteredStore.invalidationValve.invalidateAll();
+                } catch (StoreAccessException sae) {
+                  //TODO: what should be done here? delegate to resilience strategy?
+                  LOGGER.error("Error invalidating all", sae);
+                }
+              }
+            }
+          });
       } catch (CachePersistenceException e) {
         throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
       }
@@ -700,38 +732,6 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         }
         ((StatefulSerializer)valueSerializer).init(stateRepository);
       }
-
-      clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
-        @Override
-        public void onInvalidateHash(long hash) {
-          StoreOperationOutcomes.EvictionOutcome result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
-          clusteredStore.evictionObserver.begin();
-          if (clusteredStore.invalidationValve != null) {
-            try {
-              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
-              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
-            } catch (StoreAccessException sae) {
-              //TODO: what should be done here? delegate to resilience strategy?
-              LOGGER.error("Error invalidating hash {}", hash, sae);
-              result = StoreOperationOutcomes.EvictionOutcome.FAILURE;
-            }
-          }
-          clusteredStore.evictionObserver.end(result);
-        }
-
-        @Override
-        public void onInvalidateAll() {
-          if (clusteredStore.invalidationValve != null) {
-            try {
-              LOGGER.debug("CLIENT: calling invalidation valve for all");
-              clusteredStore.invalidationValve.invalidateAll();
-            } catch (StoreAccessException sae) {
-              //TODO: what should be done here? delegate to resilience strategy?
-              LOGGER.error("Error invalidating all", sae);
-            }
-          }
-        }
-      });
     }
 
     @Override
