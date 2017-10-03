@@ -21,9 +21,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
@@ -58,6 +55,9 @@ import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -298,7 +298,7 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(Supplier.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -314,15 +314,10 @@ public class TieredStoreTest {
       public CharSequence apply(Number number, CharSequence charSequence) {
         return "one";
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
+    }, () -> true).value(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(NullaryFunction.class));
+    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class));
   }
 
   @Test
@@ -431,7 +426,7 @@ public class TieredStoreTest {
   @SuppressWarnings("unchecked")
   public void testBulkCompute3Args() throws Exception {
     when(
-        numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
+        numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(Supplier.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
       public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
         Set<Number> keys = (Set) invocation.getArguments()[0];
@@ -460,12 +455,7 @@ public class TieredStoreTest {
       public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
         return new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>(Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    });
+    }, () -> true);
 
     assertThat(result.size(), is(3));
     assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
@@ -475,7 +465,7 @@ public class TieredStoreTest {
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberCachingTier, times(1)).invalidate(2);
     verify(numberCachingTier, times(1)).invalidate(3);
-    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class));
+    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(Supplier.class));
   }
 
   @Test

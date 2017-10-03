@@ -20,13 +20,14 @@ import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
+
+import java.util.function.BiFunction;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.mockito.Mockito.mock;

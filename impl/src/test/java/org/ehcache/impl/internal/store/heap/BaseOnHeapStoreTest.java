@@ -25,9 +25,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -57,6 +54,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.impl.internal.util.Matchers.holding;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
@@ -592,12 +592,7 @@ public abstract class BaseOnHeapStoreTest {
       public String apply(String mappedKey, String mappedValue) {
         return mappedValue;
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    });
+    }, () -> true);
 
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime + 1, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
@@ -623,12 +618,7 @@ public abstract class BaseOnHeapStoreTest {
       public String apply(String mappedKey, String mappedValue) {
         return mappedValue;
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
 
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
@@ -768,12 +758,7 @@ public abstract class BaseOnHeapStoreTest {
       public String apply(String key, String value) {
         return "value";
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
     assertThat(result, nullValue());
   }
 
@@ -789,12 +774,7 @@ public abstract class BaseOnHeapStoreTest {
       public String apply(String key, String value) {
         return "newValue";
       }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    }, () -> false);
     assertThat(result, valueHeld("newValue"));
   }
 
@@ -810,9 +790,9 @@ public abstract class BaseOnHeapStoreTest {
       public String apply(String key, String value) {
         return value;
       }
-    }, new NullaryFunction<Boolean>() {
+    }, new Supplier<Boolean>() {
       @Override
-      public Boolean apply() {
+      public Boolean get() {
         return false;
       }
     });

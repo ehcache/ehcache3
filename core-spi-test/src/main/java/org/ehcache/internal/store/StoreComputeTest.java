@@ -15,14 +15,10 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.ValueSupplier;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -34,6 +30,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import org.junit.Assert;
+
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
@@ -231,12 +230,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
         public V apply(K k, V v) {
           return v;
         }
-      }, new NullaryFunction<Boolean>() {
-        @Override
-        public Boolean apply() {
-          return false;
-        }
-      });
+      }, () -> false);
       assertThat(result.value(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -260,12 +254,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
         public V apply(K k, V v) {
           return newValue;
         }
-      }, new NullaryFunction<Boolean>() {
-        @Override
-        public Boolean apply() {
-          return false;
-        }
-      });
+      }, () -> false);
       assertThat(result.value(), is(newValue));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

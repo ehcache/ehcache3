@@ -28,9 +28,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -69,6 +66,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
@@ -181,12 +181,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return Boolean.TRUE;
-    }
-  };
+  private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
 
   @Override
@@ -533,7 +528,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -546,7 +541,7 @@ public class XAStore<K, V> implements Store<K, V> {
     V oldValue = softLock == null ? null : softLock.getOldValue();
     V newValue = mappingFunction.apply(key, oldValue);
     XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
-    if (eq(oldValue, newValue) && !replaceEqual.apply()) {
+    if (eq(oldValue, newValue) && !replaceEqual.get()) {
       return xaValueHolder;
     }
     if (newValue != null) {
@@ -613,12 +608,12 @@ public class XAStore<K, V> implements Store<K, V> {
     return xaValueHolder;
   }
 
-  private ValueHolder<V> updateCommandForKey(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual, XATransactionContext<K, V> currentContext) {
+  private ValueHolder<V> updateCommandForKey(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, XATransactionContext<K, V> currentContext) {
     V newValue = mappingFunction.apply(key, currentContext.newValueOf(key));
     XAValueHolder<V> xaValueHolder = null;
     V oldValue = currentContext.oldValueOf(key);
     if (newValue == null) {
-      if (!(oldValue == null && !replaceEqual.apply())) {
+      if (!(oldValue == null && !replaceEqual.get())) {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
       } else {
         currentContext.removeCommand(key);
@@ -626,7 +621,7 @@ public class XAStore<K, V> implements Store<K, V> {
     } else {
       checkValue(newValue);
       xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
-      if (!(eq(oldValue, newValue) && !replaceEqual.apply())) {
+      if (!(eq(oldValue, newValue) && !replaceEqual.get())) {
         currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
       }
     }
@@ -651,7 +646,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
       checkKey(key);

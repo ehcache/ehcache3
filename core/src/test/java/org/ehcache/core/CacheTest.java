@@ -20,7 +20,6 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.StateTransitionException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.LifeCycled;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -31,6 +30,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;

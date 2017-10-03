@@ -68,7 +68,7 @@ class EhOsgi implements Plugin<Project> {
         instruction 'Bundle-DocURL', 'http://ehcache.org'
         instruction 'Bundle-License', 'LICENSE'
         instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.6'
+        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.8'
 
         hashsetOfProjects.findAll({ p -> p.ext.properties.osgi}).each{ prop ->
           new JsonSlurper().parseText(prop.ext.properties.osgi).each {

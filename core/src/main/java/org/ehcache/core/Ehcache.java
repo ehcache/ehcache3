@@ -30,6 +30,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
@@ -40,9 +43,6 @@ import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
@@ -710,7 +710,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
-        final NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter, final NullaryFunction<Boolean> withStatsAndEvents) {
+        final Supplier<Boolean> replaceEqual, final Supplier<Boolean> invokeWriter, final Supplier<Boolean> withStatsAndEvents) {
       putObserver.begin();
       removeObserver.begin();
       getObserver.begin();
@@ -728,7 +728,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             V newValue = computeFunction.apply(mappedKey, mappedValue);
 
             if (newValue == mappedValue) {
-              if (! replaceEqual.apply()) {
+              if (! replaceEqual.get()) {
                 return mappedValue;
               }
             }
@@ -737,7 +737,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
               return null;
             }
 
-            if (withStatsAndEvents.apply()) {
+            if (withStatsAndEvents.get()) {
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {

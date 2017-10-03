@@ -26,6 +26,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
@@ -34,9 +37,6 @@ import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.core.spi.store.Store;
@@ -622,7 +622,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
     computeObserver.begin();
     checkKey(key);
 
@@ -649,7 +649,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             eventSink.removed(mappedKey, mappedValue);
           }
           return null;
-        } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
+        } else if (safeEquals(existingValue, computedValue) && !replaceEqual.get()) {
           if (mappedValue != null) {
             OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
             if (valueHolder == null) {
@@ -795,7 +795,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
       checkKey(key);
@@ -1115,12 +1115,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return existingValue == computedValue || (existingValue != null && existingValue.equals(computedValue));
   }
 
-  private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return Boolean.TRUE;
-    }
-  };
+  private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   private OffHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMapping(K key, OffHeapValueHolder<V> valueHolder, long now, StoreEventSink<K, V> eventSink) {
     Duration duration = Duration.ZERO;

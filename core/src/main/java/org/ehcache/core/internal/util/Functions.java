@@ -16,8 +16,8 @@
 
 package org.ehcache.core.internal.util;
 
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * A set of utilities methods and Classes around Functions
@@ -36,7 +36,7 @@ public class Functions {
    * @return the memoized function
    */
   public static <A, T> Function<A, T> memoize(Function<A, T> f) {
-    return new MemoizingFunction<A, T>(f);
+    return new MemoizingFunction<>(f);
   }
 
   /**
@@ -50,7 +50,7 @@ public class Functions {
    * @return the memoized bifunction
    */
   public static <A, B, T> BiFunction<A, B, T> memoize(BiFunction<A, B, T> f) {
-    return new MemoizingBiFunction<A, B, T>(f);
+    return new MemoizingBiFunction<>(f);
   }
 
   private static final class MemoizingFunction<A, T> implements Function<A, T> {

@@ -17,8 +17,6 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.terracotta.offheapstore.Metadata;
@@ -30,6 +28,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION;
 import static org.terracotta.offheapstore.Metadata.PINNED;
@@ -174,7 +174,7 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
 
   @Override
-  public V computeIfPresent(K key, final BiFunction<K, V, V> mappingFunction) {
+  public V computeIfPresent(K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
     MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
       public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {

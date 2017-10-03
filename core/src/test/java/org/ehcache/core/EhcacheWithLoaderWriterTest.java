@@ -22,6 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
@@ -32,9 +35,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -171,7 +171,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -186,7 +186,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
