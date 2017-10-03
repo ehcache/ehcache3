@@ -22,8 +22,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
@@ -46,21 +44,22 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 /**
  * @author Ludovic Orban
  */
-@SuppressWarnings({ "unchecked", "serial", "rawtypes" })
+@SuppressWarnings("unchecked")
 public class EhcacheBulkMethodsTest {
 
   @Test
   public void testPutAll() throws Exception {
+    @SuppressWarnings("unchecked")
     Store<Number, CharSequence> store = mock(Store.class);
 
     InternalCache<Number, CharSequence> ehcache = getCache(store);
     ehcache.init();
 
-    ehcache.putAll(new HashMap<Number, CharSequence>() {{
-      put(1, "one");
-      put(2, "two");
-      put(3, "three");
-    }});
+    Map<Number, CharSequence> map = new HashMap<>(3);
+    map.put(1, "one");
+    map.put(2, "two");
+    map.put(3, "three");
+    ehcache.putAll(map);
 
     verify(store).bulkCompute((Set<? extends Number>) argThat(hasItems((Number)1, 2, 3)), any(Function.class));
   }
@@ -72,16 +71,20 @@ public class EhcacheBulkMethodsTest {
       Function function = (Function)invocation.getArguments()[1];
       function.apply(invocation.getArguments()[0]);
 
-      return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
+      Map<Number, ValueHolder<String>> map =  new HashMap<>();
+      map.put(1, null);
+      map.put(2, null);
+      map.put(3, valueHolder("three"));
+      return map;
     });
 
     InternalCache<Number, CharSequence> ehcache = getCache(store);
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
-    assertThat(result, hasEntry((Number)1, (CharSequence) null));
-    assertThat(result, hasEntry((Number)2, (CharSequence) null));
-    assertThat(result, hasEntry((Number)3, (CharSequence)"three"));
+    assertThat(result, hasEntry(1, null));
+    assertThat(result, hasEntry(2, null));
+    assertThat(result, hasEntry(3, "three"));
     verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
   }
 
@@ -100,7 +103,7 @@ public class EhcacheBulkMethodsTest {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
     when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new Ehcache<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
+    return new Ehcache<>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
   }
 
   static <K, V> Map.Entry<K, V> entry(final K key, final V value) {
