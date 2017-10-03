@@ -172,12 +172,9 @@ public class VoltronReadWriteLockClientTest {
       locker.lock(WRITE);
       try {
         tester = ref.fetchEntity(null);
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(READ);
-            return null;
-          }
+        success = async(() -> {
+          tester.lock(READ);
+          return null;
         });
 
         try {
@@ -211,12 +208,9 @@ public class VoltronReadWriteLockClientTest {
       locker.lock(WRITE);
       try {
         tester = ref.fetchEntity(null);
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(WRITE);
-            return null;
-          }
+        success = async(() -> {
+          tester.lock(WRITE);
+          return null;
         });
 
         try {
@@ -250,12 +244,9 @@ public class VoltronReadWriteLockClientTest {
       locker.lock(READ);
       try {
         tester = ref.fetchEntity(null);
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(WRITE);
-            return null;
-          }
+        success = async(() -> {
+          tester.lock(WRITE);
+          return null;
         });
 
         try {

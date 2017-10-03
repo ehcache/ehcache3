@@ -96,19 +96,9 @@ public class LoaderWriterConfigTest {
     MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
     config.setTypes(Long.class, String.class);
     config.setReadThrough(readThrough);
-    config.setCacheLoaderFactory(new Factory<CacheLoader<Long, String>>() {
-      @Override
-      public CacheLoader<Long, String> create() {
-        return cacheLoader;
-      }
-    });
+    config.setCacheLoaderFactory(() -> cacheLoader);
     config.setWriteThrough(writeThrough);
-    config.setCacheWriterFactory(new Factory<CacheWriter<? super Long, ? super String>>() {
-      @Override
-      public CacheWriter<? super Long, ? super String> create() {
-        return cacheWriter;
-      }
-    });
+    config.setCacheWriterFactory(() -> cacheWriter);
     return config;
   }
 }

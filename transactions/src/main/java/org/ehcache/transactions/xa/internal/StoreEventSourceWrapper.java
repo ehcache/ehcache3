@@ -39,16 +39,13 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   StoreEventSourceWrapper(StoreEventSource<K, SoftLock<V>> underlying) {
     this.underlying = underlying;
-    underlying.addEventFilter(new StoreEventFilter<K, SoftLock<V>>() {
-      @Override
-      public boolean acceptEvent(EventType type, K key, SoftLock<V> oldValue, SoftLock<V> newValue) {
-        if (newValue != null) {
-          return newValue.getOldValue() != null;
-        } else if (oldValue != null) {
-          return oldValue.getOldValue() != null;
-        }
-        return false;
+    underlying.addEventFilter((type, key, oldValue, newValue) -> {
+      if (newValue != null) {
+        return newValue.getOldValue() != null;
+      } else if (oldValue != null) {
+        return oldValue.getOldValue() != null;
       }
+      return false;
     });
   }
 
@@ -69,22 +66,19 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   @Override
   public void addEventFilter(final StoreEventFilter<K, V> eventFilter) {
-    underlying.addEventFilter(new StoreEventFilter<K, SoftLock<V>>() {
-      @Override
-      public boolean acceptEvent(EventType type, K key, SoftLock<V> oldValue, SoftLock<V> newValue) {
-        V unwrappedOldValue = null;
-        V unwrappedNewValue = null;
-        if (oldValue != null) {
-          unwrappedOldValue = oldValue.getOldValue();
-        }
-        if (newValue != null) {
-          unwrappedNewValue = newValue.getOldValue();
-        }
-        if (unwrappedNewValue == null && unwrappedOldValue == null) {
-          return false;
-        }
-        return eventFilter.acceptEvent(type, key, unwrappedOldValue, unwrappedNewValue);
+    underlying.addEventFilter((type, key, oldValue, newValue) -> {
+      V unwrappedOldValue = null;
+      V unwrappedNewValue = null;
+      if (oldValue != null) {
+        unwrappedOldValue = oldValue.getOldValue();
       }
+      if (newValue != null) {
+        unwrappedNewValue = newValue.getOldValue();
+      }
+      if (unwrappedNewValue == null && unwrappedOldValue == null) {
+        return false;
+      }
+      return eventFilter.acceptEvent(type, key, unwrappedOldValue, unwrappedNewValue);
     });
   }
 

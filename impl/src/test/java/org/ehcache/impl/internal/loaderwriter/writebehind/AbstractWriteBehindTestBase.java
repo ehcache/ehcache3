@@ -283,12 +283,9 @@ public abstract class AbstractWriteBehindTestBase {
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        semaphore.acquire();
-        return null;
-      }
+    doAnswer(invocation -> {
+      semaphore.acquire();
+      return null;
     }).when(loaderWriter).delete("key");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -339,12 +336,9 @@ public abstract class AbstractWriteBehindTestBase {
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        semaphore.acquire();
-        return null;
-      }
+    doAnswer(invocation -> {
+      semaphore.acquire();
+      return null;
     }).when(loaderWriter).delete("key");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -433,13 +427,9 @@ public abstract class AbstractWriteBehindTestBase {
     final Semaphore gate = new Semaphore(0);
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
-    doAnswer(new Answer() {
-
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        gate.acquire();
-        return null;
-      }
+    doAnswer(invocation -> {
+      gate.acquire();
+      return null;
     }).when(loaderWriter).write(anyString(), anyString());
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
@@ -455,13 +445,7 @@ public abstract class AbstractWriteBehindTestBase {
 
       ExecutorService executor = Executors.newSingleThreadExecutor();
       try {
-        Future<?> blockedPut = executor.submit(new Runnable() {
-
-          @Override
-          public void run() {
-            testCache.put("key3", "value");
-          }
-        });
+        Future<?> blockedPut = executor.submit(() -> testCache.put("key3", "value"));
 
         try {
           blockedPut.get(100, MILLISECONDS);
@@ -485,13 +469,9 @@ public abstract class AbstractWriteBehindTestBase {
   public void testBatchedWriteBehindBlocksWhenFull() throws Exception {
     final Semaphore gate = new Semaphore(0);
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
-    doAnswer(new Answer() {
-
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        gate.acquire();
-        return null;
-      }
+    doAnswer(invocation -> {
+      gate.acquire();
+      return null;
     }).when(loaderWriter).writeAll(any(Iterable.class));
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
@@ -507,13 +487,7 @@ public abstract class AbstractWriteBehindTestBase {
 
       ExecutorService executor = Executors.newSingleThreadExecutor();
       try {
-        Future<?> blockedPut = executor.submit(new Runnable() {
-
-          @Override
-          public void run() {
-            testCache.put("key3", "value");
-          }
-        });
+        Future<?> blockedPut = executor.submit(() -> testCache.put("key3", "value"));
 
         try {
           blockedPut.get(100, MILLISECONDS);

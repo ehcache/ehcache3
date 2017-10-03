@@ -72,23 +72,13 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     tier = factory.newCachingTier(1L);
 
     try {
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return valueHolder;
-        }
-      });
+      tier.getOrComputeIfAbsent(key, k -> valueHolder);
 
       tier.invalidate(key);
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);
-      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K o) {
-          return newValueHolder;
-        }
-      });
+      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
       assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
     } catch (StoreAccessException e) {

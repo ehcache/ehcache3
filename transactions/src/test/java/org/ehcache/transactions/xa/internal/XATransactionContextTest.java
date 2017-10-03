@@ -239,13 +239,10 @@ public class XATransactionContextTest {
     final AtomicReference<Collection<Long>> savedInDoubt = new AtomicReference<Collection<Long>>();
     // doAnswer is required to make a copy of the keys collection because xaTransactionContext.prepare() clears it before the verify(journal, times(1)).saveInDoubt(...) assertion can be made.
     // See: http://stackoverflow.com/questions/17027368/mockito-what-if-argument-passed-to-mock-is-modified
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Collection<Long> o = (Collection<Long>) invocation.getArguments()[1];
-        savedInDoubt.set(new HashSet<Long>(o));
-        return null;
-      }
+    doAnswer(invocation -> {
+      Collection<Long> o = (Collection<Long>) invocation.getArguments()[1];
+      savedInDoubt.set(new HashSet<Long>(o));
+      return null;
     }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     assertThat(xaTransactionContext.prepare(), is(3));
@@ -358,79 +355,47 @@ public class XATransactionContextTest {
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
     final AtomicReference<Collection<Long>> savedInDoubtCollectionRef = new AtomicReference<Collection<Long>>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        savedInDoubtCollectionRef.set(new HashSet<Long>((Collection<Long>) invocation.getArguments()[1]));
-        return null;
-      }
+    doAnswer(invocation -> {
+      savedInDoubtCollectionRef.set(new HashSet<Long>((Collection<Long>) invocation.getArguments()[1]));
+      return null;
     }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
-    when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return savedInDoubtCollectionRef.get() != null;
-      }
-    });
-    when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return savedInDoubtCollectionRef.get();
-      }
-    });
+    when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get() != null);
+    when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get());
     final AtomicReference<SoftLock> softLock1Ref = new AtomicReference<SoftLock>();
-    when(underlyingStore.get(eq(1L))).then(new Answer<Object>() {
+    when(underlyingStore.get(eq(1L))).then(invocation -> softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
       @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
-          @Override
-          public Object value() {
-            return softLock1Ref.get();
-          }
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
+      public Object value() {
+        return softLock1Ref.get();
+      }
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
       }
     });
-    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
-        return null;
-      }
+    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class))).then(invocation -> {
+      softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
+      return null;
     });
-    when(underlyingStore.replace(eq(1L), isA(SoftLock.class), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        if (softLock1Ref.get() != null) {
-          return ReplaceStatus.HIT;
-        }
-        return ReplaceStatus.MISS_PRESENT;
-      }
-    });
-    final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<SoftLock>(new SoftLock(null, "two", null));
-    when(underlyingStore.get(eq(2L))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
-          @Override
-          public Object value() {
-            return softLock2Ref.get();
-          }
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
-      }
-    });
-    when(underlyingStore.replace(eq(2L), isA(SoftLock.class), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        softLock2Ref.set((SoftLock) invocation.getArguments()[2]);
+    when(underlyingStore.replace(eq(1L), isA(SoftLock.class), isA(SoftLock.class))).then(invocation -> {
+      if (softLock1Ref.get() != null) {
         return ReplaceStatus.HIT;
       }
+      return ReplaceStatus.MISS_PRESENT;
+    });
+    final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<SoftLock>(new SoftLock(null, "two", null));
+    when(underlyingStore.get(eq(2L))).then(invocation -> softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
+      @Override
+      public Object value() {
+        return softLock2Ref.get();
+      }
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
+      }
+    });
+    when(underlyingStore.replace(eq(2L), isA(SoftLock.class), isA(SoftLock.class))).then(invocation -> {
+      softLock2Ref.set((SoftLock) invocation.getArguments()[2]);
+      return ReplaceStatus.HIT;
     });
 
     when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.REMOVED);

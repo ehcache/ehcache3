@@ -163,28 +163,25 @@ public class LoaderWriterErrorEhcacheTest {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testRemoveAllWithWriterException() throws Exception {
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
-        Set<Integer> result = new HashSet<Integer>();
+    doAnswer(invocation -> {
+      Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
+      Set<Integer> result = new HashSet<Integer>();
 
-        for (Integer i : iterable) {
-          switch (i) {
-            case 2:
-              throw new Exception("Mock Exception: cannot write 2");
-            case 1:
-            case 3:
-            case 4:
-              result.add(i);
-              break;
-            default:
-              throw new AssertionError("should not try to delete key " + i);
-          }
+      for (Integer i : iterable) {
+        switch (i) {
+          case 2:
+            throw new Exception("Mock Exception: cannot write 2");
+          case 1:
+          case 3:
+          case 4:
+            result.add(i);
+            break;
+          default:
+            throw new AssertionError("should not try to delete key " + i);
         }
-
-        return result;
       }
+
+      return result;
     }).when(cacheLoaderWriter).deleteAll(ArgumentMatchers.<Iterable>any());
 
     try {

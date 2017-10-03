@@ -155,33 +155,15 @@ public class OversizeMappingTest {
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> VALUE);
 
     assertNotNullMapping(store);
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
   }
@@ -190,23 +172,11 @@ public class OversizeMappingTest {
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, a -> OVER_SIZED_VALUE);
     assertNullMapping(store);
 
     store.put(KEY, VALUE);
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, a -> OVER_SIZED_VALUE);
 
     assertNotNullMapping(store);
   }

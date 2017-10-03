@@ -61,12 +61,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
 
     tier = factory.newStoreWithCapacity(1L);
 
-    tier.computeIfAbsent(key, new Function<K, V>() {
-      @Override
-      public V apply(final K k) {
-        return factory.createValue(1L);
-      }
-    });
+    tier.computeIfAbsent(key, k -> factory.createValue(1L));
 
     fillTierOverCapacity(tier, factory);
 
@@ -86,12 +81,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
 
     try {
       assertThat(tier.get(key), is(nullValue()));
-      assertThat(tier.computeIfAbsentAndFault(key, new Function<K, V>() {
-        @Override
-        public V apply(final K k) {
-          return factory.createValue(1L);
-        }
-      }).value(), is(equalTo(value)));
+      assertThat(tier.computeIfAbsentAndFault(key, k -> factory.createValue(1L)).value(), is(equalTo(value)));
 
       fillTierOverCapacity(tier, factory);
       assertThat(tier.get(key).value(), is(equalTo(value)));

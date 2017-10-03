@@ -73,12 +73,8 @@ public class PartitionedOrderedExecutorTest {
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
 
     try {
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          //no-op
-        }
+      executor.execute(() -> {
+        //no-op
       });
       fail("Expected RejectedExecutionException");
     } catch (RejectedExecutionException e) {
@@ -94,21 +90,11 @@ public class PartitionedOrderedExecutorTest {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          semaphore.acquireUninterruptibly();
-        }
-      });
+      executor.execute(() -> semaphore.acquireUninterruptibly());
       executor.shutdown();
       try {
-        executor.execute(new Runnable() {
-
-          @Override
-          public void run() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-          }
+        executor.execute(() -> {
+          throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         });
         fail("Expected RejectedExecutionException");
       } catch (RejectedExecutionException e) {
@@ -130,13 +116,7 @@ public class PartitionedOrderedExecutorTest {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          semaphore.acquireUninterruptibly();
-        }
-      });
+      executor.execute(() -> semaphore.acquireUninterruptibly());
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -163,23 +143,11 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
-      });
+      executor.submit(() -> jobSemaphore.acquireUninterruptibly());
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
@@ -212,23 +180,14 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
       final AtomicBoolean called = new AtomicBoolean();
-      Callable<?> leftBehind = new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          called.set(true);
-          return null;
-        }
+      Callable<?> leftBehind = (Callable<Void>) () -> {
+        called.set(true);
+        return null;
       };
       executor.submit(leftBehind);
       testSemaphore.acquireUninterruptibly();
@@ -260,17 +219,12 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          try {
-            jobSemaphore.acquire();
-          } catch (InterruptedException e) {
-            interrupted.set(true);
-          }
-          return null;
+      executor.submit(() -> {
+        testSemaphore.release();
+        try {
+          jobSemaphore.acquire();
+        } catch (InterruptedException e) {
+          interrupted.set(true);
         }
       });
       testSemaphore.acquireUninterruptibly();
@@ -297,13 +251,9 @@ public class PartitionedOrderedExecutorTest {
       List<Future<?>> tasks = new ArrayList<Future<?>>();
       for (int i = 0; i < 100; i++) {
         final int index = i;
-        tasks.add(executor.submit(new Callable<Object>() {
-
-          @Override
-          public Object call() throws Exception {
-            assertThat(sequence.getAndSet(index), is(index -1));
-            return null;
-          }
+        tasks.add(executor.submit(() -> {
+          assertThat(sequence.getAndSet(index), is(index -1));
+          return null;
         }));
       }
 

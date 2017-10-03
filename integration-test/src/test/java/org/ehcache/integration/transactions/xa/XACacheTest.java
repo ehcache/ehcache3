@@ -182,15 +182,12 @@ public class XACacheTest {
       txCache1.remove(1L);
       txCache2.remove(1L);
     }
-    transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
-      @Override
-      public void statusChanged(int oldStatus, int newStatus) {
-        if (newStatus == Status.STATUS_PREPARED) {
-          Recoverer recoverer = TransactionManagerServices.getRecoverer();
-          recoverer.run();
-          assertThat(recoverer.getCommittedCount(), is(0));
-          assertThat(recoverer.getRolledbackCount(), is(0));
-        }
+    transactionManager.getCurrentTransaction().addTransactionStatusChangeListener((oldStatus, newStatus) -> {
+      if (newStatus == Status.STATUS_PREPARED) {
+        Recoverer recoverer = TransactionManagerServices.getRecoverer();
+        recoverer.run();
+        assertThat(recoverer.getCommittedCount(), is(0));
+        assertThat(recoverer.getRolledbackCount(), is(0));
       }
     });
     transactionManager.commit();
@@ -224,12 +221,9 @@ public class XACacheTest {
       txCache1.put(1L, "one");
       txCache2.put(1L, "un");
     }
-    transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
-      @Override
-      public void statusChanged(int oldStatus, int newStatus) {
-        if (newStatus == Status.STATUS_COMMITTING) {
-          throw new AbortError();
-        }
+    transactionManager.getCurrentTransaction().addTransactionStatusChangeListener((oldStatus, newStatus) -> {
+      if (newStatus == Status.STATUS_COMMITTING) {
+        throw new AbortError();
       }
     });
     try {
@@ -824,15 +818,12 @@ public class XACacheTest {
     public final void run() {
       try {
         transactionManager.begin();
-        transactionManager.getCurrentTransaction().addTransactionStatusChangeListener(new TransactionStatusChangeListener() {
-          @Override
-          public void statusChanged(int oldStatus, int newStatus) {
-            if (oldStatus == Status.STATUS_PREPARED) {
-              try {
-                barrier.await(5L, TimeUnit.SECONDS);
-              } catch (Exception e) {
-                throw new AssertionError();
-              }
+        transactionManager.getCurrentTransaction().addTransactionStatusChangeListener((oldStatus, newStatus) -> {
+          if (oldStatus == Status.STATUS_PREPARED) {
+            try {
+              barrier.await(5L, TimeUnit.SECONDS);
+            } catch (Exception e) {
+              throw new AssertionError();
             }
           }
         });

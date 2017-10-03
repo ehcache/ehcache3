@@ -391,44 +391,41 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         cache.put(i, new CacheValue((int)i));
       }
 
-      Callable<Void> task = new Callable<Void>() {
-        @Override
-        public Void call() {
-          Random rndm = new Random();
+      Callable<Void> task = () -> {
+        Random rndm = new Random();
 
-          long start = System.nanoTime();
-          while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
-            Long k = key(rndm);
-            switch (rndm.nextInt(4)) {
-              case 0: {
-                CacheValue v = value(rndm);
-                cache.putIfAbsent(k, v);
-                break;
-              }
-              case 1: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, nv);
-                break;
-              }
-              case 2: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, ov, nv);
-                break;
-              }
-              case 3: {
-                CacheValue v = value(rndm);
-                cache.put(k, v);
-                cache.remove(k, v);
-                break;
-              }
+        long start = System.nanoTime();
+        while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
+          Long k = key(rndm);
+          switch (rndm.nextInt(4)) {
+            case 0: {
+              CacheValue v = value(rndm);
+              cache.putIfAbsent(k, v);
+              break;
+            }
+            case 1: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, nv);
+              break;
+            }
+            case 2: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, ov, nv);
+              break;
+            }
+            case 3: {
+              CacheValue v = value(rndm);
+              cache.put(k, v);
+              cache.remove(k, v);
+              break;
             }
           }
-          return null;
         }
+        return null;
       };
 
       ExecutorService executor = Executors.newCachedThreadPool();

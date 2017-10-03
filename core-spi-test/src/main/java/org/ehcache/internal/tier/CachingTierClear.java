@@ -78,12 +78,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
       for (int i = 0; i < nbMappings; i++) {
         K key = factory.createKey(i);
 
-        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K k) {
-            return originalValueHolder;
-          }
-        });
+        tier.getOrComputeIfAbsent(key, k -> originalValueHolder);
         keys.add(key);
       }
 
@@ -94,12 +89,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
       for (K key : keys) {
         tier.invalidate(key);
-        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K o) {
-            return newValueHolder;
-          }
-        });
+        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
         assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
       }

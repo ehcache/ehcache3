@@ -146,12 +146,7 @@ public class EhcacheManagerTest {
   @Test
   public void testConstructionThrowsWhenNotBeingToResolveService() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    final DefaultConfiguration config = new DefaultConfiguration(caches, null, new ServiceCreationConfiguration<NoSuchService>() {
-      @Override
-      public Class<NoSuchService> getServiceType() {
-        return NoSuchService.class;
-      }
-    });
+    final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown...");
@@ -163,17 +158,7 @@ public class EhcacheManagerTest {
   @Test
   public void testCreationFailsOnDuplicateServiceCreationConfiguration() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    DefaultConfiguration config = new DefaultConfiguration(caches, null, new ServiceCreationConfiguration<NoSuchService>() {
-      @Override
-      public Class<NoSuchService> getServiceType() {
-        return NoSuchService.class;
-      }
-    }, new ServiceCreationConfiguration<NoSuchService>() {
-      @Override
-      public Class<NoSuchService> getServiceType() {
-        return NoSuchService.class;
-      }
-    });
+    DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown ...");
@@ -811,15 +796,12 @@ public class EhcacheManagerTest {
 
     final CountDownLatch countDownLatch = new CountDownLatch(1);
 
-    Executors.newSingleThreadExecutor().submit(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          cacheManager.init();
-        } catch (Error err) {
-          assertThat(err.getMessage(), equalTo("Test EhcacheManager close."));
-          countDownLatch.countDown();
-        }
+    Executors.newSingleThreadExecutor().submit(() -> {
+      try {
+        cacheManager.init();
+      } catch (Error err) {
+        assertThat(err.getMessage(), equalTo("Test EhcacheManager close."));
+        countDownLatch.countDown();
       }
     });
     countDownLatch.await();
@@ -838,12 +820,7 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
     final EhcacheManager manager = new EhcacheManager(config, minimumCacheManagerServices());
 
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        manager.getStatusTransitioner().maintenance().succeeded();
-      }
-    });
+    Thread thread = new Thread(() -> manager.getStatusTransitioner().maintenance().succeeded());
     thread.start();
     thread.join(1000);
 

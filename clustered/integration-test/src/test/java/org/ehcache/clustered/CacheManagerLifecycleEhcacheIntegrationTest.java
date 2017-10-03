@@ -114,13 +114,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
 
-    Callable<PersistentCacheManager> task = new Callable<PersistentCacheManager>() {
-      @Override
-      public PersistentCacheManager call() throws Exception {
-        PersistentCacheManager manager = managerBuilder.build();
-        manager.init();
-        return manager;
-      }
+    Callable<PersistentCacheManager> task = () -> {
+      PersistentCacheManager manager = managerBuilder.build();
+      manager.init();
+      return manager;
     };
 
     assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");

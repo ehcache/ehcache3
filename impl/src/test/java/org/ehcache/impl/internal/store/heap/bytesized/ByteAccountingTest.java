@@ -377,12 +377,9 @@ public class ByteAccountingTest {
   public void testSilentInvalidate() throws StoreAccessException {
     OnHeapStoreForTests<Object, Object> store = newStore();
     store.put(KEY, VALUE);
-    store.silentInvalidate(KEY, new Function<Store.ValueHolder<Object>, Void>() {
-      @Override
-      public Void apply(Store.ValueHolder<Object> objectValueHolder) {
-        // Nothing to do
-        return null;
-      }
+    store.silentInvalidate(KEY, objectValueHolder -> {
+      // Nothing to do
+      return null;
     });
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
@@ -395,23 +392,11 @@ public class ByteAccountingTest {
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute("another", new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return null;
-      }
-    });
+    store.compute("another", (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return null;
-      }
-    });
+    store.compute(KEY, (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -420,26 +405,14 @@ public class ByteAccountingTest {
   public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     final String replace = "Replace the original value";
     long delta = SIZEOF.deepSizeOf(replace) - SIZEOF.deepSizeOf(VALUE);
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return replace;
-      }
-    });
+    store.compute(KEY, (a, b) -> replace);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
   }
@@ -450,12 +423,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        return s2;
-      }
-    }, () -> false);
+    store.compute(KEY, (s, s2) -> s2, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -466,12 +434,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        return s2;
-      }
-    });
+    store.compute(KEY, (s, s2) -> s2);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -480,23 +443,11 @@ public class ByteAccountingTest {
   public void testComputeIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, a -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return "Should not be replaced";
-      }
-    });
+    store.computeIfAbsent(KEY, a -> "Should not be replaced");
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
   }
@@ -506,12 +457,7 @@ public class ByteAccountingTest {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
 
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-      @Override
-      public String apply(String s) {
-        return VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, s -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -522,12 +468,9 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-      @Override
-      public String apply(String s) {
-        fail("should not be called");
-        return s;
-      }
+    store.computeIfAbsent(KEY, s -> {
+      fail("should not be called");
+      return s;
     });
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));

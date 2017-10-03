@@ -129,24 +129,11 @@ public class ScopedStoreEventDispatcherTest {
     map.put(keys[2], 256 * 125L);
 
     final ConcurrentHashMap<Long, Long> resultMap = new ConcurrentHashMap<Long, Long>(map);
-    dispatcher.addEventListener(new StoreEventListener<Long, Boolean>() {
-      @Override
-      public void onEvent(StoreEvent<Long, Boolean> event) {
-        if (event.getNewValue()) {
-          resultMap.compute(event.getKey(), new BiFunction<Long, Long, Long>() {
-            @Override
-            public Long apply(Long key, Long value) {
-              return value + 10L;
-            }
-          });
-        } else {
-          resultMap.compute(event.getKey(), new BiFunction<Long, Long, Long>() {
-            @Override
-            public Long apply(Long key, Long value) {
-              return 7L - value;
-            }
-          });
-        }
+    dispatcher.addEventListener(event -> {
+      if (event.getNewValue()) {
+        resultMap.compute(event.getKey(), (key, value) -> value + 10L);
+      } else {
+        resultMap.compute(event.getKey(), (key, value) -> 7L - value);
       }
     });
 
@@ -157,36 +144,27 @@ public class ScopedStoreEventDispatcherTest {
     final CountDownLatch latch = new CountDownLatch(workers);
     for (int i = 0; i < workers; i++) {
       final int index =i;
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          Random random = new Random(seed * index);
-          for (int j = 0; j < 10000; j++) {
-            int keyIndex = random.nextInt(3);
-            final StoreEventSink<Long, Boolean> sink = dispatcher.eventSink();
-            if (random.nextBoolean()) {
-              map.compute(keys[keyIndex], new BiFunction<Long, Long, Long>() {
-                @Override
-                public Long apply(Long key, Long value) {
-                  long newValue = value + 10L;
-                  sink.created(key, true);
-                  return newValue;
-                }
-              });
-            } else {
-              map.compute(keys[keyIndex], new BiFunction<Long, Long, Long>() {
-                @Override
-                public Long apply(Long key, Long value) {
-                  long newValue = 7L - value;
-                  sink.created(key, false);
-                  return newValue;
-                }
-              });
-            }
-            dispatcher.releaseEventSink(sink);
+      new Thread(() -> {
+        Random random = new Random(seed * index);
+        for (int j = 0; j < 10000; j++) {
+          int keyIndex = random.nextInt(3);
+          final StoreEventSink<Long, Boolean> sink = dispatcher.eventSink();
+          if (random.nextBoolean()) {
+            map.compute(keys[keyIndex], (key, value) -> {
+              long newValue = value + 10L;
+              sink.created(key, true);
+              return newValue;
+            });
+          } else {
+            map.compute(keys[keyIndex], (key, value) -> {
+              long newValue = 7L - value;
+              sink.created(key, false);
+              return newValue;
+            });
           }
-          latch.countDown();
+          dispatcher.releaseEventSink(sink);
         }
+        latch.countDown();
       }).start();
     }
 

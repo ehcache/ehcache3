@@ -65,12 +65,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
-      for (File file : dataDirectory.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-          return name.endsWith(HOLDER_FILE_SUFFIX);
-        }
-      })) {
+      for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
         FileInputStream fis = new FileInputStream(file);
         try {
           ObjectInputStream oin = new ObjectInputStream(fis);

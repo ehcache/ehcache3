@@ -62,12 +62,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
                 .queueSize(3)
                 .concurrencyLevel(1)
                 .enableCoalescing())
-            .withEvictionAdvisor(new EvictionAdvisor<String, String>() {
-              @Override
-              public boolean adviseAgainstEviction(String key, String value) {
-                return false;
-              }
-            })
+            .withEvictionAdvisor((key, value) -> false)
             .build())
         .build(true);
 

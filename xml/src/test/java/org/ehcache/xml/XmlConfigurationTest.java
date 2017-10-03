@@ -398,12 +398,7 @@ public class XmlConfigurationTest {
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
-    Collections.sort(orderedServiceConfigurations, new Comparator<ServiceConfiguration<?>>() {
-      @Override
-      public int compare(ServiceConfiguration<?> o1, ServiceConfiguration<?> o2) {
-        return o1.getClass().getName().compareTo(o2.getClass().getName());
-      }
-    });
+    Collections.sort(orderedServiceConfigurations, (o1, o2) -> o1.getClass().getName().compareTo(o2.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
@@ -723,12 +718,7 @@ public class XmlConfigurationTest {
 
   @Test
   public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
-    Callable<Configuration> parserTask = new Callable<Configuration>() {
-      @Override
-      public Configuration call() throws Exception {
-        return new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
-      }
-    };
+    Callable<Configuration> parserTask = () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
     ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     try {

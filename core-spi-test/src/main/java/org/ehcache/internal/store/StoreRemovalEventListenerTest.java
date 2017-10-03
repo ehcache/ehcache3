@@ -93,12 +93,7 @@ public class StoreRemovalEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       K key = factory.createKey(125L);
       store.put(key, factory.createValue(125L));
       StoreEventListener<K, V> listener = addListener(store);
-      store.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return null;
-        }
-      });
+      store.compute(key, (k, v) -> null);
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

@@ -143,12 +143,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, new Comparator<String>() {
-          @Override
-          public int compare(String t, String t1) {
-            return 0;
-          }
-        }, noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, (t, t1) -> 0, noAdvice());
         assertThat(candidate, notNullValue());
     }
 
@@ -158,12 +153,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, new EvictionAdvisor<String, String>() {
-            @Override
-            public boolean adviseAgainstEviction(String key, String value) {
-                return true;
-            }
-        });
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, (key, value) -> true);
         assertThat(candidate, nullValue());
     }
 
@@ -173,18 +163,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, new Comparator<String>() {
-          @Override
-          public int compare(String t, String t1) {
-            return 0;
-          }
-        }, new EvictionAdvisor<String, String>() {
-
-          @Override
-          public boolean adviseAgainstEviction(String key, String value) {
-            return key.length() > 1;
-          }
-        });
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, (t, t1) -> 0, (key, value) -> key.length() > 1);
         assertThat(candidate.getKey().length(), is(1));
     }
 

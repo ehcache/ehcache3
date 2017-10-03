@@ -70,17 +70,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
 
   private UUID clientId;
-  private ReconnectListener reconnectListener = new ReconnectListener() {
-    @Override
-    public void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage) {
-      // No op
-    }
+  private ReconnectListener reconnectListener = reconnectMessage -> {
+    // No op
   };
-  private DisconnectionListener disconnectionListener = new DisconnectionListener() {
-    @Override
-    public void onDisconnection() {
-      // No op
-    }
+  private DisconnectionListener disconnectionListener = () -> {
+    // No op
   };
   private Timeouts timeouts = Timeouts.builder().build();
   private String storeIdentifier;

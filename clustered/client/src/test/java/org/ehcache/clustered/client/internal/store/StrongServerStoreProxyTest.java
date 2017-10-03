@@ -227,19 +227,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {
@@ -320,19 +314,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {

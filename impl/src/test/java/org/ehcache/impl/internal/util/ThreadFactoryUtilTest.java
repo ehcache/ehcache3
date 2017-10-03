@@ -35,22 +35,16 @@ public class ThreadFactoryUtilTest {
     final ThreadFactory myPool = ThreadFactoryUtil.threadFactory("ThreadFactoryUtilTest-pool");
 
     ThreadGroup testGroup = new ThreadGroup("ThreadFactoryUtilTest-testGroup");
-    Thread threadWithNonDefaultGroup = new Thread(testGroup, new Runnable() {
-      @Override
-      public void run() {
-        Thread poolCreatedThread = myPool.newThread(new Runnable() {
-          @Override
-          public void run() {
-            ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
-            threadGroupName.set(threadGroup.getName());
-          }
-        });
-        poolCreatedThread.start();
-        try {
-          poolCreatedThread.join();
-        } catch (InterruptedException e) {
-          throw new AssertionError(e);
-        }
+    Thread threadWithNonDefaultGroup = new Thread(testGroup, () -> {
+      Thread poolCreatedThread = myPool.newThread(() -> {
+        ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
+        threadGroupName.set(threadGroup.getName());
+      });
+      poolCreatedThread.start();
+      try {
+        poolCreatedThread.join();
+      } catch (InterruptedException e) {
+        throw new AssertionError(e);
       }
     });
     threadWithNonDefaultGroup.start();

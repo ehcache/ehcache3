@@ -70,12 +70,9 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
       Hold hold = lock.writeLock();
 
-      Future<Void> waiter = async(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          lock.writeLock().unlock();
-          return null;
-        }
+      Future<Void> waiter = async(() -> {
+        lock.writeLock().unlock();
+        return null;
       });
 
       try {
@@ -113,12 +110,9 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
       final Connection clientB = CLUSTER.newConnection();
       try {
-        Future<Void> waiter = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
-            return null;
-          }
+        Future<Void> waiter = async(() -> {
+          new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+          return null;
         });
 
         try {
