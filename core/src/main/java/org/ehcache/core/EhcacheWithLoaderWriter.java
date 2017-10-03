@@ -263,12 +263,9 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     putObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
-    final AtomicReference<V> previousMapping = new AtomicReference<V>();
-
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K key, final V previousValue) {
-        previousMapping.set(previousValue);
         try {
           cacheLoaderWriter.write(key, value);
         } catch (Exception e) {
@@ -280,11 +277,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
     try {
       store.compute(key, remappingFunction);
-      if (previousMapping.get() != null) {
-        putObserver.end(PutOutcome.UPDATED);
-      } else {
-        putObserver.end(PutOutcome.PUT);
-      }
+      putObserver.end(PutOutcome.PUT);
     } catch (StoreAccessException e) {
       try {
         try {
@@ -1350,11 +1343,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT);
-        putObserver.end(PutOutcome.UPDATED);
       } else {
         getObserver.end(GetOutcome.MISS);
-        putObserver.end(PutOutcome.PUT);
       }
+      putObserver.end(PutOutcome.PUT);
       return returnValue;
     }
 

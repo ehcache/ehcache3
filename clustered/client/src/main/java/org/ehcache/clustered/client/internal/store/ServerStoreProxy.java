@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 
 /**
@@ -45,20 +46,6 @@ public interface ServerStoreProxy extends ServerStore {
    * @return the cache identifier
    */
   String getCacheId();
-
-  /**
-   * Add a listener called when invalidation requests arrive.
-   *
-   * @param listener the listener to add
-   */
-  void addInvalidationListener(InvalidationListener listener);
-
-  /**
-   * Remove a listener
-   *
-   * @param listener the listener to remove
-   */
-  boolean removeInvalidationListener(InvalidationListener listener);
 
   /**
    * Closes this proxy.

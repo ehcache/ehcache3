@@ -233,28 +233,26 @@ public class XAStore<K, V> implements Store<K, V> {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
-      return newValue == null ? PutStatus.PUT : PutStatus.UPDATE;
+      return PutStatus.PUT;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    PutStatus status = PutStatus.NOOP;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       } else {
         if (currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())))) {
-          status = PutStatus.UPDATE;
+          return PutStatus.PUT;
         }
       }
     } else {
       if (currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())))) {
-        status = PutStatus.PUT;
+        return PutStatus.PUT;
       }
     }
-    return status;
+    return PutStatus.NOOP;
   }
 
   @Override

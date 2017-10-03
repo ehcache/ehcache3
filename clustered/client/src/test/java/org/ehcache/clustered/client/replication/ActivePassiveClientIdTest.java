@@ -116,10 +116,10 @@ public class ActivePassiveClientIdTest {
     @SuppressWarnings("unchecked")
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test", config);
 
-    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, null);
 
-    activeEntity = observableClusterTierServerEntityService.getServedActiveEntities().get(0);
-    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
+    activeEntity = observableClusterTierServerEntityService.getServedActiveEntitiesFor("test").get(0);
+    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntitiesFor("test").get(0);
 
     activeMessageHandler = activeEntity.getMessageHandler();
     passiveMessageHandler = passiveEntity.getMessageHandler();
@@ -181,7 +181,7 @@ public class ActivePassiveClientIdTest {
     clusterControl.waitForRunningPassivesInStandby();
 
     // Save the new handler from the freshly started passive
-    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(1);
+    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntitiesFor("test").get(1);
     passiveMessageHandler = passiveEntity.getMessageHandler();
 
     assertThat(passiveMessageHandler.getTrackedClients().count()).isEqualTo(1L); // one client tracked

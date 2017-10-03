@@ -30,6 +30,7 @@ import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServic
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -38,7 +39,6 @@ import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
@@ -372,7 +372,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
-                                                     Consistency configuredConsistency) throws CachePersistenceException {
+                                                     Consistency configuredConsistency,
+                                                     InvalidationListener invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -416,13 +417,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);

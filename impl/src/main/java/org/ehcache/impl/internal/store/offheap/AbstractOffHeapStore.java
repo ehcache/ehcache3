@@ -271,8 +271,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return result;
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      handleRuntimeException(re);
-      return null;
+      throw handleRuntimeException(re);
     }
   }
 
@@ -288,8 +287,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
     checkValue(value);
 
-    final AtomicBoolean added = new AtomicBoolean();
-    final AtomicReference<OffHeapValueHolder<V>> replacedVal = new AtomicReference<OffHeapValueHolder<V>>(null);
+    final AtomicBoolean put = new AtomicBoolean();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
 
     final long now = timeSource.getTimeMillis();
@@ -304,32 +302,31 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
           if (mappedValue == null) {
             OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
-            added.set(newValue != null);
+            put.set(newValue != null);
             return newValue;
           } else {
             OffHeapValueHolder<V> newValue = newUpdatedValueHolder(key, value, mappedValue, now, eventSink);
-            replacedVal.set(mappedValue);
+            put.set(true);
             return newValue;
           }
         }
       };
       computeWithRetry(key, mappingFunction, false);
       eventDispatcher.releaseEventSink(eventSink);
-      if (replacedVal.get() != null) {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-        return PutStatus.UPDATE;
-      } else if (added.get()) {
+      if (put.get()) {
         putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
         return PutStatus.PUT;
       } else {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+        putObserver.end(StoreOperationOutcomes.PutOutcome.NOOP);
         return PutStatus.NOOP;
       }
     } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
+      putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
       throw caex;
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
       throw re;
     }
   }
@@ -419,8 +416,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return removed.get();
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      handleRuntimeException(re);
-      return false;
+      throw handleRuntimeException(re);
     }
   }
 
@@ -469,9 +465,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      handleRuntimeException(re);
-      // To please the compiler, the above WILL throw
-      return RemoveStatus.KEY_MISSING;
+      throw handleRuntimeException(re);
     }
 
   }
@@ -578,7 +572,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       backingMap().clear();
     } catch (RuntimeException re) {
-      handleRuntimeException(re);
+      throw handleRuntimeException(re);
     }
   }
 
@@ -887,7 +881,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      handleRuntimeException(re);
+      throw handleRuntimeException(re);
     }
     return mappedValue;
   }
@@ -967,7 +961,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS);
       }
     } catch (RuntimeException re) {
-      handleRuntimeException(re);
+      throw handleRuntimeException(re);
     }
   }
 
@@ -1047,8 +1041,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       return result;
     } catch (RuntimeException re) {
-      handleRuntimeException(re);
-      return null;
+      throw handleRuntimeException(re);
     }
   }
 
@@ -1083,8 +1076,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       return computeResult;
     } catch (RuntimeException re) {
-      handleRuntimeException(re);
-      return null;
+      throw handleRuntimeException(re);
     }
   }
 
@@ -1101,12 +1093,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         throw new StoreAccessException("The element with key '" + key + "' is too large to be stored"
                                        + " in this offheap store.", e);
       } catch (RuntimeException e) {
-        handleRuntimeException(e);
+        throw handleRuntimeException(e);
       } finally {
         evictionAdvisor().setSwitchedOn(true);
       }
     } catch (RuntimeException re) {
-      handleRuntimeException(re);
+      throw handleRuntimeException(re);
     }
     return computeResult;
   }
