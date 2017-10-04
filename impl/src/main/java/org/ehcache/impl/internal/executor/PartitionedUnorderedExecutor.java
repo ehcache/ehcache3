@@ -50,7 +50,7 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
     this.executor = executor;
     this.maxWorkers = maxWorkers;
     this.runnerPermit = new Semaphore(maxWorkers);
-    this.liveThreads = new CopyOnWriteArraySet<Thread>();
+    this.liveThreads = new CopyOnWriteArraySet<>();
   }
 
   @Override
@@ -68,7 +68,7 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
       termination.countDown();
       return emptyList();
     } else {
-      List<Runnable> failed = new ArrayList<Runnable>(queue.size());
+      List<Runnable> failed = new ArrayList<>(queue.size());
       queue.drainTo(failed);
       for (Thread t : liveThreads) {
         t.interrupt();

@@ -32,7 +32,7 @@ class CacheResources<K, V> {
 
   private final Eh107Expiry<K, V> expiryPolicy;
   private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
+  private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<>();
   private final AtomicBoolean closed = new AtomicBoolean();
   private final String cacheName;
 
@@ -44,7 +44,7 @@ class CacheResources<K, V> {
   }
 
   CacheResources(String cacheName, Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
-    this(cacheName, cacheLoaderWriter, expiry, new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>());
+    this(cacheName, cacheLoaderWriter, expiry, new ConcurrentHashMap<>());
   }
 
   Eh107Expiry<K, V> getExpiryPolicy() {

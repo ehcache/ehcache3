@@ -174,9 +174,9 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
-        Expirations.noExpiration(), ResourcePoolsHelper.createHeapOnlyPools());
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
+      Expirations.noExpiration(), ResourcePoolsHelper.createHeapOnlyPools());
+    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

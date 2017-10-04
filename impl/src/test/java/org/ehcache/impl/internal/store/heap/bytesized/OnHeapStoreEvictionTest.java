@@ -33,7 +33,7 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-    return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
+    return new OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {

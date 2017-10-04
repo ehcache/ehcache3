@@ -132,7 +132,7 @@ public class TerminatedServerTest {
 
   @BeforeClass
   public static void setProperties() {
-    Map<String, String> oldProperties = new HashMap<String, String>();
+    Map<String, String> oldProperties = new HashMap<>();
 
     /*
      * Control for a failed (timed out) connection attempt is not returned until
@@ -640,7 +640,7 @@ public class TerminatedServerTest {
   }
 
   private List<Throwable> getCausalChain(Throwable t) {
-    ArrayList<Throwable> causalChain = new ArrayList<Throwable>();
+    ArrayList<Throwable> causalChain = new ArrayList<>();
     for (Throwable cause = t; cause != null; cause = cause.getCause()) {
       causalChain.add(cause);
     }
@@ -771,7 +771,7 @@ public class TerminatedServerTest {
      */
     private Future<Void> interruptAfter(final long interval, final TimeUnit unit) {
       final Thread targetThread = Thread.currentThread();
-      FutureTask<Void> killer = new FutureTask<Void>(() -> {
+      FutureTask<Void> killer = new FutureTask<>(() -> {
         try {
           unit.sleep(interval);
           if (!isDone && targetThread.isAlive()) {
@@ -781,21 +781,21 @@ public class TerminatedServerTest {
               }
               isExpired = true;
               System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
-                  testName.getMethodName());
+                testName.getMethodName());
               Diagnostics.threadDump(System.out);
               targetThread.interrupt();
             }
 
-          /*                NEVER DO THIS AT HOME!
-           * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
-           * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
-           * looping wait where the interrupt status is recorded but ignored until the awaited event
-           * occurs.
-           */
+            /*                NEVER DO THIS AT HOME!
+             * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
+             * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
+             * looping wait where the interrupt status is recorded but ignored until the awaited event
+             * occurs.
+             */
             unit.timedJoin(targetThread, interval);
             if (!isDone && targetThread.isAlive()) {
               System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
-                  testName.getMethodName(), targetThread);
+                testName.getMethodName(), targetThread);
               targetThread.stop();   // Deprecated - BAD CODE!
             }
           }

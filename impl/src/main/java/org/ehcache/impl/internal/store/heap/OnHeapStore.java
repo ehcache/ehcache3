@@ -232,9 +232,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.valueCopier = valueCopier;
     this.storeEventDispatcher = eventDispatcher;
     if (keyCopier instanceof IdentityCopier) {
-      this.map = new SimpleBackend<K, V>(byteSized);
+      this.map = new SimpleBackend<>(byteSized);
     } else {
-      this.map = new KeyCopyBackend<K, V>(byteSized, keyCopier);
+      this.map = new KeyCopyBackend<>(byteSized, keyCopier);
     }
 
     getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag(STATISTICS_TAG).build();
@@ -258,7 +258,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateAllObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class).named("silentInvalidateAll").of(this).tag(STATISTICS_TAG).build();
     silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag(STATISTICS_TAG).build();
 
-    Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
+    Set<String> tags = new HashSet<>(Arrays.asList(STATISTICS_TAG, "tier"));
     StatisticsManager.createPassThroughStatistic(this, "mappings", tags, () -> map.mappingCount());
     StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, () -> {
       if (byteSized) {
@@ -327,7 +327,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkValue(value);
 
     final long now = timeSource.getTimeMillis();
-    final AtomicReference<StoreOperationOutcomes.PutOutcome> statOutcome = new AtomicReference<StoreOperationOutcomes.PutOutcome>(StoreOperationOutcomes.PutOutcome.NOOP);
+    final AtomicReference<StoreOperationOutcomes.PutOutcome> statOutcome = new AtomicReference<>(StoreOperationOutcomes.PutOutcome.NOOP);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
 
     try {
@@ -387,7 +387,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final long now = timeSource.getTimeMillis();
 
     try {
-      final AtomicReference<StoreOperationOutcomes.RemoveOutcome> statisticOutcome = new AtomicReference<StoreOperationOutcomes.RemoveOutcome>(StoreOperationOutcomes.RemoveOutcome.MISS);
+      final AtomicReference<StoreOperationOutcomes.RemoveOutcome> statisticOutcome = new AtomicReference<>(StoreOperationOutcomes.RemoveOutcome.MISS);
 
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
         updateUsageInBytesIfRequired(- mappedValue.size());
@@ -428,7 +428,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     checkValue(value);
 
-    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<>(null);
     final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
@@ -483,7 +483,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     checkValue(value);
 
-    final AtomicReference<RemoveStatus> outcome = new AtomicReference<RemoveStatus>(RemoveStatus.KEY_MISSING);
+    final AtomicReference<RemoveStatus> outcome = new AtomicReference<>(RemoveStatus.KEY_MISSING);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
 
     try {
@@ -536,7 +536,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     checkValue(value);
 
-    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<>(null);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
 
     try {
@@ -582,7 +582,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkValue(newValue);
 
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-    final AtomicReference<ReplaceStatus> outcome = new AtomicReference<ReplaceStatus>(ReplaceStatus.MISS_NOT_PRESENT);
+    final AtomicReference<ReplaceStatus> outcome = new AtomicReference<>(ReplaceStatus.MISS_NOT_PRESENT);
 
     try {
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
@@ -678,7 +678,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
       final long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
-        final Fault<V> fault = new Fault<V>(() -> source.apply(key));
+        final Fault<V> fault = new Fault<>(() -> source.apply(key));
         cachedValue = backEnd.putIfAbsent(key, fault);
 
         if (cachedValue == null) {
@@ -693,7 +693,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           expireMappingUnderLock(key, cachedValue);
 
           // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
-          final Fault<V> fault = new Fault<V>(() -> source.apply(key));
+          final Fault<V> fault = new Fault<>(() -> source.apply(key));
           cachedValue = backEnd.putIfAbsent(key, fault);
 
           if (cachedValue == null) {
@@ -740,7 +740,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         return newValue;
       }
 
-      final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
+      final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<>();
       backEnd.computeIfPresent(key, (mappedKey, mappedValue) -> {
         notifyInvalidation(key, mappedValue);
         invalidatedValue.set(mappedValue);
@@ -787,7 +787,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     invalidateObserver.begin();
     checkKey(key);
     try {
-      final AtomicReference<CachingTierOperationOutcomes.InvalidateOutcome> outcome = new AtomicReference<CachingTierOperationOutcomes.InvalidateOutcome>(CachingTierOperationOutcomes.InvalidateOutcome.MISS);
+      final AtomicReference<CachingTierOperationOutcomes.InvalidateOutcome> outcome = new AtomicReference<>(CachingTierOperationOutcomes.InvalidateOutcome.MISS);
 
       map.computeIfPresent(key, (k, present) -> {
         if (!(present instanceof Fault)) {
@@ -809,7 +809,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     try {
       final AtomicReference<HigherCachingTierOperationOutcomes.SilentInvalidateOutcome> outcome =
-          new AtomicReference<HigherCachingTierOperationOutcomes.SilentInvalidateOutcome>(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.MISS);
+        new AtomicReference<>(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.MISS);
 
       map.compute(key, (mappedKey, mappedValue) -> {
         long size = 0L;
@@ -1072,9 +1072,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final long now = timeSource.getTimeMillis();
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
     try {
-      final AtomicReference<OnHeapValueHolder<V>> valueHeld = new AtomicReference<OnHeapValueHolder<V>>();
+      final AtomicReference<OnHeapValueHolder<V>> valueHeld = new AtomicReference<>();
       final AtomicReference<StoreOperationOutcomes.ComputeOutcome> outcome =
-          new AtomicReference<StoreOperationOutcomes.ComputeOutcome>(StoreOperationOutcomes.ComputeOutcome.MISS);
+        new AtomicReference<>(StoreOperationOutcomes.ComputeOutcome.MISS);
 
       OnHeapValueHolder<V> computeResult = map.compute(key, (mappedKey, mappedValue) -> {
         long sizeDelta = 0L;
@@ -1155,9 +1155,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       final long now = timeSource.getTimeMillis();
 
-      final AtomicReference<OnHeapValueHolder<V>> previousValue = new AtomicReference<OnHeapValueHolder<V>>();
+      final AtomicReference<OnHeapValueHolder<V>> previousValue = new AtomicReference<>();
       final AtomicReference<StoreOperationOutcomes.ComputeIfAbsentOutcome> outcome =
-          new AtomicReference<StoreOperationOutcomes.ComputeIfAbsentOutcome>(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
+        new AtomicReference<>(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
       OnHeapValueHolder<V> computeResult = map.compute(key, (mappedKey, mappedValue) -> {
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
@@ -1207,7 +1207,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
-    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    Map<K, ValueHolder<V>> result = new HashMap<>();
 
     for (final K key : keys) {
       final ValueHolder<V> newValue = computeIfAbsent(key, k -> {
@@ -1235,7 +1235,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
     return configurationChangeListenerList;
   }
@@ -1251,7 +1251,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     // The Store here is free to slice & dice the keys as it sees fit
     // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!
 
-    Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
+    Map<K, ValueHolder<V>> result = new HashMap<>();
     for (K key : keys) {
       checkKey(key);
 
@@ -1432,14 +1432,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     OnHeapValueHolder<V> clonedValueHolder = null;
     if(valueCopier instanceof SerializingCopier) {
       if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
-        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
-            evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+        clonedValueHolder = new SerializedOnHeapValueHolder<>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
+          evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       } else {
-        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice,
-            ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+        clonedValueHolder = new SerializedOnHeapValueHolder<>(valueHolder, realValue, evictionAdvice,
+          ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       }
     } else {
-      clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice, valueCopier, now, expiration);
+      clonedValueHolder = new CopiedOnHeapValueHolder<>(valueHolder, realValue, evictionAdvice, valueCopier, now, expiration);
     }
     if (sizingEnabled) {
       clonedValueHolder.setSize(getSizeOfKeyValuePairs(key, clonedValueHolder));
@@ -1455,9 +1455,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     boolean evictionAdvice = checkEvictionAdvice(key, value);
     OnHeapValueHolder<V> valueHolder;
     if (valueCopier instanceof SerializingCopier) {
-      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer());
+      valueHolder = new SerializedOnHeapValueHolder<>(value, creationTime, expirationTime, evictionAdvice, ((SerializingCopier<V>) valueCopier)
+        .getSerializer());
     } else {
-      valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, valueCopier);
+      valueHolder = new CopiedOnHeapValueHolder<>(value, creationTime, expirationTime, evictionAdvice, valueCopier);
     }
     if (size) {
       valueHolder.setSize(getSizeOfKeyValuePairs(key, valueHolder));
@@ -1591,8 +1592,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
-    private final Map<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>>();
+    private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -1606,18 +1607,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+      OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-              new MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
-                      store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "get", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "get", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(store);
       tieredOps.add(get);
 
       MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
-                      store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
@@ -1632,14 +1633,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
-      List<Copier> copiers = new ArrayList<Copier>();
+      List<Copier> copiers = new ArrayList<>();
       copiers.add(keyCopier);
       copiers.add(valueCopier);
 
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
       createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }
@@ -1704,17 +1705,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
-              new MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
-                      cachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          cachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(cachingTier);
       tieredOps.add(get);
 
       MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict
-              = new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
-                      cachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+              = new MappedOperationStatistic<>(
+        cachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(cachingTier);
       tieredOps.add(evict);
 
@@ -1740,18 +1741,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+      OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig
+        .getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
-              new MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
-                      higherCachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          higherCachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(higherCachingTier);
       tieredOps.add(get);
 
       MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
-                      higherCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          higherCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(higherCachingTier);
       tieredOps.add(evict);
 

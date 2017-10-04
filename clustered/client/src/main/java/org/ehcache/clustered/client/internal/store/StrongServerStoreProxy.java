@@ -37,7 +37,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private static final Logger LOGGER = LoggerFactory.getLogger(StrongServerStoreProxy.class);
 
   private final CommonServerStoreProxy delegate;
-  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
+  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<>();
   private final Lock invalidateAllLock = new ReentrantLock();
   private volatile CountDownLatch invalidateAllLatch;
   private final ClusterTierClientEntity entity;

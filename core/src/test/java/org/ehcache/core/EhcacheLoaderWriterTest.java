@@ -61,11 +61,11 @@ public class EhcacheLoaderWriterTest {
   public void setUp() throws Exception {
     store = mock(Store.class);
     CacheLoaderWriter<Number, String> loaderWriter = mock(CacheLoaderWriter.class);
-    final CacheConfiguration<Number, String> config = new BaseCacheConfiguration<Number, String>(Number.class, String.class, null,
-        null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    final CacheConfiguration<Number, String> config = new BaseCacheConfiguration<>(Number.class, String.class, null,
+      null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Number, String> notifier = mock(CacheEventDispatcher.class);
-    cache = new EhcacheWithLoaderWriter<Number, String>(
-        config, store, loaderWriter, notifier, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheLoaderWriterTest"));
+    cache = new EhcacheWithLoaderWriter<>(
+      config, store, loaderWriter, notifier, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
 

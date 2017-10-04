@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class TransientStateRepository implements StateRepository {
 
-  private ConcurrentMap<String, StateHolder<?, ?>> knownHolders = new ConcurrentHashMap<String, StateHolder<?, ?>>();
+  private ConcurrentMap<String, StateHolder<?, ?>> knownHolders = new ConcurrentHashMap<>();
 
   @Override
   @SuppressWarnings("unchecked")
@@ -37,7 +37,7 @@ public class TransientStateRepository implements StateRepository {
     if (stateHolder != null) {
       return stateHolder;
     } else {
-      StateHolder<K, V> newHolder = new TransientStateHolder<K, V>();
+      StateHolder<K, V> newHolder = new TransientStateHolder<>();
       stateHolder = (StateHolder<K, V>) knownHolders.putIfAbsent(name, newHolder);
       if (stateHolder == null) {
         return newHolder;

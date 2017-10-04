@@ -37,9 +37,9 @@ class ValueCodecFactory {
         || Float.class.equals(clazz) || Double.class.equals(clazz)
         || Byte.class.equals(clazz) || Character.class.equals(clazz)
         || clazz.isPrimitive() || String.class.equals(clazz)) {
-      return new IdentityCodec<T>();
+      return new IdentityCodec<>();
     } else {
-      return new SerializationWrapperCodec<T>();
+      return new SerializationWrapperCodec<>();
     }
   }
 

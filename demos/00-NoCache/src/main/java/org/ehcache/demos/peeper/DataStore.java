@@ -68,7 +68,7 @@ public class DataStore {
 
   public synchronized List<String> findAllPeeps() throws Exception {
     LOGGER.info("Loading peeps from DB");
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
 
     Statement statement = connection.createStatement();
     try {

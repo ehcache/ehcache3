@@ -560,7 +560,7 @@ public class ClusterTierManagerActiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate a "closed" {@code ServiceRegistry}.  Using this constructor creates a
@@ -592,7 +592,7 @@ public class ClusterTierManagerActiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }

@@ -53,7 +53,7 @@ public class ClusterTierManagerClientEntityFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerClientEntityFactory.class);
 
   private final Connection connection;
-  private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
+  private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<>();
 
   private final Timeouts entityTimeouts;
 

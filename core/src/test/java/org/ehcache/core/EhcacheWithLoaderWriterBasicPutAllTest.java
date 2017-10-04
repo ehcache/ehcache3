@@ -1931,13 +1931,14 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
-        expiry, ResourcePoolsHelper.createHeapOnlyPools());
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
+      expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutAllTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -1952,7 +1953,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
    *    in the order observed by the captor.
    */
   private Set<String> getBulkComputeArgs() {
-    final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
+    final Set<String> bulkComputeArgs = new LinkedHashSet<>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);
     }

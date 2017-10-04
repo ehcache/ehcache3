@@ -47,8 +47,8 @@ public class DefaultCollectorServiceTest {
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
-    final Queue<Object> messages = new ConcurrentLinkedQueue<Object>();
-    final List<String> notifs = new ArrayList<String>(6);
+    final Queue<Object> messages = new ConcurrentLinkedQueue<>();
+    final List<String> notifs = new ArrayList<>(6);
     final CountDownLatch num = new CountDownLatch(5);
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,

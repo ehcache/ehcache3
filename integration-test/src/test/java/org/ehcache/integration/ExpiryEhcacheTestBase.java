@@ -143,7 +143,7 @@ public abstract class ExpiryEhcacheTestBase {
   protected abstract void insert(Cache<Number, CharSequence> testCache, Map<Number, CharSequence> entries);
 
   private Map<Number, CharSequence> getEntries() {
-    HashMap<Number, CharSequence> result = new HashMap<Number, CharSequence>();
+    HashMap<Number, CharSequence> result = new HashMap<>();
     result.put(1, "one");
     result.put(2, "two");
     return result;

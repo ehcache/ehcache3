@@ -76,7 +76,7 @@ public class FileBasedStateRepositoryTest {
   public void testHolderLoad() throws Exception {
     File directory = folder.newFolder("testLoad");
     String holderName = "myHolder";
-    StateHolder<Long, String> map = new TransientStateHolder<Long, String>();
+    StateHolder<Long, String> map = new TransientStateHolder<>();
     map.putIfAbsent(42L, "Again? That's not even funny anymore!!");
 
     FileOutputStream fos = new FileOutputStream(new File(directory, HOLDER_FILE_NAME));

@@ -42,7 +42,7 @@ public class ReconnectMessageCodecTest {
 
     ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(UUID.randomUUID());
 
-    Set<Long> setToInvalidate = new HashSet<Long>();
+    Set<Long> setToInvalidate = new HashSet<>();
     setToInvalidate.add(1L);
     setToInvalidate.add(11L);
     setToInvalidate.add(111L);

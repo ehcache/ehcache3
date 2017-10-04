@@ -103,7 +103,7 @@ public class OnHeapStoreValueCopierTest {
       }
     };
 
-    store = new OnHeapStore<Long, Value>(config, SystemTimeSource.INSTANCE, new IdentityCopier<Long>(), valueCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, new IdentityCopier<>(), valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher());
   }
 
   @Test

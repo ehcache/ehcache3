@@ -65,7 +65,7 @@ public class EhCachingProviderTest {
 
     CacheManager cacheManager = cachingProvider.getCacheManager(cachingProvider.getDefaultURI(), limitedClassLoader);
 
-    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
 
     cache.put(1L, new Customer(1L));

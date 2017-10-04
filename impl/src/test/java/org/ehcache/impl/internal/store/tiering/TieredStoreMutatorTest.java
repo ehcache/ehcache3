@@ -72,7 +72,7 @@ public class TieredStoreMutatorTest {
 
     private final AtomicBoolean get = new AtomicBoolean(false);
 
-    private final ConcurrentMap<String, String> map = new ConcurrentHashMap<String, String>();
+    private final ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
 
     @Override
     public PutStatus put(String key, String value) throws StoreAccessException {
@@ -178,15 +178,15 @@ public class TieredStoreMutatorTest {
     .build();
 
     // Not relevant to the test, just used to instantiate the OnHeapStore
-    Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(String.class, String.class,
+    Store.Configuration<String, String> config = new StoreConfigurationImpl<>(String.class, String.class,
       null, getClass().getClassLoader(), Expirations.noExpiration(), resourcePools, 0, null, null);
 
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
-    CachingTier<String, String> cachingTier = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE,
+    CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
       StringCopier.copier(), StringCopier.copier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.
       <String, String>nullStoreEventDispatcher());
 
-    tieredStore = new TieredStore<String, String>(cachingTier, authoritativeTier);
+    tieredStore = new TieredStore<>(cachingTier, authoritativeTier);
   }
 
   @After
@@ -328,7 +328,7 @@ public class TieredStoreMutatorTest {
     if(value == null) {
       return null;
     }
-    return new BasicOffHeapValueHolder<String>(1, value, Long.MAX_VALUE, System.currentTimeMillis() - 1);
+    return new BasicOffHeapValueHolder<>(1, value, Long.MAX_VALUE, System.currentTimeMillis() - 1);
   }
 
   private Store.PutStatus putToTieredStore() {

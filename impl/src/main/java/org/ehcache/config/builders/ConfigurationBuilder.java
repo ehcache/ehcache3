@@ -77,7 +77,7 @@ class ConfigurationBuilder implements Builder<Configuration> {
   }
 
   ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
     if(newCaches.put(alias, config) != null) {
       throw new IllegalArgumentException("Cache alias '" + alias + "' already exists");
     }
@@ -85,7 +85,7 @@ class ConfigurationBuilder implements Builder<Configuration> {
   }
 
   public ConfigurationBuilder removeCache(String alias) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
     newCaches.remove(alias);
     return new ConfigurationBuilder(this, newCaches);
   }
@@ -95,7 +95,7 @@ class ConfigurationBuilder implements Builder<Configuration> {
       throw new IllegalArgumentException("There is already a ServiceCreationConfiguration registered for service " + serviceConfiguration
           .getServiceType() + " of type " + serviceConfiguration.getClass());
     }
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
     newServiceConfigurations.add(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
@@ -110,7 +110,7 @@ class ConfigurationBuilder implements Builder<Configuration> {
   }
 
   ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }

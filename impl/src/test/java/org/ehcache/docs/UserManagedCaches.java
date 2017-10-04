@@ -63,7 +63,7 @@ public class UserManagedCaches {
     LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
 
     PersistentUserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
-        .with(new UserManagedPersistenceContext<Long, String>("cache-name", persistenceService)) // <2>
+        .with(new UserManagedPersistenceContext<>("cache-name", persistenceService)) // <2>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES)
             .disk(10L, MemoryUnit.MB, true)) // <3>

@@ -144,7 +144,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public ContextContainer getContextContainer() {
-    Collection<ContextContainer> cacheCtx = new ArrayList<ContextContainer>();
+    Collection<ContextContainer> cacheCtx = new ArrayList<>();
     for (String cacheName : this.cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet()) {
       cacheCtx.add(new ContextContainer("cacheName", cacheName));
     }

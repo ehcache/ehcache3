@@ -66,7 +66,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testStartEndWorks() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -83,7 +83,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTwoNonEndedStartsFails() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -99,7 +99,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testEndWithoutStartFails() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
       xaResource.end(new TestXid(0, 0), XAResource.TMSUCCESS);
@@ -111,7 +111,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testJoinWorks() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -125,7 +125,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoverReportsAbortedTx() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
 
@@ -136,7 +136,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoverIgnoresInFlightTx() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
     when(xaTransactionContextFactory.contains(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
@@ -147,7 +147,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotPrepareUnknownXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
       xaResource.prepare(new TestXid(0, 0));
@@ -159,7 +159,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotPrepareNonEndedXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -174,7 +174,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testPrepareOk() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     when(xaTransactionContext.prepare()).thenReturn(1);
@@ -187,7 +187,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testPrepareReadOnly() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     when(xaTransactionContext.prepare()).thenReturn(0);
@@ -200,7 +200,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitUnknownXidInFlight() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -216,7 +216,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitUnknownXidRecovered() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
 
@@ -230,7 +230,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcUnknownXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
       xaResource.commit(new TestXid(0, 0), true);
@@ -242,7 +242,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcNonEndedXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -257,7 +257,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitNonPreparedXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     doThrow(IllegalStateException.class).when(xaTransactionContext).commit(anyBoolean());
@@ -271,7 +271,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcPreparedXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     doThrow(IllegalStateException.class).when(xaTransactionContext).commitInOnePhase();
@@ -285,7 +285,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     xaResource.commit(new TestXid(0, 0), false);
@@ -295,7 +295,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit1Pc() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     xaResource.commit(new TestXid(0, 0), true);
@@ -305,7 +305,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackUnknownXidInFlight() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     doThrow(IllegalStateException.class).when(xaTransactionContext).rollback(eq(false));
@@ -320,7 +320,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackUnknownXidRecovered() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
 
@@ -334,7 +334,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackNonEndedXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
@@ -349,7 +349,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRollback() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     xaResource.rollback(new TestXid(0, 0));
@@ -359,7 +359,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForgetUnknownXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
 
@@ -373,7 +373,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForgetInDoubtXid() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
 
@@ -387,7 +387,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForget() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isHeuristicallyTerminated(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
 
@@ -398,7 +398,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutStart() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
 
@@ -416,7 +416,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutEndSuccess() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
 
@@ -437,7 +437,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutEndFail() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
 
@@ -459,7 +459,7 @@ public class EhcacheXAResourceTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testPrepareTimeout() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     when(xaTransactionContext.prepare()).thenThrow(XATransactionContext.TransactionTimeoutException.class);
@@ -476,7 +476,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit1PcTimeout() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     doThrow(XATransactionContext.TransactionTimeoutException.class).when(xaTransactionContext).commitInOnePhase();
@@ -493,7 +493,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryCommitOnePhaseFails() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L, 3L));
@@ -513,7 +513,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryCommit() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L, 3L));
@@ -532,7 +532,7 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryRollback() throws Exception {
-    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
+    EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));

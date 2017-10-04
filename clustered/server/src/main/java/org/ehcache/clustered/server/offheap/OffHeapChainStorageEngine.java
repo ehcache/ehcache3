@@ -246,7 +246,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
     @Override
     public Chain detach() {
-      List<Element> buffers = new ArrayList<Element>();
+      List<Element> buffers = new ArrayList<>();
 
       long element = chain + CHAIN_HEADER_SIZE;
       do {

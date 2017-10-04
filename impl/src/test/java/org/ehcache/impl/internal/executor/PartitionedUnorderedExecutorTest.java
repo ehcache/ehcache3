@@ -40,7 +40,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testShutdownOfIdleExecutor() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
     executor.shutdown();
@@ -51,7 +51,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
     assertThat(executor.shutdownNow(), empty());
@@ -62,7 +62,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testTerminatedExecutorRejectsJob() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
     executor.shutdown();
@@ -80,7 +80,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testShutdownButNonTerminatedExecutorRejectsJob() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
@@ -106,7 +106,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testShutdownLeavesJobRunning() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
@@ -131,7 +131,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testQueuedJobRunsAfterShutdown() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
@@ -168,7 +168,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testQueuedJobIsStoppedAfterShutdownNow() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
@@ -202,7 +202,7 @@ public class PartitionedUnorderedExecutorTest {
 
   @Test
   public void testRunningJobIsInterruptedAfterShutdownNow() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
@@ -236,7 +236,7 @@ public class PartitionedUnorderedExecutorTest {
   public void testRunningJobsAreInterruptedAfterShutdownNow() throws InterruptedException {
     final int jobCount = 4;
 
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newCachedThreadPool();
     try {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, jobCount);

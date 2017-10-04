@@ -69,7 +69,7 @@ public class PooledExecutionServiceTest {
     pooledExecutionService.start(null);
 
     expectedException.expectMessage("Pool 'abc' is not in the set of available pools [getOrderedExecutorFailsOnNonExistentPool]");
-    pooledExecutionService.getOrderedExecutor("abc", new LinkedBlockingDeque<Runnable>());
+    pooledExecutionService.getOrderedExecutor("abc", new LinkedBlockingDeque<>());
   }
 
   @Test
@@ -81,7 +81,7 @@ public class PooledExecutionServiceTest {
     pooledExecutionService.start(null);
 
     expectedException.expectMessage("Null pool alias provided and no default pool configured");
-    pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<Runnable>());
+    pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>());
   }
 
   @Test
@@ -92,7 +92,7 @@ public class PooledExecutionServiceTest {
 
     pooledExecutionService.start(null);
 
-    ExecutorService aaa = pooledExecutionService.getOrderedExecutor("getOrderedExecutorSucceedsOnExistingPool", new LinkedBlockingDeque<Runnable>());
+    ExecutorService aaa = pooledExecutionService.getOrderedExecutor("getOrderedExecutorSucceedsOnExistingPool", new LinkedBlockingDeque<>());
     aaa.shutdown();
   }
 
@@ -104,7 +104,7 @@ public class PooledExecutionServiceTest {
 
     pooledExecutionService.start(null);
 
-    ExecutorService dflt = pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<Runnable>());
+    ExecutorService dflt = pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>());
     dflt.shutdown();
   }
 
@@ -137,7 +137,7 @@ public class PooledExecutionServiceTest {
    */
   public static void detectLeakingThreads() {
     Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-    Set<String> leakedThreads = new HashSet<String>();
+    Set<String> leakedThreads = new HashSet<>();
 
     Map<Integer, Exception> createdThreads = ThreadFactoryUtil.getCreatedThreads();
 

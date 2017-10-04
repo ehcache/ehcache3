@@ -218,7 +218,7 @@ public class XAGettingStarted {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
 
-    private final Map<K, V> data = new HashMap<K, V>();
+    private final Map<K, V> data = new HashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public SampleLoaderWriter(Map<K, V> initialData) {

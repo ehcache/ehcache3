@@ -32,7 +32,7 @@ public class CopiedOnHeapValueHolderTest {
   public void testValueByValue() throws Exception {
     Person person = new Person("foo", 24);
     PersonCopier copier = new PersonCopier();
-    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<Person>(person, -1, false, copier);
+    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, copier);
     person.age = 25;
 
     assertNotSame(person, valueHolder.value());
@@ -41,7 +41,7 @@ public class CopiedOnHeapValueHolderTest {
   @Test
   public void testValueByRef() throws Exception {
     Person person = new Person("foo", 24);
-    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<Person>(person, -1, false, new IdentityCopier<Person>());
+    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, new IdentityCopier<>());
     person.age = 25;
 
     assertSame(person, valueHolder.value());

@@ -41,7 +41,7 @@ public class UnSupportedResourceTypeTest {
     Store.Configuration<Object, Object> configuration = mock(Store.Configuration.class);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Set<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+    Set<ResourceType<?>> resourceTypes = new HashSet<>();
     resourceTypes.add(new TestResourceType());
 
     when(configuration.getResourcePools()).thenReturn(resourcePools);

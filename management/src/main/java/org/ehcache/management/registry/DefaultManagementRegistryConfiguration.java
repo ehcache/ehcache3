@@ -28,7 +28,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Collection<String> tags = new TreeSet<String>();
+  private final Collection<String> tags = new TreeSet<>();
   private Context context = Context.empty();
   private String collectorExecutorAlias = "collectorExecutor";
 

@@ -31,7 +31,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  */
 public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
-  private final Map<K, List<V>> data = new HashMap<K, List<V>>();
+  private final Map<K, List<V>> data = new HashMap<>();
   private CountDownLatch latch;
 
   public synchronized void setLatch(CountDownLatch latch) {
@@ -50,7 +50,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
 
   @Override
   public synchronized Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-    Map<K, V> loaded = new HashMap<K, V>();
+    Map<K, V> loaded = new HashMap<>();
     for (K k : keys) {
       loaded.put(k, load(k));
     }
@@ -90,7 +90,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
   protected List<V> getValueList(K key) {
     List<V> values = data.get(key);
     if (values == null) {
-      values = new ArrayList<V>();
+      values = new ArrayList<>();
       data.put(key, values);
     }
     return values;

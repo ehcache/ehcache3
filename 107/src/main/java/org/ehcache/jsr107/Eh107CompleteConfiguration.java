@@ -49,7 +49,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   private final boolean isWriteThrough;
   private volatile boolean isStatisticsEnabled;
   private volatile boolean isManagementEnabled;
-  private final List<CacheEntryListenerConfiguration<K, V>> cacheEntryListenerConfigs = new CopyOnWriteArrayList<CacheEntryListenerConfiguration<K, V>>();
+  private final List<CacheEntryListenerConfiguration<K, V>> cacheEntryListenerConfigs = new CopyOnWriteArrayList<>();
   private final Factory<CacheLoader<K, V>> cacheLoaderFactory;
   private final Factory<CacheWriter<? super K, ? super V>> cacheWriterFactory;
   private final Factory<ExpiryPolicy> expiryPolicyFactory;

@@ -73,7 +73,7 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
       if (cacheLoaderWriter == null) {
         throw new NullPointerException("WriteBehind requires a non null CacheLoaderWriter.");
       }
-      return new StripedWriteBehind<K, V>(executionService, threadPoolAlias, configuration, cacheLoaderWriter);
+      return new StripedWriteBehind<>(executionService, threadPoolAlias, configuration, cacheLoaderWriter);
     }
 
     @Override
