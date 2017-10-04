@@ -30,7 +30,7 @@ import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServic
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -368,7 +368,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
                                                      Consistency configuredConsistency,
-                                                     InvalidationListener invalidation) throws CachePersistenceException {
+                                                     ServerCallback invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {

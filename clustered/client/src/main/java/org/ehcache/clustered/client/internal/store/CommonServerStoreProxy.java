@@ -46,7 +46,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private final String cacheId;
   private final ClusterTierClientEntity entity;
 
-  CommonServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
+  CommonServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
     this.cacheId = cacheId;
     this.entity = entity;
     entity.addResponseListener(ServerInvalidateHash.class, response -> {

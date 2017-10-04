@@ -29,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ChainResolver<K, V> {
@@ -130,5 +132,80 @@ public class ChainResolver<K, V> {
     } else {
       return new ResolvedChain.Impl<>(chain, key, result, 0, expirationTime);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public Chain compact(Chain chain, long now) {
+    Map<K, PutOperation<K, V>> compacted = new HashMap<>(1);
+    for (Element element : chain) {
+      ByteBuffer payload = element.getPayload();
+      Operation<K, V> operation = codec.decode(payload);
+      K key = operation.getKey();
+      final Result<V> previousResult = compacted.get(key);
+      final Result<V> result = operation.apply(previousResult);
+      if(result == null) {
+        compacted.remove(key);
+      } else if (expiry == Expirations.noExpiration()) {
+        if (result instanceof PutOperation<?, ?>) {
+          compacted.put(key, (PutOperation<K, V>) result); //unchecked
+        } else {
+          compacted.put(key, new PutOperation<>(key, result.getValue(), -Long.MAX_VALUE));
+        }
+      } else {
+        if(operation.isExpiryAvailable()) {
+          long expirationTime = operation.expirationTime();
+          if (now >= expirationTime) {
+            compacted.remove(key);
+          } else if (result instanceof PutOperation<?, ?>) {
+            compacted.put(key, (PutOperation<K, V>) result); //unchecked
+          } else {
+            compacted.put(key, new PutOperation<>(key, result.getValue(), -expirationTime));
+          }
+        } else {
+          try {
+            if(previousResult == null) {
+              Duration duration = expiry.getExpiryForCreation(key, result.getValue());
+              if (duration == null) {
+                compacted.remove(key);
+              } else if(duration.isInfinite()) {
+                  compacted.put(key, new PutOperation<>(key, result.getValue(), -Long.MAX_VALUE));
+              } else {
+                long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
+                long expirationTime = time + operation.timeStamp();
+                if (now >= expirationTime) {
+                  compacted.remove(key);
+                } else {
+                  compacted.put(key, new PutOperation<>(key, result.getValue(), -expirationTime));
+                }
+              }
+            } else {
+              Duration duration = expiry.getExpiryForUpdate(key, previousResult::getValue, result.getValue());
+              if (duration == null) {
+                compacted.remove(key);
+              } else if(duration.isInfinite()) {
+                compacted.put(key, new PutOperation<>(key, result.getValue(), -Long.MAX_VALUE));
+              } else {
+                long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
+                long expirationTime = time + operation.timeStamp();
+                if (now >= expirationTime) {
+                  compacted.remove(key);
+                } else {
+                  compacted.put(key, new PutOperation<>(key, result.getValue(), -expirationTime));
+                }
+              }
+            }
+          } catch (Exception ex) {
+            LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
+            compacted.remove(key);
+          }
+        }
+      }
+    }
+
+    ChainBuilder builder = new ChainBuilder();
+    for (PutOperation<K, V> operation : compacted.values()) {
+      builder = builder.add(codec.encode(operation));
+    }
+    return builder.build();
   }
 }
