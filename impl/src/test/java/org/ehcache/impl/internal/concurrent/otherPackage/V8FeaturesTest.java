@@ -125,7 +125,7 @@ public class V8FeaturesTest {
 
         final Map<String, Integer> collector = Collections.synchronizedMap(new HashMap<String, Integer>());
 
-        chm.forEach((JSR166Helper.BiConsumer<String, Integer>) (s, i) -> collector.put(s, i));
+        chm.forEach((JSR166Helper.BiConsumer<String, Integer>) collector::put);
 
         assertThat(chm, equalTo(collector));
     }

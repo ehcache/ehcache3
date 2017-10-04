@@ -276,7 +276,7 @@ public class OffHeapChainMap<K> implements MapInternals {
   }
 
   private static Element element(final ByteBuffer b) {
-    return () -> b.asReadOnlyBuffer();
+    return b::asReadOnlyBuffer;
   }
 
   @Override

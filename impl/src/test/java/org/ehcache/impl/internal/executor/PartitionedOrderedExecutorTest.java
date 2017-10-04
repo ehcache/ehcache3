@@ -90,7 +90,7 @@ public class PartitionedOrderedExecutorTest {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(() -> semaphore.acquireUninterruptibly());
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       try {
         executor.execute(() -> {
@@ -116,7 +116,7 @@ public class PartitionedOrderedExecutorTest {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(() -> semaphore.acquireUninterruptibly());
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -147,7 +147,7 @@ public class PartitionedOrderedExecutorTest {
         testSemaphore.release();
         jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(() -> jobSemaphore.acquireUninterruptibly());
+      executor.submit((Runnable) jobSemaphore::acquireUninterruptibly);
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));

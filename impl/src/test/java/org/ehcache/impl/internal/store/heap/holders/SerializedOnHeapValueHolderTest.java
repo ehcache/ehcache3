@@ -87,7 +87,7 @@ public class SerializedOnHeapValueHolderTest {
     final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<>("test it!", System
       .currentTimeMillis(), false, serializer);
 
-    new Thread(() -> valueHolder.value()).start();
+    new Thread(valueHolder::value).start();
 
     valueHolder.value();
   }
