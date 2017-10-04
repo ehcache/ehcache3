@@ -50,7 +50,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final AtomicReference<CountDownLatch> invalidateAllLatch = new AtomicReference<>();
   private final ClusterTierClientEntity entity;
 
-  public StrongServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
+  public StrongServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
     this.delegate = new CommonServerStoreProxy(cacheId, entity, invalidation);
     this.entity = entity;
     delegate.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, this::hashInvalidationDoneResponseListener);

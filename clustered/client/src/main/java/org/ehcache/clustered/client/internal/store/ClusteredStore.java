@@ -20,7 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
@@ -658,7 +658,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-          new InvalidationListener() {
+          new ServerCallback() {
             @Override
             public void onInvalidateHash(long hash) {
               EvictionOutcome result = EvictionOutcome.SUCCESS;
@@ -687,6 +687,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
                   LOGGER.error("Error invalidating all", sae);
                 }
               }
+            }
+
+            @Override
+            public Chain compact(Chain chain) {
+              return clusteredStore.resolver.compact(chain, clusteredStore.timeSource.getTimeMillis());
             }
           });
       } catch (CachePersistenceException e) {

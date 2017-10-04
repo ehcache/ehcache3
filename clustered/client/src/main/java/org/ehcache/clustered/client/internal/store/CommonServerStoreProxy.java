@@ -34,7 +34,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
@@ -46,9 +49,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private final String cacheId;
   private final ClusterTierClientEntity entity;
 
-  CommonServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final InvalidationListener invalidation) {
-    this.cacheId = cacheId;
-    this.entity = entity;
+  CommonServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
+    this.cacheId = requireNonNull(cacheId, "Cache-ID must be non-null");
+    this.entity = requireNonNull(entity, "ClusterTierClientEntity must be non-null");
+    requireNonNull(invalidation, "ServerCallback must be non-null");
+
     entity.addResponseListener(ServerInvalidateHash.class, response -> {
       long key = response.getKey();
       LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", cacheId, key);

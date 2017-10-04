@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -58,6 +59,7 @@ import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.mockito.Mockito.mock;
 
 public class ActivePassiveClientIdTest {
 
@@ -116,7 +118,7 @@ public class ActivePassiveClientIdTest {
     @SuppressWarnings("unchecked")
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test", config);
 
-    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, null);
+    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, mock(ServerCallback.class));
 
     activeEntity = observableClusterTierServerEntityService.getServedActiveEntitiesFor("test").get(0);
     passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntitiesFor("test").get(0);

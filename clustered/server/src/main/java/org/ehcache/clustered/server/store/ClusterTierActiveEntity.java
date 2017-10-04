@@ -340,22 +340,23 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       case APPEND: {
         AppendMessage appendMessage = (AppendMessage)message;
 
+        long key = appendMessage.getKey();
         InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
         if (invalidationTracker != null) {
-          invalidationTracker.trackHashInvalidation(appendMessage.getKey());
+          invalidationTracker.trackHashInvalidation(key);
         }
 
         final Chain newChain;
         try {
-          cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-          newChain = cacheStore.get(appendMessage.getKey());
+          cacheStore.append(key, appendMessage.getPayload());
+          newChain = cacheStore.get(key);
         } catch (TimeoutException e) {
           throw new AssertionError("Server side store is not expected to throw timeout exception");
         }
         sendMessageToSelfAndDeferRetirement(activeInvokeContext, appendMessage, newChain);
-        invalidateHashForClient(clientDescriptor, appendMessage.getKey());
+        invalidateHashForClient(clientDescriptor, key);
         if (newChain.length() > chainCompactionLimit) {
-          requestChainResolution(clientDescriptor, appendMessage.getKey());
+          requestChainResolution(clientDescriptor, key, newChain);
         }
         return success();
       }
@@ -516,9 +517,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
   }
 
-  private void requestChainResolution(ClientDescriptor clientDescriptor, long key) {
+  private void requestChainResolution(ClientDescriptor clientDescriptor, long key, Chain chain) {
     try {
-      clientCommunicator.sendNoResponse(clientDescriptor, resolveRequest(key));
+      clientCommunicator.sendNoResponse(clientDescriptor, resolveRequest(key, chain));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }

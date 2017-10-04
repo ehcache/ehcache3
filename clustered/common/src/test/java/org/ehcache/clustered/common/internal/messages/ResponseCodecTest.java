@@ -149,4 +149,18 @@ public class ResponseCodecTest {
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.PREPARE_FOR_DESTROY));
     assertThat(decodedResponse.getStores(), is(storeIdentifiers));
   }
+
+  @Test
+  public void testResolveRequest() throws Exception {
+    long hash = 42L;
+    EhcacheEntityResponse.ResolveRequest response = new EhcacheEntityResponse.ResolveRequest(hash, getChain(false,
+      createPayload(1L), createPayload(11L), createPayload(111L)));
+
+    byte[] encoded = RESPONSE_CODEC.encode(response);
+    EhcacheEntityResponse.ResolveRequest decodedResponse = (EhcacheEntityResponse.ResolveRequest) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.RESOLVE_REQUEST));
+    assertThat(decodedResponse.getKey(), is(42L));
+    Util.assertChainHas(decodedResponse.getChain(), 1L, 11L, 111L);
+  }
 }

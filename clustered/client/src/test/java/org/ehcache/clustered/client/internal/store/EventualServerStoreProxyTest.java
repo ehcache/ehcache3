@@ -17,7 +17,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -39,6 +39,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
@@ -60,7 +61,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
       public void onInvalidateHash(long hash) {
         store1InvalidatedHashes.add(hash);
@@ -70,8 +71,13 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       public void onInvalidateAll() {
         fail("should not be called");
       }
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new ServerCallback() {
       @Override
       public void onInvalidateHash(long hash) {
         store2InvalidatedHashes.add(hash);
@@ -80,6 +86,11 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       @Override
       public void onInvalidateAll() {
         fail("should not be called");
+      }
+
+      @Override
+      public Chain compact(Chain chain) {
+        return chain;
       }
     });
 
@@ -120,7 +131,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, new InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, new ServerCallback() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -131,8 +142,13 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, mock(ServerCallback.class));
 
     serverStoreProxy2.append(1L, createPayload(1L));
 
@@ -150,7 +166,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, new InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, new ServerCallback() {
       @Override
       public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -161,8 +177,13 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, mock(ServerCallback.class));
 
     serverStoreProxy2.getAndAppend(1L, createPayload(1L));
 
@@ -179,7 +200,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
-    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity1, new InvalidationListener() {
+    EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity1, new ServerCallback() {
       @Override
       public void onInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -190,8 +211,13 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
         invalidatedAll.set(true);
         latch.countDown();
       }
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
-    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity2, null);
+    EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity2, mock(ServerCallback.class));
 
     serverStoreProxy2.clear();
 
