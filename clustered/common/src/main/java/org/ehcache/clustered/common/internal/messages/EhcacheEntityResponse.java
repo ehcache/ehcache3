@@ -238,16 +238,18 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ResolveRequest resolveRequest(long key) {
-    return new ResolveRequest(key);
+  public static ResolveRequest resolveRequest(long key, Chain chain) {
+    return new ResolveRequest(key, chain);
   }
 
   public static class ResolveRequest extends EhcacheEntityResponse {
 
     private final long key;
+    private final Chain chain;
 
-    ResolveRequest(long key) {
+    ResolveRequest(long key, Chain chain) {
       this.key = key;
+      this.chain = chain;
     }
 
     @Override
@@ -260,7 +262,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     public Chain getChain() {
-      throw new UnsupportedOperationException();
+      return chain;
     }
   }
 }

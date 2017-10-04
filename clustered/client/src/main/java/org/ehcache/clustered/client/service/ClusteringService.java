@@ -19,12 +19,11 @@ package org.ehcache.clustered.client.service;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.ServerStoreProxy.InvalidationListener;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.Configuration;
 import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Provides support for accessing server-based resources.
@@ -54,7 +53,7 @@ public interface ClusteringService extends PersistableResourceService {
    * @throws CachePersistenceException if the {@code cacheIdentifier} is unknown or the {@code ServerStoreProxy} cannot be created
    */
   <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Configuration<K, V> storeConfig,
-                                              Consistency consistency, InvalidationListener invalidation) throws CachePersistenceException;
+                                              Consistency consistency, ServerCallback invalidation) throws CachePersistenceException;
 
   /**
    * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
