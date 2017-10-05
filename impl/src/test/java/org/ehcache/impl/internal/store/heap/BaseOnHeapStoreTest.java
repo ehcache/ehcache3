@@ -1188,9 +1188,7 @@ public abstract class BaseOnHeapStoreTest {
       try {
         key = keyExchanger.exchange("ready to roll!");
         store.put(key, "updateValue");
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (StoreAccessException e) {
+      } catch (InterruptedException | StoreAccessException e) {
         e.printStackTrace();
       }
     });
@@ -1229,9 +1227,7 @@ public abstract class BaseOnHeapStoreTest {
       try {
         expiryLatch.await();
         store.put("key", "newValue");
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (StoreAccessException e) {
+      } catch (InterruptedException | StoreAccessException e) {
         e.printStackTrace();
       }
     });

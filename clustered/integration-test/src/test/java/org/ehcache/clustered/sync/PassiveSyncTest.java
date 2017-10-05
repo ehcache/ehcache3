@@ -111,9 +111,8 @@ public class PassiveSyncTest extends ClusteredTests {
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
         .autoCreate()
         .defaultServerResource("primary-server-resource"));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -147,8 +146,6 @@ public class PassiveSyncTest extends ClusteredTests {
       for (long i = 0; i < 100; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
-    } finally {
-      cacheManager.close();
     }
   }
 }

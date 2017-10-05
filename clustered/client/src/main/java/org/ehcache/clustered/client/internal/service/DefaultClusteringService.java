@@ -149,10 +149,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } else {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
-        } catch (DestroyInProgressException e) {
-          throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
-              + " Please review your configuration.", e);
-        } catch (EntityNotFoundException e) {
+        } catch (DestroyInProgressException | EntityNotFoundException e) {
           throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
         } catch (TimeoutException e) {
@@ -203,10 +200,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (ClusterTierManagerCreationException e) {
         throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
-      } catch (EntityAlreadyExistsException e) {
+      } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (EntityBusyException e) {
-        //ignore - entity in transition - try to retrieve
       } catch (TimeoutException e) {
         throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
             + "'; create operation timed out", e);

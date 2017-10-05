@@ -235,11 +235,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   protected static String read(String path) throws FileNotFoundException {
-    Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8");
-    try {
+    try (Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8")) {
       return scanner.useDelimiter("\\A").next();
-    } finally {
-      scanner.close();
     }
   }
 

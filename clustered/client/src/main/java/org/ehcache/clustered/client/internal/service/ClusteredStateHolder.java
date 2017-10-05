@@ -62,10 +62,8 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     try {
       EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
-    } catch (ClusterException ce) {
+    } catch (ClusterException | TimeoutException ce) {
       throw new ClusteredMapException(ce);
-    } catch (TimeoutException te) {
-      throw new ClusteredMapException(te);
     }
   }
 

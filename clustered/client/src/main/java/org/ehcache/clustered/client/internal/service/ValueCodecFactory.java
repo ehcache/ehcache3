@@ -63,17 +63,10 @@ class ValueCodecFactory {
         return null;
       }
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      try {
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        try {
-          oos.writeObject(input);
-        } catch(IOException e) {
-          throw new RuntimeException("Object cannot be serialized", e);
-        } finally {
-          oos.close();
-        }
-      } catch(IOException e) {
-        // ignore
+      try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+        oos.writeObject(input);
+      } catch (IOException e) {
+        throw new RuntimeException("Object cannot be serialized", e);
       }
       return new ValueWrapper(input.hashCode(), baos.toByteArray());
     }
@@ -86,15 +79,12 @@ class ValueCodecFactory {
       ValueWrapper data = (ValueWrapper) input;
       ByteArrayInputStream bais = new ByteArrayInputStream(data.getValue());
       try {
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        try {
+        try (ObjectInputStream ois = new ObjectInputStream(bais)) {
           @SuppressWarnings("unchecked")
           T result = (T) ois.readObject();
           return result;
         } catch (ClassNotFoundException e) {
           throw new RuntimeException("Could not load class", e);
-        } finally {
-          ois.close();
         }
       } catch(IOException e) {
         // ignore

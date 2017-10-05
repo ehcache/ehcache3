@@ -173,12 +173,9 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
     ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
-    Connection clientB = CLUSTER.newConnection();
-    try {
+    try (Connection clientB = CLUSTER.newConnection()) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
-    } finally {
-      clientB.close();
     }
   }
 
@@ -188,12 +185,9 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
     factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned");
 
-    Connection clientB = CLUSTER.newConnection();
-    try {
+    try (Connection clientB = CLUSTER.newConnection()) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipAfterAbandoned"), is(true));
-    } finally {
-      clientB.close();
     }
   }
 }

@@ -112,13 +112,7 @@ public class ClassInstanceProvider<K, T> {
       try {
         instance = invokeConstructor(config.getClazz(), config.getArguments());
         instantiated.add(instance);
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
         throw new RuntimeException(e);
       }
     }

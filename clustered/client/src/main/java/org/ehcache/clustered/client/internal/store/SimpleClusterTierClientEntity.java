@@ -229,9 +229,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
+    } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
