@@ -169,7 +169,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
-  private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
     long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();
