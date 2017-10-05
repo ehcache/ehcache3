@@ -82,6 +82,13 @@ public class Management implements Closeable {
     getManagementRegistry().addManagementProvider(new ClusterTierManagerSettingsManagementProvider());
   }
 
+  public void reload() {
+    if (managementRegistry != null) {
+      managementRegistry.cleanupPreviousPassiveStates();
+      init();
+    }
+  }
+
   // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
   public void init() {
     if (managementRegistry != null) {
