@@ -485,7 +485,6 @@ public class TerminatedServerTest {
   }
 
   @Test
-  @Ignore("cannot currently timeout an append call")
   public void testTerminationThenPut() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -518,7 +517,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
