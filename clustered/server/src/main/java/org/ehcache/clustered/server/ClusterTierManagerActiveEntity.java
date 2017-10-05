@@ -143,7 +143,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);
 
-    management.init();
+    management.reload();
     management.sharedPoolsConfigured();
   }
 
