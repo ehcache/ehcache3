@@ -25,12 +25,14 @@ package org.ehcache.impl.internal.concurrent;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import static java.lang.Integer.rotateLeft;
+
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.security.PrivilegedExceptionAction;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -40,16 +42,30 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountedCompleter;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
+import java.util.function.LongBinaryOperator;
+import java.util.function.ToDoubleBiFunction;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntBiFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
 
 import org.ehcache.config.EvictionAdvisor;
 
-import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
+import sun.misc.Unsafe;
 
 
 /**
@@ -1269,8 +1285,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * <p>The view's iterators and spliterators are
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
-     * <p>The view's {@code spliterator} reports {@link Spliterator#CONCURRENT}
-     * and {@link Spliterator#NONNULL}.
+     * <p>The view's {@code spliterator} reports {@link java.util.Spliterator#CONCURRENT}
+     * and {@link java.util.Spliterator#NONNULL}.
      *
      * @return the collection view
      */
@@ -1291,8 +1307,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * <p>The view's iterators and spliterators are
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
-     * <p>The view's {@code spliterator} reports {@link Spliterator#CONCURRENT},
-     * {@link Spliterator#DISTINCT}, and {@link Spliterator#NONNULL}.
+     * <p>The view's {@code spliterator} reports {@link java.util.Spliterator#CONCURRENT},
+     * {@link java.util.Spliterator#DISTINCT}, and {@link java.util.Spliterator#NONNULL}.
      *
      * @return the set view
      */
@@ -3297,7 +3313,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         private static final long LOCKSTATE;
         static {
             try {
-                U = Unsafe.getUnsafe();
+                U = getSMU();
                 Class<?> k = TreeBin.class;
                 LOCKSTATE = U.objectFieldOffset
                     (k.getDeclaredField("lockState"));
@@ -4831,7 +4847,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                      (containsAll(c) && c.containsAll(this))));
         }
 
-        public Spliterator<Map.Entry<K,V>> _spliterator() {
+        public Spliterator<Entry<K,V>> spliterator() {
             Node<K,V>[] t;
             ConcurrentHashMap<K,V> m = map;
             long n = m.sumCount();
@@ -6339,7 +6355,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     static {
         try {
-            U = Unsafe.getUnsafe();
+            U = getSMU();
             Class<?> k = ConcurrentHashMap.class;
             SIZECTL = U.objectFieldOffset
                 (k.getDeclaredField("sizeCtl"));
@@ -6430,4 +6446,27 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return new MapEntry<>(maxKey, maxVal, this);
         }
     }
+
+  private static sun.misc.Unsafe getSMU() {
+    try {
+      return sun.misc.Unsafe.getUnsafe();
+    } catch (SecurityException tryReflectionInstead) {
+      // ignore
+    }
+    try {
+      return java.security.AccessController.doPrivileged
+        ((PrivilegedExceptionAction<Unsafe>) () -> {
+          Class<sun.misc.Unsafe> k = sun.misc.Unsafe.class;
+          for (Field f : k.getDeclaredFields()) {
+            f.setAccessible(true);
+            Object x = f.get(null);
+            if (k.isInstance(x))
+              return k.cast(x);
+          }
+          throw new NoSuchFieldError("the Unsafe");
+        });
+    } catch (java.security.PrivilegedActionException e) {
+      throw new RuntimeException("Could not initialize intrinsics", e.getCause());
+    }
+  }
 }
