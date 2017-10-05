@@ -193,7 +193,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
     stateService.loadStore(storeIdentifier, configuration).setEvictionListener(this::invalidateHashAfterEviction);
     reconnectComplete.set(false);
-    management.init();
+    management.reload();
   }
 
   private void invalidateHashAfterEviction(long key) {
