@@ -80,11 +80,12 @@ public class DataStore {
 
     LOGGER.info("Loading peeps from DB");
     try (Statement statement = connection.createStatement()) {
-      ResultSet resultSet = statement.executeQuery("SELECT * FROM PEEPS");
+      try (ResultSet resultSet = statement.executeQuery("SELECT * FROM PEEPS")) {
 
-      while (resultSet.next()) {
-        String peepText = resultSet.getString("PEEP_TEXT");
-        result.add(peepText);
+        while (resultSet.next()) {
+          String peepText = resultSet.getString("PEEP_TEXT");
+          result.add(peepText);
+        }
       }
     }
 
