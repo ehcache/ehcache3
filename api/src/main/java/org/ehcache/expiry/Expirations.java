@@ -45,6 +45,19 @@ public final class Expirations {
   }
 
   /**
+   * Get a time-to-live (TTL) {@link Expiry} instance for the given {@link java.time.Duration}.
+   *
+   * @param timeToLive the TTL duration
+   * @return a TTL expiry
+   */
+  public static Expiry<Object, Object> timeToLiveExpiration(java.time.Duration timeToLive) {
+    if (timeToLive == null) {
+      throw new NullPointerException("Duration cannot be null");
+    }
+    return new TimeToLiveExpiry(Duration.of(timeToLive));
+  }
+
+  /**
    * Get a time-to-idle (TTI) {@link Expiry} instance for the given {@link Duration}.
    *
    * @param timeToIdle the TTI duration
@@ -55,6 +68,19 @@ public final class Expirations {
       throw new NullPointerException("Duration cannot be null");
     }
     return new TimeToIdleExpiry(timeToIdle);
+  }
+
+  /**
+   * Get a time-to-idle (TTI) {@link Expiry} instance for the given {@link java.time.Duration}.
+   *
+   * @param timeToIdle the TTI duration
+   * @return a TTI expiry
+   */
+  public static Expiry<Object, Object> timeToIdleExpiration(java.time.Duration timeToIdle) {
+    if (timeToIdle == null) {
+      throw new NullPointerException("Duration cannot be null");
+    }
+    return new TimeToIdleExpiry(Duration.of(timeToIdle));
   }
 
   /**
@@ -183,6 +209,17 @@ public final class Expirations {
     }
 
     /**
+     * Set TTL since creation
+     *
+     * @param create TTL since creation
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setCreate(java.time.Duration create) {
+      this.create = Duration.of(create);
+      return this;
+    }
+
+    /**
      * Set TTL since last access
      *
      * @param access TTL since last access
@@ -194,6 +231,17 @@ public final class Expirations {
     }
 
     /**
+     * Set TTL since last access
+     *
+     * @param access TTL since last access
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setAccess(java.time.Duration access) {
+      this.access = Duration.of(access);
+      return this;
+    }
+
+    /**
      * Set TTL since last update
      *
      * @param update TTL since last update
@@ -201,6 +249,17 @@ public final class Expirations {
      */
     public ExpiryBuilder<K, V> setUpdate(Duration update) {
       this.update = update;
+      return this;
+    }
+
+    /**
+     * Set TTL since last update
+     *
+     * @param update TTL since last update
+     * @return this builder
+     */
+    public ExpiryBuilder<K, V> setUpdate(java.time.Duration update) {
+      this.update = Duration.of(update);
       return this;
     }
 
