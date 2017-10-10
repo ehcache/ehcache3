@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class SoftLockValueCombinedSerializer<T> implements Serializer<SoftLock<T>> {
 
   private final AtomicReference<? extends Serializer<SoftLock<T>>> softLockSerializerRef;
-  private final Serializer<T> valueSerializer;
+  final Serializer<T> valueSerializer;
 
   SoftLockValueCombinedSerializer(AtomicReference<? extends Serializer<SoftLock<T>>> softLockSerializerRef, Serializer<T> valueSerializer) {
     this.softLockSerializerRef = softLockSerializerRef;
