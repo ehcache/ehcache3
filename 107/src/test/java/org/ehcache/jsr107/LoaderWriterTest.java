@@ -37,7 +37,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -65,18 +65,8 @@ public class LoaderWriterTest {
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
-          @Override
-          public CacheLoader<Number, CharSequence> create() {
-            return cacheLoader;
-          }
-        })
-        .setCacheWriterFactory(new Factory<CacheWriter<? super Number, ? super CharSequence>>() {
-          @Override
-          public CacheWriter<? super Number, ? super CharSequence> create() {
-            return cacheWriter;
-          }
-        })
+        .setCacheLoaderFactory(() -> cacheLoader)
+        .setCacheWriterFactory(() -> cacheWriter)
         .setTypes(Number.class, CharSequence.class));
   }
 
@@ -120,12 +110,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleReplace2ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return null;
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "one"), is(false));
@@ -137,12 +122,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleReplace2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return "un";
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "one"), is(false));
@@ -166,12 +146,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleReplace3ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return null;
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "un", "one"), is(false));
@@ -182,12 +157,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return "un";
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "un", "one"), is(false));
@@ -223,12 +193,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleRemove2ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return null;
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.remove(1, "one"), is(false));
@@ -239,12 +204,7 @@ public class LoaderWriterTest {
 
   @Test
   public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return "un";
-      }
-    });
+    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
 
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.remove(1, "un"), is(false));

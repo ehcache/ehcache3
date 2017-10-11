@@ -65,11 +65,8 @@ public class JavaSerializer<T> implements Serializer<T> {
   public T read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      OIS ois = new OIS(bin, classLoader);
-      try {
+      try (OIS ois = new OIS(bin, classLoader)) {
         return (T) ois.readObject();
-      } finally {
-        ois.close();
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -119,7 +116,7 @@ public class JavaSerializer<T> implements Serializer<T> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
     static {
       primitiveClasses.put("boolean", boolean.class);
       primitiveClasses.put("byte", byte.class);

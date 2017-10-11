@@ -46,7 +46,7 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
   @Override
   public Collection<? extends Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = new ArrayList<Descriptor>(super.getDescriptors());
+    Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(cacheManagerSettings());
     return descriptors;
   }

@@ -45,10 +45,10 @@ public class OffHeapValueHolderPortabilityTest {
   public void setup() throws UnsupportedTypeException {
     SerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
-    valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
-        .createValueSerializer(String.class, getClass().getClassLoader()));
+    valueHolderPortability = new OffHeapValueHolderPortability<>(provider
+      .createValueSerializer(String.class, getClass().getClassLoader()));
 
-    originalValue = new BasicOffHeapValueHolder<String>(-1, "aValue", 1L, 2L, 3L, 0);
+    originalValue = new BasicOffHeapValueHolder<>(-1, "aValue", 1L, 2L, 3L, 0);
 
   }
 

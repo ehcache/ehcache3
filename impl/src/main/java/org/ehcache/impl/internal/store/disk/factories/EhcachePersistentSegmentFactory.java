@@ -57,7 +57,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
   public EhcachePersistentSegment<K, V> newInstance() {
     PersistentStorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcachePersistentSegment<K, V>(tableSource, storageEngine, tableSize, bootstrap, evictionAdvisor, evictionListener);
+      return new EhcachePersistentSegment<>(tableSource, storageEngine, tableSize, bootstrap, evictionAdvisor, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;

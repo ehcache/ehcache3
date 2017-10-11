@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
@@ -29,6 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -61,21 +60,13 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
 
     try {
       // install value
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(K k) {
-          return wrap(value);
-        }
-      });
+      tier.getOrComputeIfAbsent(key, k -> wrap(value));
 
       // register invalidation listener
       final AtomicBoolean invalidated = new AtomicBoolean(false);
-      tier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
-        @Override
-        public void onInvalidation(K key, Store.ValueHolder<V> valueHolder) {
-          assertThat(valueHolder.value(), is(value));
-          invalidated.set(true);
-        }
+      tier.setInvalidationListener((key1, valueHolder) -> {
+        assertThat(valueHolder.value(), is(value));
+        invalidated.set(true);
       });
 
       tier.invalidate(key);
@@ -95,23 +86,13 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
     try {
       // register invalidation listener
       final AtomicBoolean invalidated = new AtomicBoolean(false);
-      tier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
-        @Override
-        public void onInvalidation(K key, Store.ValueHolder<V> valueHolder) {
-          invalidated.set(true);
-        }
-      });
+      tier.setInvalidationListener((key, valueHolder) -> invalidated.set(true));
 
       // install values
       for (int i = 0; i < 20; i++) {
         final K key = factory.createKey(i^3);
         final V value = factory.createValue(i^5);
-        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(K k) {
-            return wrap(value);
-          }
-        });
+        tier.getOrComputeIfAbsent(key, k -> wrap(value));
       }
 
       assertThat(invalidated.get(), is(true));
@@ -128,26 +109,16 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
 
     try {
       // register invalidation listener
-      final Set<K> invalidatedKeys = new HashSet<K>();
-      tier.setInvalidationListener(new CachingTier.InvalidationListener<K, V>() {
-        @Override
-        public void onInvalidation(K key, Store.ValueHolder<V> valueHolder) {
-          invalidatedKeys.add(key);
-        }
-      });
+      final Set<K> invalidatedKeys = new HashSet<>();
+      tier.setInvalidationListener((key, valueHolder) -> invalidatedKeys.add(key));
 
       // install values
-      final Set<K> generatedKeys = new HashSet<K>();
+      final Set<K> generatedKeys = new HashSet<>();
       for (int i = 0; i < 5; i++) {
         final K key = factory.createKey(i^3);
         final V value = factory.createValue(i^5);
         generatedKeys.add(key);
-        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(K k) {
-            return wrap(value);
-          }
-        });
+        tier.getOrComputeIfAbsent(key, k -> wrap(value));
       }
 
       tier.invalidateAll();

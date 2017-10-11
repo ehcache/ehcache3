@@ -17,12 +17,12 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -49,12 +49,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
   public void testComputeFunctionCalledWhenNoMapping() throws Exception {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "value";
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> "value", false);
       assertThat(value, is("value"));
       assertThat(segment.get("key"), is(value));
     } finally {
@@ -67,12 +62,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> s2, false);
       assertThat(value, is("value"));
       assertThat(isPinned("key", segment), is(false));
     } finally {
@@ -85,12 +75,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, true);
+      String value = segment.compute("key", (s, s2) -> s2, true);
       assertThat(value, is("value"));
       assertThat(isPinned("key", segment), is(true));
     } finally {
@@ -103,12 +88,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       putPinned("key", "value", segment);
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> s2, false);
       assertThat(value, is("value"));
       assertThat(isPinned("key", segment), is(true));
     } finally {
@@ -121,12 +101,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> "otherValue", false);
       assertThat(value, is("otherValue"));
       assertThat(isPinned("key", segment), is(false));
     } finally {
@@ -139,12 +114,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, true);
+      String value = segment.compute("key", (s, s2) -> "otherValue", true);
       assertThat(value, is("otherValue"));
       assertThat(isPinned("key", segment), is(true));
     } finally {
@@ -157,12 +127,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       putPinned("key", "value", segment);
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> "otherValue", false);
       assertThat(value, is("otherValue"));
       assertThat(isPinned("key", segment), is(false));
     } finally {
@@ -175,12 +140,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       putPinned("key", "value", segment);
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return null;
-        }
-      }, false);
+      String value = segment.compute("key", (s, s2) -> null, false);
       assertThat(value, nullValue());
       assertThat(segment.containsKey("key"), is(false));
     } finally {
@@ -193,11 +153,8 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       try {
-        segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-          @Override
-          public String apply(String s, String s2) {
-            throw new UnsupportedOperationException("Should not have been called!");
-          }
+        segment.computeIfPresent("key", (s, s2) -> {
+          throw new UnsupportedOperationException("Should not have been called!");
         });
       } catch (UnsupportedOperationException e) {
         fail("Mapping function should not have been called.");
@@ -212,12 +169,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      });
+      String value = segment.computeIfPresent("key", (s, s2) -> s2);
       assertThat(segment.get("key"), is(value));
     } finally {
       destroySegment(segment);
@@ -229,12 +181,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "newValue";
-        }
-      });
+      String value = segment.computeIfPresent("key", (s, s2) -> "newValue");
       assertThat(segment.get("key"), is(value));
     } finally {
       destroySegment(segment);
@@ -246,12 +193,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return null;
-        }
-      });
+      String value = segment.computeIfPresent("key", (s, s2) -> null);
       assertThat(segment.containsKey("key"), is(false));
     } finally {
       destroySegment(segment);
@@ -263,18 +205,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     try {
       segment.put("key", "value");
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          fail("Method should not be invoked");
-          return null;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          fail("Method should not be invoked");
-          return false;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        fail("Method should not be invoked");
+        return null;
+      }, s -> {
+        fail("Method should not be invoked");
+        return false;
       });
       assertThat(isPinned("key", segment), is(false));
       assertThat(result, is(false));
@@ -289,18 +225,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String value = "value";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return null;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return false;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return null;
+      }, s -> {
+        assertThat(s, is(value));
+        return false;
       });
       assertThat(segment.containsKey("key"), is(false));
       assertThat(result, is(true));
@@ -315,18 +245,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String value = "value";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return null;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return true;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return null;
+      }, s -> {
+        assertThat(s, is(value));
+        return true;
       });
       assertThat(segment.containsKey("key"), is(false));
       assertThat(result, is(true));
@@ -341,18 +265,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String value = "value";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return s2;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return true;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return s2;
+      }, s -> {
+        assertThat(s, is(value));
+        return true;
       });
       assertThat(isPinned("key", segment), is(false));
       assertThat(result, is(true));
@@ -367,18 +285,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String value = "value";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return s2;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return false;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return s2;
+      }, s -> {
+        assertThat(s, is(value));
+        return false;
       });
       assertThat(isPinned("key", segment), is(true));
       assertThat(result, is(false));
@@ -394,18 +306,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String newValue = "newValue";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return newValue;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return false;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return newValue;
+      }, s -> {
+        assertThat(s, is(value));
+        return false;
       });
       assertThat(segment.get("key"), is(newValue));
       assertThat(isPinned("key", segment), is(false));
@@ -422,18 +328,12 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String newValue = "newValue";
     try {
       putPinned("key", value, segment);
-      boolean result = segment.computeIfPinned("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          assertThat(s2, is(value));
-          return newValue;
-        }
-      }, new Function<String, Boolean>() {
-        @Override
-        public Boolean apply(String s) {
-          assertThat(s, is(value));
-          return true;
-        }
+      boolean result = segment.computeIfPinned("key", (s, s2) -> {
+        assertThat(s2, is(value));
+        return newValue;
+      }, s -> {
+        assertThat(s, is(value));
+        return true;
       });
       assertThat(segment.get("key"), is(newValue));
       assertThat(isPinned("key", segment), is(false));
@@ -446,12 +346,9 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
   @Test
   public void testComputeIfPresentAndPinNoOpNoMapping() throws Exception {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
-    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        fail("Function should not be invoked");
-        return null;
-      }
+    segment.computeIfPresentAndPin("key", (s, s2) -> {
+      fail("Function should not be invoked");
+      return null;
     });
   }
 
@@ -460,12 +357,9 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     final String value = "value";
     segment.put("key", value);
-    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        assertThat(s2, is(value));
-        return value;
-      }
+    segment.computeIfPresentAndPin("key", (s, s2) -> {
+      assertThat(s2, is(value));
+      return value;
     });
     assertThat(isPinned("key", segment), is(true));
   }
@@ -475,12 +369,9 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
     final String value = "value";
     putPinned("key", value, segment);
-    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        assertThat(s2, is(value));
-        return value;
-      }
+    segment.computeIfPresentAndPin("key", (s, s2) -> {
+      assertThat(s2, is(value));
+      return value;
     });
     assertThat(isPinned("key", segment), is(true));
   }
@@ -491,12 +382,9 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
     final String value = "value";
     final String newValue = "newValue";
     segment.put("key", value);
-    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String s, String s2) {
-        assertThat(s2, is(value));
-        return newValue;
-      }
+    segment.computeIfPresentAndPin("key", (s, s2) -> {
+      assertThat(s2, is(value));
+      return newValue;
     });
     assertThat(isPinned("key", segment), is(true));
     assertThat(segment.get("key"), is(newValue));
@@ -504,12 +392,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
 
   @Test
   public void testPutAdvicedAgainstEvictionComputesMetadata() throws Exception {
-    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
-    });
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment((key, value) -> "please-do-not-evict-me".equals(key));
     try {
       segment.put("please-do-not-evict-me", "value");
       assertThat(getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, segment), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));
@@ -520,12 +403,7 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
 
   @Test
   public void testPutPinnedAdvicedAgainstEvictionComputesMetadata() throws Exception {
-    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
-    });
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment((key, value) -> "please-do-not-evict-me".equals(key));
     try {
       putPinned("please-do-not-evict-me", "value", segment);
       assertThat(getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, segment), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));

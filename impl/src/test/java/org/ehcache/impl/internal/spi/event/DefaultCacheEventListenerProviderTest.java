@@ -46,7 +46,7 @@ public class DefaultCacheEventListenerProviderTest {
 
   @Test
   public void testCacheConfigUsage() {
-    Set<EventType> eventTypeSet = new HashSet<EventType>();
+    Set<EventType> eventTypeSet = new HashSet<>();
     eventTypeSet.add(EventType.CREATED);
     eventTypeSet.add(EventType.UPDATED);
 

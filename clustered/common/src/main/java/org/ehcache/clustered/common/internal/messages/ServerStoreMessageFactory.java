@@ -19,30 +19,23 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
 public class ServerStoreMessageFactory {
-
-  private final UUID clientId;
-
-  public ServerStoreMessageFactory(UUID clientId) {
-    this.clientId = clientId;
-  }
 
   public ServerStoreOpMessage.GetMessage getOperation(long key) {
     return new ServerStoreOpMessage.GetMessage(key);
   }
 
   public ServerStoreOpMessage.GetAndAppendMessage getAndAppendOperation(long key, ByteBuffer payload) {
-    return new ServerStoreOpMessage.GetAndAppendMessage(key, payload, clientId);
+    return new ServerStoreOpMessage.GetAndAppendMessage(key, payload);
   }
 
   public ServerStoreOpMessage.AppendMessage appendOperation(long key, ByteBuffer payload) {
-    return new ServerStoreOpMessage.AppendMessage(key, payload, clientId);
+    return new ServerStoreOpMessage.AppendMessage(key, payload);
   }
 
   public ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
-    return new ServerStoreOpMessage.ReplaceAtHeadMessage(key, expect, update, clientId);
+    return new ServerStoreOpMessage.ReplaceAtHeadMessage(key, expect, update);
   }
 
   public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(long key, int invalidationId) {
@@ -54,7 +47,7 @@ public class ServerStoreMessageFactory {
   }
 
   public ServerStoreOpMessage.ClearMessage clearOperation() {
-    return new ServerStoreOpMessage.ClearMessage(clientId);
+    return new ServerStoreOpMessage.ClearMessage();
   }
 
 }

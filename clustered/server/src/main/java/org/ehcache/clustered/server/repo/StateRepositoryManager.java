@@ -32,7 +32,7 @@ import static java.util.Collections.emptyList;
 @CommonComponent
 public class StateRepositoryManager {
 
-  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<String, ServerStateRepository>();
+  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<>();
 
   public void destroyStateRepository(String cacheId) throws ClusterException {
     mapRepositoryMap.remove(cacheId);

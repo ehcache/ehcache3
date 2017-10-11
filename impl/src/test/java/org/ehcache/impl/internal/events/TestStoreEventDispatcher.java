@@ -32,8 +32,8 @@ import java.util.Set;
  */
 public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
 
-  private final Set<StoreEventListener<K, V>> listeners = new HashSet<StoreEventListener<K, V>>(4);
-  private final Set<StoreEventFilter<K, V>> filters = new HashSet<StoreEventFilter<K, V>>(4);
+  private final Set<StoreEventListener<K, V>> listeners = new HashSet<>(4);
+  private final Set<StoreEventFilter<K, V>> filters = new HashSet<>(4);
   private final EventBridge eventBridge = new EventBridge();
 
   @Override

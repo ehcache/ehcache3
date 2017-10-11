@@ -21,7 +21,7 @@ import org.ehcache.expiry.Expiry;
  * Eh107Expiry
  */
 abstract class Eh107Expiry<K, V> implements Expiry<K, V> {
-  private final ThreadLocal<Object> shortCircuitAccess = new ThreadLocal<Object>();
+  private final ThreadLocal<Object> shortCircuitAccess = new ThreadLocal<>();
 
   void enableShortCircuitAccessCalls() {
     shortCircuitAccess.set(this);

@@ -136,7 +136,7 @@ public class GettingStarted {
 
     Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
-            .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero"))) // <1>
             .build());
 
     assertThat(writeThroughCache.get(41L), is("zero")); // <2>
@@ -154,7 +154,7 @@ public class GettingStarted {
 
     Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
-            .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
+            .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
                 .queueSize(3)// <4>
@@ -221,7 +221,7 @@ public class GettingStarted {
     // tag::cacheEvictionAdvisor[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                                                                         ResourcePoolsBuilder.heap(2L)) // <1>
-        .withEvictionAdvisor(new OddKeysEvictionAdvisor<Long, String>()) // <2>
+        .withEvictionAdvisor(new OddKeysEvictionAdvisor<>()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

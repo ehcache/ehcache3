@@ -31,12 +31,7 @@ public class ValueSuppliers {
    * @return a value supplier with the given value
    */
   public static <V> ValueSupplier<V> supplierOf(final V value) {
-    return new ValueSupplier<V>() {
-      @Override
-      public V value() {
-        return value;
-      }
-    };
+    return () -> value;
   }
 
   private ValueSuppliers() {

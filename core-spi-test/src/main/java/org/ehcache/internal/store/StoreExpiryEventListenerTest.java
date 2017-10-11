@@ -24,21 +24,22 @@ import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * Tests expiry events according to the contract of the
@@ -62,6 +63,13 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   public void setUp() {
     timeSource = new TestTimeSource();
     kvStore = factory.newStoreWithExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+  }
+
+  @After
+  public void tearDown() {
+    if(kvStore != null) {
+      factory.close(kvStore);
+    }
   }
 
   @SPITest
@@ -132,12 +140,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.compute(k, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        return v2;
-      }
-    }).value(), is(v2));
+    assertThat(kvStore.compute(k, (mappedKey, mappedValue) -> v2).value(), is(v2));
     verifyListenerInteractions(listener);
   }
 
@@ -147,12 +150,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
 
-    assertThat(kvStore.computeIfAbsent(k, new Function<K, V>() {
-      @Override
-      public V apply(K mappedKey) {
-        return v2;
-      }
-    }).value(), is(v2));
+    assertThat(kvStore.computeIfAbsent(k, mappedKey -> v2).value(), is(v2));
     verifyListenerInteractions(listener);
   }
 

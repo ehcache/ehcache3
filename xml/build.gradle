@@ -35,6 +35,12 @@ sourceSets.main.java {
   srcDir generatedSources
 }
 
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
+}
+
 jaxb {
   xsdDir = "$name/src/main/resources"
   episodesDir = "$name/build/xsd/episodes"

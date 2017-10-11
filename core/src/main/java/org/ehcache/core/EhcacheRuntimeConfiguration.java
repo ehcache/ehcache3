@@ -48,7 +48,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private volatile ResourcePools resourcePools;
 
   private final List<CacheConfigurationChangeListener> cacheConfigurationListenerList
-      = new CopyOnWriteArrayList<CacheConfigurationChangeListener>();
+      = new CopyOnWriteArrayList<>();
 
   EhcacheRuntimeConfiguration(CacheConfiguration<K, V> config) {
     this.config = config;
@@ -126,13 +126,13 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   @Override
   public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
                                                       EventFiring firing, Set<EventType> forEventTypes) {
-    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
+    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<>(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes) {
-    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
+    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<>(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
@@ -141,7 +141,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       return null;
     }
 
-    return Collections.unmodifiableCollection(new ArrayList<T>(collection));
+    return Collections.unmodifiableCollection(new ArrayList<>(collection));
   }
 
   @SuppressWarnings("unchecked")

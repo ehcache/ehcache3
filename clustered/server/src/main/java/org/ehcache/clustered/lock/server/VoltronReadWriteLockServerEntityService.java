@@ -25,10 +25,12 @@ import org.ehcache.clustered.lock.server.messages.LockSyncMessaging;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceConfiguration;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
@@ -49,9 +51,13 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
   }
 
   @Override
-  public ActiveServerEntity<LockOperation, LockTransition> createActiveEntity(ServiceRegistry registry, byte[] config) {
-    ClientCommunicator communicator = registry.getService(config(ClientCommunicator.class));
-    return new VoltronReadWriteLockActiveEntity(communicator);
+  public ActiveServerEntity<LockOperation, LockTransition> createActiveEntity(ServiceRegistry registry, byte[] config) throws ConfigurationException {
+    try {
+      ClientCommunicator communicator = registry.getService(config(ClientCommunicator.class));
+      return new VoltronReadWriteLockActiveEntity(communicator);
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve ClientCommunicator: " + e.getMessage());
+    }
   }
 
   @Override
@@ -85,11 +91,6 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
   }
 
   private static final <T> ServiceConfiguration<T> config(final Class<T> klazz) {
-    return new ServiceConfiguration<T>() {
-      @Override
-      public Class<T> getServiceType() {
-        return klazz;
-      }
-    };
+    return () -> klazz;
   }
 }

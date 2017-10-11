@@ -72,12 +72,7 @@ public class StatsUtilsTest {
 
     cache = cacheManager.getCache("aCache", Long.class, String.class);
 
-    StatisticsManager.createPassThroughStatistic(cache, "test", Collections.<String>emptySet(), Collections.singletonMap("myproperty", "myvalue"), new Callable<Number>() {
-      @Override
-      public Number call() throws Exception {
-        return 0;
-      }
-    });
+    StatisticsManager.createPassThroughStatistic(cache, "test", Collections.<String>emptySet(), Collections.singletonMap("myproperty", "myvalue"), (Callable<Number>) () -> 0);
 
     cache.get(1L);
   }

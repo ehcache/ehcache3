@@ -229,7 +229,7 @@ public class TimeoutDurationTest {
     }
 
     public static <T> Pair<T> of(T first, T second) {
-      return new Pair<T>(first, second);
+      return new Pair<>(first, second);
     }
 
     public T getFirst() {

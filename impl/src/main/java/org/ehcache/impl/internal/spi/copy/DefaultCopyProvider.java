@@ -73,13 +73,13 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else if (conf == null &&  preConfigured != null && preConfigured.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else {
       copier = createCopier(clazz, conf, type);
     }

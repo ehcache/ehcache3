@@ -13,24 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.server.store;
 
-package org.ehcache.clustered.common.internal.messages;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
 import java.util.UUID;
 
-public class ClusterTierManagerReconnectMessage {
-
-  private final UUID clientId;
-
-  public ClusterTierManagerReconnectMessage(UUID clientId) {
-    if (clientId == null) {
-      throw new IllegalStateException("ClientID cannot be null");
-    }
-    this.clientId = clientId;
-  }
-
-  public UUID getClientId() {
-    return clientId;
-  }
-
+public class InvalidMessage extends EhcacheEntityMessage {
 }

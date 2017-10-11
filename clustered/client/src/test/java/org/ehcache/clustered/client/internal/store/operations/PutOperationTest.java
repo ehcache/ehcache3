@@ -27,12 +27,12 @@ public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new PutOperation<K, V>(key, value, timestamp);
+    return new PutOperation<>(key, value, timestamp);
   }
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    return new PutOperation<K, V>(buffer, keySerializer, valueSerializer);
+    return new PutOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
@@ -42,10 +42,10 @@ public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    PutOperation<Long, String> putOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
+    PutOperation<Long, String> putOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
     Result<String> result = putOperation.apply(null);
     assertSame(putOperation, result);
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "two", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "two", System.currentTimeMillis());
     result = anotherOperation.apply(putOperation);
     assertSame(anotherOperation, result);
   }

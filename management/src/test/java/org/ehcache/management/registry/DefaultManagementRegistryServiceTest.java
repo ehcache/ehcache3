@@ -55,10 +55,10 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 
 public class DefaultManagementRegistryServiceTest {
 
-  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> DISK_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -120,7 +120,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
@@ -155,7 +155,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
@@ -194,7 +194,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);

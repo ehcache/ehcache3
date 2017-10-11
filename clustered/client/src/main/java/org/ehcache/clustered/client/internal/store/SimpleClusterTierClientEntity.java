@@ -46,12 +46,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * ClusterTierClientEntity
@@ -63,24 +61,16 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
   private final Object lock = new Object();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
-    new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
+    new ConcurrentHashMap<>();
 
-  private UUID clientId;
-  private ReconnectListener reconnectListener = new ReconnectListener() {
-    @Override
-    public void onHandleReconnect(ClusterTierReconnectMessage reconnectMessage) {
-      // No op
-    }
+  private ReconnectListener reconnectListener = reconnectMessage -> {
+    // No op
   };
-  private DisconnectionListener disconnectionListener = new DisconnectionListener() {
-    @Override
-    public void onDisconnection() {
-      // No op
-    }
+  private DisconnectionListener disconnectionListener = () -> {
+    // No op
   };
   private Timeouts timeouts = Timeouts.builder().build();
   private String storeIdentifier;
@@ -90,19 +80,17 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate() {
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
-      public void handleMessage(EntityResponse messageFromServer) {
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
         LOGGER.trace("Entity response received from server: {}", messageFromServer);
-        if (messageFromServer instanceof EhcacheEntityResponse) {
-          fireResponseEvent((EhcacheEntityResponse) messageFromServer);
-        }
+        fireResponseEvent(messageFromServer);
       }
 
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(clientId);
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
           reconnectListener.onHandleReconnect(reconnectMessage);
           return reconnectMessageCodec.encode(reconnectMessage);
         }
@@ -146,20 +134,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
-    messageFactory.setClientId(clientId);
-  }
-
-  @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new IllegalStateException("Client Id cannot be null");
-    }
-    return this.clientId;
-  }
-
-  @Override
   public void setReconnectListener(ReconnectListener reconnectListener) {
     this.reconnectListener = reconnectListener;
   }
@@ -178,7 +152,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
     if (responseListeners == null) {
-      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      responseListeners = new CopyOnWriteArrayList<>();
       this.responseListeners.put(responseType, responseListeners);
     }
     responseListeners.add(responseListener);
@@ -237,9 +211,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
+    } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
@@ -252,14 +224,10 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean track)
         throws MessageCodecException {
-    getClientId();
-    if (track) {
-      message.setId(sequenceGenerator.getAndIncrement());
-    }
     return endpoint.beginInvoke().message(message).invoke();
   }
 
-  private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
     long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();

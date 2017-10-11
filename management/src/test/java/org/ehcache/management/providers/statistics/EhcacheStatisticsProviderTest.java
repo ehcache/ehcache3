@@ -64,7 +64,7 @@ public class EhcacheStatisticsProviderTest {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
-        Collection<StatisticDescriptor> descriptors = new HashSet<StatisticDescriptor>();
+        Collection<StatisticDescriptor> descriptors = new HashSet<>();
         descriptors.add(new StatisticDescriptor("aCounter", "COUNTER"));
         descriptors.add(new StatisticDescriptor("aDuration", "DURATION"));
         descriptors.add(new StatisticDescriptor("aSampledRate", "RATE"));

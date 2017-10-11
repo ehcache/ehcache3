@@ -23,16 +23,16 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveServerEntity;
+import org.terracotta.entity.StateDumpCollector;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 
 public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -40,6 +40,7 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
+  private final ClusterTierManagerConfiguration configuration;
 
   public ClusterTierManagerPassiveEntity(ClusterTierManagerConfiguration config,
                                          EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
@@ -47,6 +48,7 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     this.ehcacheStateService = ehcacheStateService;
+    this.configuration = config;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -60,7 +62,12 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
   }
 
   @Override
-  public void invoke(EhcacheEntityMessage message) {
+  public void addStateTo(StateDumpCollector dump) {
+    ClusterTierManagerDump.dump(dump, configuration);
+  }
+
+  @Override
+  public void invokePassive(InvokeContext context, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -118,5 +125,6 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
   @Override
   public void destroy() {
     ehcacheStateService.destroy();
+    management.close();
   }
 }

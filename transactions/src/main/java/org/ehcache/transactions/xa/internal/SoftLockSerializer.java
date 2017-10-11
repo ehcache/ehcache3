@@ -67,11 +67,8 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
   public SoftLock<T> read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      OIS ois = new OIS(bin, classLoader);
-      try {
+      try (OIS ois = new OIS(bin, classLoader)) {
         return (SoftLock) ois.readObject();
-      } finally {
-        ois.close();
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -121,7 +118,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
 
     static {
       primitiveClasses.put("boolean", boolean.class);

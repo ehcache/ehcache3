@@ -39,7 +39,7 @@ public class ResourcePoolsBuilderTest {
     builder = builder.heap(8, MemoryUnit.MB);
 
     try {
-      builder.with(new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 16, MemoryUnit.MB, false));
+      builder.with(new SizedResourcePoolImpl<>(HEAP, 16, MemoryUnit.MB, false));
       fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
@@ -57,7 +57,7 @@ public class ResourcePoolsBuilderTest {
     builder = builder.heap(initialSize, mb);
     ResourcePools initialPools = builder.build();
 
-    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, newSize, mb, false);
+    SizedResourcePool newPool = new SizedResourcePoolImpl<>(HEAP, newSize, mb, false);
 
     builder = builder.withReplacing(newPool);
 
@@ -74,7 +74,7 @@ public class ResourcePoolsBuilderTest {
   public void testWithReplacingNoInitial() throws Exception {
     long newSize = 16;
     ResourceUnit mb = MemoryUnit.MB;
-    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, newSize, mb, false);
+    SizedResourcePool newPool = new SizedResourcePoolImpl<>(HEAP, newSize, mb, false);
 
     ResourcePoolsBuilder builder = newResourcePoolsBuilder();
     ResourcePools resourcePools = builder.withReplacing(newPool).build();

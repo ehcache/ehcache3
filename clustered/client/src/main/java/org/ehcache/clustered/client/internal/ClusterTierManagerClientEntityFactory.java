@@ -42,7 +42,6 @@ import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -53,7 +52,7 @@ public class ClusterTierManagerClientEntityFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerClientEntityFactory.class);
 
   private final Connection connection;
-  private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
+  private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<>();
 
   private final Timeouts entityTimeouts;
 
@@ -115,12 +114,12 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       try {
         while (true) {
           ref.create(new ClusterTierManagerConfiguration(identifier, config));
           try {
-            InternalClusterTierManagerClientEntity entity = ref.fetchEntity();
+            InternalClusterTierManagerClientEntity entity = ref.fetchEntity(null);
             try {
               entity.setTimeouts(entityTimeouts);
               finished = true;
@@ -138,10 +137,7 @@ public class ClusterTierManagerClientEntityFactory {
         }
       } catch (EntityConfigurationException e) {
         throw new ClusterTierManagerCreationException("Unable to configure cluster tier manager for id " + identifier, e);
-      } catch (EntityNotProvidedException e) {
-        LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
-        throw new AssertionError(e);
-      } catch (EntityVersionMismatchException e) {
+      } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
         LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       }
@@ -177,7 +173,7 @@ public class ClusterTierManagerClientEntityFactory {
 
     InternalClusterTierManagerClientEntity entity;
     try {
-      entity = getEntityRef(identifier).fetchEntity();
+      entity = getEntityRef(identifier).fetchEntity(null);
     } catch (EntityVersionMismatchException e) {
       LOGGER.error("Unable to retrieve cluster tier manager for id {}", identifier, e);
       silentlyUnlock(fetchHold, identifier);
@@ -217,7 +213,7 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref = getEntityRef(identifier);
+      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -244,11 +240,10 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> ref, String identifier) throws ClusterTierManagerNotFoundException {
+  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) throws ClusterTierManagerNotFoundException {
     InternalClusterTierManagerClientEntity entity;
     try {
-      entity = ref.fetchEntity();
-      entity.setClientId(UUID.randomUUID());
+      entity = ref.fetchEntity(null);
     } catch (EntityNotFoundException e) {
       // Ignore - means entity does not exist
       return;
@@ -289,7 +284,7 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration> getEntityRef(String identifier) {
+  private EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
@@ -298,10 +293,10 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(UUID clientId, String clusterTierManagerIdentifier,
+  public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
                                                                    boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -320,8 +315,7 @@ public class ClusterTierManagerClientEntityFactory {
           throw new AssertionError(e);
         }
         try {
-          InternalClusterTierClientEntity entity = entityRef.fetchEntity();
-          entity.setClientId(clientId);
+          InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
           entity.setStoreIdentifier(storeIdentifier);
           entity.setTimeouts(entityTimeouts);
           return entity;
@@ -333,8 +327,7 @@ public class ClusterTierManagerClientEntityFactory {
       }
     } else {
       try {
-        InternalClusterTierClientEntity entity = entityRef.fetchEntity();
-        entity.setClientId(clientId);
+        InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
         entity.setStoreIdentifier(storeIdentifier);
         entity.setTimeouts(entityTimeouts);
         return entity;
@@ -347,15 +340,13 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   public void destroyClusteredStoreEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
       if (!entityRef.destroy()) {
         throw new CachePersistenceException("Cannot destroy cluster tier '" + storeIdentifier + "': in use by other client(s)");
       }
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    } catch (PermanentEntityException e) {
+    } catch (EntityNotProvidedException | PermanentEntityException e) {
       throw new AssertionError(e);
     }
   }

@@ -57,7 +57,7 @@ class EhOsgi implements Plugin<Project> {
           classesDir = project.shadowJar.archivePath
           classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
         } else {
-          classesDir = new File(project.buildDir, 'classes/main') //can't figure out where to get this value
+          classesDir = project.sourceSets.main.java.outputDir
           classpath = project.sourceSets.main.compileClasspath
         }
 
@@ -68,11 +68,11 @@ class EhOsgi implements Plugin<Project> {
         instruction 'Bundle-DocURL', 'http://ehcache.org'
         instruction 'Bundle-License', 'LICENSE'
         instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.6'
+        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.8'
 
         hashsetOfProjects.findAll({ p -> p.ext.properties.osgi}).each{ prop ->
           new JsonSlurper().parseText(prop.ext.properties.osgi).each {
-            project.println "OSGI: ${it.key}: ${it.value}"
+            project.logger.info "OSGI: ${it.key}: ${it.value}"
             instruction(it.key, *it.value)
           }
         }

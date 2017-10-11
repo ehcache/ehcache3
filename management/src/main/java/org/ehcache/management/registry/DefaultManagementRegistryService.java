@@ -90,10 +90,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
       this.clusteringManagementService = null;
     }
 
-    for (ManagementProvider<?> managementProvider : managementProviders) {
-      managementProvider.close();
-    }
-    managementProviders.clear();
+    super.close();
   }
 
   @Override
@@ -147,7 +144,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public ContextContainer getContextContainer() {
-    Collection<ContextContainer> cacheCtx = new ArrayList<ContextContainer>();
+    Collection<ContextContainer> cacheCtx = new ArrayList<>();
     for (String cacheName : this.cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet()) {
       cacheCtx.add(new ContextContainer("cacheName", cacheName));
     }

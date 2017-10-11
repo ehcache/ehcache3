@@ -36,8 +36,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class ReferenceStoreImpl implements ServerStore  {
 
-  private final Map<Long, Chain> map = new HashMap<Long, Chain>();
-  private final List<ReadWriteLock> locks = new ArrayList<ReadWriteLock>();
+  private final Map<Long, Chain> map = new HashMap<>();
+  private final List<ReadWriteLock> locks = new ArrayList<>();
   private final AtomicLong sequenceGenerator = new AtomicLong();
 
   private final int LOCK_COUNT = 16;
@@ -114,7 +114,7 @@ public class ReferenceStoreImpl implements ServerStore  {
         return;
       }
       boolean replaceable = true;
-      List<Element> elements = new LinkedList<Element>();
+      List<Element> elements = new LinkedList<>();
       Iterator<Element> current = mapping.iterator();
       Iterator<Element> expected = expect.iterator();
       while (expected.hasNext()) {

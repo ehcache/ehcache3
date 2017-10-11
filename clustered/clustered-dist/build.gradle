@@ -45,7 +45,6 @@ configurations {
 
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  compileOnly "org.terracotta.internal:client-logging:$terracottaCoreVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -82,7 +81,7 @@ distributions {
         }
         exclude { f ->
           // Exclude tc's client subdir and README.txt - Issue 1273
-          f.path.contains('client/') || f.path.contains('README.txt')
+          f.path.contains('client/') || f.path.contains('README.txt') || f.path.contains('server/conf')
         }
         includeEmptyDirs = false
       }

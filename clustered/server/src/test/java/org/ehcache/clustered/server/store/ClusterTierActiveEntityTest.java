@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
@@ -38,16 +37,19 @@ import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.TestClientDescriptor;
+import org.ehcache.clustered.server.TestInvokeContext;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
-import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.terracotta.client.message.tracker.OOOMessageHandler;
+import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
@@ -55,16 +57,16 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistry;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -72,7 +74,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -84,11 +86,12 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -100,7 +103,6 @@ import static org.mockito.Mockito.when;
 public class ClusterTierActiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -113,7 +115,6 @@ public class ClusterTierActiveEntityTest {
 
   @Before
   public void setUp() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
     defaultStoreConfiguration = new ServerStoreConfigBuilder().dedicated(defaultResource, 1024, MemoryUnit.KILOBYTES).build();
@@ -214,13 +215,12 @@ public class ClusterTierActiveEntityTest {
   @Test
   public void testLoadExistingRegistersEvictionListener() throws Exception {
     EhcacheStateService stateService = mock(EhcacheStateService.class);
-    when(stateService.getClientMessageTracker(anyString())).thenReturn(mock(ClientMessageTracker.class));
 
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
     IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
-    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null);
+    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
     verify(store).setEvictionListener(any(ServerStoreEvictionListener.class));
@@ -231,59 +231,53 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
     // perform an append
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
     );
 
     // assert that an invalidation request is pending
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
     InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(context2.getClientDescriptor(), context3.getClientDescriptor()));
 
     // client 2 acks
     assertSuccess(
-        activeEntity.invoke(client2, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invokeActive(context2, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
     invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // client 3 acks
     assertSuccess(
-        activeEntity.invoke(client3, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invokeActive(context3, messageFactory.clientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that the invalidation request is done since all clients disconnected
@@ -295,59 +289,53 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
     // perform a clear
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.clearOperation())
+        activeEntity.invokeActive(context1, messageFactory.clearOperation())
     );
 
     // assert that an invalidation request is pending
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
     InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(context2.getClientDescriptor(), context3.getClientDescriptor()));
 
     // client 2 acks
     assertSuccess(
-        activeEntity.invoke(client2, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invokeActive(context2, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
     invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // client 3 acks
     assertSuccess(
-        activeEntity.invoke(client3, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+        activeEntity.invokeActive(context3, messageFactory.clientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
     );
 
     // assert that the invalidation request is done since all clients disconnected
@@ -359,56 +347,43 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
-
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // perform an append
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
     );
 
-    // assert that an invalidation request is pending
-    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
-
     // disconnect client2
-    activeEntity.disconnected(client2);
+    activeEntity.disconnected(context2.getClientDescriptor());
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // disconnect client3
-    activeEntity.disconnected(client3);
+    activeEntity.disconnected(context3.getClientDescriptor());
 
     // assert that the invalidation request is done since all clients disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
@@ -419,56 +394,43 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
     // perform an append
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.clearOperation())
+        activeEntity.invokeActive(context1, messageFactory.clearOperation())
     );
 
-    // assert that an invalidation request is pending
-    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
-
     // disconnect client2
-    activeEntity.disconnected(client2);
+    activeEntity.disconnected(context2.getClientDescriptor());
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(context1.getClientDescriptor()));
     assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // disconnect client3
-    activeEntity.disconnected(client3);
+    activeEntity.disconnected(context3.getClientDescriptor());
 
     // assert that the invalidation request is done since all clients disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
@@ -484,46 +446,33 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
 
     // perform an append
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context1, messageFactory.appendOperation(1L, createPayload(1L)))
     );
 
-    // assert that an invalidation request is pending
-    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
-
     // disconnect client1
-    activeEntity.disconnected(client1);
+    activeEntity.disconnected(context1.getClientDescriptor());
 
     // assert that the invalidation request is done since the originating client disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
@@ -539,65 +488,36 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client1 = new TestClientDescriptor();
-    ClientDescriptor client2 = new TestClientDescriptor();
-    ClientDescriptor client3 = new TestClientDescriptor();
-    activeEntity.connected(client1);
-    activeEntity.connected(client2);
-    activeEntity.connected(client3);
+    TestInvokeContext context1 = new TestInvokeContext();
+    TestInvokeContext context2 = new TestInvokeContext();
+    TestInvokeContext context3 = new TestInvokeContext();
+    activeEntity.connected(context1.getClientDescriptor());
+    activeEntity.connected(context2.getClientDescriptor());
+    activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
-        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
-        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
-        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
+        activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
 
     // perform an append
     assertSuccess(
-        activeEntity.invoke(client1, messageFactory.clearOperation())
+        activeEntity.invokeActive(context1, messageFactory.clearOperation())
     );
 
-    // assert that an invalidation request is pending
-    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
-    InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
-    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
-    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
-    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
-
     // disconnect client1
-    activeEntity.disconnected(client1);
+    activeEntity.disconnected(context1.getClientDescriptor());
 
     // assert that the invalidation request is done since the originating client disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
-  }
-
-  @Test
-  public void testConnectedButNotAttachedClientFailsInvokingServerStoreOperation() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
-
-    assertFailure(
-        activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        LifecycleException.class, "Client not attached to cluster tier 'store'"
-    );
   }
 
   @Test
@@ -605,21 +525,21 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
     assertSuccess(
-        activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
     assertSuccess(
-        activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L)))
+        activeEntity.invokeActive(context, messageFactory.appendOperation(1L, createPayload(1L)))
     );
 
-    EhcacheEntityResponse response = activeEntity.invoke(client, messageFactory.getOperation(1L));
+    EhcacheEntityResponse response = activeEntity.invokeActive(context, messageFactory.getOperation(1L));
     assertThat(response, instanceOf(EhcacheEntityResponse.GetResponse.class));
     EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse) response;
     assertThat(getResponse.getChain().isEmpty(), is(false));
@@ -637,19 +557,19 @@ public class ClusterTierActiveEntityTest {
     assertThat(activeEntity.getConnectedClients(), empty());
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     assertSuccess(
-        activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
+        activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
-    assertThat(activeEntity.getAttachedClients(), contains(client));
+    assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
 
     /*
      * Ensure the dedicated resource pool remains after client disconnect.
      */
-    activeEntity.disconnected(client);
+    activeEntity.disconnected(context.getClientDescriptor());
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
 
@@ -676,17 +596,13 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
+    TestInvokeContext context2 = new TestInvokeContext();
+    activeEntity.connected(context2.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-
-    MESSAGE_FACTORY.setClientId(client2Id);
-
-    assertSuccess(activeEntity.invoke(client2,
+    assertSuccess(activeEntity.invokeActive(context2,
         MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
@@ -694,8 +610,8 @@ public class ClusterTierActiveEntityTest {
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(MemoryUnit.MEGABYTES.toBytes(1L)));
 
     assertThat(activeEntity.getConnectedClients(), hasSize(2));
-    assertThat(activeEntity.getAttachedClients(), contains(client2));
-    assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
+    assertThat(activeEntity.getConnectedClients(), containsInAnyOrder(context.getClientDescriptor(), context2.getClientDescriptor()));
+    assertThat(defaultRegistry.getStoreManagerService().getStores(), contains(defaultStoreName));
   }
 
   @Test
@@ -703,10 +619,10 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertFailure(activeEntity.invoke(client,
+    assertFailure(activeEntity.invokeActive(context,
         MESSAGE_FACTORY.validateServerStore(defaultStoreName,
             new ServerStoreConfigBuilder()
                 .dedicated(defaultResource, 8, MemoryUnit.MEGABYTES)
@@ -720,10 +636,10 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName,
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName,
       new ServerStoreConfigBuilder().unknown().build())));
   }
 
@@ -777,12 +693,12 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)));
 
-    assertThat(activeEntity.getAttachedClients(), contains(client));
+    assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
   }
 
   @Test
@@ -790,8 +706,8 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .dedicated(defaultResource, 2, MemoryUnit.MEGABYTES)
@@ -804,7 +720,7 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     storeConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
       InvalidServerStoreConfigurationException.class, expectedMessageContent);
   }
 
@@ -813,8 +729,8 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration storeConfiguration = new ServerStoreConfigBuilder()
       .dedicated("otherResource", 1, MemoryUnit.MEGABYTES)
@@ -827,7 +743,7 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     storeConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
+    assertFailure(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, storeConfiguration)),
       InvalidServerStoreConfigurationException.class, expectedMessageContent);
   }
 
@@ -841,8 +757,8 @@ public class ClusterTierActiveEntityTest {
       new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     ServerStoreConfiguration otherConfiguration = new ServerStoreConfigBuilder()
       .shared("other")
@@ -855,7 +771,7 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     otherConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invoke(client,
+    assertFailure(activeEntity.invokeActive(context,
         MESSAGE_FACTORY.validateServerStore(defaultStoreName,
           otherConfiguration)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
   }
@@ -926,11 +842,11 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
@@ -944,19 +860,19 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
-    assertSuccess(activeEntity.invoke(client, messageFactory.appendOperation(1L, payload)));
-    assertSuccess(activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload)));
-    assertSuccess(activeEntity.invoke(client, messageFactory.appendOperation(17L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(1L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(-2L, payload)));
+    assertSuccess(activeEntity.invokeActive(context, messageFactory.appendOperation(17L, payload)));
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
@@ -970,21 +886,21 @@ public class ClusterTierActiveEntityTest {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
     ServerStoreOpMessage.AppendMessage testMessage = messageFactory.appendOperation(1L, payload);
-    activeEntity.invoke(client, testMessage);
-    activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(33L, payload));
+    activeEntity.invokeActive(context, testMessage);
+    activeEntity.invokeActive(context, messageFactory.appendOperation(-2L, payload));
+    activeEntity.invokeActive(context, messageFactory.appendOperation(17L, payload));
+    activeEntity.invokeActive(context, messageFactory.appendOperation(33L, payload));
 
     System.setProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP, "512");
     ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
@@ -1009,51 +925,11 @@ public class ClusterTierActiveEntityTest {
     InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
 
     Random random = new Random();
-    random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.trackHashInvalidation(x));
+    random.ints(0, 100).limit(10).forEach(invalidationTracker::trackHashInvalidation);
 
     activeEntity.loadExisting();
 
     assertThat(activeEntity.getInflightInvalidations().isEmpty(), is(false));
-  }
-
-  @Test
-  public void testPromotedActiveIgnoresDuplicateMessages() throws Exception {
-    defaultRegistry.getService(new EhcacheStoreStateServiceConfig(identifier, DEFAULT_MAPPER));
-    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
-    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
-
-    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker(defaultStoreName);
-
-    Random random = new Random();
-    Set<Long> msgIds = new HashSet<>();
-    random.longs(100).distinct().forEach(x -> {
-      msgIds.add(x);
-    });
-
-    Set<Long> applied = new HashSet<>();
-    msgIds.stream().limit(80).forEach(x -> {
-      applied.add(x);
-      clientMessageTracker.applied(x, CLIENT_ID);
-    });
-
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration));
-
-    activeEntity.loadExisting();
-
-    IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
-
-    ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory(CLIENT_ID);
-    EhcacheEntityResponseFactory entityResponseFactory = new EhcacheEntityResponseFactory();
-    applied.forEach(y -> {
-      EhcacheEntityMessage message = serverStoreMessageFactory.appendOperation(y, createPayload(y));
-      message.setId(y);
-      assertThat(activeEntity.invoke(client, message), is(entityResponseFactory.success()));
-    });
-
-    verify(entityMessenger, times(0)).messageSelfAndDeferRetirement(any(), any());
   }
 
   @Test
@@ -1064,18 +940,18 @@ public class ClusterTierActiveEntityTest {
 
     IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     reset(entityMessenger);
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
     EhcacheEntityMessage getAndAppend = messageFactory.getAndAppendOperation(1L, createPayload(1L));
-    activeEntity.invoke(client, getAndAppend);
+    activeEntity.invokeActive(context, getAndAppend);
 
     ArgumentCaptor<PassiveReplicationMessage.ChainReplicationMessage> captor = ArgumentCaptor.forClass(PassiveReplicationMessage.ChainReplicationMessage.class);
-    verify(entityMessenger).messageSelfAndDeferRetirement(any(), captor.capture());
+    verify(entityMessenger).messageSelfAndDeferRetirement(isNotNull(), captor.capture());
     PassiveReplicationMessage.ChainReplicationMessage replicatedMessage = captor.getValue();
 
     assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
@@ -1085,11 +961,11 @@ public class ClusterTierActiveEntityTest {
   public void testInvalidMessageThrowsError() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
 
     try {
-      activeEntity.invoke(client, new InvalidMessage());
+      activeEntity.invokeActive(context, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
@@ -1097,28 +973,26 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
-  public void testActiveDoesNotTrackMessagesByDefault() throws Exception {
+  public void testActiveTracksMessageDuplication() throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
-    message.setId(123);
-    activeEntity.invoke(client, message);
+    activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
     message = messageFactory.appendOperation(2L, createPayload(1L));
-    message.setId(123);
 
-    activeEntity.invoke(client, message); // this invoke should be rejected due to duplicate message id
+    activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
 
     ServerStoreOpMessage.GetMessage getMessage = messageFactory.getOperation(2L);
-    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invoke(client, getMessage);
+    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invokeActive(context, getMessage);
     assertThat(response.getChain().isEmpty(), is(false));
   }
 
@@ -1128,25 +1002,22 @@ public class ClusterTierActiveEntityTest {
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
+
+    context.incrementCurrentTransactionId();
 
     ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
-    message.setId(123);
-    activeEntity.invoke(client, message);
+    EhcacheEntityResponse expected = activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
     message = messageFactory.appendOperation(2L, createPayload(1L));
-    message.setId(123);
 
-    activeEntity.invoke(client, message); // this invoke should be rejected due to duplicate message id
-
-    ServerStoreOpMessage.GetMessage getMessage = messageFactory.getOperation(2L);
-    EhcacheEntityResponse.GetResponse response = (EhcacheEntityResponse.GetResponse) activeEntity.invoke(client, getMessage);
-    assertThat(response.getChain().isEmpty(), is(true));
+    EhcacheEntityResponse actual = activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
+    assertThat(actual, sameInstance(expected));
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
@@ -1169,7 +1040,8 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService) {
+                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
       public <T> T getService(final ServiceConfiguration<T> configuration) {
@@ -1182,8 +1054,17 @@ public class ClusterTierActiveEntityTest {
           return (T) stateService;
         } else if (serviceType.isAssignableFrom(EntityMonitoringService.class)) {
           return (T) entityMonitoringService;
+        } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
+          return (T) entityManagementRegistry;
+        } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
+          return (T) new OOOMessageHandlerImpl(message -> true, 1, message -> 0);
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
+      }
+
+      @Override
+      public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+        return Collections.singleton(getService(configuration));
       }
     };
   }
@@ -1246,17 +1127,6 @@ public class ClusterTierActiveEntityTest {
     }
   }
 
-  private static final class TestClientDescriptor implements ClientDescriptor {
-    private static final AtomicInteger counter = new AtomicInteger(0);
-
-    private final int clientId = counter.incrementAndGet();
-
-    @Override
-    public String toString() {
-      return "TestClientDescriptor[" + clientId + "]";
-    }
-  }
-
   /**
    * Provides a {@link ServiceRegistry} for off-heap resources.  This is a "server-side" object.
    */
@@ -1272,7 +1142,7 @@ public class ClusterTierActiveEntityTest {
     private ClientCommunicator clientCommunicator;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     private final Map<String, ServerSideConfiguration.Pool> sharedPools = new HashMap<>();
 
@@ -1330,7 +1200,7 @@ public class ClusterTierActiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -1371,13 +1241,20 @@ public class ClusterTierActiveEntityTest {
           this.entityMessenger = mock(IEntityMessenger.class);
         }
         return (T) this.entityMessenger;
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
-      } else if(serviceConfiguration instanceof ActiveEntityMonitoringServiceConfiguration) {
-        return null;
+      } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
+        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
+    }
+
+    @Override
+    public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+      return Collections.singleton(getService(configuration));
     }
   }
 
@@ -1426,23 +1303,6 @@ public class ClusterTierActiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

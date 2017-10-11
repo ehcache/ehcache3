@@ -41,8 +41,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +57,7 @@ import static org.junit.Assert.fail;
 public class EventualServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
 
   private static ClusterTierClientEntity clientEntity1;
@@ -97,14 +95,14 @@ public class EventualServerStoreProxyTest {
         Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.EVENTUAL);
 
-    clientEntity1 = entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
+    clientEntity1 = entityFactory1.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
     // required to attach the store to the client
     clientEntity1.validate(serverStoreConfiguration);
     clientEntity2.validate(serverStoreConfiguration);
 
-    serverStoreProxy1 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity1.getClientId()), clientEntity1);
-    serverStoreProxy2 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity2.getClientId()), clientEntity2);
+    serverStoreProxy1 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity1);
+    serverStoreProxy2 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity2);
   }
 
   @AfterClass
@@ -126,8 +124,8 @@ public class EventualServerStoreProxyTest {
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
     ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -188,7 +186,7 @@ public class EventualServerStoreProxyTest {
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -215,7 +213,7 @@ public class EventualServerStoreProxyTest {
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -268,17 +266,9 @@ public class EventualServerStoreProxyTest {
 
   private static void assertThatClientsWaitingForInvalidationIsEmpty() throws Exception {
     ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity = observableClusterTierServerEntityService.getServedActiveEntities().get(0);
-    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-      while (true) {
-      try {
-        if (activeEntity.getClientsWaitingForInvalidation().size() == 0) {
-          return true;
-        }
-      } catch (Exception e) {
-      }
-    }
-    });
-    assertThat(future.get(5, TimeUnit.SECONDS), is(true));
+    long now = System.currentTimeMillis();
+    while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
   }
 
 }

@@ -33,12 +33,7 @@ public class FileExistenceMatchers {
   private static class DirectoryIsLockedMatcher extends TypeSafeMatcher<File> {
     @Override
     protected boolean matchesSafely(File dir) {
-      File[] files = dir.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-          return name.equals(".lock");
-        }
-      });
+      File[] files = dir.listFiles((dir1, name) -> name.equals(".lock"));
       return files != null && files.length == 1;
     }
 
@@ -74,12 +69,7 @@ public class FileExistenceMatchers {
         return false;
       }
 
-      File[] files = file.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-          return name.startsWith(startWith);
-        }
-      });
+      File[] files = file.listFiles((dir, name) -> name.startsWith(startWith));
 
       return files != null && files.length == 1 && files[0].isDirectory();
     }

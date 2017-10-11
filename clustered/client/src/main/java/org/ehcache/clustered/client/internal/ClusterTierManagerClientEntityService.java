@@ -31,7 +31,7 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class ClusterTierManagerClientEntityService implements EntityClientService<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierManagerClientEntityService implements EntityClientService<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse, Void> {
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
@@ -51,7 +51,7 @@ public class ClusterTierManagerClientEntityService implements EntityClientServic
   }
 
   @Override
-  public InternalClusterTierManagerClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public InternalClusterTierManagerClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint, Void userData) {
     return new SimpleClusterTierManagerClientEntity(endpoint);
   }
 

@@ -17,7 +17,6 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
@@ -26,11 +25,12 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -73,12 +73,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     tier = factory.newCachingTier(1L);
 
     try {
-      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return computedValueHolder;
-        }
-      });
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> computedValueHolder);
 
       assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (StoreAccessException e) {
@@ -98,19 +93,10 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     tier = factory.newCachingTier();
 
     try {
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {   // actually put mapping in tier
-        @Override
-        public Store.ValueHolder<V> apply(final K o) {
-          return computedValueHolder;
-        }
-      });
+      // actually put mapping in tier
+      tier.getOrComputeIfAbsent(key, o -> computedValueHolder);
 
-      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return null;
-        }
-      });
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> null);
 
       assertThat(valueHolder.value(), is(equalTo(value)));
     } catch (StoreAccessException e) {

@@ -59,8 +59,8 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
-      final Serializer<String> defaultSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-      final Copier<String> defaultCopier = new SerializingCopier<String>(defaultSerializer);
+      final Serializer<String> defaultSerializer = new JavaSerializer<>(getClass().getClassLoader());
+      final Copier<String> defaultCopier = new SerializingCopier<>(defaultSerializer);
 
       @Override
       public CachingTier<String, String> newCachingTier() {
@@ -73,16 +73,16 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
-                new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
+          ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
+          new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
 
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
+        return new SerializedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       @Override
