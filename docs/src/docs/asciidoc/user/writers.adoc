@@ -1,6 +1,6 @@
 ---
 ---
-= Cache Writers
+= Cache Loaders and Writers
 ifndef::sourcedir34[]
 include::common.adoc[]
 endif::sourcedir34[]
