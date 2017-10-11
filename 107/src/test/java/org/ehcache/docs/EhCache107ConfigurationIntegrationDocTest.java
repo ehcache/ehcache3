@@ -112,7 +112,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   @SuppressWarnings("unchecked")
   public void testGettingToEhcacheConfiguration() {
     // tag::mutableConfigurationExample[]
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     Cache<Long, String> cache = cacheManager.createCache("someCache", configuration); // <1>
 
@@ -181,7 +181,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getClassLoader());
 
     // tag::jsr107SupplementWithTemplatesExample[]
-    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<>();
     mutableConfiguration.setTypes(Long.class, Client.class); // <1>
 
     Cache<Long, Client> anyCache = manager.createCache("anyCache", mutableConfiguration); // <2>
@@ -193,7 +193,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     Cache<Long, Client> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
     assertFalse(anotherCache.getConfiguration(Configuration.class).isStoreByValue()); // <5>
 
-    MutableConfiguration<String, Client> otherConfiguration = new MutableConfiguration<String, Client>();
+    MutableConfiguration<String, Client> otherConfiguration = new MutableConfiguration<>();
     otherConfiguration.setTypes(String.class, Client.class);
     otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <6>
 
@@ -225,7 +225,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
         getClass().getClassLoader());
 
-    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<>();
     mutableConfiguration.setTypes(Long.class, Client.class);
 
     Client client1 = new Client("client1", 1);
@@ -258,7 +258,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
         getClass().getClassLoader());
 
-    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<>();
     mutableConfiguration.setTypes(Long.class, Client.class).setStoreByValue(false);
 
     Cache<Long, Client> myCache = null;

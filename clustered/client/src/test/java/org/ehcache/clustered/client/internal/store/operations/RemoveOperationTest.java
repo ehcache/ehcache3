@@ -38,7 +38,7 @@ public class RemoveOperationTest {
   @Test
   public void testEncode() throws Exception {
     Long key = 12L;
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, TIME_SOURCE.getTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<>(key, TIME_SOURCE.getTimeMillis());
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
@@ -58,17 +58,17 @@ public class RemoveOperationTest {
     blob.putLong(key);
     blob.flip();
 
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(blob, keySerializer);
+    RemoveOperation<Long, String> operation = new RemoveOperation<>(blob, keySerializer);
     assertEquals(key, operation.getKey());
   }
 
   @Test
   public void testEncodeDecodeInvariant() throws Exception {
     Long key = 12L;
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<>(key, System.currentTimeMillis());
 
     RemoveOperation<Long, String> decodedOperation =
-        new RemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer);
+      new RemoveOperation<>(operation.encode(keySerializer, valueSerializer), keySerializer);
     assertEquals(key, decodedOperation.getKey());
   }
 
@@ -80,11 +80,11 @@ public class RemoveOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(1L, System.currentTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<>(1L, System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertNull(result);
   }

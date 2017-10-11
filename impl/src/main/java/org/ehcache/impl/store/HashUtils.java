@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.server.management;
+package org.ehcache.impl.store;
 
-import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
+/**
+ * HashUtils
+ */
+public class HashUtils {
 
-final class ClusterTierClientStateBinding extends ClientBinding {
-
-  ClusterTierClientStateBinding(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
-    super(clientDescriptor, clientState);
+  public static long intHashToLong(int hash) {
+    return (long) hash;
   }
 
-  @Override
-  public ClusterTierClientState getValue() {
-    return (ClusterTierClientState) super.getValue();
+  public static int longHashToInt(long hash) {
+    return (int) hash;
   }
-
 }

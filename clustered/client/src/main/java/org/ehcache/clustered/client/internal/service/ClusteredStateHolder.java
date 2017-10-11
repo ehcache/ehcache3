@@ -62,10 +62,8 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     try {
       EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
-    } catch (ClusterException ce) {
+    } catch (ClusterException | TimeoutException ce) {
       throw new ClusteredMapException(ce);
-    } catch (TimeoutException te) {
-      throw new ClusteredMapException(te);
     }
   }
 
@@ -74,10 +72,10 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   public Set<Map.Entry<K, V>> entrySet() {
     @SuppressWarnings("unchecked")
     Set<Map.Entry<Object, Object>> response = (Set<Map.Entry<Object, Object>>) getResponse(messageFactory.entrySetMessage(), true);
-    Set<Map.Entry<K, V>> entries = new HashSet<Map.Entry<K, V>>();
+    Set<Map.Entry<K, V>> entries = new HashSet<>();
     for (Map.Entry<Object, Object> objectEntry : response) {
-      entries.add(new AbstractMap.SimpleEntry<K, V>(keyCodec.decode(objectEntry.getKey()),
-                                                    valueCodec.decode(objectEntry.getValue())));
+      entries.add(new AbstractMap.SimpleEntry<>(keyCodec.decode(objectEntry.getKey()),
+        valueCodec.decode(objectEntry.getValue())));
     }
     return entries;
   }

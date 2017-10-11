@@ -42,7 +42,7 @@ public class StatefulSerializerTest {
   @Test
   public void testXAWithStatefulSerializer() throws Exception {
     BitronixTransactionManager manager = TransactionManagerServices.getTransactionManager();
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(
             BitronixTransactionManagerLookup.class))
           .withCache("xaCache",
@@ -51,19 +51,19 @@ public class StatefulSerializerTest {
                 ResourcePoolsBuilder.heap(5))
               .withExpiry(Expirations.noExpiration()).add(new XAStoreConfiguration("xaCache"))
               .build())
-          .build(true);
+          .build(true)) {
 
-    Cache<Long, Person> cache = cacheManager.getCache("xaCache", Long.class, Person.class);
-    manager.begin();
-    cache.put(1L, new Person("James", 42));
-    manager.commit();
+      Cache<Long, Person> cache = cacheManager.getCache("xaCache", Long.class, Person.class);
+      manager.begin();
+      cache.put(1L, new Person("James", 42));
+      manager.commit();
 
-    manager.begin();
-    assertNotNull(cache.get(1L));
-    manager.commit();
-
-    cacheManager.close();
-    manager.shutdown();
+      manager.begin();
+      assertNotNull(cache.get(1L));
+      manager.commit();
+    } finally {
+      manager.shutdown();
+    }
   }
 
   public static class Person implements Serializable {

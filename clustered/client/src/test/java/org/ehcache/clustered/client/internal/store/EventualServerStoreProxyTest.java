@@ -59,7 +59,7 @@ import static org.junit.Assert.fail;
 public class EventualServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
 
   private static ClusterTierClientEntity clientEntity1;
@@ -126,8 +126,8 @@ public class EventualServerStoreProxyTest {
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
     ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -188,7 +188,7 @@ public class EventualServerStoreProxyTest {
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -215,7 +215,7 @@ public class EventualServerStoreProxyTest {
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -268,17 +268,9 @@ public class EventualServerStoreProxyTest {
 
   private static void assertThatClientsWaitingForInvalidationIsEmpty() throws Exception {
     ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity = observableClusterTierServerEntityService.getServedActiveEntities().get(0);
-    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-      while (true) {
-      try {
-        if (activeEntity.getClientsWaitingForInvalidation().size() == 0) {
-          return true;
-        }
-      } catch (Exception e) {
-      }
-    }
-    });
-    assertThat(future.get(5, TimeUnit.SECONDS), is(true));
+    long now = System.currentTimeMillis();
+    while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
   }
 
 }

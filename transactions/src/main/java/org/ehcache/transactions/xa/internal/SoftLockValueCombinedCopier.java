@@ -35,16 +35,18 @@ class SoftLockValueCombinedCopier<T> implements Copier<SoftLock<T>> {
   public SoftLock<T> copyForRead(SoftLock<T> obj) {
     T oldValue = valueCopier.copyForRead(obj.getOldValue());
     XAValueHolder<T> valueHolder = obj.getNewValueHolder();
-    XAValueHolder<T> newValueHolder = valueHolder == null ? null : new XAValueHolder<T>(valueHolder, valueCopier.copyForRead(valueHolder.value()));
-    return new SoftLock<T>(obj.getTransactionId(), oldValue, newValueHolder);
+    XAValueHolder<T> newValueHolder = valueHolder == null ? null : new XAValueHolder<>(valueHolder, valueCopier.copyForRead(valueHolder
+      .value()));
+    return new SoftLock<>(obj.getTransactionId(), oldValue, newValueHolder);
   }
 
   @Override
   public SoftLock<T> copyForWrite(SoftLock<T> obj) {
     T oldValue = valueCopier.copyForWrite(obj.getOldValue());
     XAValueHolder<T> valueHolder = obj.getNewValueHolder();
-    XAValueHolder<T> newValueHolder = valueHolder == null ? null : new XAValueHolder<T>(valueHolder, valueCopier.copyForWrite(valueHolder.value()));
-    return new SoftLock<T>(obj.getTransactionId(), oldValue, newValueHolder);
+    XAValueHolder<T> newValueHolder = valueHolder == null ? null : new XAValueHolder<>(valueHolder, valueCopier.copyForWrite(valueHolder
+      .value()));
+    return new SoftLock<>(obj.getTransactionId(), oldValue, newValueHolder);
   }
 
 }

@@ -32,7 +32,7 @@ public class CopiedOnHeapKeyTest {
 
     Person person = new Person("foo", 24);
     PersonCopier copier = new PersonCopier();
-    CopiedOnHeapKey<Person> key = new CopiedOnHeapKey<Person>(person, copier);
+    CopiedOnHeapKey<Person> key = new CopiedOnHeapKey<>(person, copier);
 
     assertThat(key.getActualKeyObject().hashCode(), is(person.hashCode()));
 

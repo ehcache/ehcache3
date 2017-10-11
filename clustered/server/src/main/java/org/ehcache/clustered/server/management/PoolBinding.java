@@ -16,8 +16,9 @@
 package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.terracotta.management.model.Objects;
 import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
+
+import java.util.Objects;
 
 class PoolBinding extends AliasBinding {
 

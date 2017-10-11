@@ -60,7 +60,7 @@ public class StrongServerStoreProxyTest {
   private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private static SimpleClusterTierClientEntity clientEntity1;
   private static ClusterTierClientEntity clientEntity2;
@@ -120,8 +120,8 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
     ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -179,7 +179,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -227,19 +227,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {
@@ -250,7 +244,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -320,19 +314,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {

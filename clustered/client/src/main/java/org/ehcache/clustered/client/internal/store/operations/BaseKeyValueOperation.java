@@ -25,6 +25,9 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
   private final LazyValueHolder<V> valueHolder;
+
+  //-ve values are expiry times
+  //+ve values are operation timestamps
   private final long timeStamp;
 
   BaseKeyValueOperation(K key, V value, long timeStamp) {
@@ -35,7 +38,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       throw new NullPointerException("Value can not be null");
     }
     this.key = key;
-    this.valueHolder = new LazyValueHolder<V>(value);
+    this.valueHolder = new LazyValueHolder<>(value);
     this.timeStamp = timeStamp;
   }
 
@@ -56,7 +59,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
-    this.valueHolder = new LazyValueHolder<V>(buffer.slice(), valueSerializer);
+    this.valueHolder = new LazyValueHolder<>(buffer.slice(), valueSerializer);
   }
 
   public K getKey() {

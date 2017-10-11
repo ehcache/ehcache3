@@ -31,14 +31,11 @@ class LoggingExecutor implements Executor {
 
   @Override
   public void execute(final Runnable command) {
-    delegate.execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          command.run();
-        } catch (RuntimeException e) {
-          logger.error("ERR: " + e.getMessage(), e);
-        }
+    delegate.execute(() -> {
+      try {
+        command.run();
+      } catch (RuntimeException e) {
+        logger.error("ERR: " + e.getMessage(), e);
       }
     });
   }

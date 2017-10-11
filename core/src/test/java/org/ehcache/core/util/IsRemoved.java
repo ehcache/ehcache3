@@ -20,10 +20,9 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 import org.mockito.ArgumentMatcher;
 
-public class IsRemoved<K, V> extends ArgumentMatcher<CacheEvent<K, V>> {
+public class IsRemoved<K, V> implements ArgumentMatcher<CacheEvent<K, V>> {
 
-  public boolean matches(Object event) {
-    CacheEvent<?, ?> cacheEvent = (CacheEvent)event;
-    return (cacheEvent.getType() == EventType.REMOVED);
+  public boolean matches(CacheEvent<K, V> event) {
+    return (event.getType() == EventType.REMOVED);
   }
 }

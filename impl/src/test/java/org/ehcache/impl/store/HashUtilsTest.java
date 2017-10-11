@@ -14,18 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.util;
+package org.ehcache.impl.store;
+
+import org.junit.Test;
+
+import java.util.Random;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
- * HashUtils
+ * HashUtilsTest
  */
-public class HashUtils {
+public class HashUtilsTest {
 
-  public static long intHashToLong(int hash) {
-    return (long) hash;
+  @Test
+  public void testHashTransform() {
+    Random random = new Random();
+    for (int i = 0; i < 10; i++) {
+      int hash = random.nextInt();
+      long longHash = HashUtils.intHashToLong(hash);
+      int inthash = HashUtils.longHashToInt(longHash);
+
+      assertThat(inthash, is(hash));
+    }
   }
 
-  public static int longHashToInt(long hash) {
-    return (int) hash;
-  }
 }

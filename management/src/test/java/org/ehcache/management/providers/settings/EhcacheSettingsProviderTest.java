@@ -119,11 +119,8 @@ public class EhcacheSettingsProviderTest {
   }
 
   private String read(String path) throws FileNotFoundException {
-    Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8");
-    try {
+    try (Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8")) {
       return scanner.nextLine();
-    } finally {
-      scanner.close();
     }
   }
 

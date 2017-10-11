@@ -26,11 +26,10 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -72,22 +72,17 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
     LongCopier keyCopier = new LongCopier();
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(),
-        keyCopier, new SerializingCopier<Long>(new JavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
+        keyCopier, new SerializingCopier<>(new JavaSerializer<>(ClassLoader.getSystemClassLoader())), 100);
 
-    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
+    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, key -> new AbstractValueHolder<Long>(-1, -1) {
       @Override
-      public ValueHolder<Long> apply(final Long key) {
-        return new AbstractValueHolder<Long>(-1, -1) {
-          @Override
-          public Long value() {
-            return key * 1000L;
-          }
+      public Long value() {
+        return key * 1000L;
+      }
 
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
       }
     });
     assertThat(computed.value(), is(1000L));
@@ -122,7 +117,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     OnHeapStore<Serializable, Serializable> store = newStore();
 
     String key = "key";
-    List<String> value = new ArrayList<String>();
+    List<String> value = new ArrayList<>();
     value.add("value");
 
     store.put(key, (Serializable) value);
@@ -140,7 +135,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testKeyUniqueObject() throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
 
-    List<String> key = new ArrayList<String>();
+    List<String> key = new ArrayList<>();
     key.add("key");
     String value = "value";
 
@@ -160,8 +155,8 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
     cacheManager.init();
 
-    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration<String>(
-        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
+    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration<>(
+      SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .build());
@@ -184,8 +179,8 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry,
       EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-    Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
-    Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
+    Copier<K> keyCopier = new SerializingCopier<>(new JavaSerializer<>(getClass().getClassLoader()));
+    Copier<V> valueCopier = new SerializingCopier<>(new JavaSerializer<>(getClass().getClassLoader()));
     return newStore(timeSource, expiry, evictionAdvisor, keyCopier, valueCopier, 100);
   }
 

@@ -94,7 +94,7 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
       throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
     @SuppressWarnings("unchecked")
-    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<T>(copierClass);
+    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<>(copierClass);
     getDefaults().put(clazz, configuration);
     return this;
   }

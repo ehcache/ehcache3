@@ -27,9 +27,9 @@ public class Result {
   private       long              endTime;
   private       long              runTime;
   private       int               runCount;
-  private final List<ResultState> failedTests  = new ArrayList<ResultState>();
-  private final List<ResultState> skippedTests = new ArrayList<ResultState>();
-  private final List<ResultState> testsWithLegalException = new ArrayList<ResultState>();
+  private final List<ResultState> failedTests  = new ArrayList<>();
+  private final List<ResultState> skippedTests = new ArrayList<>();
+  private final List<ResultState> testsWithLegalException = new ArrayList<>();
 
   public Result() {
     //

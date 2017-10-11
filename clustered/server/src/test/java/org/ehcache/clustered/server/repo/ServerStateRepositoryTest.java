@@ -80,9 +80,9 @@ public class ServerStateRepositoryTest {
     @SuppressWarnings("unchecked")
     Set<Map.Entry<String, String>> entrySet = (Set<Map.Entry<String, String>>) response.getValue();
     assertThat(entrySet.size(), is(3));
-    Map.Entry<String, String> entry1 = new AbstractMap.SimpleEntry<String, String>("key1", "value1");
-    Map.Entry<String, String> entry2 = new AbstractMap.SimpleEntry<String, String>("key2", "value2");
-    Map.Entry<String, String> entry3 = new AbstractMap.SimpleEntry<String, String>("key3", "value3");
+    Map.Entry<String, String> entry1 = new AbstractMap.SimpleEntry<>("key1", "value1");
+    Map.Entry<String, String> entry2 = new AbstractMap.SimpleEntry<>("key2", "value2");
+    Map.Entry<String, String> entry3 = new AbstractMap.SimpleEntry<>("key3", "value3");
     @SuppressWarnings("unchecked")
     Matcher<Iterable<? extends Map.Entry<String, String>>> matcher = containsInAnyOrder(entry1, entry2, entry3);
     assertThat(entrySet, matcher);

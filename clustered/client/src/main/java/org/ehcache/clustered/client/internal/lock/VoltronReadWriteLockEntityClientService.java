@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal.lock;
 
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
@@ -25,7 +24,7 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class VoltronReadWriteLockEntityClientService implements EntityClientService<VoltronReadWriteLockClient, Void, LockOperation, LockTransition> {
+public class VoltronReadWriteLockEntityClientService implements EntityClientService<VoltronReadWriteLockClient, Void, LockOperation, LockTransition, Void> {
 
   @Override
   public boolean handlesEntityType(Class<VoltronReadWriteLockClient> cls) {
@@ -43,7 +42,7 @@ public class VoltronReadWriteLockEntityClientService implements EntityClientServ
   }
 
   @Override
-  public VoltronReadWriteLockClient create(EntityClientEndpoint<LockOperation, LockTransition> endpoint) {
+  public VoltronReadWriteLockClient create(EntityClientEndpoint<LockOperation, LockTransition> endpoint, Void userData) {
     return new VoltronReadWriteLockClient(endpoint);
   }
 

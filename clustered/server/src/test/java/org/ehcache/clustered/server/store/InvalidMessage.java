@@ -13,31 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
+package org.ehcache.clustered.server.store;
+
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
 import java.util.UUID;
 
-/**
- * Represents a client's state against an {@link ClusterTierManagerActiveEntity}.
- */
-public class ClientState {
-  /**
-   * Indicates if the client has either configured or validated with clustered store manager.
-   */
-  private boolean attached = false;
-  private UUID clientId;
-
-  public boolean isAttached() {
-    return attached;
+public class InvalidMessage extends EhcacheEntityMessage {
+  @Override
+  public void setId(long id) {
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
-  public UUID getClientIdentifier() {
-    return clientId;
+  @Override
+  public long getId() {
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
-  void attach(UUID clientId) {
-    this.attached = true;
-    this.clientId = clientId;
+  @Override
+  public UUID getClientId() {
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
-
 }

@@ -65,9 +65,9 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate() {
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
-      public void handleMessage(EntityResponse messageFromServer) {
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
         // Nothing to do
       }
 
@@ -133,9 +133,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
         .prepareForDestroy(), true);
       return response.getStores();
-    } catch (ClusterException e) {
-      // TODO handle this
-    } catch (TimeoutException e) {
+    } catch (ClusterException | TimeoutException e) {
       // TODO handle this
     }
     return null;
@@ -151,9 +149,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
+    } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
@@ -173,7 +169,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
-  private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
     long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();

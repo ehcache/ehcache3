@@ -43,7 +43,7 @@ public final class SerializerTestUtilities {
 
   public static ClassLoader createClassNameRewritingLoader(Class<?> initial, Class<?> ... more) {
     ClassLoader loader = initial.getClassLoader();
-    Map<String, String> remapping = new HashMap<String, String>();
+    Map<String, String> remapping = new HashMap<>();
     remapping.putAll(createRemappings(initial));
     for (Class<?> klazz : more) {
       remapping.putAll(createRemappings(klazz));
@@ -52,7 +52,7 @@ public final class SerializerTestUtilities {
   }
 
   private static Map<String, String> createRemappings(Class<?> initial) {
-    HashMap<String, String> remappings = new HashMap<String, String>();
+    HashMap<String, String> remappings = new HashMap<>();
     remappings.put(initial.getName(), newClassName(initial));
     for (Class<?> inner : initial.getDeclaredClasses()) {
       remappings.put(inner.getName(), newClassName(inner));
@@ -86,7 +86,7 @@ public final class SerializerTestUtilities {
   private static final ThreadLocal<Deque<ClassLoader>> tcclStacks = new ThreadLocal<Deque<ClassLoader>>() {
     @Override
     protected Deque<ClassLoader> initialValue() {
-      return new LinkedList<ClassLoader>();
+      return new LinkedList<>();
     }
   };
 
@@ -105,7 +105,7 @@ public final class SerializerTestUtilities {
 
     RewritingClassloader(ClassLoader parent, Map<String, String> remappings) {
       super(parent);
-      this.remappings = Collections.unmodifiableMap(new HashMap<String, String>(remappings));
+      this.remappings = Collections.unmodifiableMap(new HashMap<>(remappings));
     }
 
     @Override
@@ -131,8 +131,7 @@ public final class SerializerTestUtilities {
         if (name.equals(mapping.getValue())) {
           String path = mapping.getKey().replace('.', '/').concat(".class");
           try {
-            InputStream resource = getResourceAsStream(path);
-            try {
+            try (InputStream resource = getResourceAsStream(path)) {
               ClassReader reader = new ClassReader(resource);
 
               ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
@@ -153,8 +152,6 @@ public final class SerializerTestUtilities {
               byte[] classBytes = writer.toByteArray();
 
               return defineClass(name, classBytes, 0, classBytes.length);
-            } finally {
-              resource.close();
             }
           } catch (IOException e) {
             throw new ClassNotFoundException("IOException while loading", e);

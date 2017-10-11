@@ -78,13 +78,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
-  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
+  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final Timeouts operationTimeouts;
 
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
   private ClusterTierManagerClientEntity entity;
-  private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusterTierClientEntity>();
+  private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
 
   private volatile boolean inMaintenance = false;
 
@@ -123,7 +123,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public <E extends Entity, C> ClientEntityFactory<E, C> newClientEntityFactory(String entityIdentifier, Class<E> entityType, long entityVersion, C configuration) {
-    return new AbstractClientEntityFactory<E, C>(entityIdentifier, entityType, entityVersion, configuration) {
+    return new AbstractClientEntityFactory<E, C, Void>(entityIdentifier, entityType, entityVersion, configuration) {
       @Override
       protected Connection getConnection() {
         if (!isConnected()) {
@@ -149,10 +149,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } else {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
-        } catch (DestroyInProgressException e) {
-          throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
-              + " Please review your configuration.", e);
-        } catch (EntityNotFoundException e) {
+        } catch (DestroyInProgressException | EntityNotFoundException e) {
           throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
         } catch (TimeoutException e) {
@@ -203,10 +200,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (ClusterTierManagerCreationException e) {
         throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
-      } catch (EntityAlreadyExistsException e) {
+      } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (EntityBusyException e) {
-        //ignore - entity in transition - try to retrieve
       } catch (TimeoutException e) {
         throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
             + "'; create operation timed out", e);
@@ -495,7 +490,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     ClusteredSpace(final ClusteredCacheIdentifier identifier) {
       this.identifier = identifier;
-      this.stateRepositories = new ConcurrentHashMap<String, ClusterStateRepository>();
+      this.stateRepositories = new ConcurrentHashMap<>();
     }
   }
 

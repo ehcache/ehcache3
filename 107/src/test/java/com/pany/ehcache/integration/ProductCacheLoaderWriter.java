@@ -34,8 +34,8 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product> {
 
-  public static final ConcurrentMap<Long, List<Product>> written = new ConcurrentHashMap<Long, List<Product>>();
-  public static final Set<Long> seen = new HashSet<Long>();
+  public static final ConcurrentMap<Long, List<Product>> written = new ConcurrentHashMap<>();
+  public static final Set<Long> seen = new HashSet<>();
 
   @Override
   public Product load(final Long key) throws Exception {
@@ -55,7 +55,7 @@ public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product
   public void write(final Long key, final Product value) throws Exception {
     List<Product> products = written.get(key);
     if(products == null) {
-      products = new ArrayList<Product>();
+      products = new ArrayList<>();
       final List<Product> previous = written.putIfAbsent(key, products);
       if(previous != null) {
         products = previous;

@@ -22,23 +22,23 @@ import org.ehcache.core.spi.store.events.StoreEvent;
 public class StoreEvents {
 
   public static <K, V> StoreEvent<K, V> createEvent(K key, V value) {
-    return new StoreEventImpl<K, V>(EventType.CREATED, key, null, value);
+    return new StoreEventImpl<>(EventType.CREATED, key, null, value);
   }
 
   public static <K, V> StoreEvent<K, V> updateEvent(K key, V oldValue, V newValue) {
-    return new StoreEventImpl<K, V>(EventType.UPDATED, key, oldValue, newValue);
+    return new StoreEventImpl<>(EventType.UPDATED, key, oldValue, newValue);
   }
 
   public static <K, V> StoreEvent<K, V> removeEvent(K key, V oldValue) {
-    return new StoreEventImpl<K, V>(EventType.REMOVED, key, oldValue, null);
+    return new StoreEventImpl<>(EventType.REMOVED, key, oldValue, null);
   }
 
   public static <K, V> StoreEvent<K, V> expireEvent(K key, V oldValue) {
-    return new StoreEventImpl<K, V>(EventType.EXPIRED, key, oldValue, null);
+    return new StoreEventImpl<>(EventType.EXPIRED, key, oldValue, null);
   }
 
   public static <K, V> StoreEvent<K, V> evictEvent(K key, V oldValue) {
-    return new StoreEventImpl<K, V>(EventType.EVICTED, key, oldValue, null);
+    return new StoreEventImpl<>(EventType.EVICTED, key, oldValue, null);
   }
 
 }

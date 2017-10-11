@@ -62,122 +62,103 @@ public class VoltronReadWriteLockClientTest {
 
   @Before
   public void cleanup() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       try {
         assertThat(ref.destroy(), is(true));
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      connection.close();
     }
   }
 
-  private EntityRef<VoltronReadWriteLockClient, Void> getEntityReference(Connection connection) throws EntityNotProvidedException {
+  private EntityRef<VoltronReadWriteLockClient, Void, Void> getEntityReference(Connection connection) throws EntityNotProvidedException {
     return connection.getEntityRef(VoltronReadWriteLockClient.class, 1, "TestEntity");
   }
 
   @Test
   public void testWriteLockExcludesRead() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(WRITE);
       try {
-        VoltronReadWriteLockClient tester = ref.fetchEntity();
+        VoltronReadWriteLockClient tester = ref.fetchEntity(null);
         assertThat(tester.tryLock(READ), is(false));
       } finally {
         locker.unlock(WRITE);
       }
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testWriteLockExcludesWrite() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(WRITE);
       try {
-        VoltronReadWriteLockClient tester = ref.fetchEntity();
+        VoltronReadWriteLockClient tester = ref.fetchEntity(null);
         assertThat(tester.tryLock(WRITE), is(false));
       } finally {
         locker.unlock(WRITE);
       }
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testReadLockExcludesWrite() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(READ);
       try {
-        VoltronReadWriteLockClient tester = ref.fetchEntity();
+        VoltronReadWriteLockClient tester = ref.fetchEntity(null);
         assertThat(tester.tryLock(WRITE), is(false));
       } finally {
         locker.unlock(READ);
       }
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testReadLockAllowsRead() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(READ);
       try {
-        VoltronReadWriteLockClient tester = ref.fetchEntity();
+        VoltronReadWriteLockClient tester = ref.fetchEntity(null);
         assertThat(tester.tryLock(READ), is(true));
         tester.unlock(READ);
       } finally {
         locker.unlock(READ);
       }
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testReadUnblocksAfterWriteReleased() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      final EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
       Future<Void> success;
       final VoltronReadWriteLockClient tester;
 
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(WRITE);
       try {
-        tester = ref.fetchEntity();
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(READ);
-            return null;
-          }
+        tester = ref.fetchEntity(null);
+        success = async(() -> {
+          tester.lock(READ);
+          return null;
         });
 
         try {
@@ -192,31 +173,25 @@ public class VoltronReadWriteLockClientTest {
 
       success.get(2, TimeUnit.MINUTES);
       tester.unlock(READ);
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testWriteUnblocksAfterWriteReleased() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      final EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
       Future<Void> success;
       final VoltronReadWriteLockClient tester;
 
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(WRITE);
       try {
-        tester = ref.fetchEntity();
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(WRITE);
-            return null;
-          }
+        tester = ref.fetchEntity(null);
+        success = async(() -> {
+          tester.lock(WRITE);
+          return null;
         });
 
         try {
@@ -231,31 +206,25 @@ public class VoltronReadWriteLockClientTest {
 
       success.get(2, TimeUnit.MINUTES);
       tester.unlock(WRITE);
-    } finally {
-      connection.close();
     }
   }
 
   @Test
   public void testWriteUnblocksAfterReadReleased() throws Exception {
-    Connection connection = ConnectionFactory.connect(TEST_URI, new Properties());
-    try {
-      final EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
+    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+      final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
       Future<Void> success;
       final VoltronReadWriteLockClient tester;
 
-      VoltronReadWriteLockClient locker = ref.fetchEntity();
+      VoltronReadWriteLockClient locker = ref.fetchEntity(null);
       locker.lock(READ);
       try {
-        tester = ref.fetchEntity();
-        success = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            tester.lock(WRITE);
-            return null;
-          }
+        tester = ref.fetchEntity(null);
+        success = async(() -> {
+          tester.lock(WRITE);
+          return null;
         });
 
         try {
@@ -270,8 +239,6 @@ public class VoltronReadWriteLockClientTest {
 
       success.get(2, TimeUnit.MINUTES);
       tester.unlock(WRITE);
-    } finally {
-      connection.close();
     }
   }
 

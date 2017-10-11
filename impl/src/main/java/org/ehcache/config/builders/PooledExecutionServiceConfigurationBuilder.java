@@ -33,7 +33,7 @@ import java.util.Set;
 public class PooledExecutionServiceConfigurationBuilder implements Builder<PooledExecutionServiceConfiguration> {
 
   private Pool defaultPool;
-  private final Set<Pool> pools = new HashSet<Pool>();
+  private final Set<Pool> pools = new HashSet<>();
 
   private PooledExecutionServiceConfigurationBuilder() {
   }

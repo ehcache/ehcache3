@@ -87,7 +87,7 @@ class DefaultTierStatistics implements TierStatistics {
   }
 
   private Map<String, TypedValueStatistic> createKnownStatistics(String tierName) {
-    Map<String, TypedValueStatistic> knownStatistics = new HashMap<String, TypedValueStatistic>(7);
+    Map<String, TypedValueStatistic> knownStatistics = new HashMap<>(7);
     addKnownStatistic(knownStatistics, tierName, "HitCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {

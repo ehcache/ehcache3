@@ -26,7 +26,7 @@ import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -39,8 +39,8 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 import org.junit.Assert;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -65,31 +65,18 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ChainBuilder newChainBuilder() {
-    return new ChainBuilder() {
-      @Override
-      public Chain build(Element... elements) {
-        ByteBuffer[] buffers = new ByteBuffer[elements.length];
-        for (int i = 0; i < buffers.length; i++) {
-          buffers[i] = elements[i].getPayload();
-        }
-        return OffHeapChainMap.chain(buffers);
+    return elements -> {
+      ByteBuffer[] buffers = new ByteBuffer[elements.length];
+      for (int i = 0; i < buffers.length; i++) {
+        buffers[i] = elements[i].getPayload();
       }
+      return OffHeapChainMap.chain(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return new ElementBuilder() {
-      @Override
-      public Element build(final ByteBuffer payLoad) {
-        return new Element() {
-          @Override
-          public ByteBuffer getPayload() {
-            return payLoad;
-          }
-        };
-      }
-    };
+    return payLoad -> () -> payLoad;
   }
 
   @Test

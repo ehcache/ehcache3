@@ -105,12 +105,7 @@ public class StandardEhCacheStatisticsQueryTest {
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
-        .withEvictionAdvisor(new EvictionAdvisor<Long, String>() {
-          @Override
-          public boolean adviseAgainstEviction(Long key, String value) {
-            return key.equals(2L);
-          }
-        })
+        .withEvictionAdvisor((key, value) -> key.equals(2L))
         .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

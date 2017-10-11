@@ -59,8 +59,8 @@ public class DefaultCopyProviderTest {
   @Test
   public void testCreateKeyCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
 
     @SuppressWarnings("unchecked")
     Serializer<Long> serializer = mock(Serializer.class);
@@ -88,8 +88,8 @@ public class DefaultCopyProviderTest {
   @Test
   public void testCreateValueCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
 
     @SuppressWarnings("unchecked")
     Serializer<Long> serializer = mock(Serializer.class);
@@ -99,8 +99,8 @@ public class DefaultCopyProviderTest {
   @Test
   public void testUserProvidedCloseableCopierInstanceDoesNotCloseOnRelease() throws Exception {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<Long>();
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
+    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<>();
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
 
     @SuppressWarnings("unchecked")
     Serializer<Long> serializer = mock(Serializer.class);

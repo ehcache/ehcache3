@@ -93,16 +93,11 @@ public class Util {
   }
 
   public static Element getElement(final ByteBuffer payload) {
-    return new Element() {
-      @Override
-      public ByteBuffer getPayload() {
-        return payload.duplicate();
-      }
-    };
+    return payload::duplicate;
   }
 
   public static Chain getChain(boolean isSequenced, ByteBuffer... buffers) {
-    List<Element> elements = new ArrayList<Element>();
+    List<Element> elements = new ArrayList<>();
     long counter = 0;
     for (final ByteBuffer buffer : buffers) {
       if (isSequenced) {
@@ -154,9 +149,7 @@ public class Util {
     try {
       objectInputStream = new ObjectInputStream(new ByteArrayInputStream(payload));
       return objectInputStream.readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
+    } catch (IOException | ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
     } finally {
       closeSilently(objectInputStream);
@@ -168,9 +161,7 @@ public class Util {
     try {
       objectInputStream = new ObjectInputStream(new ByteBufferInputStream(payload));
       return objectInputStream.readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
+    } catch (IOException | ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
     } finally {
       closeSilently(objectInputStream);

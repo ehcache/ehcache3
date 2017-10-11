@@ -38,7 +38,7 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService> {
 
-  private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<String, PoolConfiguration>();
+  private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<>();
 
   private String defaultAlias;
 

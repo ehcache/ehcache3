@@ -33,7 +33,7 @@ import javax.cache.integration.CacheWriter;
 import javax.cache.spi.CachingProvider;
 
 import static java.util.Collections.singleton;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -93,22 +93,12 @@ public class LoaderWriterConfigTest {
 
   private MutableConfiguration<Long, String> getConfiguration(final boolean readThrough, final CacheLoader<Long, String> cacheLoader,
                                                               final boolean writeThrough, final CacheWriter<Long, String> cacheWriter) {
-    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> config = new MutableConfiguration<>();
     config.setTypes(Long.class, String.class);
     config.setReadThrough(readThrough);
-    config.setCacheLoaderFactory(new Factory<CacheLoader<Long, String>>() {
-      @Override
-      public CacheLoader<Long, String> create() {
-        return cacheLoader;
-      }
-    });
+    config.setCacheLoaderFactory(() -> cacheLoader);
     config.setWriteThrough(writeThrough);
-    config.setCacheWriterFactory(new Factory<CacheWriter<? super Long, ? super String>>() {
-      @Override
-      public CacheWriter<? super Long, ? super String> create() {
-        return cacheWriter;
-      }
-    });
+    config.setCacheWriterFactory(() -> cacheWriter);
     return config;
   }
 }

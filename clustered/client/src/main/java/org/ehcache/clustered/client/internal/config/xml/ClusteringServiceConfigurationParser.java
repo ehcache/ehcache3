@@ -239,6 +239,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   private static final class ServerSideConfig {
     private boolean autoCreate = false;
     private String defaultServerResource = null;
-    private final Map<String, Pool> pools = new HashMap<String, Pool>();
+    private final Map<String, Pool> pools = new HashMap<>();
   }
 }

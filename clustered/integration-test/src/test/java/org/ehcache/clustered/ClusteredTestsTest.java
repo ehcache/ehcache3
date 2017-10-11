@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered;
 
-package org.ehcache.core.spi.function;
+import org.junit.Test;
 
-/**
- * Generic function that returns a value.
- *
- * @param <T> the function return type
- *
- * @author teck
- */
-public interface NullaryFunction<T> {
+import java.io.File;
 
-  /**
-   * Returns the function result
-   *
-   * @return the function result
-   */
-  T apply();
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ClusteredTestsTest extends ClusteredTests {
+
+  @Test
+  public void test() {
+    String value = System.getProperty("kitInstallationPath");
+    assertThat(new File(value)).exists();
+    assertThat(new File(value)).isAbsolute();
+    assertThat(new File(value).toString()).doesNotContain("..");
+  }
 }

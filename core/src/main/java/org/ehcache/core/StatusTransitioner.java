@@ -36,11 +36,11 @@ final class StatusTransitioner {
   private volatile Thread maintenanceLease;
   private final Logger logger;
 
-  private final CopyOnWriteArrayList<LifeCycled> hooks = new CopyOnWriteArrayList<LifeCycled>();
-  private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<StateChangeListener>();
+  private final CopyOnWriteArrayList<LifeCycled> hooks = new CopyOnWriteArrayList<>();
+  private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<>();
 
   StatusTransitioner(Logger logger) {
-    this.currentState = new AtomicReference<InternalStatus.Transition>(InternalStatus.initial());
+    this.currentState = new AtomicReference<>(InternalStatus.initial());
     this.logger = logger;
   }
 
@@ -129,7 +129,7 @@ final class StatusTransitioner {
   }
 
   private void runInitHooks() throws Exception {
-    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    Deque<LifeCycled> initiated = new ArrayDeque<>();
     for (LifeCycled hook : hooks) {
       try {
         hook.init();
@@ -148,7 +148,7 @@ final class StatusTransitioner {
   }
 
   private void runCloseHooks() throws Exception {
-    Deque<LifeCycled> initiated = new ArrayDeque<LifeCycled>();
+    Deque<LifeCycled> initiated = new ArrayDeque<>();
     for (LifeCycled hook : hooks) {
       initiated.addFirst(hook);
     }
