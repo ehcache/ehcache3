@@ -101,7 +101,7 @@ public class ClusterStateRepositoryReplicationTest {
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
       config);
 
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, null);
 
     SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 
@@ -136,7 +136,7 @@ public class ClusterStateRepositoryReplicationTest {
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
       config);
 
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, null);
 
     SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 

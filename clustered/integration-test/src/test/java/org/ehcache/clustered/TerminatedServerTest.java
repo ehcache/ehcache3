@@ -517,6 +517,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
+      //GET_AND_APPEND because the final timeout is on the cleanup remove
       assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }

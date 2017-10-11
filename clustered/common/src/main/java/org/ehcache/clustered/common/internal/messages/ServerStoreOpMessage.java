@@ -68,7 +68,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   public static class GetMessage extends KeyBasedServerStoreOpMessage {
 
-    GetMessage(long key) {
+    public GetMessage(long key) {
       super(key);
     }
 
@@ -82,7 +82,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(long key, ByteBuffer payload, UUID clientId) {
+    public GetAndAppendMessage(long key, ByteBuffer payload, UUID clientId) {
       super(key);
       this.payload = payload;
       this.clientId = clientId;
@@ -103,7 +103,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    AppendMessage(long key, ByteBuffer payload, UUID clientId) {
+    public AppendMessage(long key, ByteBuffer payload, UUID clientId) {
       super(key);
       this.payload = payload;
       this.clientId = clientId;
@@ -125,7 +125,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(long key, Chain expect, Chain update, UUID clientId) {
+    public ReplaceAtHeadMessage(long key, Chain expect, Chain update, UUID clientId) {
       super(key);
       this.expect = expect;
       this.update = update;
@@ -150,7 +150,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAck(long key, int invalidationId) {
+    public ClientInvalidationAck(long key, int invalidationId) {
       super(key);
       this.invalidationId = invalidationId;
     }
@@ -169,7 +169,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAllAck(int invalidationId) {
+    public ClientInvalidationAllAck(int invalidationId) {
       super();
       this.invalidationId = invalidationId;
     }
@@ -186,7 +186,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   public static class ClearMessage extends ServerStoreOpMessage {
 
-    ClearMessage(UUID clientId) {
+    public ClearMessage(UUID clientId) {
       super();
       this.clientId = clientId;
     }

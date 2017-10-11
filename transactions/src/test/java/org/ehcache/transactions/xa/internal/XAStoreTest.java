@@ -180,7 +180,7 @@ public class XAStoreTest {
       assertThat(xaStore.remove(1L), equalTo(false));
       assertThat(xaStore.get(1L), is(nullValue()));
       assertThat(xaStore.put(1L, "1"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.get(1L).value(), equalTo("one"));
     }
     testTransactionManager.rollback();
@@ -191,7 +191,7 @@ public class XAStoreTest {
     {
       assertThat(xaStore.get(1L), is(nullValue()));
       assertThat(xaStore.put(1L, "1"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.get(1L).value(), equalTo("one"));
     }
     testTransactionManager.commit();
@@ -211,7 +211,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.remove(1L), equalTo(true));
       assertThat(xaStore.remove(1L), equalTo(false));
       assertThat(xaStore.get(1L), is(nullValue()));
@@ -236,7 +236,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.PUT));
 
       executeWhileIn2PC(exception, new Callable() {
         @Override
@@ -248,7 +248,7 @@ public class XAStoreTest {
         }
       });
 
-      assertThat(xaStore.put(1L, "eins"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "eins"), equalTo(Store.PutStatus.PUT));
     }
     testTransactionManager.commit();
     assertThat(exception.get(), is(nullValue()));
@@ -263,7 +263,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.PUT));
 
       executeWhileIn2PC(exception, new Callable() {
         @Override
@@ -277,7 +277,7 @@ public class XAStoreTest {
         }
       });
 
-      assertThat(xaStore.put(1L, "een"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "een"), equalTo(Store.PutStatus.PUT));
     }
     testTransactionManager.commit();
 
@@ -292,7 +292,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.PUT));
 
       executeWhileIn2PC(exception, new Callable() {
         @Override
@@ -306,7 +306,7 @@ public class XAStoreTest {
         }
       });
 
-      assertThat(xaStore.put(1L, "yksi"), equalTo(Store.PutStatus.UPDATE));
+      assertThat(xaStore.put(1L, "yksi"), equalTo(Store.PutStatus.PUT));
     }
     testTransactionManager.commit();
 
