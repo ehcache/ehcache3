@@ -20,8 +20,15 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * This message is sent by the Active Entity to Passive Entity.
@@ -33,51 +40,57 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     throw new UnsupportedOperationException("This method is not supported on replication message");
   }
 
-  public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
-    private final UUID clientId;
+  public static class ChainReplicationMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
-    public ClientIDTrackerMessage(UUID clientId) {
+    private final UUID clientId;
+    private final long key;
+    private final Chain chain;
+    private final long currentTransactionId;
+    private final long oldestTransactionId;
+
+    public ChainReplicationMessage(long key, Chain chain, long currentTransactionId, long oldestTransactionId, UUID clientId) {
       this.clientId = clientId;
+      this.currentTransactionId = currentTransactionId;
+      this.oldestTransactionId = oldestTransactionId;
+      this.key = key;
+      this.chain = chain;
+    }
+
+    private Chain dropLastElement(Chain chain) {
+      List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
+        .collect(Collectors.toList());
+      elements.remove(elements.size() -1); // remove last
+      return Util.getChain(elements);
     }
 
     public UUID getClientId() {
       return clientId;
     }
 
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for ClientIDTrackerMessage");
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CLIENT_ID_TRACK_OP;
-    }
-  }
-
-  public static class ChainReplicationMessage extends ClientIDTrackerMessage implements ConcurrentEntityMessage {
-
-    private final long key;
-    private final Chain chain;
-    private final long msgId;
-
-    public ChainReplicationMessage(long key, Chain chain, long msgId, UUID clientId) {
-      super(clientId);
-      this.msgId = msgId;
-      this.key = key;
-      this.chain = chain;
-    }
-
     public long getKey() {
       return key;
     }
 
+    /**
+     * @return chain that needs to be save in the store
+     */
     public Chain getChain() {
       return chain;
     }
 
+    /**
+     * @return result that should be returned is the original message is sent again to this server after a failover
+     */
+    public Chain getResult() {
+      return dropLastElement(chain);
+    }
+
     public long getId() {
-      return msgId;
+      return currentTransactionId;
+    }
+
+    public long getOldestTransactionId() {
+      return oldestTransactionId;
     }
 
     @Override

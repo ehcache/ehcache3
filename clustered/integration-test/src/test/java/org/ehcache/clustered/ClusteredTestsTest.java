@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
+package org.ehcache.clustered;
 
-import java.util.UUID;
+import org.junit.Test;
 
-/**
- * Represents a client's state against an {@link ClusterTierManagerActiveEntity}.
- */
-public class ClientState {
-  /**
-   * Indicates if the client has either configured or validated with clustered store manager.
-   */
-  private boolean attached = false;
-  private UUID clientId;
+import java.io.File;
 
-  public boolean isAttached() {
-    return attached;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ClusteredTestsTest extends ClusteredTests {
+
+  @Test
+  public void test() {
+    String value = System.getProperty("kitInstallationPath");
+    assertThat(new File(value)).exists();
+    assertThat(new File(value)).isAbsolute();
+    assertThat(new File(value).toString()).doesNotContain("..");
   }
-
-  public UUID getClientIdentifier() {
-    return clientId;
-  }
-
-  void attach(UUID clientId) {
-    this.attached = true;
-    this.clientId = clientId;
-  }
-
 }

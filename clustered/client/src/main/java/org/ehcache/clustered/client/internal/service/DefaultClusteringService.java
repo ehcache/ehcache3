@@ -123,7 +123,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public <E extends Entity, C> ClientEntityFactory<E, C> newClientEntityFactory(String entityIdentifier, Class<E> entityType, long entityVersion, C configuration) {
-    return new AbstractClientEntityFactory<E, C>(entityIdentifier, entityType, entityVersion, configuration) {
+    return new AbstractClientEntityFactory<E, C, Void>(entityIdentifier, entityType, entityVersion, configuration) {
       @Override
       protected Connection getConnection() {
         if (!isConnected()) {

@@ -284,7 +284,7 @@ public class ChainResolverTest {
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
     assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
+    assertThat(operation.expirationTime(), is(Long.MAX_VALUE));
     try {
       operation.timeStamp();
       fail();

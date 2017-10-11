@@ -90,10 +90,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
       this.clusteringManagementService = null;
     }
 
-    for (ManagementProvider<?> managementProvider : managementProviders) {
-      managementProvider.close();
-    }
-    managementProviders.clear();
+    super.close();
   }
 
   @Override

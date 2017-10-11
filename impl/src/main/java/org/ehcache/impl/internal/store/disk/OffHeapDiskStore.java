@@ -100,7 +100,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
-  private static final int DEFAULT_CONCURRENCY = 16;
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
@@ -115,17 +114,19 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private final ExecutionService executionService;
   private final String threadPoolAlias;
   private final int writerConcurrency;
+  private final int diskSegments;
 
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
-                          ExecutionService executionService, String threadPoolAlias, int writerConcurrency,
+                          ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
                           final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
     super(STATISTICS_TAG, config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
     this.writerConcurrency = writerConcurrency;
+    this.diskSegments = diskSegments;
 
     EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
     if (evictionAdvisor != null) {
@@ -224,7 +225,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
+                max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -267,7 +268,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
+        max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,
@@ -275,7 +276,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         64,
         evictionAdvisor,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, DEFAULT_CONCURRENCY);
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, diskSegments);
 
   }
 
@@ -364,13 +365,16 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
       String threadPoolAlias;
       int writerConcurrency;
+      int diskSegments;
       OffHeapDiskStoreConfiguration config = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, (Object[]) serviceConfigs);
       if (config == null) {
         threadPoolAlias = defaultThreadPool;
-        writerConcurrency = 1;
+        writerConcurrency = OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
+        diskSegments = OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
       } else {
         threadPoolAlias = config.getThreadPoolAlias();
         writerConcurrency = config.getWriterConcurrency();
+        diskSegments = config.getDiskSegments();
       }
       PersistenceSpaceIdentifier<?> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
       if (space == null) {
@@ -380,7 +384,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         FileBasedPersistenceContext persistenceContext = diskPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
-                executionService, threadPoolAlias, writerConcurrency,
+                executionService, threadPoolAlias, writerConcurrency, diskSegments,
                 storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
         createdStores.put(offHeapStore, space);
         return offHeapStore;
@@ -526,5 +530,17 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         }
       }
     });
+  }
+
+  String getThreadPoolAlias() {
+    return threadPoolAlias;
+  }
+
+  int getWriterConcurrency() {
+    return writerConcurrency;
+  }
+
+  int getDiskSegments() {
+    return diskSegments;
   }
 }

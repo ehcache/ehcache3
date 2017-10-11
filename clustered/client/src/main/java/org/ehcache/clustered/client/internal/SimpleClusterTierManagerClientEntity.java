@@ -65,9 +65,9 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate() {
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
-      public void handleMessage(EntityResponse messageFromServer) {
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
         // Nothing to do
       }
 

@@ -30,9 +30,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
@@ -232,12 +232,14 @@ public class UnitTestConnectionService implements ConnectionService {
       //open destroy connection.  You need to make sure connection doesn't have any entities associated with it.
       PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
 
-      for(Entry entry : serverDescriptor.knownEntities.entrySet()) {
-        @SuppressWarnings("unchecked")
-        Class<? extends Entity> type = (Class) entry.getKey();
-        List args = (List)entry.getValue();
-        Long version = (Long)args.get(0);
-        String stringArg = (String)args.get(1);
+      // destroy in reverse order of the creation to keep coherence
+      List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
+      Collections.reverse(keys);
+      for(Class<? extends Entity> type : keys) {
+        Object[] args = serverDescriptor.knownEntities.get(type);
+
+        Long version = (Long) args[0];
+        String stringArg = (String) args[1];
 
         try {
           EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
@@ -285,8 +287,8 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>>();
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
         new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
 
@@ -338,7 +340,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -362,7 +364,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 
@@ -500,14 +502,14 @@ public class UnitTestConnectionService implements ConnectionService {
   private static final class ServerDescriptor {
     private final PassthroughServer server;
     private final Map<Connection, Properties> connections = new IdentityHashMap<Connection, Properties>();
-    private final Map<Class<? extends Entity>, List<Object>> knownEntities = new HashMap<Class<? extends Entity>, List<Object>>();
+    private final Map<Class<? extends Entity>, Object[]> knownEntities = new LinkedHashMap<>();
 
     ServerDescriptor(PassthroughServer server) {
       this.server = server;
     }
 
     synchronized Map<Connection, Properties> getConnections() {
-      return new IdentityHashMap<Connection, Properties>(this.connections);
+      return new IdentityHashMap<>(this.connections);
     }
 
     synchronized void add(Connection connection, Properties properties) {
@@ -519,10 +521,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     public void addKnownEntity(Class<? extends Entity> arg, Object arg1, Object arg2) {
-      List<Object> set = new ArrayList<Object>();
-      set.add(arg1);
-      set.add(arg2);
-      knownEntities.put(arg, set);
+      knownEntities.put(arg, new Object[]{ arg1, arg2 });
     }
   }
 

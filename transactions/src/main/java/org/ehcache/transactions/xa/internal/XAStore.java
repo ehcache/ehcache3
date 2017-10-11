@@ -34,6 +34,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -901,7 +902,12 @@ public class XAStore<K, V> implements Store<K, V> {
 
       // create the soft lock serializer
       AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<SoftLockSerializer<V>>();
-      SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+      SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer;
+      if (storeConfig.getValueSerializer() instanceof StatefulSerializer) {
+        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+      } else {
+        softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+      }
 
       // create the underlying store
       @SuppressWarnings("unchecked")

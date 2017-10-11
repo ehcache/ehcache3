@@ -25,7 +25,8 @@ import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
+import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,14 +37,16 @@ import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * ScopedStoreEventDispatcherTest
@@ -98,12 +101,12 @@ public class ScopedStoreEventDispatcherTest {
   public void testEventFiltering() {
     ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
     @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = mock(StoreEventListener.class, withSettings().verboseLogging());
     dispatcher.addEventListener(listener);
 
     @SuppressWarnings("unchecked")
     StoreEventFilter<String, String> filter = mock(StoreEventFilter.class);
-    when(filter.acceptEvent(eq(EventType.CREATED), anyString(), anyString(), anyString())).thenReturn(true);
+    when(filter.acceptEvent(eq(EventType.CREATED), anyString(), ArgumentMatchers.<String>isNull(), anyString())).thenReturn(true);
     when(filter.acceptEvent(eq(EventType.REMOVED), anyString(), anyString(), anyString())).thenReturn(false);
     dispatcher.addEventFilter(filter);
 

@@ -37,7 +37,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
  */
 public class Tiering {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
+  private static final URI CLUSTER_URI = URI.create("terracotta://example.com/my-application");
 
   @Before
   public void definePassthroughServer() throws Exception {

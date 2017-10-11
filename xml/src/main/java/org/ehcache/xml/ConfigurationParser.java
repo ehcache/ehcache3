@@ -68,6 +68,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
@@ -101,6 +102,11 @@ class ConfigurationParser {
 
   private static final Pattern SYSPROP = Pattern.compile("\\$\\{([^}]+)\\}");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+  private static Schema newSchema(Source[] schemas) throws SAXException {
+    synchronized (XSD_SCHEMA_FACTORY) {
+      return XSD_SCHEMA_FACTORY.newSchema(schemas);
+    }
+  }
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
   private static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
@@ -152,7 +158,7 @@ class ConfigurationParser {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
+    factory.setSchema(newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
@@ -784,6 +790,8 @@ class ConfigurationParser {
     int writerConcurrency();
 
     String threadPool();
+
+    int diskSegments();
   }
 
 
@@ -1042,6 +1050,10 @@ class ConfigurationParser {
       return this.diskStoreSettings.getThreadPool();
     }
 
+    @Override
+    public int diskSegments() {
+      return this.diskStoreSettings.getDiskSegments().intValue();
+    }
   }
 
 }

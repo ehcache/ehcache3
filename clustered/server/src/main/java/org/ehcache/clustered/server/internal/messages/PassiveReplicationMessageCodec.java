@@ -42,12 +42,7 @@ import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 public class PassiveReplicationMessageCodec {
 
   private static final String CHAIN_FIELD = "chain";
-
-  private static final Struct CLIENT_ID_TRACK_STRUCT = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .build();
+  private static final String OLDEST_TRANSACTION_ID_FIELD = "otId";
 
   private static final Struct CHAIN_REPLICATION_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
@@ -55,6 +50,7 @@ public class PassiveReplicationMessageCodec {
     .int64(MSB_UUID_FIELD, 20)
     .int64(LSB_UUID_FIELD, 21)
     .string(SERVER_STORE_NAME_FIELD, 30)
+    .int64(OLDEST_TRANSACTION_ID_FIELD, 35)
     .int64(KEY_FIELD, 40)
     .struct(CHAIN_FIELD, 45, ChainCodec.CHAIN_STRUCT)
     .build();
@@ -77,8 +73,6 @@ public class PassiveReplicationMessageCodec {
   public byte[] encode(PassiveReplicationMessage message) {
 
     switch (message.getMessageType()) {
-      case CLIENT_ID_TRACK_OP:
-        return encodeClientIdTrackMessage((PassiveReplicationMessage.ClientIDTrackerMessage) message);
       case CHAIN_REPLICATION_OP:
         return encodeChainReplicationMessage((PassiveReplicationMessage.ChainReplicationMessage) message);
       case CLEAR_INVALIDATION_COMPLETE:
@@ -112,18 +106,9 @@ public class PassiveReplicationMessageCodec {
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
+    encoder.int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId());
     encoder.int64(KEY_FIELD, message.getKey());
     encoder.struct(CHAIN_FIELD, message.getChain(), CHAIN_ENCODER_FUNCTION);
-
-    return encoder.encode().array();
-  }
-
-  private byte[] encodeClientIdTrackMessage(PassiveReplicationMessage.ClientIDTrackerMessage message) {
-    StructEncoder<Void> encoder = CLIENT_ID_TRACK_STRUCT.encoder();
-
-    encoder.enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
-        .int64(MSB_UUID_FIELD, message.getClientId().getMostSignificantBits())
-        .int64(LSB_UUID_FIELD, message.getClientId().getLeastSignificantBits());
 
     return encoder.encode().array();
   }
@@ -131,8 +116,6 @@ public class PassiveReplicationMessageCodec {
   public EhcacheEntityMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {
 
     switch (messageType) {
-      case CLIENT_ID_TRACK_OP:
-        return decodeClientIdTrackMessage(messageBuffer);
       case CHAIN_REPLICATION_OP:
         return decodeChainReplicationMessage(messageBuffer);
       case CLEAR_INVALIDATION_COMPLETE:
@@ -159,22 +142,15 @@ public class PassiveReplicationMessageCodec {
   private PassiveReplicationMessage.ChainReplicationMessage decodeChainReplicationMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
+    Long currentTransactionId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
 
+    Long oldestTransactionId = decoder.int64(OLDEST_TRANSACTION_ID_FIELD);
     Long key = decoder.int64(KEY_FIELD);
 
     Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
 
-    return new PassiveReplicationMessage.ChainReplicationMessage(key, chain, msgId, clientId);
-  }
-
-  private PassiveReplicationMessage.ClientIDTrackerMessage decodeClientIdTrackMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = CLIENT_ID_TRACK_STRUCT.decoder(messageBuffer);
-
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
-    return new PassiveReplicationMessage.ClientIDTrackerMessage(clientId);
+    return new PassiveReplicationMessage.ChainReplicationMessage(key, chain, currentTransactionId, oldestTransactionId, clientId);
   }
 
 }

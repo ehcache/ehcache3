@@ -33,7 +33,7 @@ import javax.cache.integration.CacheWriter;
 import javax.cache.spi.CachingProvider;
 
 import static java.util.Collections.singleton;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
