@@ -46,12 +46,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * ClusterTierClientEntity
@@ -63,13 +61,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
   private final Object lock = new Object();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
 
-  private UUID clientId;
   private ReconnectListener reconnectListener = reconnectMessage -> {
     // No op
   };
@@ -94,7 +90,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(clientId);
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
           reconnectListener.onHandleReconnect(reconnectMessage);
           return reconnectMessageCodec.encode(reconnectMessage);
         }
@@ -135,20 +131,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     reconnectListener = null;
     disconnectionListener = null;
     endpoint.close();
-  }
-
-  @Override
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
-    messageFactory.setClientId(clientId);
-  }
-
-  @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new IllegalStateException("Client Id cannot be null");
-    }
-    return this.clientId;
   }
 
   @Override
@@ -242,10 +224,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean track)
         throws MessageCodecException {
-    getClientId();
-    if (track) {
-      message.setId(sequenceGenerator.getAndIncrement());
-    }
     return endpoint.beginInvoke().message(message).invoke();
   }
 

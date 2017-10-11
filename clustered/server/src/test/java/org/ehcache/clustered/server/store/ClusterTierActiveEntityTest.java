@@ -103,7 +103,6 @@ import static org.mockito.Mockito.when;
 public class ClusterTierActiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -116,7 +115,6 @@ public class ClusterTierActiveEntityTest {
 
   @Before
   public void setUp() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
     defaultStoreConfiguration = new ServerStoreConfigBuilder().dedicated(defaultResource, 1024, MemoryUnit.KILOBYTES).build();
@@ -240,21 +238,15 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
@@ -304,21 +296,15 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
@@ -368,24 +354,18 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // perform an append
     assertSuccess(
@@ -421,21 +401,15 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration))
     );
@@ -479,21 +453,15 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
@@ -527,21 +495,15 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invokeActive(context1, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
-    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invokeActive(context3, MESSAGE_FACTORY.validateServerStore(defaultStoreName, serverStoreConfiguration))
     );
@@ -566,7 +528,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     // attach to the store
     assertSuccess(
@@ -639,10 +601,6 @@ public class ClusterTierActiveEntityTest {
 
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
-
-    UUID client2Id = UUID.randomUUID();
-
-    MESSAGE_FACTORY.setClientId(client2Id);
 
     assertSuccess(activeEntity.invokeActive(context2,
         MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
@@ -908,7 +866,7 @@ public class ClusterTierActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
@@ -934,7 +892,7 @@ public class ClusterTierActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(UUID.randomUUID());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
@@ -988,7 +946,7 @@ public class ClusterTierActiveEntityTest {
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     reset(entityMessenger);
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
     EhcacheEntityMessage getAndAppend = messageFactory.getAndAppendOperation(1L, createPayload(1L));
     activeEntity.invokeActive(context, getAndAppend);
 
@@ -1021,17 +979,15 @@ public class ClusterTierActiveEntityTest {
 
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
-    message.setId(123);
     activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
     message = messageFactory.appendOperation(2L, createPayload(1L));
-    message.setId(123);
 
     activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
 
@@ -1048,19 +1004,17 @@ public class ClusterTierActiveEntityTest {
 
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(CLIENT_ID);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     context.incrementCurrentTransactionId();
 
     ServerStoreOpMessage.AppendMessage message = messageFactory.appendOperation(1L, createPayload(1L));
-    message.setId(123);
     EhcacheEntityResponse expected = activeEntity.invokeActive(context, message);
 
     // create another message that has the same message ID
     message = messageFactory.appendOperation(2L, createPayload(1L));
-    message.setId(123);
 
     EhcacheEntityResponse actual = activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
     assertThat(actual, sameInstance(expected));

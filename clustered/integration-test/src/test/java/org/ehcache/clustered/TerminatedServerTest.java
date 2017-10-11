@@ -90,7 +90,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 // no side effects which can affect another test.
 // =============================================================================================
 @RunWith(ConcurrentTestRunner.class)
-public class TerminatedServerTest {
+public class TerminatedServerTest extends ClusteredTests {
 
   /**
    * Determines the level of test concurrency.  The number of allowed concurrent tests

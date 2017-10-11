@@ -19,8 +19,6 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
@@ -39,10 +37,8 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -53,12 +49,9 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
 
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
-
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
 
@@ -73,8 +66,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
       @Override
       public byte[] createExtendedReconnectData() {
-        ClusterTierManagerReconnectMessage reconnectMessage = new ClusterTierManagerReconnectMessage(clientId);
-        return reconnectMessageCodec.encode(reconnectMessage);
+        return null;
       }
 
       @Override
@@ -90,41 +82,13 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   }
 
   @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new IllegalStateException("Client Id cannot be null");
-    }
-    return this.clientId;
-  }
-
-  @Override
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
-  }
-
-  @Override
   public void close() {
     endpoint.close();
   }
 
   @Override
   public void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException {
-    boolean clientIdGenerated = false;
-    while (true) {
-      try {
-        if (clientIdGenerated || clientId == null) {
-          clientId = UUID.randomUUID();
-          clientIdGenerated = true;
-        }
-        this.messageFactory.setClientId(clientId);
-        invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
-        return;
-      } catch (InvalidClientIdException e) {
-        if (!clientIdGenerated) {
-          throw new AssertionError("Injected ClientID refused by server - " + clientId);
-        }
-      }
-    }
+    invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
   }
 
   @Override
@@ -162,10 +126,6 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   private InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
-    getClientId();
-    if (replicate) {
-      message.setId(sequenceGenerator.getAndIncrement());
-    }
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 

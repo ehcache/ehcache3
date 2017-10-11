@@ -43,7 +43,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     this.keyClass = keyClass;
     this.keyCodec = getCodecForClass(keyClass);
     this.valueCodec = getCodecForClass(valueClass);
-    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
+    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId);
     this.entity = entity;
   }
 

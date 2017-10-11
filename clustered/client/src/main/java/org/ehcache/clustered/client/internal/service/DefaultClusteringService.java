@@ -402,7 +402,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     ClusterTierClientEntity storeClientEntity;
     try {
-      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entity.getClientId(), entityIdentifier, cacheId,
+      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
         clientStoreConfiguration, configuration.isAutoCreate());
       clusterTierEntities.put(cacheId, storeClientEntity);
     } catch (EntityNotFoundException e) {
@@ -411,7 +411,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory();
     switch (configuredConsistency) {
       case STRONG:
         serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);

@@ -41,8 +41,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -97,14 +95,14 @@ public class EventualServerStoreProxyTest {
         Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.EVENTUAL);
 
-    clientEntity1 = entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
+    clientEntity1 = entityFactory1.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
     // required to attach the store to the client
     clientEntity1.validate(serverStoreConfiguration);
     clientEntity2.validate(serverStoreConfiguration);
 
-    serverStoreProxy1 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity1.getClientId()), clientEntity1);
-    serverStoreProxy2 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity2.getClientId()), clientEntity2);
+    serverStoreProxy1 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity1);
+    serverStoreProxy2 = new EventualServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity2);
   }
 
   @AfterClass

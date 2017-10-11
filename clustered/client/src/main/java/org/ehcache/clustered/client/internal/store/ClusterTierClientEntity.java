@@ -26,15 +26,12 @@ import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.MessageCodecException;
 
-import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
  * ClusterTierClientEntity
  */
 public interface ClusterTierClientEntity extends Entity {
-
-  UUID getClientId();
 
   boolean isConnected();
 
