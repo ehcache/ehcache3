@@ -20,9 +20,8 @@ import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
@@ -221,7 +220,7 @@ public class CacheConfigurationBuilderTest {
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
     builder
         .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
@@ -235,7 +234,7 @@ public class CacheConfigurationBuilderTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
             .offheap(10, MemoryUnit.MB));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
     CacheConfiguration config = builder
         .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
@@ -274,7 +273,7 @@ public class CacheConfigurationBuilderTest {
     @SuppressWarnings("unchecked")
     EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
     @SuppressWarnings("unchecked")
-    Expiry<Integer, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Integer, String> expiry = mock(ExpiryPolicy.class);
     ServiceConfiguration<?> service = mock(ServiceConfiguration.class);
 
     CacheConfiguration<Integer, String> configuration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, heap(10))
@@ -291,7 +290,7 @@ public class CacheConfigurationBuilderTest {
     assertThat(copy.getClassLoader(), equalTo(loader));
 
     assertThat(copy.getEvictionAdvisor(), IsSame.<EvictionAdvisor<?, ?>>sameInstance(eviction));
-    assertThat(copy.getExpiry(), IsSame.<Expiry<?, ?>>sameInstance(expiry));
+    assertThat(copy.getExpiryPolicy(), IsSame.<ExpiryPolicy<?, ?>>sameInstance(expiry));
     assertThat(copy.getServiceConfigurations(), contains(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
   }
 }

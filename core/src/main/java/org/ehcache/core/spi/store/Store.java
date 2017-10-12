@@ -21,8 +21,8 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -608,7 +608,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * The expiration policy instance for this store
      */
-    Expiry<? super K, ? super V> getExpiry();
+    ExpiryPolicy<? super K, ? super V> getExpiry();
 
     /**
      * The resource pools this store can make use of

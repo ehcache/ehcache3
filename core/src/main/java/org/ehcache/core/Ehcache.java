@@ -16,6 +16,7 @@
 
 package org.ehcache.core;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,8 +62,7 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -216,7 +216,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-    return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiry(), key, oldValue, newValue);
+    return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiryPolicy(), key, oldValue, newValue);
   }
 
   /**
@@ -369,7 +369,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     try {
-      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
+      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
       store.bulkCompute(entries.keySet(), putAllFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
       addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
@@ -910,7 +910,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     };
   }
 
-  private static <K, V> boolean newValueAlreadyExpired(Logger logger, Expiry<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+  private static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
     if (newValue == null) {
       return false;
     }
@@ -927,7 +927,11 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       return true;
     }
 
-    return Duration.ZERO.equals(duration);
+    if (duration != null && duration.isNegative()) {
+      return true;
+    } else {
+      return Duration.ZERO.equals(duration);
+    }
   }
 
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
@@ -955,11 +959,11 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private final Logger logger;
     private final Map<K, V> entriesToRemap;
-    private final Expiry<? super K, ? super V> expiry;
+    private final ExpiryPolicy<? super K, ? super V> expiry;
     private final AtomicInteger actualPutCount = new AtomicInteger();
     private final AtomicInteger actualUpdateCount = new AtomicInteger();
 
-    public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, Expiry<? super K, ? super V> expiry) {
+    public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, ExpiryPolicy<? super K, ? super V> expiry) {
       this.logger = logger;
       this.entriesToRemap = entriesToRemap;
       this.expiry = expiry;

@@ -28,21 +28,20 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -245,7 +244,7 @@ public class EventNotificationTest {
     CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build())
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)))
         .build();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .using(new TimeSourceConfiguration(testTimeSource))
@@ -282,7 +281,7 @@ public class EventNotificationTest {
 
     CacheConfiguration<Number, Number> cacheConfiguration = newCacheConfigurationBuilder(Number.class, Number.class,
         newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)

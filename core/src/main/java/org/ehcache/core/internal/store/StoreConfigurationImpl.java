@@ -19,8 +19,8 @@ package org.ehcache.core.internal.store;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
@@ -33,7 +33,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Class<V> valueType;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final ClassLoader classLoader;
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
@@ -50,7 +50,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, int dispatcherConcurrency,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
-        cacheConfig.getClassLoader(), cacheConfig.getExpiry(), cacheConfig.getResourcePools(),
+        cacheConfig.getClassLoader(), cacheConfig.getExpiryPolicy(), cacheConfig.getResourcePools(),
         dispatcherConcurrency, keySerializer, valueSerializer);
   }
 
@@ -69,7 +69,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    */
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
                                 EvictionAdvisor<? super K, ? super V> evictionAdvisor,
-                                ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
+                                ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
                                 ResourcePools resourcePools, int dispatcherConcurrency,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this.keyType = keyType;
@@ -119,7 +119,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * {@inheritDoc}
    */
   @Override
-  public Expiry<? super K, ? super V> getExpiry() {
+  public ExpiryPolicy<? super K, ? super V> getExpiry() {
     return expiry;
   }
 

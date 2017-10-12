@@ -16,17 +16,18 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.ValueSupplier;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
+
+import java.time.Duration;
 
 /**
  * EhcacheExpiryWrapper
  */
 class EhcacheExpiryWrapper<K, V> extends Eh107Expiry<K, V> {
 
-  private final Expiry<? super K, ? super V> wrappedExpiry;
+  private final ExpiryPolicy<? super K, ? super V> wrappedExpiry;
 
-  EhcacheExpiryWrapper(Expiry<? super K, ? super V> wrappedExpiry) {
+  EhcacheExpiryWrapper(ExpiryPolicy<? super K, ? super V> wrappedExpiry) {
     this.wrappedExpiry = wrappedExpiry;
   }
 

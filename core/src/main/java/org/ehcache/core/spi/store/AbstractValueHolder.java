@@ -16,8 +16,9 @@
 
 package org.ehcache.core.spi.store;
 
-import org.ehcache.expiry.Duration;
+import org.ehcache.core.config.ExpiryUtils;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
@@ -81,19 +82,10 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   public void accessed(long now, Duration expiration) {
     final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
-      if (expiration.isInfinite()) {
+      if (expiration.getSeconds() == Long.MAX_VALUE) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
       } else {
-        long millis = timeUnit.convert(expiration.getLength(), expiration.getTimeUnit());
-        long newExpirationTime ;
-        if (millis == Long.MAX_VALUE) {
-          newExpirationTime = Long.MAX_VALUE;
-        } else {
-          newExpirationTime = now + millis;
-          if (newExpirationTime < 0) {
-            newExpirationTime = Long.MAX_VALUE;
-          }
-        }
+        long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);
         setExpirationTime(newExpirationTime, timeUnit);
       }
     }

@@ -24,7 +24,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
@@ -63,7 +63,7 @@ public class StatefulSerializerTest {
             CacheConfigurationBuilder
               .newCacheConfigurationBuilder(Long.class, Person.class,
                 ResourcePoolsBuilder.heap(5))
-              .withExpiry(Expirations.noExpiration()).add(new XAStoreConfiguration("xaCache"))
+              .withExpiry(ExpiryPolicies.noExpiration()).add(new XAStoreConfiguration("xaCache"))
               .build())
           .build(true)) {
 

@@ -17,8 +17,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -31,8 +30,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import org.junit.Assert;
 
+import java.time.Duration;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
@@ -194,7 +193,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(Expirations.builder().setAccess(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setAccess(Duration.ZERO).build(), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);
@@ -212,7 +211,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(Expirations.builder().setUpdate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setUpdate(Duration.ZERO).build(), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);

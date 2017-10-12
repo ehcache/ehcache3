@@ -16,10 +16,10 @@
 
 package org.ehcache.core.spi.store;
 
-import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -219,7 +219,7 @@ public class AbstractValueHolderTest {
         return "abc";
       }
     };
-    valueHolder.accessed((timeSource.getTimeMillis()), new Duration(1L, TimeUnit.MILLISECONDS));
+    valueHolder.accessed((timeSource.getTimeMillis()), Duration.ofMillis(1L));
     timeSource.advanceTime(1000);
     assertThat(valueHolder.hitRate(timeSource.getTimeMillis(),
         TimeUnit.SECONDS), is(1.0f));

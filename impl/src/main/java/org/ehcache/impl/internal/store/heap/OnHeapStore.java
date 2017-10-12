@@ -25,12 +25,12 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -72,6 +72,7 @@ import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -84,7 +85,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -152,7 +152,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private volatile long capacity;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
   @SuppressWarnings("unchecked")
@@ -1273,6 +1273,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     Duration duration;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder);
+      if (duration != null && duration.isNegative()) {
+        duration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       duration = Duration.ZERO;
@@ -1291,6 +1294,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder);
+      if (duration != null && duration.isNegative()) {
+        duration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1333,6 +1339,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
+      if (duration != null && duration.isNegative()) {
+        duration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1346,10 +1355,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (duration == null) {
       expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
     } else {
-      if (duration.isInfinite()) {
+      if (duration.getSeconds() == Long.MAX_VALUE) {
         expirationTime = ValueHolder.NO_EXPIRE;
       } else {
-        expirationTime = safeExpireTime(now, duration);
+        expirationTime = ExpiryUtils.getExpirationMillis(now, duration);
       }
     }
 
@@ -1372,6 +1381,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     Duration duration;
     try {
       duration = expiry.getExpiryForCreation(key, value);
+      if (duration.isNegative()) {
+        return null;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
       return null;
@@ -1380,7 +1392,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return null;
     }
 
-    long expirationTime = duration.isInfinite() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
+    long expirationTime = duration.getSeconds() == Long.MAX_VALUE ? ValueHolder.NO_EXPIRE : ExpiryUtils.getExpirationMillis(now, duration);
 
     OnHeapValueHolder<V> holder = null;
     try {
@@ -1396,6 +1408,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     Duration expiration = Duration.ZERO;
     try {
       expiration = expiry.getExpiryForAccess(key, valueHolder);
+      if (expiration != null && expiration.isNegative()) {
+        expiration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1464,20 +1479,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           "- Eviction will assume entry is NOT advised against eviction", e);
       return false;
     }
-  }
-
-  private static long safeExpireTime(long now, Duration duration) {
-    long millis = OnHeapValueHolder.TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
-
-    if (millis == Long.MAX_VALUE) {
-      return Long.MAX_VALUE;
-    }
-
-    long result = now + millis;
-    if (result < 0) {
-      return Long.MAX_VALUE;
-    }
-    return result;
   }
 
   private void updateUsageInBytesIfRequired(long delta) {

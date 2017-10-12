@@ -16,13 +16,13 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,12 +32,12 @@ import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -72,7 +72,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> eventDispatcher;
 
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
 
   private final OperationObserver<StoreOperationOutcomes.GetOutcome> getObserver;
   private final OperationObserver<StoreOperationOutcomes.PutOutcome> putObserver;
@@ -1000,6 +1000,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder);
+      if (duration != null && duration.isNegative()) {
+        duration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1017,6 +1020,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForUpdate(key, existing, value);
+      if (duration != null && duration.isNegative()) {
+        duration = Duration.ZERO;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1027,10 +1033,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     if (duration == null) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
-    } else if (duration.isInfinite()) {
+    } else if (duration.getSeconds() == Long.MAX_VALUE) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
+      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, ExpiryUtils.getExpirationMillis(now, duration));
     }
   }
 
@@ -1038,6 +1044,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForCreation(key, value);
+      if (duration.isNegative()) {
+        return null;
+      }
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
@@ -1047,10 +1056,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     eventSink.created(key, value);
 
-    if (duration.isInfinite()) {
+    if (duration.getSeconds() == Long.MAX_VALUE) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
+      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, ExpiryUtils.getExpirationMillis(now, duration));
     }
   }
 
@@ -1071,20 +1080,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     if (valve != null) {
       valve.invalidateAll();
     }
-  }
-
-  private static long safeExpireTime(long now, Duration duration) {
-    long millis = OffHeapValueHolder.TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
-
-    if (millis == Long.MAX_VALUE) {
-      return Long.MAX_VALUE;
-    }
-
-    long result = now + millis;
-    if (result < 0) {
-      return Long.MAX_VALUE;
-    }
-    return result;
   }
 
   private void checkKey(K keyObject) {

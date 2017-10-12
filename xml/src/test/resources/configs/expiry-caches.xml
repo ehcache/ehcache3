@@ -28,6 +28,15 @@
     <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
+  <ehcache:cache alias="deprecatedClass">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:expiry>
+      <ehcache:class>com.pany.ehcache.DeprecatedExpiry</ehcache:class>
+    </ehcache:expiry>
+    <ehcache:heap>5</ehcache:heap>
+  </ehcache:cache>
+
   <ehcache:cache alias="none">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>

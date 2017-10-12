@@ -6,7 +6,7 @@ caches:
             - org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration
             - org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration
         evictionAdvisor: org.ehcache.clustered.management.EhcacheManagerToStringTest$1
-        expiry: NoExpiry
+        expiry: NoExpiryPolicy
         resourcePools:
             pools:
                 heap:

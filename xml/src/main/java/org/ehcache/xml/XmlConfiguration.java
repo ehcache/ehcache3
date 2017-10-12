@@ -27,13 +27,14 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
@@ -71,6 +72,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -329,17 +331,23 @@ public class XmlConfiguration implements Configuration {
   }
 
   @SuppressWarnings("unchecked")
-  private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
+  private ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    final Expiry<? super Object, ? super Object> expiry;
+    final ExpiryPolicy<? super Object, ? super Object> expiry;
     if (parsedExpiry.isUserDef()) {
-      expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
+      ExpiryPolicy<? super Object, ? super Object> tmpExpiry;
+      try {
+        tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
+      } catch (ClassCastException e) {
+        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class));
+      }
+      expiry = tmpExpiry;
     } else if (parsedExpiry.isTTL()) {
-      expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicies.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else if (parsedExpiry.isTTI()) {
-      expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicies.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else {
-      expiry = Expirations.noExpiration();
+      expiry = ExpiryPolicies.noExpiration();
     }
     return expiry;
   }

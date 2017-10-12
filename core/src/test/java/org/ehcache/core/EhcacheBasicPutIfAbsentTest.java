@@ -24,7 +24,7 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.ExpiryPolicies;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -175,7 +175,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
-      Expirations.noExpiration(), ResourcePoolsHelper.createHeapOnlyPools());
+      ExpiryPolicies.noExpiration(), ResourcePoolsHelper.createHeapOnlyPools());
     final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
