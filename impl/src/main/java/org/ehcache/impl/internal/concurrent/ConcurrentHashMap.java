@@ -26,10 +26,8 @@ import java.io.ObjectStreamField;
 import java.io.Serializable;
 import static java.lang.Integer.rotateLeft;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.security.PrivilegedExceptionAction;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2304,7 +2302,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             CounterCell a; long v; int m;
             boolean uncontended = true;
             if (as == null || (m = as.length - 1) < 0 ||
-                (a = as[ThreadLocalRandom.getProbe() & m]) == null ||
+                (a = as[ThreadLocalRandomUtil.getProbe() & m]) == null ||
                 !(uncontended =
                   U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
                 fullAddCount(x, uncontended);
@@ -2567,9 +2565,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     // See LongAdder version for explanation
     private final void fullAddCount(long x, boolean wasUncontended) {
         int h;
-        if ((h = ThreadLocalRandom.getProbe()) == 0) {
-            ThreadLocalRandom.localInit();      // force initialization
-            h = ThreadLocalRandom.getProbe();
+        if ((h = ThreadLocalRandomUtil.getProbe()) == 0) {
+          ThreadLocalRandomUtil.localInit();      // force initialization
+            h = ThreadLocalRandomUtil.getProbe();
             wasUncontended = true;
         }
         boolean collide = false;                // True if last slot nonempty
@@ -2623,7 +2621,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     collide = false;
                     continue;                   // Retry with expanded table
                 }
-                h = ThreadLocalRandom.advanceProbe(h);
+                h = ThreadLocalRandomUtil.advanceProbe(h);
             }
             else if (cellsBusy == 0 && counterCells == as &&
                      U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
@@ -3309,11 +3307,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return true;
         }
 
-        private static final Unsafe U;
+        private static final Unsafe U = ThreadLocalRandomUtil.UNSAFE;
         private static final long LOCKSTATE;
         static {
             try {
-                U = getSMU();
                 Class<?> k = TreeBin.class;
                 LOCKSTATE = U.objectFieldOffset
                     (k.getDeclaredField("lockState"));
@@ -6344,7 +6341,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     // Unsafe mechanics
-    private static final Unsafe U;
+    private static final Unsafe U = ThreadLocalRandomUtil.UNSAFE;
     private static final long SIZECTL;
     private static final long TRANSFERINDEX;
     private static final long BASECOUNT;
@@ -6355,7 +6352,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     static {
         try {
-            U = getSMU();
             Class<?> k = ConcurrentHashMap.class;
             SIZECTL = U.objectFieldOffset
                 (k.getDeclaredField("sizeCtl"));
@@ -6447,26 +6443,4 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-  private static sun.misc.Unsafe getSMU() {
-    try {
-      return sun.misc.Unsafe.getUnsafe();
-    } catch (SecurityException tryReflectionInstead) {
-      // ignore
-    }
-    try {
-      return java.security.AccessController.doPrivileged
-        ((PrivilegedExceptionAction<Unsafe>) () -> {
-          Class<sun.misc.Unsafe> k = sun.misc.Unsafe.class;
-          for (Field f : k.getDeclaredFields()) {
-            f.setAccessible(true);
-            Object x = f.get(null);
-            if (k.isInstance(x))
-              return k.cast(x);
-          }
-          throw new NoSuchFieldError("the Unsafe");
-        });
-    } catch (java.security.PrivilegedActionException e) {
-      throw new RuntimeException("Could not initialize intrinsics", e.getCause());
-    }
-  }
 }
