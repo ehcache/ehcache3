@@ -25,8 +25,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFacto
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
-import org.ehcache.clustered.client.internal.Timeouts;
-import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -93,19 +92,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-
-    Timeouts.Builder timeoutsBuilder = Timeouts.builder();
-    timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
-    if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
-      ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;
-      if (experimentalConfiguration.getMutativeOperationTimeout() != null) {
-        timeoutsBuilder.setMutativeOperationTimeout(experimentalConfiguration.getMutativeOperationTimeout());
-      }
-      if (experimentalConfiguration.getLifecycleOperationTimeout() != null) {
-        timeoutsBuilder.setLifecycleOperationTimeout(experimentalConfiguration.getLifecycleOperationTimeout());
-      }
-    }
-    this.operationTimeouts = timeoutsBuilder.build();
+    this.operationTimeouts = configuration.getOperationTimeouts();
   }
 
   private static URI extractClusterUri(URI uri) {

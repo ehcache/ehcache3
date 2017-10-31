@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.Timeouts;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;

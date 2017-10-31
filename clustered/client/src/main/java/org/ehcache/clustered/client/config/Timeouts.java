@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal;
+package org.ehcache.clustered.client.config;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
@@ -27,7 +28,7 @@ import java.util.function.LongSupplier;
  */
 public final class Timeouts {
 
-  public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(20, TimeUnit.SECONDS);
+  public static final TimeoutDuration DEFAULT_OPERATION_TIMEOUT = TimeoutDuration.of(5, TimeUnit.SECONDS);
 
   private final TimeoutDuration readOperationTimeout;
   private final TimeoutDuration mutativeOperationTimeout;
@@ -49,6 +50,30 @@ public final class Timeouts {
 
   public TimeoutDuration getLifecycleOperationTimeout() {
     return lifecycleOperationTimeout;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    Timeouts timeouts = (Timeouts) o;
+
+    if (!readOperationTimeout.equals(timeouts.readOperationTimeout)) {
+      return false;
+    }
+    if (!mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout)) {
+      return false;
+    }
+    return lifecycleOperationTimeout.equals(timeouts.lifecycleOperationTimeout);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = readOperationTimeout.hashCode();
+    result = 31 * result + mutativeOperationTimeout.hashCode();
+    result = 31 * result + lifecycleOperationTimeout.hashCode();
+    return result;
   }
 
   public static Builder builder() {
@@ -74,9 +99,9 @@ public final class Timeouts {
    * {@link Timeouts#builder()}, the default values are pre-set.
    */
   public static final class Builder {
-    private TimeoutDuration readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
-    private TimeoutDuration mutativeOperationTimeout = TimeoutDuration.of(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-    private TimeoutDuration lifecycleOperationTimeout = TimeoutDuration.of(20, TimeUnit.SECONDS);
+    private TimeoutDuration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private TimeoutDuration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private TimeoutDuration lifecycleOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
 
     /**
      * Sets the timeout for read operations.  The default value for this timeout is
@@ -87,10 +112,7 @@ public final class Timeouts {
      * @return this {@code Builder}
      */
     public Builder setReadOperationTimeout(TimeoutDuration readOperationTimeout) {
-      if (readOperationTimeout == null) {
-        throw new NullPointerException("readOperationTimeout");
-      }
-      this.readOperationTimeout = readOperationTimeout;
+      this.readOperationTimeout = Objects.requireNonNull(readOperationTimeout, "Read operation timeout can't be null");
       return this;
     }
 
@@ -103,10 +125,7 @@ public final class Timeouts {
      * @return this {@code Builder}
      */
     public Builder setMutativeOperationTimeout(TimeoutDuration mutativeOperationTimeout) {
-      if (mutativeOperationTimeout == null) {
-        throw new NullPointerException("mutativeOperationTimeout");
-      }
-      this.mutativeOperationTimeout = mutativeOperationTimeout;
+      this.mutativeOperationTimeout = Objects.requireNonNull(mutativeOperationTimeout, "Mutative operation timeout can't be null");
       return this;
     }
 
@@ -118,10 +137,7 @@ public final class Timeouts {
      * @return this {@code Builder}
      */
     public Builder setLifecycleOperationTimeout(TimeoutDuration lifecycleOperationTimeout) {
-      if (lifecycleOperationTimeout == null) {
-        throw new NullPointerException("lifecycleOperationTimeout");
-      }
-      this.lifecycleOperationTimeout = lifecycleOperationTimeout;
+      this.lifecycleOperationTimeout = Objects.requireNonNull(lifecycleOperationTimeout, "Lifecycle operation timeout can't be null");
       return this;
     }
 

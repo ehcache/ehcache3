@@ -18,8 +18,11 @@ package org.ehcache.clustered.client.config.builders;
 import java.net.URI;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 
@@ -29,8 +32,8 @@ import org.ehcache.config.Builder;
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final URI clusterUri;
-  private final TimeoutDuration readOperationTimeout;
-  private final Boolean autoCreate;
+  private final Timeouts timeouts;
+  private final boolean autoCreate;
 
   /**
    * Creates a new builder connecting to the given cluster.
@@ -40,24 +43,12 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(clusterUri);
+    return new ClusteringServiceConfigurationBuilder(clusterUri, Timeouts.builder().build(), false);
   }
 
-  private ClusteringServiceConfigurationBuilder(URI clusterUri) {
-    this.clusterUri = clusterUri;
-    this.readOperationTimeout = null;
-    this.autoCreate = null;
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, TimeoutDuration readOperationTimeout) {
-    this.clusterUri = original.clusterUri;
-    this.readOperationTimeout = readOperationTimeout;
-    this.autoCreate = original.autoCreate;
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, boolean autoCreate) {
-    this.clusterUri = original.clusterUri;
-    this.readOperationTimeout = original.readOperationTimeout;
+  private ClusteringServiceConfigurationBuilder(URI clusterUri, Timeouts timeouts, boolean autoCreate) {
+    this.clusterUri = Objects.requireNonNull(clusterUri, "Cluster URI can't be null");
+    this.timeouts = Objects.requireNonNull(timeouts, "Timeouts can't be null");
     this.autoCreate = autoCreate;
   }
 
@@ -67,7 +58,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder autoCreate() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this, true));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.clusterUri, this.timeouts, true));
   }
 
   /**
@@ -76,7 +67,23 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder expecting() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this, false));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.clusterUri, this.timeouts, false));
+  }
+
+  /**
+   * Adds timeouts.
+   * Read operations which time out return a result comparable to a cache miss.
+   * Mutative operations which time out won't do anything.
+   * Lifecycle operations which time out will fail with exception
+   *
+   * @param timeouts the amount of time permitted for all operations
+   *
+   * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code timeouts} is {@code null}
+   */
+  public ClusteringServiceConfigurationBuilder operationTimeouts(Timeouts timeouts) {
+    return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeouts, this.autoCreate);
   }
 
   /**
@@ -90,18 +97,18 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *
    * @throws NullPointerException if {@code unit} is {@code null}
    * @throws IllegalArgumentException if {@code amount} is negative
+   *
+   * @deprecated
    */
+  @Deprecated
   public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
-    return new ClusteringServiceConfigurationBuilder(this, TimeoutDuration.of(duration, unit));
+    TimeoutDuration readTimeout = TimeoutDuration.of(duration, unit);
+    return operationTimeouts(Timeouts.builder().setReadOperationTimeout(readTimeout).build());
   }
 
   @Override
   public ClusteringServiceConfiguration build() {
-    if (readOperationTimeout == null) {
-      return new ClusteringServiceConfiguration(clusterUri);
-    } else {
-      return new ClusteringServiceConfiguration(clusterUri, readOperationTimeout);
-    }
+    return new ClusteringServiceConfiguration(clusterUri, timeouts, autoCreate, null);
   }
 
   /**
@@ -113,21 +120,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *        {@code ClusteringServiceConfigurationBuilder} and the {@code serverSideConfiguration} provided
    */
   ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
-    ClusteringServiceConfiguration configuration;
-    if (autoCreate != null) {
-      if (readOperationTimeout != null) {
-        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, autoCreate, serverSideConfiguration);
-      } else {
-        configuration = new ClusteringServiceConfiguration(clusterUri, autoCreate, serverSideConfiguration);
-      }
-    } else {
-      if (readOperationTimeout != null) {
-        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, serverSideConfiguration);
-      } else {
-        configuration = new ClusteringServiceConfiguration(clusterUri, serverSideConfiguration);
-      }
-    }
-    return configuration;
+    return new ClusteringServiceConfiguration(clusterUri, timeouts, autoCreate, serverSideConfiguration);
   }
 
 }

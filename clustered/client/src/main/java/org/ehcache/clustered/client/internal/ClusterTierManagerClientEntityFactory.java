@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;

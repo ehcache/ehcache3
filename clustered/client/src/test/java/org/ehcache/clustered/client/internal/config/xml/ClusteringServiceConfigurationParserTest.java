@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
@@ -123,6 +124,8 @@ public class ClusteringServiceConfigurationParserTest {
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
             "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
+            "      <tc:mutative-timeout unit=\"minutes\">10</tc:mutative-timeout>",
+            "      <tc:lifecycle-timeout unit=\"minutes\">15</tc:lifecycle-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -139,7 +142,10 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, TimeUnit.MINUTES))));
+    Timeouts timeouts = clusteringServiceConfiguration.getOperationTimeouts();
+    assertThat(timeouts.getReadOperationTimeout(), is(TimeoutDuration.of(5, TimeUnit.MINUTES)));
+    assertThat(timeouts.getMutativeOperationTimeout(), is(TimeoutDuration.of(10, TimeUnit.MINUTES)));
+    assertThat(timeouts.getLifecycleOperationTimeout(), is(TimeoutDuration.of(15, TimeUnit.MINUTES)));
   }
 
   @Test

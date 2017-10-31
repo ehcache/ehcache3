@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
@@ -105,7 +106,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
       ServerSideConfig serverConfig = null;
       URI connectionUri = null;
-      TimeoutDuration getTimeout = null;
+      TimeoutDuration getTimeout = null, putTimeout = null, lifecycleTimeout = null;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
@@ -128,7 +129,19 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             /*
              * <read-timeout> is an optional element
              */
-            getTimeout = processGetTimeout(fragment, item);
+            getTimeout = processTimeout(fragment, item);
+
+          } else if ("mutative-timeout".equals(item.getLocalName())) {
+            /*
+             * <mutative-timeout> is an optional element
+             */
+            putTimeout = processTimeout(fragment, item);
+
+          } else if ("lifecycle-timeout".equals(item.getLocalName())) {
+            /*
+             * <lifecycle-timeout> is an optional element
+             */
+            lifecycleTimeout = processTimeout(fragment, item);
 
           } else if ("server-side-config".equals(item.getLocalName())) {
             /*
@@ -140,26 +153,19 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       }
 
       try {
+        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, lifecycleTimeout);
         if (serverConfig == null) {
-          if (getTimeout == null) {
-            return new ClusteringServiceConfiguration(connectionUri);
-          } else {
-            return new ClusteringServiceConfiguration(connectionUri, getTimeout);
-          }
-        } else {
-          ServerSideConfiguration serverSideConfiguration;
-          if (serverConfig.defaultServerResource == null) {
-            serverSideConfiguration = new ServerSideConfiguration(serverConfig.pools);
-          } else {
-            serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
-          }
-          if (getTimeout == null) {
-            return new ClusteringServiceConfiguration(connectionUri, serverConfig.autoCreate, serverSideConfiguration);
-          } else {
-            return new ClusteringServiceConfiguration(
-                connectionUri, getTimeout, serverConfig.autoCreate, serverSideConfiguration);
-          }
+          return new ClusteringServiceConfiguration(connectionUri, timeouts);
         }
+
+        ServerSideConfiguration serverSideConfiguration;
+        if (serverConfig.defaultServerResource == null) {
+          serverSideConfiguration = new ServerSideConfiguration(serverConfig.pools);
+        } else {
+          serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
+        }
+
+        return new ClusteringServiceConfiguration(connectionUri, timeouts, serverConfig.autoCreate, serverSideConfiguration);
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
       }
@@ -168,8 +174,22 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 
-  private TimeoutDuration processGetTimeout(Element parentElement, Node timeoutNode) {
-    TimeoutDuration getTimeout;
+  private Timeouts getTimeouts(TimeoutDuration getTimeout, TimeoutDuration putTimeout, TimeoutDuration lifecycleTimeout) {
+    Timeouts.Builder timeouts = Timeouts.builder();
+    if (getTimeout != null) {
+      timeouts.setReadOperationTimeout(getTimeout);
+    }
+    if(putTimeout != null) {
+      timeouts.setMutativeOperationTimeout(putTimeout);
+    }
+    if(lifecycleTimeout != null) {
+      timeouts.setLifecycleOperationTimeout(lifecycleTimeout);
+    }
+    return timeouts.build();
+  }
+
+  private TimeoutDuration processTimeout(Element parentElement, Node timeoutNode) {
+    TimeoutDuration timeout;
     try {
       // <read-timeout> is a direct subtype of ehcache:time-type; use JAXB to interpret it
       JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
@@ -183,12 +203,12 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
                 timeoutNode.getNodeName(), parentElement.getTagName(), amount));
       }
-      getTimeout = TimeoutDuration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
+      timeout = TimeoutDuration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
 
     } catch (JAXBException e) {
       throw new XmlConfigurationException(e);
     }
-    return getTimeout;
+    return timeout;
   }
 
   private ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {

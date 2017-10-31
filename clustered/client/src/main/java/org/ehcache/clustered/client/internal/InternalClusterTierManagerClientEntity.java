@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.config.Timeouts;
+
 /**
  * InternalClusterTierManagerClientEntity
  */

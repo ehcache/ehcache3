@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
