@@ -26,6 +26,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Objects;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
@@ -55,11 +56,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(final URI clusterUri) {
-    validateClusterUri(clusterUri);
-    this.clusterUri = clusterUri;
-    this.autoCreate = false;
-    this.serverConfiguration = null;
-    this.readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
+    this(clusterUri, DEFAULT_READ_OPERATION_TIMEOUT);
   }
 
   /**
@@ -73,12 +70,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout) {
-    validateClusterUri(clusterUri);
-    validateReadOperationTimeout(readOperationTimeout);
-    this.clusterUri = clusterUri;
-    this.autoCreate = false;
-    this.serverConfiguration = null;
-    this.readOperationTimeout = readOperationTimeout;
+    this(clusterUri, readOperationTimeout, null);
   }
 
   /**
@@ -87,18 +79,11 @@ public class ClusteringServiceConfiguration
    * @param clusterUri the non-{@code null} URI identifying the cluster server
    * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(final URI clusterUri, final ServerSideConfiguration serverConfig) {
-    validateClusterUri(clusterUri);
-    if (serverConfig == null) {
-      throw new NullPointerException("Server configuration cannot be null");
-    }
-    this.clusterUri = clusterUri;
-    this.autoCreate = false;
-    this.serverConfiguration = serverConfig;
-    this.readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
+    this(clusterUri, DEFAULT_READ_OPERATION_TIMEOUT, serverConfig);
   }
 
   /**
@@ -109,19 +94,11 @@ public class ClusteringServiceConfiguration
    *                            read operations; if {@code null}, the default value is used
    * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, ServerSideConfiguration serverConfig) {
-    validateClusterUri(clusterUri);
-    validateReadOperationTimeout(readOperationTimeout);
-    if (serverConfig == null) {
-      throw new NullPointerException("Server configuration cannot be null");
-    }
-    this.clusterUri = clusterUri;
-    this.autoCreate = false;
-    this.serverConfiguration = serverConfig;
-    this.readOperationTimeout = readOperationTimeout;
+    this(clusterUri, readOperationTimeout, false, serverConfig);
   }
 
   /**
@@ -131,18 +108,11 @@ public class ClusteringServiceConfiguration
    * @param autoCreate {@code true} if server components should be auto created
    * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
-    validateClusterUri(clusterUri);
-    if (serverConfig == null) {
-      throw new NullPointerException("Server configuration cannot be null");
-    }
-    this.clusterUri = clusterUri;
-    this.autoCreate = autoCreate;
-    this.serverConfiguration = serverConfig;
-    this.readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
+    this(clusterUri, DEFAULT_READ_OPERATION_TIMEOUT, autoCreate, serverConfig);
   }
 
   /**
@@ -154,42 +124,22 @@ public class ClusteringServiceConfiguration
    * @param autoCreate {@code true} if server components should be auto created
    * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
-    validateClusterUri(clusterUri);
-    validateReadOperationTimeout(readOperationTimeout);
-    if (serverConfig == null) {
-      throw new NullPointerException("Server configuration cannot be null");
-    }
-    this.clusterUri = clusterUri;
+  public ClusteringServiceConfiguration(URI clusterUri, TimeoutDuration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
+    this.clusterUri = Objects.requireNonNull(clusterUri, "Cluster URI cannot be null");
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
-    this.readOperationTimeout = readOperationTimeout;
+    this.readOperationTimeout = Objects.requireNonNull(readOperationTimeout, "Read operation timeout cannot be null");
   }
 
   protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
-    if (baseConfig == null) {
-      throw new NullPointerException("Base configuration cannot be null");
-    }
-
+    Objects.requireNonNull(baseConfig, "Base configuration cannot be null");
     this.clusterUri = baseConfig.getClusterUri();
     this.readOperationTimeout = baseConfig.getReadOperationTimeout();
     this.autoCreate = baseConfig.isAutoCreate();
     this.serverConfiguration = baseConfig.getServerConfiguration();
-  }
-
-  private static void validateClusterUri(URI clusterUri) {
-    if (clusterUri == null) {
-      throw new NullPointerException("Cluster URI cannot be null.");
-    }
-  }
-
-  private void validateReadOperationTimeout(TimeoutDuration readOperationTimeout) {
-    if (readOperationTimeout == null) {
-      throw new NullPointerException("readOperationTimeout cannot be null");
-    }
   }
 
   /**
