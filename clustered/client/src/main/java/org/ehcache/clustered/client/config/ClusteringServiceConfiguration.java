@@ -25,6 +25,7 @@ import org.ehcache.core.HumanReadable;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 
@@ -54,7 +55,7 @@ public class ClusteringServiceConfiguration
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(final URI clusterUri) {
+  public ClusteringServiceConfiguration(URI clusterUri) {
     this(clusterUri, DEFAULT_OPERATION_TIMEOUT);
   }
 
@@ -71,7 +72,7 @@ public class ClusteringServiceConfiguration
    * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts)} instead
    */
   @Deprecated
-  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout) {
+  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout) {
     this(clusterUri, Timeouts.builder().setReadOperationTimeout(readOperationTimeout).build());
   }
 
@@ -97,7 +98,7 @@ public class ClusteringServiceConfiguration
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, final ServerSideConfiguration serverConfig) {
+  public ClusteringServiceConfiguration(URI clusterUri, ServerSideConfiguration serverConfig) {
     this(clusterUri, DEFAULT_OPERATION_TIMEOUT, serverConfig);
   }
 
@@ -115,7 +116,7 @@ public class ClusteringServiceConfiguration
    * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts, ServerSideConfiguration)}
    */
   @Deprecated
-  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, ServerSideConfiguration serverConfig) {
+  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout, ServerSideConfiguration serverConfig) {
     this(clusterUri, readOperationTimeout, false, serverConfig);
   }
 
@@ -143,7 +144,7 @@ public class ClusteringServiceConfiguration
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
+  public ClusteringServiceConfiguration(URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
     this(clusterUri, DEFAULT_OPERATION_TIMEOUT, autoCreate, serverConfig);
   }
 
@@ -162,7 +163,7 @@ public class ClusteringServiceConfiguration
    * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts, boolean, ServerSideConfiguration)}
    */
   @Deprecated
-  public ClusteringServiceConfiguration(URI clusterUri, TimeoutDuration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
+  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
     this(clusterUri, Timeouts.builder().setReadOperationTimeout(readOperationTimeout).build(), autoCreate, serverConfig);
   }
 
@@ -236,7 +237,7 @@ public class ClusteringServiceConfiguration
    * @deprecated Use {@link #getOperationTimeouts()}
    */
   @Deprecated
-  public TimeoutDuration getReadOperationTimeout() {
+  public Duration getReadOperationTimeout() {
     return operationTimeouts.getReadOperationTimeout();
   }
 
@@ -247,7 +248,7 @@ public class ClusteringServiceConfiguration
 
   @SuppressWarnings("unchecked")
   @Override
-  public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
+  public CacheManagerBuilder<PersistentCacheManager> builder(CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);   // unchecked
   }
 

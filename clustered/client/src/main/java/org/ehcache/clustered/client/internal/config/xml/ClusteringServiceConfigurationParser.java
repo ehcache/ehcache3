@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -41,6 +40,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -106,7 +106,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
       ServerSideConfig serverConfig = null;
       URI connectionUri = null;
-      TimeoutDuration getTimeout = null, putTimeout = null, lifecycleTimeout = null;
+      Duration getTimeout = null, putTimeout = null, lifecycleTimeout = null;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
@@ -174,7 +174,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 
-  private Timeouts getTimeouts(TimeoutDuration getTimeout, TimeoutDuration putTimeout, TimeoutDuration lifecycleTimeout) {
+  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration lifecycleTimeout) {
     Timeouts.Builder timeouts = Timeouts.builder();
     if (getTimeout != null) {
       timeouts.setReadOperationTimeout(getTimeout);
@@ -188,8 +188,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
     return timeouts.build();
   }
 
-  private TimeoutDuration processTimeout(Element parentElement, Node timeoutNode) {
-    TimeoutDuration timeout;
+  private Duration processTimeout(Element parentElement, Node timeoutNode) {
+    Duration timeout;
     try {
       // <read-timeout> is a direct subtype of ehcache:time-type; use JAXB to interpret it
       JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
@@ -203,7 +203,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
                 timeoutNode.getNodeName(), parentElement.getTagName(), amount));
       }
-      timeout = TimeoutDuration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
+      timeout = Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
 
     } catch (JAXBException e) {
       throw new XmlConfigurationException(e);

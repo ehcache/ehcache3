@@ -18,8 +18,10 @@ package org.ehcache.clustered.client.config;
 
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 
+import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+
+import static java.time.temporal.ChronoUnit.SECONDS;
 import java.util.function.LongSupplier;
 
 /**
@@ -28,27 +30,27 @@ import java.util.function.LongSupplier;
  */
 public final class Timeouts {
 
-  public static final TimeoutDuration DEFAULT_OPERATION_TIMEOUT = TimeoutDuration.of(5, TimeUnit.SECONDS);
+  public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.of(5, SECONDS);
 
-  private final TimeoutDuration readOperationTimeout;
-  private final TimeoutDuration mutativeOperationTimeout;
-  private final TimeoutDuration lifecycleOperationTimeout;
+  private final Duration readOperationTimeout;
+  private final Duration mutativeOperationTimeout;
+  private final Duration lifecycleOperationTimeout;
 
-  private Timeouts(TimeoutDuration readOperationTimeout, TimeoutDuration mutativeOperationTimeout, TimeoutDuration lifecycleOperationTimeout) {
+  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout, Duration lifecycleOperationTimeout) {
     this.readOperationTimeout = readOperationTimeout;
     this.mutativeOperationTimeout = mutativeOperationTimeout;
     this.lifecycleOperationTimeout = lifecycleOperationTimeout;
   }
 
-  public TimeoutDuration getReadOperationTimeout() {
+  public Duration getReadOperationTimeout() {
     return readOperationTimeout;
   }
 
-  public TimeoutDuration getMutativeOperationTimeout() {
+  public Duration getMutativeOperationTimeout() {
     return mutativeOperationTimeout;
   }
 
-  public TimeoutDuration getLifecycleOperationTimeout() {
+  public Duration getLifecycleOperationTimeout() {
     return lifecycleOperationTimeout;
   }
 
@@ -80,7 +82,7 @@ public final class Timeouts {
     return new Builder();
   }
 
-  public static LongSupplier nanosStartingFromNow(TimeoutDuration timeout) {
+  public static LongSupplier nanosStartingFromNow(Duration timeout) {
     long end = System.nanoTime() + timeout.toNanos();
     return () -> end - System.nanoTime();
   }
@@ -98,45 +100,46 @@ public final class Timeouts {
    * Constructs instances of {@link Timeouts}.  When obtained from
    * {@link Timeouts#builder()}, the default values are pre-set.
    */
-  public static final class Builder {
-    private TimeoutDuration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private TimeoutDuration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private TimeoutDuration lifecycleOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+  public static final class Builder implements org.ehcache.config.Builder<Timeouts> {
+    private Duration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private Duration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private Duration lifecycleOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
 
     /**
      * Sets the timeout for read operations.  The default value for this timeout is
      * 5 seconds.
      *
-     * @param readOperationTimeout the {@code TimeoutDuration} to use for the read operation timeout
+     * @param readOperationTimeout the {@code Duration} to use for the read operation timeout
      *
      * @return this {@code Builder}
      */
-    public Builder setReadOperationTimeout(TimeoutDuration readOperationTimeout) {
+    public Builder setReadOperationTimeout(Duration readOperationTimeout) {
       this.readOperationTimeout = Objects.requireNonNull(readOperationTimeout, "Read operation timeout can't be null");
       return this;
     }
 
     /**
-     * Sets the timeout for mutative operations like {@code put} and {@code remove}.  The default value
-     * for this timeout is {@link TimeoutDuration#NONE}.
+     * Sets the timeout for mutative operations like {@code put} and {@code remove}. The default value for this timeout
+     * is 5 seconds.
      *
-     * @param mutativeOperationTimeout the {@code TimeoutDuration} to use for a mutative operation timeout
+     * @param mutativeOperationTimeout the {@code Duration} to use for a mutative operation timeout
      *
      * @return this {@code Builder}
      */
-    public Builder setMutativeOperationTimeout(TimeoutDuration mutativeOperationTimeout) {
+    public Builder setMutativeOperationTimeout(Duration mutativeOperationTimeout) {
       this.mutativeOperationTimeout = Objects.requireNonNull(mutativeOperationTimeout, "Mutative operation timeout can't be null");
       return this;
     }
 
     /**
      * Sets the timeout for server store manager lifecycle operations like {@code validate} and {@code validateCache}.
+     * The default value for this timeout is 5 seconds.
      *
-     * @param lifecycleOperationTimeout the {@code TimeoutDuration} to use for a store manager lifecycle operation timeout
+     * @param lifecycleOperationTimeout the {@code Duration} to use for a store manager lifecycle operation timeout
      *
      * @return this {@code Builder}
      */
-    public Builder setLifecycleOperationTimeout(TimeoutDuration lifecycleOperationTimeout) {
+    public Builder setLifecycleOperationTimeout(Duration lifecycleOperationTimeout) {
       this.lifecycleOperationTimeout = Objects.requireNonNull(lifecycleOperationTimeout, "Lifecycle operation timeout can't be null");
       return this;
     }

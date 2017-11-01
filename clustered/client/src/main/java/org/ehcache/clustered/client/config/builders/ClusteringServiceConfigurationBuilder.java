@@ -19,9 +19,10 @@ import java.net.URI;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
@@ -87,6 +88,22 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   }
 
   /**
+   * Adds timeouts.
+   * Read operations which time out return a result comparable to a cache miss.
+   * Mutative operations which time out won't do anything.
+   * Lifecycle operations which time out will fail with exception
+   *
+   * @param timeoutsBuilder the builder for amount of time permitted for all operations
+   *
+   * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code timeouts} is {@code null}
+   */
+  public ClusteringServiceConfigurationBuilder operationTimeouts(Timeouts.Builder timeoutsBuilder) {
+    return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeoutsBuilder.build(), this.autoCreate);
+  }
+
+  /**
    * Adds a read operation timeout.  Read operations which time out return a result comparable to
    * a cache miss.
    *
@@ -102,7 +119,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    */
   @Deprecated
   public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
-    TimeoutDuration readTimeout = TimeoutDuration.of(duration, unit);
+    Duration readTimeout = Duration.of(duration, toChronoUnit(unit));
     return operationTimeouts(Timeouts.builder().setReadOperationTimeout(readTimeout).build());
   }
 
@@ -121,6 +138,22 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    */
   ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
     return new ClusteringServiceConfiguration(clusterUri, timeouts, autoCreate, serverSideConfiguration);
+  }
+
+  private static ChronoUnit toChronoUnit(TimeUnit unit) {
+    if(unit == null) {
+      return null;
+    }
+    switch (unit) {
+      case NANOSECONDS:  return ChronoUnit.NANOS;
+      case MICROSECONDS: return ChronoUnit.MICROS;
+      case MILLISECONDS: return ChronoUnit.MILLIS;
+      case SECONDS:      return ChronoUnit.SECONDS;
+      case MINUTES:      return ChronoUnit.MINUTES;
+      case HOURS:        return ChronoUnit.HOURS;
+      case DAYS:         return ChronoUnit.DAYS;
+      default: throw new AssertionError("Unknown unit: " + unit);
+    }
   }
 
 }

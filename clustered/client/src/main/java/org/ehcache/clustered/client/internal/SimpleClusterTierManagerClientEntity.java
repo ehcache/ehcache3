@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -35,6 +34,7 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -85,7 +85,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
     return null;
   }
 
-  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate)
+  private EhcacheEntityResponse invokeInternal(Duration timeLimit, EhcacheEntityMessage message, boolean replicate)
       throws ClusterException, TimeoutException {
 
     try {
@@ -111,7 +111,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
-  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private static <T extends EntityResponse> T waitFor(Duration timeLimit, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
     long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();

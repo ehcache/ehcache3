@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
@@ -42,19 +41,18 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.ehcache.clustered.client.config.TimeoutDuration.of;
-import static org.ehcache.clustered.client.internal.Timeouts.nanosStartingFromNow;
+import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 
 /**
  * ClusterTierClientEntity
@@ -219,11 +217,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     return invokeInternalAndWait(invocationBuilder, getTimeoutDuration(message), message, track);
   }
 
-  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean track)
+  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeLimit, EhcacheEntityMessage message, boolean track)
       throws ClusterException, TimeoutException {
     try {
       LongSupplier nanosRemaining = nanosStartingFromNow(timeLimit);
-      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, of(nanosRemaining.getAsLong(), NANOSECONDS), message, track);
+      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, Duration.ofNanos(nanosRemaining.getAsLong()), message, track);
       EhcacheEntityResponse response = waitFor(nanosRemaining.getAsLong(), future);
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
@@ -241,7 +239,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, TimeoutDuration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
+  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
     boolean interrupted = Thread.interrupted();
     try {
       LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
@@ -266,7 +264,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private TimeoutDuration getTimeoutDuration(EhcacheOperationMessage message) {
+  private Duration getTimeoutDuration(EhcacheOperationMessage message) {
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       return timeouts.getReadOperationTimeout();
     } else {
