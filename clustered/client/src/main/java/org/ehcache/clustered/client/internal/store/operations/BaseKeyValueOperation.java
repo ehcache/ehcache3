@@ -42,6 +42,12 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     this.timeStamp = timeStamp;
   }
 
+  BaseKeyValueOperation(BaseKeyValueOperation<K, V> copy, long timeStamp) {
+    this.key = copy.key;
+    this.valueHolder = copy.valueHolder;
+    this.timeStamp = timeStamp;
+  }
+
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     OperationCode opCode = OperationCode.valueOf(buffer.get());
     if (opCode != getOpCode()) {

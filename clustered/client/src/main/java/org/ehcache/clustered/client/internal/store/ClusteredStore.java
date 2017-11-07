@@ -22,8 +22,10 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
+import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
@@ -50,6 +52,8 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.store.HashUtils;
@@ -76,7 +80,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -144,7 +147,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   /**
    * For tests
    */
-  ClusteredStore(OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
+  ClusteredStore(OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
     this(codec, resolver, timeSource);
     this.storeProxy = proxy;
   }
@@ -180,7 +183,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
           storeProxy.replaceAtHead(extractLongKey(key), chain, compactedChain);
         }
 
-        Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
+        Result<K, V> resolvedResult = resolvedChain.getResolvedResult(key);
         if (resolvedResult != null) {
           V value = resolvedResult.getValue();
           long expirationTime = resolvedChain.getExpirationTime();
@@ -256,7 +259,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
       }
 
-      Result<V> result = resolvedChain.getResolvedResult(key);
+      Result<K, V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
         return null;
@@ -314,7 +317,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
-      Result<V> result = resolvedChain.getResolvedResult(key);
+      Result<K, V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(value.equals(result.getValue())) {
           storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
@@ -351,7 +354,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
       }
 
-      Result<V> result = resolvedChain.getResolvedResult(key);
+      Result<K, V> result = resolvedChain.getResolvedResult(key);
       if(result == null) {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
         return null;
@@ -382,7 +385,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
       }
 
-      Result<V> result = resolvedChain.getResolvedResult(key);
+      Result<K, V> result = resolvedChain.getResolvedResult(key);
       if(result != null) {
         if(oldValue.equals(result.getValue())) {
           conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
@@ -628,7 +631,14 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
       OperationsCodec<K, V> codec = new OperationsCodec<>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
-      ChainResolver<K, V> resolver = new ChainResolver<>(codec, storeConfig.getExpiry());
+
+      ChainResolver<K, V> resolver;
+      Expiry<? super K, ? super V> expiry = storeConfig.getExpiry();
+      if (Expirations.noExpiration().equals(expiry)) {
+        resolver = new EternalChainResolver<>(codec);
+      } else {
+        resolver = new ExpiryChainResolver<>(codec, expiry);
+      }
 
 
       ClusteredStore<K, V> store = new ClusteredStore<>(codec, resolver, timeSource);
@@ -691,7 +701,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
             @Override
             public Chain compact(Chain chain) {
-              return clusteredStore.resolver.compact(chain, clusteredStore.timeSource.getTimeMillis());
+              return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
             }
           });
       } catch (CachePersistenceException e) {

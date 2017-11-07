@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
  * @param <K> key type
  * @param <V> value type
  */
-public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
+public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
 
   public PutOperation(final K key, final V value, final long timeStamp) {
     super(key, value, timeStamp);
@@ -33,6 +33,10 @@ public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements R
 
   PutOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     super(buffer, keySerializer, valueSerializer);
+  }
+
+  PutOperation(final BaseKeyValueOperation<K, V> copy, final long timeStamp) {
+    super(copy, timeStamp);
   }
 
   @Override
@@ -45,7 +49,16 @@ public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements R
    * what the other operation is. The result is gonna be {@code this} operation.
    */
   @Override
-  public Result<V> apply(final Result<V> previousOperation) {
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
     return this;
+  }
+
+  @Override
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    if (isExpiryAvailable() && expirationTime == expirationTime()) {
+      return this;
+    } else {
+      return new PutOperation<>(this, -expirationTime);
+    }
   }
 }

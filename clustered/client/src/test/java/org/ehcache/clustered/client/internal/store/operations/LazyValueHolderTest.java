@@ -73,11 +73,11 @@ public class LazyValueHolderTest {
 
   @Test
   public void testEncodeDoesNotEncodeAlreadyEncodedValue() throws Exception {
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(buffer, serializer);
     ByteBuffer encoded = valueHolder.encode(serializer);
-    assertThat(encoded, sameInstance(buffer));
+    assertThat(encoded.array(), sameInstance(buffer.array())); //buffer should be a dupicate to preserve positional parameters
     verify(serializer, never()).serialize(any(Date.class)); //Value not serialized as the serialized form was available on creation itself
   }
 }

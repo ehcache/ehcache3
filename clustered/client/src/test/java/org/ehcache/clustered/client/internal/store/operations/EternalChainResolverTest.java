@@ -21,8 +21,6 @@ import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.hamcrest.Description;
@@ -31,20 +29,17 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class ChainResolverTest {
+public class EternalChainResolverTest {
 
   private static OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
 
@@ -59,9 +54,9 @@ public class ChainResolverTest {
       new PutOperation<>(2L, "Suresh", 0L),
       new PutOperation<>(2L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(true));
 
@@ -76,9 +71,9 @@ public class ChainResolverTest {
   @Test
   public void testResolveEmptyChain() throws Exception {
     Chain chain = getChainFromOperations();
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
 
     assertThat(resolvedChain.isCompacted(), is(false));
@@ -91,9 +86,9 @@ public class ChainResolverTest {
       new PutOperation<>(2L, "Suresh", 0L),
       new PutOperation<>(2L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(3L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(3L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(false));
   }
@@ -103,9 +98,9 @@ public class ChainResolverTest {
     Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
     Chain chain = getChainFromOperations(expected);
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(false));
   }
@@ -117,23 +112,23 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
-      expected);
+      new PutOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(3));
+    assertThat(resolvedChain.getCompactionCount(), is(2));
   }
 
   @Test
   public void testResolveSingleRemove() throws Exception {
     Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(true));
     assertThat(resolvedChain.getCompactionCount(), is(1));
@@ -145,9 +140,9 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 0L),
       new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(true));
     assertThat(resolvedChain.getCompactionCount(), is(2));
@@ -159,51 +154,51 @@ public class ChainResolverTest {
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
   public void testResolvePutIfAbsentOnly() throws Exception {
-    Operation<Long, String> expected = new PutIfAbsentOperation<>(1L, "Mathew", 0L);
-    Chain chain = getChainFromOperations(expected);
+    Operation<Long, String> expected = new PutOperation<>(1L, "Mathew", 0L);
+    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(false));
   }
 
   @Test
   public void testResolvePutIfAbsentsOnly() throws Exception {
-    Operation<Long, String> expected = new PutIfAbsentOperation<>(1L, "Albin", 0L);
+    Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
     Chain chain = getChainFromOperations(
-      expected,
+      new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutIfAbsentOperation<>(1L, "Suresh", 0L),
       new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
   public void testResolvePutIfAbsentSucceeds() throws Exception {
-    Operation<Long, String> expected = new PutIfAbsentOperation<>(1L, "Mathew", 0L);
+    Operation<Long, String> expected = new PutOperation<>(1L, "Mathew", 0L);
     Chain chain = getChainFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L),
-      expected);
+      new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<String> result = resolvedChain.getResolvedResult(1L);
+    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(true));
   }
@@ -212,7 +207,7 @@ public class ChainResolverTest {
   public void testResolveForSingleOperationDoesNotCompact() {
     Chain chain = getChainFromOperations(new PutOperation<>(1L, "Albin", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
     assertThat(resolvedChain.isCompacted(), is(false));
     assertThat(resolvedChain.getCompactionCount(), is(0));
@@ -234,60 +229,10 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(2L, "Albin", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
     assertThat(resolvedChain.isCompacted(), is(true));
     assertThat(resolvedChain.getCompactionCount(), is(8));
-  }
-
-  @Test
-  public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStamp() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0),
-      new PutOperation<>(1L, "Albin2", 1),
-      new RemoveOperation<>(1L, 2),
-      new PutOperation<>(1L, "AlbinAfterRemove", 3));
-
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3);
-
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(Long.MAX_VALUE));
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStampWithExpiry() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0L),
-      new PutOperation<>(1L, "Albin2", 1L),
-      new PutOperation<>(1L, "Albin3", 2L),
-      new PutOperation<>(1L, "Albin4", 3L)
-    );
-
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.timeToLiveExpiration(new Duration(1l, TimeUnit.MILLISECONDS)));
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3L);
-
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(4L));
-
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -300,13 +245,13 @@ public class ChainResolverTest {
     CountingLongSerializer keySerializer = new CountingLongSerializer();
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ChainResolver<Long, String> resolver = new ChainResolver<>(customCodec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(customCodec);
     resolver.resolve(chain, 1L, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
     assertThat(valueSerializer.decodeCount, is(0));
     assertThat(keySerializer.encodeCount, is(0));
-    assertThat(valueSerializer.encodeCount, is(0));
+    assertThat(valueSerializer.encodeCount, is(0)); //No operation to resolve
   }
 
   @Test
@@ -319,12 +264,12 @@ public class ChainResolverTest {
     CountingLongSerializer keySerializer = new CountingLongSerializer();
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ChainResolver<Long, String> resolver = new ChainResolver<>(customCodec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(customCodec);
     resolver.resolve(chain, 1L, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
-    assertThat(valueSerializer.decodeCount, is(1)); //Only one decode on creation of the resolved operation
-    assertThat(valueSerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
+    assertThat(valueSerializer.decodeCount, is(0));
+    assertThat(valueSerializer.encodeCount, is(0));
     assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
   }
 
@@ -338,9 +283,9 @@ public class ChainResolverTest {
       new PutOperation<>(2L, "Suresh", 0L),
       new PutOperation<>(2L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
 
-    Chain compactedChain = resolver.compact(chain, 0L);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
 
     assertThat(compactedChain, containsInAnyOrder( //@SuppressWarnings("unchecked")
       operation(new PutOperation<>(2L, "Mathew", 0L)),
@@ -351,8 +296,8 @@ public class ChainResolverTest {
   @Test
   public void testCompactEmptyChain() throws Exception {
     Chain chain = (new ChainBuilder()).build();
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compacted = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compacted = resolver.applyOperation(chain, 0L);
     assertThat(compacted, emptyIterable());
   }
 
@@ -362,8 +307,8 @@ public class ChainResolverTest {
       new PutOperation<>(1L, "Albin", 0L)
     );
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compacted = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compacted = resolver.applyOperation(chain, 0L);
 
     assertThat(compacted, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
   }
@@ -375,8 +320,8 @@ public class ChainResolverTest {
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
   }
 
@@ -384,8 +329,8 @@ public class ChainResolverTest {
   public void testCompactSingleRemove() throws Exception {
     Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, emptyIterable());
   }
 
@@ -395,8 +340,8 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 0L),
       new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, emptyIterable());
   }
 
@@ -406,8 +351,8 @@ public class ChainResolverTest {
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, emptyIterable());
   }
 
@@ -415,8 +360,8 @@ public class ChainResolverTest {
   public void testCompactSinglePutIfAbsent() throws Exception {
     Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
   }
 
@@ -427,8 +372,8 @@ public class ChainResolverTest {
       new PutIfAbsentOperation<>(1L, "Suresh", 0L),
       new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
   }
 
@@ -439,8 +384,8 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(1L, "Mathew", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
   }
 
@@ -460,8 +405,8 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(2L, "Albin", 0L));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 0L);
     assertThat(compactedChain, contains(operation(new PutOperation<>(2L, "Albin", 0L))));
   }
 
@@ -473,25 +418,10 @@ public class ChainResolverTest {
       new RemoveOperation<>(1L, 2),
       new PutOperation<>(1L, "Albin3", 3));
 
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
-    Chain compactedChain = resolver.compact(chain, 3);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
+    Chain compactedChain = resolver.applyOperation(chain, 3);
 
     assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin3", 3))));
-  }
-
-  @Test
-  public void testCompactHasCorrectWithExpiry() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0L),
-      new PutOperation<>(1L, "Albin2", 1L),
-      new PutOperation<>(1L, "Albin3", 2L),
-      new PutOperation<>(1L, "Albin4", 3L)
-    );
-
-    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.timeToLiveExpiration(new Duration(1l, TimeUnit.MILLISECONDS)));
-    Chain compactedChain = resolver.compact(chain, 3L);
-
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin4", 3L))));
   }
 
   @Test
@@ -504,8 +434,8 @@ public class ChainResolverTest {
     CountingLongSerializer keySerializer = new CountingLongSerializer();
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ChainResolver<Long, String> resolver = new ChainResolver<>(customCodec, Expirations.noExpiration());
-    resolver.compact(chain, 0L);
+    EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(customCodec);
+    resolver.applyOperation(chain, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
     assertThat(valueSerializer.decodeCount, is(0)); //Only one decode on creation of the resolved operation
