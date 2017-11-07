@@ -22,6 +22,7 @@ import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 
 /**
  * TransientStateRepository
@@ -32,7 +33,12 @@ public class TransientStateRepository implements StateRepository {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name,
+                                                                                                     Class<K> keyClass,
+                                                                                                     Class<V> valueClass,
+                                                                                                     Predicate<Class<?>> isClassPermitted,
+                                                                                                     ClassLoader classLoader) {
+    // isClassPermitted and classLoader are ignored as no serialization and deserialization happens here
     StateHolder<K, V> stateHolder = (StateHolder<K, V>) knownHolders.get(name);
     if (stateHolder != null) {
       return stateHolder;
