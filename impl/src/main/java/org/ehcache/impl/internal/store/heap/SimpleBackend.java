@@ -21,6 +21,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
@@ -102,11 +103,11 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
-    Map<K, OnHeapValueHolder<V>> removed = realMap.removeAllWithHash(hash);
+  public Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash) {
+    Collection<Map.Entry<K, OnHeapValueHolder<V>>> removed = realMap.removeAllWithHash(hash);
     if (byteSized) {
       long delta = 0L;
-      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed) {
         delta -= entry.getValue().size();
       }
       updateUsageInBytesIfRequired(delta);
