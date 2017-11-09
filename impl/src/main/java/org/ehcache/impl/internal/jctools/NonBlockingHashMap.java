@@ -13,11 +13,13 @@
  */
 package org.ehcache.impl.internal.jctools;
 
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -82,7 +84,7 @@ import static org.ehcache.impl.internal.jctools.UnsafeAccess.UNSAFE;
 @SuppressWarnings("unchecked")
 public class NonBlockingHashMap<TypeK, TypeV>
   extends AbstractMap<TypeK, TypeV>
-  implements ConcurrentMap<TypeK, TypeV>, Cloneable, Serializable {
+  implements EvictingConcurrentMap<TypeK, TypeV>, Cloneable, Serializable {
 
   private static final long serialVersionUID = 1234123412341234123L;
 
@@ -124,13 +126,19 @@ public class NonBlockingHashMap<TypeK, TypeV>
   // null Key.
   private static final int hash(final Object key) {
     int h = key.hashCode();     // The real hashCode call
+    return applyHashFunction(h); // EHCACHE SPECIFIC (extract method)
+  }
+
+  // EHCACHE SPECIFIC (refactoring to reuse the hash function
+
+  private static final int applyHashFunction(int h) {
     h ^= (h>>>20) ^ (h>>>12);
     h ^= (h>>> 7) ^ (h>>> 4);
     h += h<<7; // smear low bits up high, for hashcodes that only differ by 1
     return h;
   }
 
-
+  // END OF EHCACHE SPECIFIC
 
   // --- The Hash Table --------------------
   // Slot 0 is always used for a 'CHM' entry below to hold the interesting
@@ -803,6 +811,12 @@ public class NonBlockingHashMap<TypeK, TypeV>
     private final ConcurrentAutoTable _size;
     public int size () { return (int)_size.get(); }
 
+    // EHCACHE SPECIFIC
+
+    public long mappingCount () { return _size.get(); }
+
+    // END OF EHCACHE SPECIFIC
+
     // ---
     // These next 2 fields are used in the resizing heuristics, to judge when
     // it is time to resize or copy the table.  Slots is a count of used-up
@@ -1417,5 +1431,225 @@ public class NonBlockingHashMap<TypeK, TypeV>
       put(K,V);                 // Insert with an offical put
     }
   }
+
+  // EHCACHE SPECIFIC
+
+  @Override
+  public Entry<TypeK, TypeV> getEvictionCandidate(Random rndm, int size, Comparator<? super TypeV> prioritizer, EvictionAdvisor<? super TypeK, ? super TypeV> evictionAdvisor) {
+    return getEvictionCandidate(this, _kvs, rndm.nextInt(), size, prioritizer, evictionAdvisor);
+  }
+
+  private Map.Entry<TypeK, TypeV> getEvictionCandidate(NonBlockingHashMap topmap, final Object[] kvs, final int random_hash, int size, Comparator<? super TypeV> prioritizer, EvictionAdvisor<? super TypeK, ? super TypeV> evictionAdvisor) {
+
+    final int len     = len  (kvs); // Count of key/value pairs, reads kvs.length
+    final CHM chm     = chm  (kvs); // The CHM, for a volatile read below; reads slot 0 of kvs
+
+    final int start = random_hash & (len-1); // First key hash
+    int idx = start;
+
+    Map.Entry<TypeK, TypeV> currentWinner = null;
+
+    for (int iterations = size; iterations > 0 && !isEmpty();) {
+      // Probe table.  Each read of 'val' probably misses in cache in a big
+      // table; hopefully the read of 'key' then hits in cache.
+      final Object K = key(kvs,idx); // Get key   before volatile read, could be null
+      final Object V = val(kvs,idx); // Get value before volatile read, could be null or Tombstone or Prime
+
+      // We need a volatile-read here to preserve happens-before semantics on
+      // newly inserted Keys.  If the Key body was written just before inserting
+      // into the table a Key-compare here might read the uninitalized Key body.
+      // Annoyingly this means we have to volatile-read before EACH key compare.
+      // .
+      // We also need a volatile-read between reading a newly inserted Value
+      // and returning the Value (so the user might end up reading the stale
+      // Value contents).  Same problem as with keys - and the one volatile
+      // read covers both.
+      final Object[] newkvs = chm._newkvs; // VOLATILE READ before key compare
+
+      // Key-compare
+      if (K != null) {
+        if( K == TOMBSTONE ) {
+          if (newkvs != null) {
+            // Henri: This is basically a redo from start, we will resample on the new map starting from the same random_hash
+            // I will keep it like that for now. But it feels that under huge writing concurrency, we might never finish our sampling
+            // Or I'm totally wrong and this can happen only once because after that, the copy is our own... Not sure.
+            return getEvictionCandidate(topmap,topmap.help_copy(newkvs),random_hash,size,prioritizer,evictionAdvisor); // Retry in the new table
+          }
+        } else {
+          // Key hit!  Check for no table-copy-in-progress
+          if( !(V instanceof Prime) ) { // No copy?
+            if( (V != TOMBSTONE) && (V != null)) {
+              iterations--; // We found something to put in our sample
+              // If the advisor wants to keep the entry, skip it
+              if(!evictionAdvisor.adviseAgainstEviction((TypeK) K, (TypeV) V)) {
+                if(currentWinner == null || prioritizer.compare((TypeV) V, currentWinner.getValue()) > 0) {
+                  currentWinner = new NBHMEntry((TypeK) K, (TypeV) V); // Return the entry
+                }
+              }
+            }
+          } else {
+            // Key hit - but slot is (possibly partially) copied to the new table.
+            // Finish the copy & retry in the new table.
+            // Henri: This is basically a redo from start, we will resample on the new map starting from the same random_hash
+            // I will keep it like that for now. But it feels that under huge writing concurrency, we might never finish our sampling
+            // Or I'm totally wrong and this can happen only once because after that, the copy is our own... Not sure.
+            return getEvictionCandidate(topmap,chm.copy_slot_and_check(topmap,kvs,idx,K),random_hash,size,prioritizer,evictionAdvisor); // Retry in the new table
+          }
+        }
+      }
+
+      idx = (idx+1)&(len-1);
+
+      if (start == idx) {
+        break;
+      }
+    }
+    return currentWinner;
+
+  }
+
+  @Override
+  public long mappingCount() {
+    return chm(_kvs).mappingCount();
+  }
+
+  @Override
+  public Map<TypeK, TypeV> removeAllWithHash(int hash) {
+    return (Map<TypeK, TypeV>) removeAllWithHash(hash,TOMBSTONE, NO_MATCH_OLD);
+  }
+
+  private final Map<Object, Object> removeAllWithHash(int hash, Object newVal, Object oldVal) {
+    if (oldVal == null || newVal == null) throw new NullPointerException();
+    Map<Object, Object> result = new HashMap<>();
+
+    while(true) {
+      Map.Entry<Object, Object> res = removeAllWithHash(this, _kvs, hash, newVal, oldVal);
+      if(res == null) {
+        return result;
+      }
+      result.put(res.getKey(), res.getValue());
+    }
+  }
+
+  private Map.Entry<Object, Object> removeAllWithHash(final NonBlockingHashMap topmap, final Object[] kvs, final int keyHash, final Object putval, final Object expVal) {
+    assert putval != null;
+    assert !(putval instanceof Prime);
+    assert !(expVal instanceof Prime);
+    final int fullhash = applyHashFunction(keyHash); // throws NullPointerException if key null
+    final int len      = len   (kvs); // Count of key/value pairs, reads kvs.length
+    final CHM chm      = chm   (kvs); // Reads kvs[0]
+    final int[] hashes = hashes(kvs); // Reads kvs[1], read before kvs[0]
+    int idx = fullhash & (len-1);
+
+    // ---
+    // Key-Claim stanza: spin till we can claim a Key (or force a resizing).
+    int reprobe_cnt=0;
+    Object K=null, V=null;
+    Object[] newkvs=null;
+    while( true ) {             // Spin till we get a Key slot
+      V = val(kvs,idx);         // Get old value (before volatile read below!)
+      K = key(kvs,idx);         // Get current key
+      if( K == null ) {         // Slot is free?
+        // Found an empty Key slot - which means this Key has never been in
+        // this table.  No need to put a Tombstone - the Key is not here!
+        return null; // Not-now & never-been in this table
+      }
+      // Key slot was not null, there exists a Key here
+
+      // We need a volatile-read here to preserve happens-before semantics on
+      // newly inserted Keys.  If the Key body was written just before inserting
+      // into the table a Key-compare here might read the uninitialized Key body.
+      // Annoyingly this means we have to volatile-read before EACH key compare.
+      newkvs = chm._newkvs;     // VOLATILE READ before key compare
+
+      // Look for our hash. If we find one, remove it and keep looking if there are others
+      if( hasheq(K, V, hashes,idx,fullhash) )
+        break;                  // Got it!
+
+      // get and put must have the same key lookup logic!  Lest 'get' give
+      // up looking too soon.
+      //topmap._reprobes.add(1);
+      if( ++reprobe_cnt >= reprobe_limit(len) || // too many probes or
+          K == TOMBSTONE ) { // found a TOMBSTONE key, means no more keys
+        // We simply must have a new table to do a 'put'.  At this point a
+        // 'get' will also go to the new table (if any).  We do not need
+        // to claim a key slot (indeed, we cannot find a free one to claim!).
+        newkvs = chm.resize(topmap,kvs);
+        if( expVal != null ) topmap.help_copy(newkvs); // help along an existing copy
+        return removeAllWithHash(topmap,newkvs,keyHash,putval,expVal);
+      }
+
+      idx = (idx+1)&(len-1); // Reprobe!
+    } // End of spinning till we get a Key slot
+
+    // ---
+    // Found the proper Key slot, if the value slot is a Tombstone
+    // it means we have nothing on this hash
+    if( putval == V ) return null; // Fast cutout for no-change
+
+    // See if we want to move to a new table (to avoid high average re-probe
+    // counts).  We only check on the initial set of a Value from null to
+    // not-null (i.e., once per key-insert).  Of course we got a 'free' check
+    // of newkvs once per key-compare (not really free, but paid-for by the
+    // time we get here).
+    if( newkvs == null &&       // New table-copy already spotted?
+        // Once per fresh key-insert check the hard way
+        ((V == null && chm.tableFull(reprobe_cnt,len)) ||
+         // Or we found a Prime, but the JMM allowed reordering such that we
+         // did not spot the new table (very rare race here: the writing
+         // thread did a CAS of _newkvs then a store of a Prime.  This thread
+         // reads the Prime, then reads _newkvs - but the read of Prime was so
+         // delayed (or the read of _newkvs was so accelerated) that they
+         // swapped and we still read a null _newkvs.  The resize call below
+         // will do a CAS on _newkvs forcing the read.
+         V instanceof Prime) )
+      newkvs = chm.resize(topmap,kvs); // Force the new table copy to start
+    // See if we are moving to a new table.
+    // If so, copy our slot and retry in the new table.
+    if( newkvs != null )
+      return removeAllWithHash(topmap,chm.copy_slot_and_check(topmap,kvs,idx,expVal),keyHash,putval,expVal);
+
+    // ---
+    // We are finally prepared to update the existing table
+    assert !(V instanceof Prime);
+
+    // Actually change the Value in the Key,Value pair
+    if( CAS_val(kvs, idx, V, putval ) ) {
+      // CAS succeeded - we did the update!
+      // Both normal put's and table-copy calls putIfMatch, but table-copy
+      // does not (effectively) increase the number of live k/v pairs.
+      if( expVal != null ) {
+        // Adjust sizes - a striped counter
+        if(  (V == null || V == TOMBSTONE) && putval != TOMBSTONE ) chm._size.add( 1);
+        if( !(V == null || V == TOMBSTONE) && putval == TOMBSTONE ) chm._size.add(-1);
+      }
+    } else {                    // Else CAS failed
+      V = val(kvs,idx);         // Get new value
+      // If a Prime'd value got installed, we need to re-run the put on the
+      // new table.  Otherwise we lost the CAS to another racing put.
+      // Simply retry from the start.
+      if( V instanceof Prime )
+        return removeAllWithHash(topmap,chm.copy_slot_and_check(topmap,kvs,idx,expVal),keyHash,putval,expVal);
+    }
+    // Win or lose the CAS, we are done.  If we won then we know the update
+    // happened as expected.  If we lost, it means "we won but another thread
+    // immediately stomped our update with no chance of a reader reading".
+    return (V==null && expVal!=null) ? null : new AbstractMap.SimpleImmutableEntry(K, V);
+  }
+
+  // --- hasheq ---------------------------------------------------------------
+  // Check for hash equality.  See if the hashes are equal.
+  private static boolean hasheq(Object K, Object V, int[] hashes, int hash, int fullhash ) {
+    return
+      // hash exists and matches?  hash can be zero during the install of a
+      // new key/value pair.
+      ((hashes[hash] == 0 || hashes[hash] == fullhash) &&
+       // Do not call the users' "equals()" call with a Tombstone, as this can
+       // surprise poorly written "equals()" calls that throw exceptions
+       // instead of simply returning false.
+       K != TOMBSTONE && V != TOMBSTONE);        // Do not call users' equals call with a Tombstone
+  }
+
+  // END OF EHCACHE SPECIFIC
 
 } // End NonBlockingHashMap class
