@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
 import java.util.Collection;
@@ -33,13 +34,17 @@ import java.util.function.BiFunction;
  */
 class SimpleBackend<K, V> implements Backend<K, V> {
 
-  private final ConcurrentHashMap<K, OnHeapValueHolder<V>> realMap;
+  private final EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap;
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
   SimpleBackend(boolean byteSized) {
+    this(byteSized, new ConcurrentHashMap<>());
+  }
+
+  SimpleBackend(boolean byteSized, EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap) {
     this.byteSized = byteSized;
-    realMap = new ConcurrentHashMap<>();
+    this.realMap = realMap;
   }
 
   @Override
