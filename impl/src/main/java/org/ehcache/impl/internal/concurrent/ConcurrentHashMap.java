@@ -43,7 +43,6 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.Spliterator;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountedCompleter;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
@@ -270,7 +269,7 @@ import sun.misc.Unsafe;
  */
 @SuppressWarnings("unchecked")
 public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
-    implements ConcurrentMap<K,V>, Serializable {
+    implements EvictingConcurrentMap<K,V>, Serializable { // EHCACHE SPECIFIC: EvictingConcurrentMap instead of ConcurrentMap
     private static final long serialVersionUID = 7249069246763182397L;
 
     public static final ConcurrentHashMap.TreeBin FAKE_TREE_BIN = new TreeBin(new TreeNode(0, null, null, null, null));

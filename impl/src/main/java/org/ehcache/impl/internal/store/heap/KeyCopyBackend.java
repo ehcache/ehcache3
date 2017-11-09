@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapKey;
@@ -43,15 +44,19 @@ import java.util.function.BiFunction;
  */
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
-  private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
   private final boolean byteSized;
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
   KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
+    this(byteSized, keyCopier, new ConcurrentHashMap<>());
+  }
+
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    keyCopyMap = new ConcurrentHashMap<>();
+    this.keyCopyMap = keyCopyMap;
   }
 
   @Override
