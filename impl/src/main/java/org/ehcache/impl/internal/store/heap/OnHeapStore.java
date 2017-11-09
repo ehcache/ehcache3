@@ -35,9 +35,12 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
+import org.ehcache.impl.internal.jctools.NonBlockingHashMap;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.OnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
@@ -231,10 +234,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.expiry = config.getExpiry();
     this.valueCopier = valueCopier;
     this.storeEventDispatcher = eventDispatcher;
+
     if (keyCopier instanceof IdentityCopier) {
-      this.map = new SimpleBackend<>(byteSized);
+      this.map = new SimpleBackend<>(byteSized, new NonBlockingHashMap<>());
     } else {
-      this.map = new KeyCopyBackend<>(byteSized, keyCopier);
+      this.map = new KeyCopyBackend<>(byteSized, keyCopier, new NonBlockingHashMap<>());
     }
 
     getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag(STATISTICS_TAG).build();
