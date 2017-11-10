@@ -67,6 +67,7 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
@@ -114,7 +115,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final ClientCommunicator clientCommunicator;
   private final EhcacheStateService stateService;
   private final OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler;
-  private final IEntityMessenger entityMessenger;
+  private final IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger;
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
@@ -535,18 +536,20 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    if (inflightInvalidations == null) {
-      throw new AssertionError("Load existing was not invoked before handleReconnect");
-    }
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> {
+      if (inflightInvalidations == null) {
+        throw new AssertionError("Load existing was not invoked before handleReconnect");
+      }
 
-    ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
-    ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
-    addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
+      ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
+      ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
+      addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
 
-    LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
+      LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
-    connectedClients.add(clientDescriptor);
+      connectedClients.add(clientDescriptor);
+    };
   }
 
   private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {

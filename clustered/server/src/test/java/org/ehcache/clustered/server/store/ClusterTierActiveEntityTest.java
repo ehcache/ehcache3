@@ -933,12 +933,13 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws Exception {
 
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
 
-    IEntityMessenger entityMessenger = defaultRegistry.getEntityMessenger();
+    IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = defaultRegistry.getEntityMessenger();
 
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
@@ -1137,7 +1138,7 @@ public class ClusterTierActiveEntityTest {
 
     private EhcacheStateServiceImpl storeManagerService;
 
-    private IEntityMessenger entityMessenger;
+    private IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger;
 
     private ClientCommunicator clientCommunicator;
 
@@ -1191,7 +1192,7 @@ public class ClusterTierActiveEntityTest {
     }
 
 
-    private IEntityMessenger getEntityMessenger() {
+    private IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> getEntityMessenger() {
       return entityMessenger;
     }
 

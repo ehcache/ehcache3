@@ -34,6 +34,7 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,8 +120,8 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
   }
 
   @Override

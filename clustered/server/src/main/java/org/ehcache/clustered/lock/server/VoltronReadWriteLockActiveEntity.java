@@ -29,6 +29,7 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.StateDumpCollector;
 
 /**
@@ -98,18 +99,20 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor client, byte[] reconnectData) {
-    if (reconnectData.length == 0) {
-      releaseListeners.add(client);
-    } else {
-      try {
-        if (!invoke(client, LockMessaging.codec().decodeMessage(reconnectData)).isAcquired()) {
-          throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> {
+      if (bytes.length == 0) {
+        releaseListeners.add(clientDescriptor);
+      } else {
+        try {
+          if (!invoke(clientDescriptor, LockMessaging.codec().decodeMessage(bytes)).isAcquired()) {
+            throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+          }
+        } catch (MessageCodecException ex) {
+          throw new AssertionError(ex);
         }
-      } catch (MessageCodecException ex) {
-        throw new AssertionError(ex);
       }
-    }
+    };
   }
 
   @Override
