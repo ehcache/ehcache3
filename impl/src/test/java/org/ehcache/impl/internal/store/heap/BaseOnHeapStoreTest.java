@@ -1168,53 +1168,6 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test(timeout = 2000L)
-  public void testEvictionDoneUnderEvictedKeyLockScope() throws Exception {
-    final OnHeapStore<String, String> store = newStore();
-
-    updateStoreCapacity(store, 2);
-
-    // Fill in store at capacity
-    store.put("keyA", "valueA");
-    store.put("keyB", "valueB");
-
-    final Exchanger<String> keyExchanger = new Exchanger<>();
-    final AtomicReference<String> reference = new AtomicReference<>();
-    final CountDownLatch faultingLatch = new CountDownLatch(1);
-
-    // prepare concurrent faulting
-    final Thread thread = new Thread(() -> {
-      String key;
-
-      try {
-        key = keyExchanger.exchange("ready to roll!");
-        store.put(key, "updateValue");
-      } catch (InterruptedException | StoreAccessException e) {
-        e.printStackTrace();
-      }
-    });
-    thread.start();
-
-    store.setInvalidationListener((key, valueHolder) -> {
-      // Only want to exchange on the first invalidation!
-      if (reference.compareAndSet(null, key)) {
-        try {
-          keyExchanger.exchange(key);
-          long now = System.nanoTime();
-          while (!thread.getState().equals(Thread.State.BLOCKED)) {
-            Thread.yield();
-          }
-          assertThat(thread.getState(), is(Thread.State.BLOCKED));
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-    });
-
-    //trigger eviction
-    store.put("keyC", "valueC");
-  }
-
-  @Test(timeout = 2000L)
   public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
     final OnHeapStore<String, String> store = newStore(testTimeSource, Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));

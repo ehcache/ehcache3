@@ -90,6 +90,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -1531,18 +1532,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } else {
       final Map.Entry<K, OnHeapValueHolder<V>> evictionCandidate = candidate;
       final AtomicBoolean removed = new AtomicBoolean(false);
-      map.computeIfPresent(evictionCandidate.getKey(), (mappedKey, mappedValue) -> {
-        if (mappedValue.equals(evictionCandidate.getValue())) {
-          removed.set(true);
-          if (!(evictionCandidate.getValue() instanceof Fault)) {
-            eventSink.evicted(evictionCandidate.getKey(), evictionCandidate.getValue());
-            invalidationListener.onInvalidation(mappedKey, evictionCandidate.getValue());
-          }
-          updateUsageInBytesIfRequired(-mappedValue.size());
-          return null;
-        }
-        return mappedValue;
-      });
+
+      K key = evictionCandidate.getKey();
+
+      OnHeapValueHolder<V> oldValue = map.remove(key);
+      if(oldValue != null) {
+        removed.set(true);
+        updateUsageInBytesIfRequired(-oldValue.size());
+        eventSink.evicted(key, oldValue);
+        invalidationListener.onInvalidation(key, oldValue);
+      }
+
       if (removed.get()) {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
         return true;
