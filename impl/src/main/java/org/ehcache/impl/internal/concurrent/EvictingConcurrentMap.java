@@ -17,6 +17,7 @@ package org.ehcache.impl.internal.concurrent;
 
 import org.ehcache.config.EvictionAdvisor;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
@@ -52,5 +53,5 @@ public interface EvictingConcurrentMap<K, V> extends ConcurrentMap<K, V>{
    * @param keyHash remove entries having this hashcode
    * @return the removed entries
    */
-  Map<K, V> removeAllWithHash(int keyHash);
+  Collection<Map.Entry<K, V>> removeAllWithHash(int keyHash);
 }

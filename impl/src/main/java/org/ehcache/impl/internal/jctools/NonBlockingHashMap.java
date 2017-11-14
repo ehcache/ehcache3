@@ -1514,20 +1514,20 @@ public class NonBlockingHashMap<TypeK, TypeV>
   }
 
   @Override
-  public Map<TypeK, TypeV> removeAllWithHash(int hash) {
-    return (Map<TypeK, TypeV>) removeAllWithHash(hash,TOMBSTONE, NO_MATCH_OLD);
+  public Collection<Map.Entry<TypeK, TypeV>> removeAllWithHash(int hash) {
+    return removeAllWithHash(hash,TOMBSTONE, NO_MATCH_OLD);
   }
 
-  private final Map<Object, Object> removeAllWithHash(int hash, Object newVal, Object oldVal) {
+  private final Collection<Map.Entry<TypeK, TypeV>> removeAllWithHash(int hash, Object newVal, Object oldVal) {
     if (oldVal == null || newVal == null) throw new NullPointerException();
-    Map<Object, Object> result = new HashMap<>();
 
+    List<Map.Entry<TypeK, TypeV>> result = new ArrayList<>();
     while(true) {
-      Map.Entry<Object, Object> res = removeAllWithHash(this, _kvs, hash, newVal, oldVal);
+      Map.Entry<TypeK, TypeV> res = (Entry<TypeK, TypeV>) removeAllWithHash(this, _kvs, hash, newVal, oldVal);
       if(res == null) {
         return result;
       }
-      result.put(res.getKey(), res.getValue());
+      result.add(res);
     }
   }
 

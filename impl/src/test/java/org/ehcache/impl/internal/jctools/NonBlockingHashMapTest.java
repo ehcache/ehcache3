@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.jctools;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
@@ -193,7 +194,7 @@ public class NonBlockingHashMapTest {
 
     int hash = Long.valueOf(3L).hashCode();
 
-    Map<Long, String> entries  = map.removeAllWithHash(hash);
+    Collection<Map.Entry<Long, String>> entries  = map.removeAllWithHash(hash);
     assertThat(entries).containsOnly(entry(3L, "c"));
     assertThat(map).doesNotContain(entry(3L, "c"));
     assertThat(map).containsOnly(entry(1L, "a"), entry(2L, "b"), entry(4L, "d"), entry(5L, "e"), entry(6L, "f"));
@@ -208,7 +209,7 @@ public class NonBlockingHashMapTest {
 
     int hash = Long.valueOf(3L).hashCode();
 
-    Map<Long, String> entries  = map.removeAllWithHash(hash);
+    Collection<Map.Entry<Long, String>> entries  = map.removeAllWithHash(hash);
     assertThat(entries).containsOnly(entry(3L, "c"), entry(-4L, "d"));
     assertThat(map).doesNotContain(entry(3L, "c"),  entry(-4L, "d"));
     assertThat(map).containsOnly(entry(1L, "a"), entry(2L, "b"));
