@@ -30,8 +30,8 @@ public class ExpirationsTest {
   public void testNoExpiration() {
     Expiry<Object, Object> expiry = Expirations.noExpiration();
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(Duration.INFINITE));
-    assertThat(expiry.getExpiryForAccess(this, holderOf(this)), nullValue());
-    assertThat(expiry.getExpiryForUpdate(this, holderOf(this), this), nullValue());
+    assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), nullValue());
   }
 
   @Test
@@ -39,17 +39,17 @@ public class ExpirationsTest {
     Duration duration = new Duration(1L, TimeUnit.SECONDS);
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(duration);
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
-    assertThat(expiry.getExpiryForAccess(this, holderOf(this)), equalTo(duration));
-    assertThat(expiry.getExpiryForUpdate(this, holderOf(this), this), equalTo(duration));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(duration));
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
   }
 
   @Test
   public void testTTLExpiration() {
     Duration duration = new Duration(1L, TimeUnit.SECONDS);
     Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(duration);
-    assertThat(expiry.getExpiryForCreation(this, holderOf(this)), equalTo(duration));
-    assertThat(expiry.getExpiryForAccess(this, holderOf(this)), nullValue());
-    assertThat(expiry.getExpiryForUpdate(this, holderOf(this), this), equalTo(duration));
+    assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
   }
 
   @Test
@@ -59,11 +59,42 @@ public class ExpirationsTest {
     Duration update = new Duration(3L, TimeUnit.SECONDS);
     Expiry<Object, Object> expiry = Expirations.builder().setCreate(creation).setAccess(access).setUpdate(update).build();
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(creation));
-    assertThat(expiry.getExpiryForAccess(this, holderOf(this)), equalTo(access));
-    assertThat(expiry.getExpiryForUpdate(this, holderOf(this),this), equalTo(update));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(access));
+    assertThat(expiry.getExpiryForUpdate(this, () -> this,this), equalTo(update));
   }
 
-  private ValueSupplier<Object> holderOf(final Object obj) {
-    return () -> obj;
+  @Test
+  public void testTTIExpirationJavaTime() {
+    java.time.Duration timeDuration = java.time.Duration.ofSeconds(1L);
+    Duration duration = Duration.of(timeDuration);
+    Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(duration);
+    assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(duration));
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
   }
+
+  @Test
+  public void testTTLExpirationJavaTime() {
+    java.time.Duration timeDuration = java.time.Duration.ofSeconds(1L, 500_000);
+    Duration duration = Duration.of(timeDuration);
+    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(duration);
+    assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
+  }
+
+  @Test
+  public void testExpirationJavaTime() {
+    java.time.Duration timeCreationDuration = java.time.Duration.ofSeconds(1L);
+    java.time.Duration timeAccessDuration = java.time.Duration.ofSeconds(2L);
+    java.time.Duration timeUpdateDuration = java.time.Duration.ofSeconds(3L);
+    Duration creation = Duration.of(timeCreationDuration);
+    Duration access = Duration.of(timeAccessDuration);
+    Duration update = Duration.of(timeUpdateDuration);
+    Expiry<Object, Object> expiry = Expirations.builder().setCreate(creation).setAccess(access).setUpdate(update).build();
+    assertThat(expiry.getExpiryForCreation(this, this), equalTo(creation));
+    assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(access));
+    assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(update));
+  }
+
 }

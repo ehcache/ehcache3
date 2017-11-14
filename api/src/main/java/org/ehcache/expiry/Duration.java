@@ -48,6 +48,40 @@ public final class Duration {
     return new Duration(length, timeUnit);
   }
 
+  public static Duration of(java.time.Duration duration) {
+    if (duration == null) {
+      return null;
+    }
+    if (duration.isNegative()) {
+      throw new IllegalArgumentException("Ehcache duration cannot be negative and so does not accept negative java.time.Duration: " + duration);
+    }
+    if (duration.isZero()) {
+      return Duration.ZERO;
+    } else {
+      long nanos = duration.getNano();
+      if (nanos == 0) {
+        return of(duration.getSeconds(), TimeUnit.SECONDS);
+      }
+      long seconds = duration.getSeconds();
+      long secondsInNanos = TimeUnit.SECONDS.toNanos(seconds);
+      if (secondsInNanos != Long.MAX_VALUE && Long.MAX_VALUE - secondsInNanos > nanos) {
+        return of(duration.toNanos(), TimeUnit.NANOSECONDS);
+      } else {
+        long secondsInMicros = TimeUnit.SECONDS.toMicros(seconds);
+        if (secondsInMicros != Long.MAX_VALUE && Long.MAX_VALUE - secondsInMicros > nanos / 1_000) {
+          return of(secondsInMicros + nanos / 1_000, TimeUnit.MICROSECONDS);
+        } else {
+          long secondsInMillis = TimeUnit.SECONDS.toMillis(seconds);
+          if (secondsInMillis != Long.MAX_VALUE && Long.MAX_VALUE - secondsInMillis > nanos / 1_000_000) {
+            return of(duration.toMillis(), TimeUnit.MILLISECONDS);
+          }
+        }
+      }
+      return of(seconds, TimeUnit.SECONDS);
+    }
+  }
+
+
   private final TimeUnit timeUnit;
   private final long length;
 

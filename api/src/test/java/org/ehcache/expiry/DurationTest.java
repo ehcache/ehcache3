@@ -28,6 +28,10 @@ import org.junit.Test;
 
 public class DurationTest {
 
+  public static final long NANOS_IN_SECOND = 1_000_000_000L;
+  public static final long MICROS_IN_SECOND = 1_000_000L;
+  public static final long MILLIS_IN_SECOND = 1_000L;
+
   @Test
   public void testBasic() {
     Duration duration = new Duration(1, TimeUnit.SECONDS);
@@ -88,6 +92,38 @@ public class DurationTest {
     assertThat(Duration.ZERO.getLength(), equalTo(0L));
     assertThat(Duration.ZERO.getTimeUnit(), any(TimeUnit.class));
     assertThat(Duration.ZERO.equals(Duration.INFINITE), is(false));
+  }
+
+  @Test
+  public void testJavaDurationConversionNoNanos() {
+    assertThat(Duration.of(java.time.Duration.ofSeconds(100)), is(Duration.of(100, TimeUnit.SECONDS)));
+  }
+
+  @Test
+  public void testJavaDurationConversionWithNanos() {
+    assertThat(Duration.of(java.time.Duration.ofSeconds(100, 50)),
+      is(Duration.of(100L * NANOS_IN_SECOND + 50L, TimeUnit.NANOSECONDS)));
+  }
+
+  @Test
+  public void testJavaDurationTooMuchNanos() {
+    long seconds = Long.MAX_VALUE / NANOS_IN_SECOND * 10;
+    assertThat(Duration.of(java.time.Duration.ofSeconds(seconds, 10_000)),
+      is(Duration.of(TimeUnit.SECONDS.toMicros(seconds) + 10, TimeUnit.MICROSECONDS)));
+  }
+
+  @Test
+  public void testJavaDurationTooMuchMicros() {
+    long seconds = Long.MAX_VALUE / MICROS_IN_SECOND * 10;
+    assertThat(Duration.of(java.time.Duration.ofSeconds(seconds, 10_000_000)),
+      is(Duration.of(TimeUnit.SECONDS.toMillis(seconds) + 10, TimeUnit.MILLISECONDS)));
+  }
+
+  @Test
+  public void testJavaDurationTooMuchMillis() {
+    long seconds = Long.MAX_VALUE / MILLIS_IN_SECOND * 10;
+    assertThat(Duration.of(java.time.Duration.ofSeconds(seconds, 100_000_000)),
+      is(Duration.of(seconds, TimeUnit.SECONDS)));
   }
 
 }
