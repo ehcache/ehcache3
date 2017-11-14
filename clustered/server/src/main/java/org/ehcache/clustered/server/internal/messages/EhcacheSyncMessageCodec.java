@@ -229,10 +229,6 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       }
     }
     Integer segmentId = decoder.int32(MESSAGE_TRACKER_SEGMENT_FIELD);
-    if (segmentId == null) {
-      // Support messages coming from 3.4.0 server
-      segmentId = EhcacheMessageTrackerMessage.UNKNOWN_SEGMENT;
-    }
     return new EhcacheMessageTrackerMessage(segmentId, trackedMessages);
   }
 
