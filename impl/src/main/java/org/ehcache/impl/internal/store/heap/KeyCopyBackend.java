@@ -26,6 +26,8 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.spi.copy.Copier;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -157,13 +159,13 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
-    Map<K, OnHeapValueHolder<V>> result = new HashMap<>();
-    Map<OnHeapKey<K>, OnHeapValueHolder<V>> removed = keyCopyMap.removeAllWithHash(hash);
+  public Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash) {
+    Collection<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> removed = keyCopyMap.removeAllWithHash(hash);
+    Collection<Map.Entry<K, OnHeapValueHolder<V>>> result = new ArrayList<>(removed.size());
     long delta = 0L;
-    for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+    for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed) {
       delta -= entry.getValue().size();
-      result.put(entry.getKey().getActualKeyObject(), entry.getValue());
+      result.add(new AbstractMap.SimpleImmutableEntry<>(entry.getKey().getActualKeyObject(), entry.getValue()));
     }
     updateUsageInBytesIfRequired(delta);
     return result;

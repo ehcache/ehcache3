@@ -29,6 +29,7 @@ import static java.lang.Integer.rotateLeft;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -36,6 +37,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -62,6 +64,7 @@ import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
 import sun.misc.Unsafe;
 
@@ -1184,8 +1187,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
    * @param keyHash the keys' hashcode.
    * @return the removed mappings.
    */
-  public final Map<K, V> removeAllWithHash(int keyHash) {
-      Map<K, V> invalidated = new HashMap<>();
+  public final Collection<Map.Entry<K, V>> removeAllWithHash(int keyHash) {
+      List<Map.Entry<K, V>> invalidated = new ArrayList<>();
 
       int hash = spread(keyHash);
       for (Node<K, V>[] tab = table; ; ) {
@@ -2692,26 +2695,26 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return hd;
     }
 
-    private static <K,V> int nodesAt(Node<K,V> b, Map<K, V> nodes) {
+    private static <K,V> int nodesAt(Node<K,V> b, Collection<Map.Entry<K, V>> nodes) {
         if (b instanceof TreeBin) {
             return treeNodesAt(((TreeBin<K,V>)b).root, nodes);
         } else {
             int count = 0;
             for (Node<K,V> q = b; q != null; q = q.next) {
-                nodes.put(q.key, q.val);
+                nodes.add(new AbstractMap.SimpleImmutableEntry<>(q.key, q.val));
                 count++;
             }
             return count;
         }
     }
 
-    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Map<K, V> nodes) {
+    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Collection<Map.Entry<K, V>> nodes) {
         if (root == null) {
             return 0;
         }
 
         int count = 1;
-        nodes.put(root.key, root.val);
+        nodes.add(new AbstractMap.SimpleImmutableEntry(root.key, root.val));
         count += treeNodesAt(root.left, nodes);
         count += treeNodesAt(root.right, nodes);
         return count;

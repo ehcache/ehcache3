@@ -22,9 +22,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -36,7 +34,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;

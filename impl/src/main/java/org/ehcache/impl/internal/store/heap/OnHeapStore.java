@@ -885,8 +885,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public void silentInvalidateAllWithHash(long hash, BiFunction<K, ValueHolder<V>, Void> biFunction) throws StoreAccessException {
     silentInvalidateAllWithHashObserver.begin();
     int intHash = HashUtils.longHashToInt(hash);
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
-    for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+    Collection<Entry<K, OnHeapValueHolder<V>>> removed = map.removeAllWithHash(intHash);
+    for (Entry<K, OnHeapValueHolder<V>> entry : removed) {
       biFunction.apply(entry.getKey(), entry.getValue());
     }
     silentInvalidateAllWithHashObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.SUCCESS);
@@ -912,8 +912,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public void invalidateAllWithHash(long hash) throws StoreAccessException {
     invalidateAllWithHashObserver.begin();
     int intHash = HashUtils.longHashToInt(hash);
-    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash(intHash);
-    for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+    Collection<Entry<K, OnHeapValueHolder<V>>> removed = map.removeAllWithHash(intHash);
+    for (Entry<K, OnHeapValueHolder<V>> entry : removed) {
       notifyInvalidation(entry.getKey(), entry.getValue());
     }
     LOG.debug("CLIENT: onheap store removed all with hash {}", intHash);
