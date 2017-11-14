@@ -20,11 +20,13 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.terracotta.entity.ActiveInvokeContext;
+import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
 
@@ -117,9 +119,8 @@ public class ObservableEhcacheServerEntityService extends ClusterTierManagerServ
     }
 
     @Override
-    public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-      connectedClients.add(clientDescriptor);
-      activeEntity.handleReconnect(clientDescriptor, extendedReconnectData);
+    public ReconnectHandler startReconnect() {
+      return activeEntity.startReconnect();
     }
 
     @Override
