@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ Copyright Terracotta, Inc.
   ~
@@ -24,7 +25,7 @@
 
   <service>
     <tc:cluster>
-      <tc:connection url="terracotta://example.com/myCacheManager?auto-create"/>
+      <tc:connection url="terracotta://example.com/myCacheManager"/>
       <tc:server-side-config>
         <tc:default-resource from="primary"/>
       </tc:server-side-config>

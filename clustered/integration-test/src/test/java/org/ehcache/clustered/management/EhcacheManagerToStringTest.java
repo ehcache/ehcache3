@@ -94,19 +94,27 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         // cluster config
         .with(ClusteringServiceConfigurationBuilder.cluster(uri)
             .autoCreate()
-            .defaultServerResource("primary-server-resource"))
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 32, MemoryUnit.MB))
         // management config
         .using(new DefaultManagementRegistryConfiguration()
             .addTags("webapp-1", "server-node-1")
             .setCacheManagerAlias("my-super-cache-manager"))
-        // cache config
-        .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+        // cache clustered dedicated
+        .withCache("cache-dedicated", CacheConfigurationBuilder.newCacheConfigurationBuilder(
             String.class, String.class,
             newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(1, MemoryUnit.MB)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .build())
+        // cache clustered shared
+        .withCache("cache-shared", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+          String.class, String.class,
+          newResourcePoolsBuilder()
+            .heap(1, MemoryUnit.MB)
+            .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))
+          .build())
         .build(true);
 
     try {
@@ -117,7 +125,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
       assertThat(
           actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
           equalTo(
-              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1:9510", uri.getAuthority())
+              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1", uri.getAuthority())
           )
       );
 

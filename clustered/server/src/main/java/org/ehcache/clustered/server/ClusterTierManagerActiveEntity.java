@@ -18,38 +18,27 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ActiveServerEntity;
-import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
-import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.entity.StateDumpCollector;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
@@ -58,23 +47,28 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerActiveEntity.class);
 
-  /**
-   * Tracks the state of a connected client.  An entry is added to this map when the
-   * {@link #connected(ClientDescriptor)} method is invoked for a client and removed when the
-   * {@link #disconnected(ClientDescriptor)} method is invoked for the client.
-   */
-  private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
-
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
-  private final IEntityMessenger entityMessenger;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final ServerSideConfiguration configuration;
+  private final ClusterTierManagerConfiguration clusterTierManagerConfig;
 
-  public ClusterTierManagerActiveEntity(ServiceRegistry services, ClusterTierManagerConfiguration config,
+  /**
+   * Only used for subclassing when testing
+   */
+  protected ClusterTierManagerActiveEntity() {
+    responseFactory = null;
+    ehcacheStateService = null;
+    management = null;
+    configuration = null;
+    clusterTierManagerConfig = null;
+  }
+
+  public ClusterTierManagerActiveEntity(ClusterTierManagerConfiguration config,
                                         EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
+    clusterTierManagerConfig = config;
     if (config == null) {
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
@@ -83,10 +77,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
-    }
-    entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
-    if (entityMessenger == null) {
-      throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     try {
       ehcacheStateService.configure();
@@ -97,54 +87,29 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     }
   }
 
-  /**
-   * Gets the map of connected clients along with the server stores each is using.
-   * If the client is using no stores, the set of stores will be empty for that client.
-   *
-   * @return an unmodifiable copy of the connected client map
-   */
-  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  Set<ClientDescriptor> getConnectedClients() {
-    final Set<ClientDescriptor> clients = new HashSet<>();
-    for (Entry<ClientDescriptor, ClientState> entry : clientStateMap.entrySet()) {
-      clients.add(entry.getKey());
-    }
-    return Collections.unmodifiableSet(clients);
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClusterTierManagerDump.dump(dump, clusterTierManagerConfig);
   }
 
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    if (!clientStateMap.containsKey(clientDescriptor)) {
-      LOGGER.info("Connecting {}", clientDescriptor);
-      ClientState clientState = new ClientState();
-      clientStateMap.put(clientDescriptor, clientState);
-      management.clientConnected(clientDescriptor, clientState);
-    } else {
-      // This is logically an AssertionError
-      LOGGER.error("Client {} already registered as connected", clientDescriptor);
-    }
+    LOGGER.info("Connecting {}", clientDescriptor);
   }
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
-    ClientState clientState = clientStateMap.remove(clientDescriptor);
-    if (clientState == null) {
-      // This is logically an AssertionError
-      LOGGER.error("Client {} not registered as connected", clientDescriptor);
-    } else {
-      LOGGER.info("Disconnecting {}", clientDescriptor);
-      management.clientDisconnected(clientDescriptor, clientState);
-    }
+    LOGGER.info("Disconnecting {}", clientDescriptor);
   }
 
   @Override
-  public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isLifecycleMessage(messageType)) {
-          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+          return invokeLifeCycleOperation(invokeContext.getClientDescriptor(), (LifecycleMessage) message);
         }
       }
       throw new AssertionError("Unsupported message : " + message.getClass());
@@ -158,15 +123,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
-    }
-    ClusterTierManagerReconnectMessage reconnectMessage = reconnectMessageCodec.decodeReconnectMessage(extendedReconnectData);
-    clientState.attach(reconnectMessage.getClientId());
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-
-    management.clientReconnected(clientDescriptor, clientState);
   }
 
   @Override
@@ -186,15 +143,8 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);
 
-    management.init();
+    management.reload();
     management.sharedPoolsConfigured();
-  }
-
-  private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the cluster tier manager");
-    }
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
@@ -228,7 +178,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void destroy() {
     ehcacheStateService.destroy();
-
+    management.close();
   }
 
   /**
@@ -240,26 +190,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
-    validateClientConnected(clientDescriptor);
-    ClientState clientState = clientStateMap.get(clientDescriptor);
-    UUID clientId = clientState.getClientIdentifier();
-    if (clientId != null) {
-      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientId);
-    }
-    if (getTrackedClients().contains(message.getClientId())) {
-      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked.");
-    }
-
     ehcacheStateService.validate(message.getConfiguration());
-    clientState.attach(message.getClientId());
-    management.clientValidated(clientDescriptor, clientState);
   }
-
-  private Set<UUID> getTrackedClients() {
-    return clientStateMap.entrySet().stream()
-      .filter(entry -> entry.getValue().isAttached())
-      .map(entry -> entry.getValue().getClientIdentifier())
-      .collect(Collectors.toSet());
-  }
-
 }

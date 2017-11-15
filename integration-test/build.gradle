@@ -24,9 +24,14 @@ dependencies {
 }
 
 compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+  options.forkOptions.javaHome = Jvm.current().javaHome
 }
 
 test {
-  executable = Jvm.current().javaExecutable
+  if (!testJava.javaVersion.isJava8Compatible()) {
+    executable = Jvm.current().javaExecutable
+  }
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
 }

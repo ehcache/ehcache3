@@ -19,9 +19,10 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
-import org.ehcache.clustered.server.EhcacheStateServiceImpl;
+import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
@@ -34,8 +35,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 public class ObservableClusterTierServerEntityService
     implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
@@ -118,36 +119,48 @@ public class ObservableClusterTierServerEntityService
       return this.activeEntity;
     }
 
+    public void notifyDestroyed(ClientSourceId sourceId) {
+      activeEntity.notifyDestroyed(sourceId);
+    }
+
     public Set<ClientDescriptor> getConnectedClients() {
       return activeEntity.getConnectedClients();
     }
 
-    public Set<ClientDescriptor> getAttachedClients() {
-      return activeEntity.getAttachedClients();
-    }
-
-    public Map getClientsWaitingForInvalidation() throws Exception {
+    @SuppressWarnings("unchecked")
+    public ConcurrentMap<Integer, ClusterTierActiveEntity.InvalidationHolder> getClientsWaitingForInvalidation() throws Exception {
       Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
       field.setAccessible(true);
-      return (Map)field.get(activeEntity);
+      return (ConcurrentMap<Integer, ClusterTierActiveEntity.InvalidationHolder>) field.get(activeEntity);
     }
+
+    @SuppressWarnings("unchecked")
+    public OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> getMessageHandler() throws Exception {
+      Field field = activeEntity.getClass().getDeclaredField("messageHandler");
+      field.setAccessible(true);
+      return (OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse>) field.get(activeEntity);
+    }
+
   }
 
   public static final class ObservableClusterTierPassiveEntity {
     private final ClusterTierPassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
 
     private ObservableClusterTierPassiveEntity(ClusterTierPassiveEntity passiveEntity) throws Exception {
       this.passiveEntity = passiveEntity;
       Field field = passiveEntity.getClass().getDeclaredField("stateService");
       field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
     }
 
-    public Map getMessageTrackerMap(String storeAlias) throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker(storeAlias).getClass().getDeclaredField("clientUUIDMessageTrackerMap");
+    public void notifyDestroyed(ClientSourceId sourceId) {
+      passiveEntity.notifyDestroyed(sourceId);
+    }
+
+    @SuppressWarnings("unchecked")
+    public OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> getMessageHandler() throws Exception {
+      Field field = passiveEntity.getClass().getDeclaredField("messageHandler");
       field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker(storeAlias));
+      return (OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse>) field.get(passiveEntity);
     }
 
   }

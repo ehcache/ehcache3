@@ -13,21 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.server.store;
 
-package org.ehcache.clustered.server.management;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
-import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
+import java.util.UUID;
 
-final class ClusterTierClientStateBinding extends ClientBinding {
-
-  ClusterTierClientStateBinding(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
-    super(clientDescriptor, clientState);
+public class InvalidMessage extends EhcacheEntityMessage {
+  @Override
+  public void setId(long id) {
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
   @Override
-  public ClusterTierClientState getValue() {
-    return (ClusterTierClientState) super.getValue();
+  public long getId() {
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
+  @Override
+  public UUID getClientId() {
+    throw new UnsupportedOperationException("TODO Implement me!");
+  }
 }

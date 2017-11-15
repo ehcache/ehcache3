@@ -25,6 +25,7 @@ import org.ehcache.core.HumanReadable;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.util.Map;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
@@ -243,6 +244,16 @@ public class ClusteringServiceConfiguration
     return this.getClass().getName() + ":\n    " +
         "clusterUri: " + getClusterUri()+ "\n    " +
         "readOperationTimeout: " + getReadOperationTimeout()+ "\n    " +
-        "autoCreate: " + isAutoCreate();
+        "autoCreate: " + isAutoCreate() + "\n    " +
+        "defaultServerResource: " + serverConfiguration.getDefaultServerResource() + "\n    " +
+        readablePoolsString();
+  }
+
+  private String readablePoolsString() {
+    StringBuilder pools = new StringBuilder("resourcePools:\n");
+    for(Map.Entry entry : serverConfiguration.getResourcePools().entrySet()) {
+      pools.append("        " + entry.getKey() + ": " + entry.getValue() + "\n");
+    }
+    return pools.toString();
   }
 }

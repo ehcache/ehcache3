@@ -60,7 +60,7 @@ public class StrongServerStoreProxyTest {
   private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private static SimpleClusterTierClientEntity clientEntity1;
   private static ClusterTierClientEntity clientEntity2;

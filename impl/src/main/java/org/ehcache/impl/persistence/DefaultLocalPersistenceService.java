@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 
 import static org.ehcache.impl.persistence.FileUtils.createLocationIfRequiredAndVerify;
 import static org.ehcache.impl.persistence.FileUtils.recursiveDeleteDirectoryContent;
@@ -89,14 +90,19 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         throw new RuntimeException(e);
       }
       try {
-        lock = rw.getChannel().lock();
+        lock = rw.getChannel().tryLock();
+      } catch (OverlappingFileLockException e) {
+        throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
       } catch (Exception e) {
         try {
           rw.close();
         } catch (IOException e1) {
           // ignore silently
         }
-        throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+        throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.getAbsolutePath(), e);
+      }
+      if (lock == null) {
+        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
       }
       started = true;
       LOGGER.debug("RootDirectory Locked");

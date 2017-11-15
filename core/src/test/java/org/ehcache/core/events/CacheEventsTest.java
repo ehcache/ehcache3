@@ -13,17 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.core.events;
 
-package org.ehcache.core.util;
-
+import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
-import org.ehcache.event.EventType;
-import org.mockito.ArgumentMatcher;
+import org.junit.Test;
 
-public class IsCreatedOrUpdated<K, V> extends ArgumentMatcher<CacheEvent<K, V>> {
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-  public boolean matches(Object event) {
-    CacheEvent<?, ?> cacheEvent = (CacheEvent)event;
-    return (cacheEvent.getType() == EventType.CREATED || cacheEvent.getType() == EventType.UPDATED);
+public class CacheEventsTest {
+
+  @Test
+  public void testToString() throws Exception {
+    @SuppressWarnings("unchecked")
+    Cache<String, String> cache = mock(Cache.class);
+    when(cache.toString()).thenReturn("cache");
+    CacheEvent<String, String> event = CacheEvents.update("key", "old", "new", cache);
+    assertThat(event.toString()).isEqualTo("UPDATED on cache key,oldValue,newValue='key','old','new'");
   }
+
 }

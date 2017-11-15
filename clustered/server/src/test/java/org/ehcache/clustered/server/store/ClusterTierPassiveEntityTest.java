@@ -20,28 +20,32 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
+import org.ehcache.clustered.server.TestInvokeContext;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,8 +53,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -106,7 +112,7 @@ public class ClusterTierPassiveEntityTest {
     assertThat(defaultRegistry.getStoreManagerService().getStores(), containsInAnyOrder(defaultStoreName));
     assertThat(defaultRegistry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder(defaultSharedPool));
-    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(empty()));
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(MemoryUnit.MEGABYTES.toBytes(2L)));
   }
 
@@ -117,8 +123,8 @@ public class ClusterTierPassiveEntityTest {
 
     passiveEntity.destroy();
 
-    assertThat(defaultRegistry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
-    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getStores(), is(empty()));
+    assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), is(empty()));
 
     assertThat(defaultRegistry.getResource(defaultResource).getUsed(), is(0L));
   }
@@ -126,17 +132,43 @@ public class ClusterTierPassiveEntityTest {
   @Test
   public void testInvalidMessageThrowsError() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-
+    TestInvokeContext context = new TestInvokeContext();
     try {
-      passiveEntity.invoke(new InvalidMessage());
+      passiveEntity.invokePassive(context, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
     }
   }
 
-  private static ServerSideConfiguration.Pool pool(String resourceName, int poolSize, MemoryUnit unit) {
-    return new ServerSideConfiguration.Pool(unit.toBytes(poolSize), resourceName);
+  @Test
+  public void testPassiveTracksMessageDuplication() throws Exception {
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
+
+    Chain chain = Util.getChain(true, createPayload(1L));
+    TestInvokeContext context = new TestInvokeContext();
+
+    UUID clientId = new UUID(3, 3);
+
+    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
+    passiveEntity.invokePassive(context, message1);
+
+    // Should be added
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
+
+    Chain emptyChain = Util.getChain(true);
+    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
+    passiveEntity.invokePassive(context, message2);
+
+    // Should not be cleared, message is a duplicate
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
+
+    PassiveReplicationMessage message3 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 3L, 1L, clientId);
+    passiveEntity.invokePassive(context, message3);
+
+    // Should be added as well, different message id
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
   }
 
   /**
@@ -288,15 +320,22 @@ public class ClusterTierPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof PassiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
+      } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
+        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
+    }
+
+    @Override
+    public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+      return Collections.singleton(getService(configuration));
     }
   }
 
@@ -345,23 +384,6 @@ public class ClusterTierPassiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }
