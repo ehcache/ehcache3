@@ -18,6 +18,8 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ResolveRequest;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
@@ -40,6 +42,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.MapValue;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESOLVE_REQUEST;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
@@ -91,6 +94,11 @@ public class ResponseCodec {
   private static final Struct PREPARE_FOR_DESTROY_RESPONSE_STRUCT = newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
     .strings(STORES_FIELD, 20)
+    .build();
+  private static final Struct RESOLVE_REQUEST_RESPONSE_STRUCT = newStructBuilder()
+    .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
+    .int64(KEY_FIELD, 20)
+    .struct(CHAIN_FIELD, 30, CHAIN_STRUCT)
     .build();
 
   public byte[] encode(EhcacheEntityResponse response) {
@@ -165,6 +173,14 @@ public class ResponseCodec {
         return encoder
           .encode().array();
       }
+      case RESOLVE_REQUEST: {
+        EhcacheEntityResponse.ResolveRequest resolve = (ResolveRequest) response;
+        return RESOLVE_REQUEST_RESPONSE_STRUCT.encoder()
+          .enm(RESPONSE_TYPE_FIELD_NAME, resolve.getResponseType())
+          .int64(KEY_FIELD, resolve.getKey())
+          .struct(CHAIN_FIELD, resolve.getChain(), ChainCodec::encode)
+          .encode().array();
+      }
       default:
         throw new UnsupportedOperationException("The operation is not supported : " + response.getResponseType());
     }
@@ -187,14 +203,14 @@ public class ResponseCodec {
     buffer.rewind();
     switch (opCode) {
       case SUCCESS:
-        return EhcacheEntityResponse.Success.INSTANCE;
+        return EhcacheEntityResponse.success();
       case FAILURE:
         decoder = FAILURE_RESPONSE_STRUCT.decoder(buffer);
         ClusterException exception = ExceptionCodec.decode(decoder.struct(EXCEPTION_FIELD));
-        return new EhcacheEntityResponse.Failure(exception.withClientStackTrace());
+        return EhcacheEntityResponse.failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         decoder = GET_RESPONSE_STRUCT.decoder(buffer);
-        return new EhcacheEntityResponse.GetResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
+        return EhcacheEntityResponse.getResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
       case HASH_INVALIDATION_DONE: {
         decoder = HASH_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
@@ -230,7 +246,13 @@ public class ResponseCodec {
         for (int i = 0; i < storesDecoder.length(); i++) {
           stores.add(storesDecoder.value());
         }
-        return new PrepareForDestroy(stores);
+        return EhcacheEntityResponse.prepareForDestroy(stores);
+      }
+      case RESOLVE_REQUEST: {
+        decoder = RESOLVE_REQUEST_RESPONSE_STRUCT.decoder(buffer);
+        long key = decoder.int64(KEY_FIELD);
+        Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
+        return EhcacheEntityResponse.resolveRequest(key, chain);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);

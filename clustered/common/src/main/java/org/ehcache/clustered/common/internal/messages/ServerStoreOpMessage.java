@@ -45,7 +45,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   public static class GetMessage extends KeyBasedServerStoreOpMessage {
 
-    GetMessage(long key) {
+    public GetMessage(long key) {
       super(key);
     }
 
@@ -59,7 +59,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(long key, ByteBuffer payload) {
+    public GetAndAppendMessage(long key, ByteBuffer payload) {
       super(key);
       this.payload = payload;
     }
@@ -79,7 +79,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    AppendMessage(long key, ByteBuffer payload) {
+    public AppendMessage(long key, ByteBuffer payload) {
       super(key);
       this.payload = payload;
     }
@@ -100,7 +100,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(long key, Chain expect, Chain update) {
+    public ReplaceAtHeadMessage(long key, Chain expect, Chain update) {
       super(key);
       this.expect = expect;
       this.update = update;
@@ -124,7 +124,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAck(long key, int invalidationId) {
+    public ClientInvalidationAck(long key, int invalidationId) {
       super(key);
       this.invalidationId = invalidationId;
     }
@@ -143,7 +143,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAllAck(int invalidationId) {
+    public ClientInvalidationAllAck(int invalidationId) {
       super();
       this.invalidationId = invalidationId;
     }

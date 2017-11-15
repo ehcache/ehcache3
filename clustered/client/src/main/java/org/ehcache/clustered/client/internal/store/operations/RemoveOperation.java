@@ -62,7 +62,7 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
    * what the other operation is. The result is always gonna be null.
    */
   @Override
-  public Result<V> apply(final Result<V> previousOperation) {
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
     return null;
   }
 

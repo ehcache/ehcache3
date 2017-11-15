@@ -16,8 +16,11 @@
 
 package org.ehcache.clustered.server.store;
 
+import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EntityConfigurationCodec;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ActiveServerEntity;
@@ -34,31 +37,63 @@ import org.terracotta.entity.SyncMessageCodec;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 
 public class ObservableClusterTierServerEntityService
     implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
   private final ClusterTierServerEntityService delegate = new ClusterTierServerEntityService();
 
-  private final List<ClusterTierActiveEntity> servedActiveEntities = new ArrayList<>();
-  private final List<ClusterTierPassiveEntity> servedPassiveEntities = new ArrayList<>();
+  private final Map<String, List<ClusterTierActiveEntity>> servedActiveEntities = new ConcurrentHashMap<>();
+  private final Map<String, List<ClusterTierPassiveEntity>> servedPassiveEntities = new ConcurrentHashMap<>();
 
   public List<ObservableClusterTierActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
     List<ObservableClusterTierActiveEntity> observables = new ArrayList<>(servedActiveEntities.size());
-    for (ClusterTierActiveEntity servedActiveEntity : servedActiveEntities) {
-      observables.add(new ObservableClusterTierActiveEntity(servedActiveEntity));
+    for (String name : servedActiveEntities.keySet()) {
+      observables.addAll(getServedActiveEntitiesFor(name));
     }
     return Collections.unmodifiableList(observables);
   }
 
+  public List<ObservableClusterTierActiveEntity> getServedActiveEntitiesFor(String name) {
+    List<ClusterTierActiveEntity> entities = servedActiveEntities.get(name);
+    if (entities == null) {
+      return emptyList();
+    } else {
+      List<ObservableClusterTierActiveEntity> observables = new ArrayList<>(entities.size());
+      for (ClusterTierActiveEntity entity : entities) {
+        observables.add(new ObservableClusterTierActiveEntity(entity));
+      }
+      return Collections.unmodifiableList(observables);
+    }
+  }
+
   public List<ObservableClusterTierPassiveEntity> getServedPassiveEntities() throws Exception {
     List<ObservableClusterTierPassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
-    for (ClusterTierPassiveEntity servedPassiveEntity : servedPassiveEntities) {
-      observables.add(new ObservableClusterTierPassiveEntity(servedPassiveEntity));
+    for (String name : servedPassiveEntities.keySet()) {
+      observables.addAll(getServedPassiveEntitiesFor(name));
     }
     return Collections.unmodifiableList(observables);
+  }
+
+  public List<ObservableClusterTierPassiveEntity> getServedPassiveEntitiesFor(String name) throws Exception {
+    List<ClusterTierPassiveEntity> entities = servedPassiveEntities.get(name);
+    if (entities == null) {
+      return emptyList();
+    } else {
+      List<ObservableClusterTierPassiveEntity> observables = new ArrayList<>(entities.size());
+      for (ClusterTierPassiveEntity entity : entities) {
+        observables.add(new ObservableClusterTierPassiveEntity(entity));
+      }
+      return Collections.unmodifiableList(observables);
+    }
   }
 
   @Override
@@ -73,15 +108,23 @@ public class ObservableClusterTierServerEntityService
 
   @Override
   public ClusterTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierEntityConfiguration c = new EntityConfigurationCodec(new CommonConfigCodec()).decodeClusteredStoreConfiguration(configuration);
     ClusterTierActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
-    servedActiveEntities.add(activeEntity);
+    List<ClusterTierActiveEntity> existing = servedActiveEntities.putIfAbsent(c.getStoreIdentifier(), new ArrayList<>(singleton(activeEntity)));
+    if (existing != null) {
+      existing.add(activeEntity);
+    }
     return activeEntity;
   }
 
   @Override
   public ClusterTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierEntityConfiguration c = new EntityConfigurationCodec(new CommonConfigCodec()).decodeClusteredStoreConfiguration(configuration);
     ClusterTierPassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
-    servedPassiveEntities.add(passiveEntity);
+    List<ClusterTierPassiveEntity> existing = servedPassiveEntities.putIfAbsent(c.getStoreIdentifier(), new ArrayList<>(singleton(passiveEntity)));
+    if (existing != null) {
+      existing.add(passiveEntity);
+    }
     return passiveEntity;
   }
 
@@ -111,7 +154,7 @@ public class ObservableClusterTierServerEntityService
   public static final class ObservableClusterTierActiveEntity {
     private final ClusterTierActiveEntity activeEntity;
 
-    private ObservableClusterTierActiveEntity(ClusterTierActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
+    private ObservableClusterTierActiveEntity(ClusterTierActiveEntity activeEntity) {
       this.activeEntity = activeEntity;
     }
 

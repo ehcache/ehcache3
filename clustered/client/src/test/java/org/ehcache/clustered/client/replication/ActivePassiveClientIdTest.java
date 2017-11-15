@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -58,6 +59,7 @@ import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.mockito.Mockito.mock;
 
 public class ActivePassiveClientIdTest {
 
@@ -116,10 +118,10 @@ public class ActivePassiveClientIdTest {
     @SuppressWarnings("unchecked")
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test", config);
 
-    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    storeProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, mock(ServerCallback.class));
 
-    activeEntity = observableClusterTierServerEntityService.getServedActiveEntities().get(0);
-    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(0);
+    activeEntity = observableClusterTierServerEntityService.getServedActiveEntitiesFor("test").get(0);
+    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntitiesFor("test").get(0);
 
     activeMessageHandler = activeEntity.getMessageHandler();
     passiveMessageHandler = passiveEntity.getMessageHandler();
@@ -181,7 +183,7 @@ public class ActivePassiveClientIdTest {
     clusterControl.waitForRunningPassivesInStandby();
 
     // Save the new handler from the freshly started passive
-    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntities().get(1);
+    passiveEntity = observableClusterTierServerEntityService.getServedPassiveEntitiesFor("test").get(1);
     passiveMessageHandler = passiveEntity.getMessageHandler();
 
     assertThat(passiveMessageHandler.getTrackedClients().count()).isEqualTo(1L); // one client tracked

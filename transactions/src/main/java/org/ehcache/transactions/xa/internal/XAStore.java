@@ -229,13 +229,11 @@ public class XAStore<K, V> implements Store<K, V> {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<>(oldValue, new XAValueHolder<>(value, timeSource.getTimeMillis())));
-      return newValue == null ? PutStatus.PUT : PutStatus.UPDATE;
+      return PutStatus.PUT;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    PutStatus status = PutStatus.NOOP;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
@@ -243,15 +241,15 @@ public class XAStore<K, V> implements Store<K, V> {
       } else {
         if (currentContext.addCommand(key, new StorePutCommand<>(softLock.getOldValue(), new XAValueHolder<>(value, timeSource
           .getTimeMillis())))) {
-          status = PutStatus.UPDATE;
+          return PutStatus.PUT;
         }
       }
     } else {
       if (currentContext.addCommand(key, new StorePutCommand<>(null, new XAValueHolder<>(value, timeSource.getTimeMillis())))) {
-        status = PutStatus.PUT;
+        return PutStatus.PUT;
       }
     }
-    return status;
+    return PutStatus.NOOP;
   }
 
   @Override

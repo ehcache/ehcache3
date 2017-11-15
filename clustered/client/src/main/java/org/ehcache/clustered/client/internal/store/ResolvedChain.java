@@ -33,7 +33,7 @@ public interface ResolvedChain<K, V> {
 
   Chain getCompactedChain();
 
-  Result<V> getResolvedResult(K key);
+  Result<K, V> getResolvedResult(K key);
 
   /**
    * Indicates whether the {@link #getCompactedChain()} is effectively compacted
@@ -60,18 +60,18 @@ public interface ResolvedChain<K, V> {
   class Impl<K, V> implements ResolvedChain<K, V> {
 
     private final Chain compactedChain;
-    private final Map<K, Result<V>> resolvedOperations;
+    private final Map<K, Result<K, V>> resolvedOperations;
     private final int compactionCount;
     private final long expirationTime;
 
-    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations, int compactionCount, long expirationTime) {
+    public Impl(Chain compactedChain, Map<K, Result<K, V>> resolvedOperations, int compactionCount, long expirationTime) {
       this.compactedChain = compactedChain;
       this.resolvedOperations = resolvedOperations;
       this.compactionCount = compactionCount;
       this.expirationTime = expirationTime;
     }
 
-    public Impl(Chain compactedChain, K key, Result<V> result, int compactedSize, long expirationTime) {
+    public Impl(Chain compactedChain, K key, Result<K, V> result, int compactedSize, long expirationTime) {
       this(compactedChain, Collections.singletonMap(key, result), compactedSize, expirationTime);
     }
 
@@ -79,7 +79,7 @@ public interface ResolvedChain<K, V> {
       return this.compactedChain;
     }
 
-    public Result<V> getResolvedResult(K key) {
+    public Result<K, V> getResolvedResult(K key) {
       return resolvedOperations.get(key);
     }
 

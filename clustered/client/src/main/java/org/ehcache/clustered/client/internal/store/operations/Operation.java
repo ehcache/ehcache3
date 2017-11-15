@@ -30,7 +30,7 @@ public interface Operation<K, V> {
 
   K getKey();
 
-  Result<V> apply(Result<V> previousResult);
+  Result<K, V> apply(Result<K, V> previousResult);
 
   ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
 

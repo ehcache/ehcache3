@@ -200,9 +200,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       case PUT:
         putObserver.end(PutOutcome.PUT);
         break;
-      case UPDATE:
-        putObserver.end(PutOutcome.UPDATED);
-        break;
       case NOOP:
         putObserver.end(PutOutcome.NOOP);
         break;
@@ -730,7 +727,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             if (newValue == null) {
               removeObserver.end(RemoveOutcome.SUCCESS);
             } else {
-              putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
+              putObserver.end(PutOutcome.PUT);
             }
           }
 
@@ -796,11 +793,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
-        putObserver.end(PutOutcome.UPDATED);
       } else {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
-        putObserver.end(PutOutcome.PUT);
       }
+      putObserver.end(PutOutcome.PUT);
       return returnValue;
     }
 

@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
 
-public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<V> {
+public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<K, V> {
 
   private final K key;
   private final LazyValueHolder<V> oldValueHolder;
@@ -90,17 +90,22 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   }
 
   @Override
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public OperationCode getOpCode() {
     return REPLACE_CONDITIONAL;
   }
 
   @Override
-  public Result<V> apply(Result<V> previousResult) {
+  public Result<K, V> apply(Result<K, V> previousResult) {
     if(previousResult == null) {
       return null;
     } else {
       if(getOldValue().equals(previousResult.getValue())) {
-        return this;  // TODO: A new PutOperation can be created and returned here to minimize the size of returned operation
+        return new PutOperation<>(getKey(), getValue(), timeStamp());
       } else {
         return previousResult;
       }

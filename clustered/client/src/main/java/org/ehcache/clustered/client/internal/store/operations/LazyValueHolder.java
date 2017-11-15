@@ -57,6 +57,6 @@ class LazyValueHolder<V> {
     if(encodedValue == null) {
       this.encodedValue = valueSerializer.serialize(value);
     }
-    return encodedValue;
+    return encodedValue.duplicate();
   }
 }
