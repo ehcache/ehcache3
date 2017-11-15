@@ -26,6 +26,10 @@ endif::notBuildingForSite[]
 ** Location for 3.1: `http://www.ehcache.org/schema/ehcache-tx-ext-3.1.xsd`
 ** Location for 3.2: `http://www.ehcache.org/schema/ehcache-tx-ext-3.2.xsd`
 ** Location for 3.3: `http://www.ehcache.org/schema/ehcache-tx-ext-3.3.xsd`
+* Clustering namespace: `http://www.ehcache.org/v3/clustered`
+** Location for 3.1: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.1.xsd`
+** Location for 3.2: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.2.xsd`
+** Location for 3.3: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.3.xsd`
 
 === Usage example
 
