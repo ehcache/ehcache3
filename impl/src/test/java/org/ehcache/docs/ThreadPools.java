@@ -92,7 +92,7 @@ public class ThreadPools {
         .withCache("cache1",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
+                .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .queueSize(3)
@@ -100,7 +100,7 @@ public class ThreadPools {
         .withCache("cache2",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
+                .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .useThreadPool("cache2Pool") // <3>

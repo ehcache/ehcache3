@@ -61,7 +61,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
 
-  private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
+  private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<>();
 
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
@@ -80,7 +80,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     this.maxWriteDelayMs = batchingConfig.getMaxDelayUnit().toMillis(batchingConfig.getMaxDelay());
     this.batchSize = batchingConfig.getBatchSize();
     this.coalescing = batchingConfig.isCoalescing();
-    this.executorQueue = new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize() / batchSize);
+    this.executorQueue = new LinkedBlockingQueue<>(config.getMaxQueueSize() / batchSize);
     if (config.getThreadPoolAlias() == null) {
       this.executor = executionService.getOrderedExecutor(defaultThreadPool, executorQueue);
     } else {
@@ -172,14 +172,11 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
     Batch(int size) {
       this.batchSize = size;
-      this.expireTask = scheduledExecutor.schedule(new Runnable() {
-        @Override
-        public void run() {
-          synchronized (BatchingLocalHeapWriteBehindQueue.this) {
-            if (openBatch == Batch.this) {
-              submit(openBatch);
-              openBatch = null;
-            }
+      this.expireTask = scheduledExecutor.schedule(() -> {
+        synchronized (BatchingLocalHeapWriteBehindQueue.this) {
+          if (openBatch == Batch.this) {
+            submit(openBatch);
+            openBatch = null;
           }
         }
       }, maxWriteDelayMs, MILLISECONDS);
@@ -227,7 +224,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
     SimpleBatch(int size) {
       super(size);
-      this.operations = new ArrayList<SingleOperation<K, V>>(size);
+      this.operations = new ArrayList<>(size);
     }
 
     @Override
@@ -252,7 +249,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
     public CoalescingBatch(int size) {
       super(size);
-      this.operations = new LinkedHashMap<K, SingleOperation<K, V>>(size);
+      this.operations = new LinkedHashMap<>(size);
     }
 
     @Override
@@ -272,29 +269,29 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   }
 
   private static <K, V> List<BatchOperation<K, V>> createMonomorphicBatches(Iterable<SingleOperation<K, V>> batch) {
-    final List<BatchOperation<K, V>> closedBatches = new ArrayList<BatchOperation<K, V>>();
+    final List<BatchOperation<K, V>> closedBatches = new ArrayList<>();
 
-    Set<K> activeDeleteKeys = new HashSet<K>();
-    Set<K> activeWrittenKeys = new HashSet<K>();
-    List<K> activeDeleteBatch = new ArrayList<K>();
-    List<Entry<K, V>> activeWriteBatch = new ArrayList<Entry<K, V>>();
+    Set<K> activeDeleteKeys = new HashSet<>();
+    Set<K> activeWrittenKeys = new HashSet<>();
+    List<K> activeDeleteBatch = new ArrayList<>();
+    List<Entry<K, V>> activeWriteBatch = new ArrayList<>();
 
     for (SingleOperation<K, V> item : batch) {
       if (item instanceof WriteOperation) {
         if (activeDeleteKeys.contains(item.getKey())) {
           //close the current delete batch
-          closedBatches.add(new DeleteAllOperation<K, V>(activeDeleteBatch));
-          activeDeleteBatch = new ArrayList<K>();
-          activeDeleteKeys = new HashSet<K>();
+          closedBatches.add(new DeleteAllOperation<>(activeDeleteBatch));
+          activeDeleteBatch = new ArrayList<>();
+          activeDeleteKeys = new HashSet<>();
         }
-        activeWriteBatch.add(new SimpleEntry<K, V>(item.getKey(), ((WriteOperation<K, V>) item).getValue()));
+        activeWriteBatch.add(new SimpleEntry<>(item.getKey(), ((WriteOperation<K, V>) item).getValue()));
         activeWrittenKeys.add(item.getKey());
       } else if (item instanceof DeleteOperation) {
         if (activeWrittenKeys.contains(item.getKey())) {
           //close the current write batch
-          closedBatches.add(new WriteAllOperation<K, V>(activeWriteBatch));
-          activeWriteBatch = new ArrayList<Entry<K, V>>();
-          activeWrittenKeys = new HashSet<K>();
+          closedBatches.add(new WriteAllOperation<>(activeWriteBatch));
+          activeWriteBatch = new ArrayList<>();
+          activeWrittenKeys = new HashSet<>();
         }
         activeDeleteBatch.add(item.getKey());
         activeDeleteKeys.add(item.getKey());
@@ -304,10 +301,10 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     }
 
     if (!activeWriteBatch.isEmpty()) {
-      closedBatches.add(new WriteAllOperation<K, V>(activeWriteBatch));
+      closedBatches.add(new WriteAllOperation<>(activeWriteBatch));
     }
     if (!activeDeleteBatch.isEmpty()) {
-      closedBatches.add(new DeleteAllOperation<K, V>(activeDeleteBatch));
+      closedBatches.add(new DeleteAllOperation<>(activeDeleteBatch));
     }
     return closedBatches;
   }

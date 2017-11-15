@@ -153,7 +153,7 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(false);
     configuration.setStatisticsEnabled(false);
@@ -175,7 +175,7 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);
@@ -195,7 +195,7 @@ public class ConfigStatsManagementActivationTest {
   public void basicJsr107StillWorks() throws Exception {
     CacheManager cacheManager = provider.getCacheManager();
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);

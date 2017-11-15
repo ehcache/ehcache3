@@ -47,7 +47,6 @@ import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.ConnectionException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import com.tc.net.protocol.transport.ClientMessageTransport;
@@ -57,7 +56,6 @@ import com.tc.properties.TCPropertiesImpl;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -77,6 +75,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -91,7 +90,7 @@ import static org.junit.Assume.assumeNoException;
 // no side effects which can affect another test.
 // =============================================================================================
 @RunWith(ConcurrentTestRunner.class)
-public class TerminatedServerTest {
+public class TerminatedServerTest extends ClusteredTests {
 
   /**
    * Determines the level of test concurrency.  The number of allowed concurrent tests
@@ -133,7 +132,7 @@ public class TerminatedServerTest {
 
   @BeforeClass
   public static void setProperties() {
-    Map<String, String> oldProperties = new HashMap<String, String>();
+    Map<String, String> oldProperties = new HashMap<>();
 
     /*
      * Control for a failed (timed out) connection attempt is not returned until
@@ -162,7 +161,7 @@ public class TerminatedServerTest {
 
   private static Cluster createCluster() {
     try {
-      return new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+      return newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
     } catch (IllegalArgumentException e) {
       assumeNoException(e);
       return null;
@@ -641,7 +640,7 @@ public class TerminatedServerTest {
   }
 
   private List<Throwable> getCausalChain(Throwable t) {
-    ArrayList<Throwable> causalChain = new ArrayList<Throwable>();
+    ArrayList<Throwable> causalChain = new ArrayList<>();
     for (Throwable cause = t; cause != null; cause = cause.getCause()) {
       causalChain.add(cause);
     }
@@ -772,22 +771,20 @@ public class TerminatedServerTest {
      */
     private Future<Void> interruptAfter(final long interval, final TimeUnit unit) {
       final Thread targetThread = Thread.currentThread();
-      FutureTask<Void> killer = new FutureTask<Void>(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            unit.sleep(interval);
-            if (!isDone && targetThread.isAlive()) {
-              synchronized (lock) {
-                if (isDone) {
-                  return;       // Let test win completion race
-                }
-                isExpired = true;
-                System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
-                    testName.getMethodName());
-                Diagnostics.threadDump(System.out);
-                targetThread.interrupt();
+      FutureTask<Void> killer = new FutureTask<>(() -> {
+        try {
+          unit.sleep(interval);
+          if (!isDone && targetThread.isAlive()) {
+            synchronized (lock) {
+              if (isDone) {
+                return;       // Let test win completion race
               }
+              isExpired = true;
+              System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
+                testName.getMethodName());
+              Diagnostics.threadDump(System.out);
+              targetThread.interrupt();
+            }
 
             /*                NEVER DO THIS AT HOME!
              * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
@@ -795,16 +792,15 @@ public class TerminatedServerTest {
              * looping wait where the interrupt status is recorded but ignored until the awaited event
              * occurs.
              */
-              unit.timedJoin(targetThread, interval);
-              if (!isDone && targetThread.isAlive()) {
-                System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
-                    testName.getMethodName(), targetThread);
-                targetThread.stop();   // Deprecated - BAD CODE!
-              }
+            unit.timedJoin(targetThread, interval);
+            if (!isDone && targetThread.isAlive()) {
+              System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
+                testName.getMethodName(), targetThread);
+              targetThread.stop();   // Deprecated - BAD CODE!
             }
-          } catch (InterruptedException e) {
-            // Interrupted when canceled; simple exit
           }
+        } catch (InterruptedException e) {
+          // Interrupted when canceled; simple exit
         }
       }, null);
       Thread killerThread = new Thread(killer, "Timeout Task - " + testName.getMethodName());

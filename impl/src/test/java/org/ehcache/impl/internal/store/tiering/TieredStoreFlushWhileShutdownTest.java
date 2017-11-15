@@ -92,12 +92,12 @@ public class TieredStoreFlushWhileShutdownTest {
 
       @Override
       public Serializer<Number> getKeySerializer() {
-        return new JavaSerializer<Number>(getClassLoader());
+        return new JavaSerializer<>(getClassLoader());
       }
 
       @Override
       public Serializer<String> getValueSerializer() {
-        return new JavaSerializer<String>(getClassLoader());
+        return new JavaSerializer<>(getClassLoader());
       }
 
       @Override

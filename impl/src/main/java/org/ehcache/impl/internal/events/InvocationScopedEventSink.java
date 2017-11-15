@@ -42,7 +42,7 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   private final boolean ordered;
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private final Set<StoreEventListener<K, V>> listeners;
-  private final Deque<FireableStoreEventHolder<K, V>> events = new ArrayDeque<FireableStoreEventHolder<K, V>>(4);
+  private final Deque<FireableStoreEventHolder<K, V>> events = new ArrayDeque<>(4);
 
   InvocationScopedEventSink(Set<StoreEventFilter<K, V>> filters, boolean ordered,
                             BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues,
@@ -57,7 +57,7 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   public void removed(K key, ValueSupplier<V> value) {
     V removedValue = value.value();
     if (acceptEvent(EventType.REMOVED, key, removedValue, null)) {
-      handleEvent(key, new FireableStoreEventHolder<K, V>(removeEvent(key, removedValue)));
+      handleEvent(key, new FireableStoreEventHolder<>(removeEvent(key, removedValue)));
     }
   }
 
@@ -65,7 +65,7 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   public void updated(K key, ValueSupplier<V> oldValue, V newValue) {
     V oldValueValue = oldValue.value();
     if (acceptEvent(EventType.UPDATED, key, oldValueValue, newValue)) {
-      handleEvent(key, new FireableStoreEventHolder<K, V>(updateEvent(key, oldValueValue, newValue)));
+      handleEvent(key, new FireableStoreEventHolder<>(updateEvent(key, oldValueValue, newValue)));
     }
   }
 
@@ -73,14 +73,14 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   public void expired(K key, ValueSupplier<V> value) {
     V expired = value.value();
     if (acceptEvent(EventType.EXPIRED, key, expired, null)) {
-      handleEvent(key, new FireableStoreEventHolder<K, V>(expireEvent(key, expired)));
+      handleEvent(key, new FireableStoreEventHolder<>(expireEvent(key, expired)));
     }
   }
 
   @Override
   public void created(K key, V value) {
     if (acceptEvent(EventType.CREATED, key, null, value)) {
-      handleEvent(key, new FireableStoreEventHolder<K, V>(createEvent(key, value)));
+      handleEvent(key, new FireableStoreEventHolder<>(createEvent(key, value)));
     }
   }
 
@@ -88,7 +88,7 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   public void evicted(K key, ValueSupplier<V> value) {
     V evicted = value.value();
     if (acceptEvent(EventType.EVICTED, key, evicted, null)) {
-      handleEvent(key, new FireableStoreEventHolder<K, V>(evictEvent(key, evicted)));
+      handleEvent(key, new FireableStoreEventHolder<>(evictEvent(key, evicted)));
     }
   }
 

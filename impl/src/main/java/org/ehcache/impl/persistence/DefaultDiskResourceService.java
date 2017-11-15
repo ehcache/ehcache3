@@ -46,7 +46,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
   static final String PERSISTENCE_SPACE_OWNER = "file";
 
-  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
+  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private volatile LocalPersistenceService persistenceService;
   private volatile boolean isStarted;
 
@@ -246,7 +246,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
 
   private static class PersistenceSpace {
     final DefaultPersistenceSpaceIdentifier identifier;
-    final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<String, FileBasedStateRepository>();
+    final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<>();
 
     private PersistenceSpace(DefaultPersistenceSpaceIdentifier identifier) {
       this.identifier = identifier;

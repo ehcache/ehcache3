@@ -58,7 +58,7 @@ sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir
     // matching the package of the test class
-    output.resourcesDir = "$buildDir/classes/test"
+    output.resourcesDir = java.outputDir
   }
 }
 
@@ -66,6 +66,8 @@ test {
   systemProperty 'ehcache.osgi.jar', project(':dist').jar.archivePath.getPath()
   systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
   systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
+}.doFirst {
+  if (testJava.javaVersion.isJava9Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 9")
 }
 
 test.dependsOn ':dist:jar'

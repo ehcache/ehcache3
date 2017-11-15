@@ -34,8 +34,8 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             This element represents Serializers.
-            It is a collection of serializer tags that require a type and fully qualified class names of serializers 
-            that are to be registered 
+            It is a collection of serializer tags that require a type and fully qualified class names of serializers
+            that are to be registered
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -43,7 +43,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             This element represents Copiers.
-            It is a collection of copier tags that require a type and fully qualified class names of copiers 
+            It is a collection of copier tags that require a type and fully qualified class names of copiers
             that are to be registered
           </xs:documentation>
         </xs:annotation>
@@ -68,14 +68,14 @@
             The element configures the default thread pool used for cache event dispatch.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:element name="write-behind" type="ehcache:thread-pool-reference-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element configures the default thread pool used for write behind caches.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:element name="heap-store" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -89,7 +89,7 @@
             The element configures the default thread pool used for writing to disk resources.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -167,7 +167,7 @@
       </xs:element>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="thread-pool-reference-type">
     <xs:attribute name="thread-pool" use="required" type="xs:string"/>
   </xs:complexType>
@@ -531,6 +531,7 @@
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
     <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
+    <xs:attribute name="disk-segments" type="xs:positiveInteger" use="optional" default="16"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">

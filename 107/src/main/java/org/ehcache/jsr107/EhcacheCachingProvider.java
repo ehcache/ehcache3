@@ -49,7 +49,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   private static final URI URI_DEFAULT;
 
-  private final Map<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>> cacheManagers = new WeakHashMap<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>>();
+  private final Map<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>> cacheManagers = new WeakHashMap<>();
 
   static {
     try {
@@ -113,7 +113,7 @@ public class EhcacheCachingProvider implements CachingProvider {
     synchronized (cacheManagers) {
       byURI = cacheManagers.get(classLoader);
       if (byURI == null) {
-        byURI = new ConcurrentHashMap<URI, Eh107CacheManager>();
+        byURI = new ConcurrentHashMap<>();
         cacheManagers.put(classLoader, byURI);
       }
 
@@ -139,7 +139,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
     Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
 
-    Collection<Service> services = new ArrayList<Service>(4);
+    Collection<Service> services = new ArrayList<>(4);
     services.add(cacheLoaderWriterFactory);
     services.add(jsr107Service);
 

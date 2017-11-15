@@ -36,7 +36,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -60,7 +59,7 @@ public class StrongServerStoreProxyTest {
   private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private static SimpleClusterTierClientEntity clientEntity1;
   private static ClusterTierClientEntity clientEntity2;
@@ -90,14 +89,14 @@ public class StrongServerStoreProxyTest {
         Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.STRONG);
 
-    clientEntity1 = (SimpleClusterTierClientEntity) entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
+    clientEntity1 = (SimpleClusterTierClientEntity) entityFactory1.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
     // required to attach the store to the client
     clientEntity1.validate(serverStoreConfiguration);
     clientEntity2.validate(serverStoreConfiguration);
 
-    serverStoreProxy1 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity1.getClientId()), clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity2.getClientId()), clientEntity2);
+    serverStoreProxy1 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity1);
+    serverStoreProxy2 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(), clientEntity2);
   }
 
   @AfterClass
@@ -120,8 +119,8 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
     ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -179,7 +178,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -227,19 +226,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Object>() {
-      @Override
-      public Object call() throws Exception {
-        serverStoreProxy1.append(1L, createPayload(1L));
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {
@@ -250,7 +243,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -320,19 +313,13 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
-    EXECUTOR_SERVICE.submit(new Callable<Future>() {
-      @Override
-      public Future call() throws Exception {
-        serverStoreProxy1.clear();
-        return null;
-      }
+    EXECUTOR_SERVICE.submit(() -> {
+      serverStoreProxy1.clear();
+      return null;
     });
 
     if (!latch.await(5, TimeUnit.SECONDS)) {

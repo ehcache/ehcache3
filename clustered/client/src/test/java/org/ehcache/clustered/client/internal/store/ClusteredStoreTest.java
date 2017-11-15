@@ -30,7 +30,6 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
@@ -54,20 +53,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import static org.ehcache.clustered.client.internal.store.ClusteredStore.DEFAULT_CHAIN_COMPACTION_THRESHOLD;
 import static org.ehcache.clustered.client.internal.store.ClusteredStore.CHAIN_COMPACTION_THRESHOLD_PROP;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
+import static org.ehcache.core.spi.store.Store.ValueHolder.NO_EXPIRE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -77,7 +78,7 @@ import static org.mockito.Mockito.when;
 public class ClusteredStoreTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private ClusteredStore<Long, String> store;
 
@@ -98,21 +99,21 @@ public class ClusteredStoreTest {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
       Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null);
-    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
-    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(clientEntity.getClientId());
+    ServerStoreMessageFactory factory = new ServerStoreMessageFactory();
     ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, factory, clientEntity);
 
     TestTimeSource testTimeSource = new TestTimeSource();
 
-    OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
-    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
+    OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
+    ChainResolver<Long, String> resolver = new ChainResolver<>(codec, Expirations.noExpiration());
     store = new ClusteredStore<>(codec, resolver, serverStoreProxy, testTimeSource);
   }
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost:9510/my-application?auto-create");
+    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   @Test
@@ -131,8 +132,8 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.put(1L, "one");
   }
 
@@ -154,7 +155,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.get(1L);
   }
 
@@ -164,7 +165,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     long longKey = HashUtils.intHashToLong(new Long(1L).hashCode());
     when(proxy.get(longKey)).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(null, null, proxy, null);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(null, null, proxy, null);
     assertThat(store.get(1L), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.TIMEOUT));
   }
@@ -175,7 +176,7 @@ public class ClusteredStoreTest {
     timeSource.advanceTime(134556L);
     long now = timeSource.getTimeMillis();
     @SuppressWarnings("unchecked")
-    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
+    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
     @SuppressWarnings("unchecked")
     ChainResolver<Long, String> chainResolver = mock(ChainResolver.class);
     @SuppressWarnings("unchecked")
@@ -188,10 +189,10 @@ public class ClusteredStoreTest {
     long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
     when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
-    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
-                                                                                    serverStoreProxy, timeSource);
+    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<>(operationsCodec, chainResolver,
+      serverStoreProxy, timeSource);
     clusteredStore.get(42L);
-    verify(serverStoreProxy).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
+    verify(serverStoreProxy).replaceAtHead(eq(longKey), eq(chain), isNull());
   }
 
   @Test
@@ -199,7 +200,7 @@ public class ClusteredStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(134556L);
     long now = timeSource.getTimeMillis();
-    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
+    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
     @SuppressWarnings("unchecked")
     ChainResolver<Long, String> chainResolver = mock(ChainResolver.class);
     @SuppressWarnings("unchecked")
@@ -212,8 +213,8 @@ public class ClusteredStoreTest {
     long longKey = HashUtils.intHashToLong(new Long(42L).hashCode());
     when(serverStoreProxy.get(longKey)).thenReturn(chain);
 
-    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
-                                                                                    serverStoreProxy, timeSource);
+    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<>(operationsCodec, chainResolver,
+      serverStoreProxy, timeSource);
     clusteredStore.get(42L);
     verify(serverStoreProxy, never()).replaceAtHead(eq(longKey), eq(chain), any(Chain.class));
   }
@@ -236,7 +237,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.containsKey(1L);
   }
 
@@ -259,7 +260,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.remove(1L);
   }
 
@@ -269,8 +270,8 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.remove(1L);
   }
 
@@ -301,7 +302,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     doThrow(new RuntimeException()).when(serverStoreProxy).clear();
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.clear();
   }
 
@@ -312,7 +313,7 @@ public class ClusteredStoreTest {
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
     doThrow(TimeoutException.class).when(proxy).clear();
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.clear();
   }
 
@@ -333,7 +334,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.putIfAbsent(1L, "one");
   }
 
@@ -343,8 +344,8 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.putIfAbsent(1L, "one");
   }
 
@@ -369,7 +370,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.remove(1L, "one");
   }
 
@@ -379,8 +380,8 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.remove(1L, "one");
   }
 
@@ -402,7 +403,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.replace(1L, "one");
   }
 
@@ -412,8 +413,8 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.replace(1L, "one");
   }
 
@@ -439,7 +440,7 @@ public class ClusteredStoreTest {
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
     store.replace(1L, "one", "another one");
   }
 
@@ -449,19 +450,19 @@ public class ClusteredStoreTest {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     TimeSource timeSource = mock(TimeSource.class);
-    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenThrow(TimeoutException.class);
-    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, null, proxy, timeSource);
+    when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
     store.replace(1L, "one", "another one");
   }
 
   @Test
   public void testBulkComputePutAll() throws Exception {
     store.put(1L, "another one");
-    Map<Long, String> map =  new HashMap<Long, String>();
+    Map<Long, String> map = new HashMap<>();
     map.put(1L, "one");
     map.put(2L, "two");
-    Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.PutAllFunction<Long, String>(null, map, null);
-    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L)), putAllFunction);
+    Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.PutAllFunction<>(null, map, null);
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), putAllFunction);
 
     assertThat(valueHolderMap.get(1L).value(), is(map.get(1L)));
     assertThat(store.get(1L).value(), is(map.get(1L)));
@@ -476,8 +477,8 @@ public class ClusteredStoreTest {
     store.put(1L, "one");
     store.put(2L, "two");
     store.put(3L, "three");
-    Ehcache.RemoveAllFunction<Long, String> removeAllFunction = new Ehcache.RemoveAllFunction<Long, String>();
-    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L, 4L)), removeAllFunction);
+    Ehcache.RemoveAllFunction<Long, String> removeAllFunction = new Ehcache.RemoveAllFunction<>();
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L, 4L)), removeAllFunction);
 
     assertThat(valueHolderMap.get(1L), nullValue());
     assertThat(store.get(1L), nullValue());
@@ -493,15 +494,15 @@ public class ClusteredStoreTest {
     @SuppressWarnings("unchecked")
     Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> remappingFunction
         = mock(Function.class);
-    store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L)), remappingFunction);
+    store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), remappingFunction);
   }
 
   @Test
   public void testBulkComputeIfAbsentGetAll() throws Exception {
     store.put(1L, "one");
     store.put(2L, "two");
-    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<Long, String>();
-    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<Long>(Arrays.asList(1L, 2L)), getAllAllFunction);
+    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<>();
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), getAllAllFunction);
 
     assertThat(valueHolderMap.get(1L).value(), is("one"));
     assertThat(store.get(1L).value(), is("one"));
@@ -514,7 +515,7 @@ public class ClusteredStoreTest {
     @SuppressWarnings("unchecked")
     Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> mappingFunction
         = mock(Function.class);
-    store.bulkComputeIfAbsent(new HashSet<Long>(Arrays.asList(1L, 2L)), mappingFunction);
+    store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), mappingFunction);
   }
 
   @Test
@@ -528,9 +529,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -562,9 +564,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -596,9 +599,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -627,9 +631,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -662,9 +667,10 @@ public class ClusteredStoreTest {
       when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
       ChainResolver resolver = mock(ChainResolver.class);
-      when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+      when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
       OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+      when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
       TimeSource timeSource = mock(TimeSource.class);
 
       ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -689,6 +695,7 @@ public class ClusteredStoreTest {
   @SuppressWarnings("unchecked")
   public void testRemoveReplacesChainOnHits() throws Exception {
     ResolvedChain resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.getCompactedChain()).thenReturn(mock(Chain.class));
     when(resolvedChain.getResolvedResult(anyLong())).thenReturn(mock(Result.class));  //simulate a key hit on chain resolution
     when(resolvedChain.getCompactionCount()).thenReturn(1);
 
@@ -696,9 +703,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -714,10 +722,12 @@ public class ClusteredStoreTest {
     when(resolvedChain.getResolvedResult(anyLong())).thenReturn(null);  //simulate a key miss on chain resolution
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
+    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -733,6 +743,7 @@ public class ClusteredStoreTest {
     when(result.getValue()).thenReturn("foo");
 
     ResolvedChain resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.getCompactedChain()).thenReturn(mock(Chain.class));
     when(resolvedChain.getResolvedResult(anyLong())).thenReturn(result);  //simulate a key hit on chain resolution
     when(resolvedChain.getCompactionCount()).thenReturn(1);
 
@@ -740,9 +751,10 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -758,10 +770,12 @@ public class ClusteredStoreTest {
     when(resolvedChain.getResolvedResult(anyLong())).thenReturn(null);  //simulate a key miss on chain resolution
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
+    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -780,10 +794,12 @@ public class ClusteredStoreTest {
 
 
     ChainResolver resolver = mock(ChainResolver.class);
-    when(resolver.resolve(any(Chain.class), anyInt(), anyLong())).thenReturn(resolvedChain);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
 
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    when(codec.encode(any())).thenReturn(ByteBuffer.allocate(0));
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
+    when(proxy.getAndAppend(anyLong(), any(ByteBuffer.class))).thenReturn(mock(Chain.class));
     TimeSource timeSource = mock(TimeSource.class);
 
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, resolver, proxy, timeSource);
@@ -792,4 +808,63 @@ public class ClusteredStoreTest {
     verify(proxy, never()).replaceAtHead(anyLong(), any(Chain.class), any(Chain.class));
   }
 
+  @Test
+  public void testExpirationIsSentToHigherTiers() throws Exception {
+    @SuppressWarnings("unchecked")
+    Result<String> result = mock(Result.class);
+    when(result.getValue()).thenReturn("bar");
+
+    @SuppressWarnings("unchecked")
+    ResolvedChain<Long, String> resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.getResolvedResult(anyLong())).thenReturn(result);
+    when(resolvedChain.getExpirationTime()).thenReturn(1000L);
+
+    @SuppressWarnings("unchecked")
+    ChainResolver<Long, String> resolver = mock(ChainResolver.class);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
+
+    ServerStoreProxy proxy = mock(ServerStoreProxy.class);
+    when(proxy.get(anyLong())).thenReturn(mock(Chain.class));
+
+    @SuppressWarnings("unchecked")
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    TimeSource timeSource = mock(TimeSource.class);
+
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, resolver, proxy, timeSource);
+
+    Store.ValueHolder<?> vh = store.get(1L);
+
+    long expirationTime = vh.expirationTime(TimeUnit.MILLISECONDS);
+    assertThat(expirationTime, is(1000L));
+  }
+
+  @Test
+  public void testNoExpireIsSentToHigherTiers() throws Exception {
+    @SuppressWarnings("unchecked")
+    Result<String> result = mock(Result.class);
+    when(result.getValue()).thenReturn("bar");
+
+    @SuppressWarnings("unchecked")
+    ResolvedChain<Long, String> resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.getResolvedResult(anyLong())).thenReturn(result);
+    when(resolvedChain.getExpirationTime()).thenReturn(Long.MAX_VALUE); // no expire
+
+    @SuppressWarnings("unchecked")
+    ChainResolver<Long, String> resolver = mock(ChainResolver.class);
+    when(resolver.resolve(any(Chain.class), anyLong(), anyLong())).thenReturn(resolvedChain);
+
+    ServerStoreProxy proxy = mock(ServerStoreProxy.class);
+    when(proxy.get(anyLong())).thenReturn(mock(Chain.class));
+
+    @SuppressWarnings("unchecked")
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    TimeSource timeSource = mock(TimeSource.class);
+
+    ClusteredStore<Long, String> store = new ClusteredStore<>(codec, resolver, proxy, timeSource);
+
+    Store.ValueHolder<?> vh = store.get(1L);
+
+    long expirationTime = vh.expirationTime(TimeUnit.MILLISECONDS);
+    assertThat(expirationTime, is(NO_EXPIRE));
+  }
 }

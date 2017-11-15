@@ -19,12 +19,11 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,20 +32,19 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -55,17 +53,13 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class ClusterTierManagerPassiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   @Before
   public void setClientId() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
   }
 
   @Test(expected = ConfigurationException.class)
@@ -242,7 +236,7 @@ public class ClusterTierManagerPassiveEntityTest {
     final ClusterTierManagerPassiveEntity passiveEntity = new ClusterTierManagerPassiveEntity(configuration, ehcacheStateService, management);
 
     try {
-      passiveEntity.invoke(new InvalidMessage());
+      passiveEntity.invokePassive(null, new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported EhcacheEntityMessage"));
@@ -260,7 +254,7 @@ public class ClusterTierManagerPassiveEntityTest {
     Management management = new Management(registry, ehcacheStateService, false, configuration.getIdentifier());
     final ClusterTierManagerPassiveEntity passiveEntity = new ClusterTierManagerPassiveEntity(configuration, ehcacheStateService, management);
 
-    passiveEntity.invoke(new LifecycleMessage.PrepareForDestroy());
+    passiveEntity.invokePassive(null, new LifecycleMessage.PrepareForDestroy());
 
     try {
       ehcacheStateService.validate(null);
@@ -274,7 +268,7 @@ public class ClusterTierManagerPassiveEntityTest {
   }
 
   private static final class ServerSideConfigBuilder {
-    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
+    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
     private String defaultServerResource;
 
     ServerSideConfigBuilder sharedPool(String poolName, String resourceName, int size, MemoryUnit unit) {
@@ -306,7 +300,7 @@ public class ClusterTierManagerPassiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate an "open" {@code ServiceRegistry}.  Using this constructor creates a
@@ -348,7 +342,7 @@ public class ClusterTierManagerPassiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -377,15 +371,18 @@ public class ClusterTierManagerPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return null;
-      } else if(serviceConfiguration instanceof PassiveEntityMonitoringServiceConfiguration) {
+      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
+    }
+
+    @Override
+    public <T> Collection<T> getServices(ServiceConfiguration<T> configuration) {
+      return Collections.singleton(getService(configuration));
     }
   }
 
@@ -434,23 +431,6 @@ public class ClusterTierManagerPassiveEntityTest {
 
     private long getUsed() {
       return used;
-    }
-  }
-
-  private static class InvalidMessage extends EhcacheEntityMessage {
-    @Override
-    public void setId(long id) {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

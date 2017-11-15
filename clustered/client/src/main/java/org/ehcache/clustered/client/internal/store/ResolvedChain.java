@@ -44,10 +44,14 @@ public interface ResolvedChain<K, V> {
   boolean isCompacted();
 
   /**
-   *
    * @return the number of chain elements that were compacted if there was any compaction
    */
   int getCompactionCount();
+
+  /**
+   * @return the unix epoch at which the entry should expire
+   */
+  long getExpirationTime();
 
   /**
    * Represents the {@link ResolvedChain} result of a resolver that resolves
@@ -58,15 +62,17 @@ public interface ResolvedChain<K, V> {
     private final Chain compactedChain;
     private final Map<K, Result<V>> resolvedOperations;
     private final int compactionCount;
+    private final long expirationTime;
 
-    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations, int compactionCount) {
+    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations, int compactionCount, long expirationTime) {
       this.compactedChain = compactedChain;
       this.resolvedOperations = resolvedOperations;
       this.compactionCount = compactionCount;
+      this.expirationTime = expirationTime;
     }
 
-    public Impl(Chain compactedChain, K key, Result<V> result, int compactedSize) {
-      this(compactedChain, Collections.singletonMap(key, result), compactedSize);
+    public Impl(Chain compactedChain, K key, Result<V> result, int compactedSize, long expirationTime) {
+      this(compactedChain, Collections.singletonMap(key, result), compactedSize, expirationTime);
     }
 
     public Chain getCompactedChain() {
@@ -84,6 +90,11 @@ public interface ResolvedChain<K, V> {
 
     public int getCompactionCount() {
       return compactionCount;
+    }
+
+    @Override
+    public long getExpirationTime() {
+      return expirationTime;
     }
   }
 }

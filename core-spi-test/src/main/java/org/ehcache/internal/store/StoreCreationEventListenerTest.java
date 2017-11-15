@@ -18,8 +18,6 @@ package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -31,9 +29,12 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
-import static org.mockito.Matchers.argThat;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * StoreCreationEventListenerTest
@@ -89,12 +90,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(store);
 
     try {
-      store.compute(factory.createKey(125L), new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return factory.createValue(215L);
-        }
-      });
+      store.compute(factory.createKey(125L), (k, v) -> factory.createValue(215L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -106,12 +102,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(store);
 
     try {
-      store.computeIfAbsent(factory.createKey(125L), new Function<K, V>() {
-        @Override
-        public V apply(K k) {
-          return factory.createValue(125L);
-        }
-      });
+      store.computeIfAbsent(factory.createKey(125L), k -> factory.createValue(125L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

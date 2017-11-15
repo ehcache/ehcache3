@@ -234,9 +234,7 @@ public final class Diagnostics {
     final String jvmProcessName = ManagementFactory.getRuntimeMXBean().getName();
     try {
       return Integer.valueOf(jvmProcessName.substring(0, jvmProcessName.indexOf('@')));
-    } catch (NumberFormatException e) {
-      return -1;
-    } catch (IndexOutOfBoundsException e) {
+    } catch (NumberFormatException | IndexOutOfBoundsException e) {
       return -1;
     }
   }

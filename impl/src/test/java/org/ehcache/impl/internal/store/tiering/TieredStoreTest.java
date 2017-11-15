@@ -21,9 +21,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
@@ -39,6 +36,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -57,13 +55,16 @@ import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -95,7 +96,7 @@ public class TieredStoreTest {
   public void testGetHitsCachingTier() throws Exception {
     when(numberCachingTier.getOrComputeIfAbsent(eq(1), any(Function.class))).thenReturn(newValueHolder("one"));
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
 
@@ -107,16 +108,13 @@ public class TieredStoreTest {
   public void testGetHitsAuthoritativeTier() throws Exception {
     Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(valueHolder);
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
-        return function.apply(key);
-      }
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
+      return function.apply(key);
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
 
@@ -128,16 +126,13 @@ public class TieredStoreTest {
   @SuppressWarnings("unchecked")
   public void testGetMisses() throws Exception {
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(null);
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
-        return function.apply(key);
-      }
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
+      return function.apply(key);
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.get(1), is(nullValue()));
 
@@ -147,7 +142,7 @@ public class TieredStoreTest {
 
   @Test
   public void testPut() throws Exception {
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     tieredStore.put(1, "one");
 
@@ -157,7 +152,7 @@ public class TieredStoreTest {
 
   @Test
   public void testPutIfAbsent_whenAbsent() throws Exception {
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.putIfAbsent(1, "one"), is(nullValue()));
 
@@ -169,7 +164,7 @@ public class TieredStoreTest {
   public void testPutIfAbsent_whenPresent() throws Exception {
     when(numberAuthoritativeTier.putIfAbsent(1, "one")).thenReturn(newValueHolder("un"));
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
@@ -179,7 +174,7 @@ public class TieredStoreTest {
 
   @Test
   public void testRemove() throws Exception {
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     tieredStore.remove(1);
 
@@ -191,7 +186,7 @@ public class TieredStoreTest {
   public void testRemove2Args_removes() throws Exception {
     when(numberAuthoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.REMOVED);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.remove(1, "one"), is(RemoveStatus.REMOVED));
 
@@ -203,7 +198,7 @@ public class TieredStoreTest {
   public void testRemove2Args_doesNotRemove() throws Exception {
     when(numberAuthoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.KEY_MISSING);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.remove(1, "one"), is(RemoveStatus.KEY_MISSING));
 
@@ -215,7 +210,7 @@ public class TieredStoreTest {
   public void testReplace2Args_replaces() throws Exception {
     when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.replace(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
@@ -227,7 +222,7 @@ public class TieredStoreTest {
   public void testReplace2Args_doesNotReplace() throws Exception {
     when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(null);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.replace(1, "one"), is(nullValue()));
 
@@ -239,7 +234,7 @@ public class TieredStoreTest {
   public void testReplace3Args_replaces() throws Exception {
     when(numberAuthoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.HIT);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.replace(1, "un", "one"), is(ReplaceStatus.HIT));
 
@@ -251,7 +246,7 @@ public class TieredStoreTest {
   public void testReplace3Args_doesNotReplace() throws Exception {
     when(numberAuthoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.replace(1, "un", "one"), is(ReplaceStatus.MISS_NOT_PRESENT));
 
@@ -261,7 +256,7 @@ public class TieredStoreTest {
 
   @Test
   public void testClear() throws Exception {
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     tieredStore.clear();
 
@@ -272,23 +267,15 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute2Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
-        return newValueHolder(function.apply(key, null));
-      }
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
+      return newValueHolder(function.apply(key, null));
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, new BiFunction<Number, CharSequence, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number, CharSequence charSequence) {
-        return "one";
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.compute(1, (number, charSequence) -> "one").value(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
@@ -297,61 +284,37 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
-        return newValueHolder(function.apply(key, null));
-      }
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(Supplier.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
+      return newValueHolder(function.apply(key, null));
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, new BiFunction<Number, CharSequence, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number, CharSequence charSequence) {
-        return "one";
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true).value(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(NullaryFunction.class));
+    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class));
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_computes() throws Exception {
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
-        return function.apply(key);
-      }
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      Function<Number, Store.ValueHolder<CharSequence>> function = (Function<Number, Store.ValueHolder<CharSequence>>) invocation.getArguments()[1];
+      return function.apply(key);
     });
-    when(numberAuthoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        Function<Number, CharSequence> function = (Function<Number, CharSequence>) invocation.getArguments()[1];
-        return newValueHolder(function.apply(key));
-      }
+    when(numberAuthoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+      Number key = (Number) invocation.getArguments()[0];
+      Function<Number, CharSequence> function = (Function<Number, CharSequence>) invocation.getArguments()[1];
+      return newValueHolder(function.apply(key));
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.computeIfAbsent(1, new Function<Number, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number) {
-        return "one";
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.computeIfAbsent(1, number -> "one").value(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(1)).computeIfAbsentAndFault(eq(1), any(Function.class));
@@ -361,21 +324,11 @@ public class TieredStoreTest {
   @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_doesNotCompute() throws Exception {
     final Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        return valueHolder;
-      }
-    });
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer((Answer<Store.ValueHolder<CharSequence>>) invocation -> valueHolder);
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.computeIfAbsent(1, new Function<Number, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number) {
-        return "one";
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.computeIfAbsent(1, number -> "one").value(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(0)).computeIfAbsentAndFault(eq(1), any(Function.class));
@@ -384,36 +337,29 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testBulkCompute2Args() throws Exception {
-    when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
-      @Override
-      public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
-        Set<Number> keys = (Set) invocation.getArguments()[0];
-        Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
+    when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer((Answer<Map<Number, Store.ValueHolder<CharSequence>>>) invocation -> {
+      Set<Number> keys = (Set) invocation.getArguments()[0];
+      Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
 
-        List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>();
-        for (Number key : keys) {
-          functionArg.add(newMapEntry(key, null));
-        }
-
-        Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
-
-        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<Number, Store.ValueHolder<CharSequence>>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
-         result.put(entry.getKey(), newValueHolder(entry.getValue()));
-        }
-
-        return result;
+      List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<>();
+      for (Number key : keys) {
+        functionArg.add(newMapEntry(key, null));
       }
+
+      Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
+
+      Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+      for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
+       result.put(entry.getKey(), newValueHolder(entry.getValue()));
+      }
+
+      return result;
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        return new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>(Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
-      }
-    });
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), entries -> new ArrayList<>(Arrays
+      .asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"))));
 
     assertThat(result.size(), is(3));
     assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
@@ -430,41 +376,29 @@ public class TieredStoreTest {
   @SuppressWarnings("unchecked")
   public void testBulkCompute3Args() throws Exception {
     when(
-        numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
-      @Override
-      public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
-        Set<Number> keys = (Set) invocation.getArguments()[0];
-        Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
+        numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(Supplier.class))).thenAnswer((Answer<Map<Number, Store.ValueHolder<CharSequence>>>) invocation -> {
+          Set<Number> keys = (Set) invocation.getArguments()[0];
+          Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
 
-        List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>();
-        for (Number key : keys) {
-          functionArg.add(newMapEntry(key, null));
-        }
+          List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<>();
+          for (Number key : keys) {
+            functionArg.add(newMapEntry(key, null));
+          }
 
-        Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
+          Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
 
-        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<Number, Store.ValueHolder<CharSequence>>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
-          result.put(entry.getKey(), newValueHolder(entry.getValue()));
-        }
+          Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+          for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
+            result.put(entry.getKey(), newValueHolder(entry.getValue()));
+          }
 
-        return result;
-      }
-    });
+          return result;
+        });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        return new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>(Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    });
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), entries -> new ArrayList<>(Arrays
+      .asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"))), () -> true);
 
     assertThat(result.size(), is(3));
     assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
@@ -474,43 +408,35 @@ public class TieredStoreTest {
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberCachingTier, times(1)).invalidate(2);
     verify(numberCachingTier, times(1)).invalidate(3);
-    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class));
+    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(Supplier.class));
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testBulkComputeIfAbsent() throws Exception {
-    when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
-      @Override
-      public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
-        Set<Number> keys = (Set) invocation.getArguments()[0];
-        Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
+    when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer((Answer<Map<Number, Store.ValueHolder<CharSequence>>>) invocation -> {
+      Set<Number> keys = (Set) invocation.getArguments()[0];
+      Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
 
-        List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<Map.Entry<? extends Number, ? extends CharSequence>>();
-        for (Number key : keys) {
-          functionArg.add(newMapEntry(key, null));
-        }
-
-        Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
-
-        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<Number, Store.ValueHolder<CharSequence>>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
-          result.put(entry.getKey(), newValueHolder(entry.getValue()));
-        }
-
-        return result;
+      List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<>();
+      for (Number key : keys) {
+        functionArg.add(newMapEntry(key, null));
       }
+
+      Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
+
+      Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+      for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
+        result.put(entry.getKey(), newValueHolder(entry.getValue()));
+      }
+
+      return result;
     });
 
-    TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        return Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"));
-      }
-    });
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), numbers -> Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
 
     assertThat(result.size(), is(3));
     assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
@@ -525,26 +451,20 @@ public class TieredStoreTest {
 
   @Test
   public void CachingTierDoesNotSeeAnyOperationDuringClear() throws StoreAccessException, BrokenBarrierException, InterruptedException {
-    final TieredStore<String, String> tieredStore = new TieredStore<String, String>(stringCachingTier, stringAuthoritativeTier);
+    final TieredStore<String, String> tieredStore = new TieredStore<>(stringCachingTier, stringAuthoritativeTier);
 
     final CyclicBarrier barrier = new CyclicBarrier(2);
 
-    doAnswer(new Answer<Void>() {
-      @Override
-      public Void answer(final InvocationOnMock invocation) throws Throwable {
-        barrier.await();
-        barrier.await();
-        return null;
-      }
+    doAnswer((Answer<Void>) invocation -> {
+      barrier.await();
+      barrier.await();
+      return null;
     }).when(stringAuthoritativeTier).clear();
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          tieredStore.clear();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+    Thread t = new Thread(() -> {
+      try {
+        tieredStore.clear();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     });
 
@@ -554,7 +474,7 @@ public class TieredStoreTest {
     barrier.await();
     t.join();
     verify(stringCachingTier, never()).getOrComputeIfAbsent(
-        org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
+      ArgumentMatchers.<String>any(), ArgumentMatchers.<Function<String, Store.ValueHolder<String>>>any());
   }
 
   @Test
@@ -564,7 +484,7 @@ public class TieredStoreTest {
 
     ResourcePools resourcePools = mock(ResourcePools.class);
     when(resourcePools.getResourceTypeSet())
-        .thenReturn(new HashSet<ResourceType<?>>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
+        .thenReturn(new HashSet<>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
 
     SizedResourcePool heapPool = mock(SizedResourcePool.class);
     when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.HEAP);
@@ -573,7 +493,7 @@ public class TieredStoreTest {
     Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
-        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
+      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringCachingTier);
 
     SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
@@ -582,15 +502,15 @@ public class TieredStoreTest {
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
-        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
+      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(resourcePools);
 
-    Set<AuthoritativeTier.Provider> authorities = new HashSet<AuthoritativeTier.Provider>();
+    Set<AuthoritativeTier.Provider> authorities = new HashSet<>();
     authorities.add(offHeapStoreProvider);
-    Set<CachingTier.Provider> cachingTiers = new HashSet<CachingTier.Provider>();
+    Set<CachingTier.Provider> cachingTiers = new HashSet<>();
     cachingTiers.add(onHeapStoreProvider);
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(OnHeapStore.Provider.class)).thenReturn(onHeapStoreProvider);
@@ -643,13 +563,13 @@ public class TieredStoreTest {
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     Assert.assertThat(provider.rank(
-        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+      new HashSet<>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         Matchers.is(expectedRank));
   }
 
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {
-    return new AbstractMap.SimpleEntry<Number, CharSequence>(key, value);
+    return new AbstractMap.SimpleEntry<>(key, value);
   }
 
   public Store.ValueHolder<CharSequence> newValueHolder(final CharSequence v) {

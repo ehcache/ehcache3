@@ -17,15 +17,16 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 
 /**
  * Simple passthrough backend, no key translation
@@ -38,7 +39,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
 
   SimpleBackend(boolean byteSized) {
     this.byteSized = byteSized;
-    realMap = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
+    realMap = new ConcurrentHashMap<>();
   }
 
   @Override
@@ -98,15 +99,15 @@ class SimpleBackend<K, V> implements Backend<K, V> {
 
   @Override
   public Backend<K, V> clear() {
-    return new SimpleBackend<K, V>(byteSized);
+    return new SimpleBackend<>(byteSized);
   }
 
   @Override
-  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
-    Map<K, OnHeapValueHolder<V>> removed = realMap.removeAllWithHash(hash);
+  public Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash) {
+    Collection<Map.Entry<K, OnHeapValueHolder<V>>> removed = realMap.removeAllWithHash(hash);
     if (byteSized) {
       long delta = 0L;
-      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed) {
         delta -= entry.getValue().size();
       }
       updateUsageInBytesIfRequired(delta);

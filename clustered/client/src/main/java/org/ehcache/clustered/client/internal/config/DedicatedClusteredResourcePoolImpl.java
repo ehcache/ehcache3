@@ -20,6 +20,7 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.HumanReadable;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
@@ -28,7 +29,7 @@ import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
  * Concrete implementation of a {@link DedicatedClusteredResourcePool}.
  */
 public class DedicatedClusteredResourcePoolImpl extends SizedResourcePoolImpl<DedicatedClusteredResourcePool>
-    implements DedicatedClusteredResourcePool {
+    implements DedicatedClusteredResourcePool, HumanReadable {
 
   private final String fromResource;
 
@@ -79,11 +80,6 @@ public class DedicatedClusteredResourcePoolImpl extends SizedResourcePoolImpl<De
     sb.append(getUnit());
     sb.append(' ');
     sb.append(getType());
-
-    if (isPersistent()) {
-      sb.append("(persistent)");
-    }
-
     sb.append(' ');
     sb.append("from=");
     if (getFromResource() == null) {
@@ -94,5 +90,10 @@ public class DedicatedClusteredResourcePoolImpl extends SizedResourcePoolImpl<De
 
     sb.append('}');
     return sb.toString();
+  }
+
+  @Override
+  public String readableString() {
+    return toString();
   }
 }

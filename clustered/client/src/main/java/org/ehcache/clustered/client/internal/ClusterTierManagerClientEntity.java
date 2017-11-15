@@ -21,14 +21,12 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.terracotta.connection.entity.Entity;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
  * ClusterTierManagerClientEntity
  */
 public interface ClusterTierManagerClientEntity extends Entity {
-  UUID getClientId();
 
   void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException;
 

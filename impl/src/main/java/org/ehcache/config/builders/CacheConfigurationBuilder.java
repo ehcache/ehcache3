@@ -58,7 +58,7 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
  */
 public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfiguration<K, V>> {
 
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
+  private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -78,7 +78,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a {@code CacheConfigurationBuilder}
    */
   public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) {
-    return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePools);
+    return new CacheConfigurationBuilder<>(keyType, valueType, resourcePools);
   }
 
   /**
@@ -93,7 +93,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a {@code CacheConfigurationBuilder}
    */
   public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, Builder<? extends ResourcePools> resourcePoolsBuilder) {
-    return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePoolsBuilder.build());
+    return new CacheConfigurationBuilder<>(keyType, valueType, resourcePoolsBuilder.build());
   }
 
   /**
@@ -138,7 +138,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added service configuration
    */
   public CacheConfigurationBuilder<K, V> add(ServiceConfiguration<?> configuration) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     if (getExistingServiceConfiguration(configuration.getClass()) != null) {
       if (configuration instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfiguration = (DefaultCopierConfiguration) configuration;
@@ -174,7 +174,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added eviction advisor
    */
   public CacheConfigurationBuilder<K, V> withEvictionAdvisor(final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
@@ -186,7 +186,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder without the specified configuration
    */
   public CacheConfigurationBuilder<K, V> remove(ServiceConfiguration<?> configuration) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.serviceConfigurations.remove(configuration);
     return otherBuilder;
   }
@@ -197,7 +197,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with no service configurations left
    */
   public CacheConfigurationBuilder<K, V> clearAllServiceConfig() {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.serviceConfigurations.clear();
     return otherBuilder;
   }
@@ -226,7 +226,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a list with service configurations
    */
   public <T extends ServiceConfiguration<?>> List<T> getExistingServiceConfigurations(Class<T> clazz) {
-    ArrayList<T> results = new ArrayList<T>();
+    ArrayList<T> results = new ArrayList<>();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (clazz.equals(serviceConfiguration.getClass())) {
         results.add(clazz.cast(serviceConfiguration));
@@ -244,7 +244,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added class loader
    */
   public CacheConfigurationBuilder<K, V> withClassLoader(ClassLoader classLoader) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.classLoader = classLoader;
     return otherBuilder;
   }
@@ -261,7 +261,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (resourcePools == null) {
       throw new NullPointerException("Null resource pools");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.resourcePools = resourcePools;
     return otherBuilder;
   }
@@ -293,7 +293,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.expiry = expiry;
     return otherBuilder;
   }
@@ -319,7 +319,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (loaderWriter == null) {
       throw new NullPointerException("Null loaderWriter");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultCacheLoaderWriterConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
@@ -342,7 +342,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (loaderWriterClass == null) {
       throw new NullPointerException("Null loaderWriterClass");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultCacheLoaderWriterConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
@@ -359,9 +359,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added key copier
    */
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -373,9 +373,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added value copier
    */
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -391,9 +391,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (keyCopier == null) {
       throw new NullPointerException("Null key copier");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -409,9 +409,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (keyCopierClass == null) {
       throw new NullPointerException("Null key copier class");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopierClass, DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(keyCopierClass, DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -427,9 +427,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (valueCopier == null) {
       throw new NullPointerException("Null value copier");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -445,9 +445,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (valueCopierClass == null) {
       throw new NullPointerException("Null value copier");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopierClass, DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<>(valueCopierClass, DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -481,9 +481,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (keySerializer == null) {
       throw new NullPointerException("Null key serializer");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializer, DefaultSerializerConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<>(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -499,9 +499,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (keySerializerClass == null) {
       throw new NullPointerException("Null key serializer class");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializerClass, DefaultSerializerConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<>(keySerializerClass, DefaultSerializerConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -517,9 +517,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (valueSerializer == null) {
       throw new NullPointerException("Null value serializer");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<>(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -535,9 +535,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     if (valueSerializerClass == null) {
       throw new NullPointerException("Null value serializer class");
     }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializerClass, DefaultSerializerConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<>(valueSerializerClass, DefaultSerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -550,7 +550,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withDispatcherConcurrency(int dispatcherConcurrency) {
     DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(dispatcherConcurrency);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultEventSourceConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultEventSourceConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
@@ -568,7 +568,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withEventListenersThreadPool(String threadPoolAlias) {
     DefaultCacheEventDispatcherConfiguration configuration = new DefaultCacheEventDispatcherConfiguration(threadPoolAlias);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultCacheEventDispatcherConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheEventDispatcherConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
@@ -587,7 +587,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withDiskStoreThreadPool(String threadPoolAlias, int concurrency) {
     OffHeapDiskStoreConfiguration configuration = new OffHeapDiskStoreConfiguration(threadPoolAlias, concurrency);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     OffHeapDiskStoreConfiguration existingServiceConfiguration = getExistingServiceConfiguration(OffHeapDiskStoreConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
@@ -606,7 +606,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added / updated configuration
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectGraph(long size) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultSizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
     if (configuration == null) {
       otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size));
@@ -628,7 +628,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added / updated configuration
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     DefaultSizeOfEngineConfiguration configuration = getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
     if (configuration == null) {
       otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE));
@@ -641,9 +641,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   @Override
   public CacheConfiguration<K, V> build() {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
-        classLoader, expiry, resourcePools,
-        serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
+    return new BaseCacheConfiguration<>(keyType, valueType, evictionAdvisor,
+      classLoader, expiry, resourcePools,
+      serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
 
   }
 }

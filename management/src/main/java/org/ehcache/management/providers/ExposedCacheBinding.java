@@ -19,19 +19,17 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.ExposedObject;
 
 import java.util.Collection;
 import java.util.Collections;
 
 public abstract class ExposedCacheBinding implements ExposedObject<CacheBinding> {
 
-  protected final ManagementRegistryServiceConfiguration registryConfiguration;
   protected final CacheBinding cacheBinding;
   private final Context context;
 
   protected ExposedCacheBinding(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding) {
-    this.registryConfiguration = registryConfiguration;
     this.cacheBinding = cacheBinding;
     this.context = registryConfiguration.getContext().with("cacheName", cacheBinding.getAlias());
   }
