@@ -349,7 +349,11 @@ public class NonBlockingHashMap<TypeK, TypeV>
   /** Atomically do a {@link #remove(Object)} if-and-only-if the key is mapped
    *  to a value which is <code>equals</code> to the given value.
    *  @throws NullPointerException if the specified key or value is null */
-  public boolean remove     ( Object key,Object val ) { return putIfMatch( key,TOMBSTONE, val ) == val; }
+  public boolean remove     ( Object key,Object val ) {
+    // EHCACHE SPECIFIC : It should use equals, not ==
+    return Objects.equals(putIfMatch( key,TOMBSTONE, val ), val);
+    // END OF EHCACHE SPECIFIC
+  }
 
   /** Atomically do a <code>put(key,val)</code> if-and-only-if the key is
    *  mapped to some value already.
@@ -362,7 +366,9 @@ public class NonBlockingHashMap<TypeK, TypeV>
    *  @throws NullPointerException if the specified key or value is null */
   @Override
   public boolean replace    ( TypeK  key, TypeV  oldValue, TypeV newValue ) {
-    return putIfMatch( key, newValue, oldValue ) == oldValue;
+    // EHCACHE SPECIFIC : It should use equals, not ==
+    return Objects.equals(putIfMatch( key, newValue, oldValue ), oldValue);
+    // END OF EHCACHE SPECIFIC
   }
 
 
@@ -1479,9 +1485,9 @@ public class NonBlockingHashMap<TypeK, TypeV>
           // Key hit!  Check for no table-copy-in-progress
           if( !(V instanceof Prime) ) { // No copy?
             if( (V != TOMBSTONE) && (V != null)) {
-              iterations--; // We found something to put in our sample
               // If the advisor wants to keep the entry, skip it
               if(!evictionAdvisor.adviseAgainstEviction((TypeK) K, (TypeV) V)) {
+                iterations--; // We found something to put in our sample
                 if(currentWinner == null || prioritizer.compare((TypeV) V, currentWinner.getValue()) > 0) {
                   currentWinner = new NBHMEntry((TypeK) K, (TypeV) V); // Return the entry
                 }
