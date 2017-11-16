@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.BulkOps;
@@ -32,7 +33,6 @@ import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.derived.LatencySampling;
 import org.terracotta.statistics.derived.MinMaxAverage;
 import org.terracotta.statistics.extended.StatisticType;
-import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import static java.util.EnumSet.allOf;
