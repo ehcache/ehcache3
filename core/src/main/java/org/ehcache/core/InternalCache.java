@@ -16,12 +16,12 @@
 package org.ehcache.core;
 
 import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
-import org.terracotta.statistics.jsr166e.LongAdder;
 
 /**
  * Extension of the {@link org.ehcache.Cache} and {@link UserManagedCache} interfaces defining common methods used by
