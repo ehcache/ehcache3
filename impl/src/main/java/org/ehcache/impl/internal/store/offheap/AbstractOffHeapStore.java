@@ -16,11 +16,10 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import java.io.Serializable;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -53,11 +52,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
+import static org.terracotta.statistics.StatisticsManager.tags;
+import static org.terracotta.statistics.StatisticType.GAUGE;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 
@@ -132,54 +134,29 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.getAndRemoveObserver= operation(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class).of(this).named("getAndRemove").tag(statisticsTag).build();
     this.installMappingObserver= operation(LowerCachingTierOperationsOutcome.InstallMappingOutcome.class).of(this).named("installMapping").tag(statisticsTag).build();
 
-    Set<String> tags = new HashSet<>(Arrays.asList(statisticsTag, "tier"));
-    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.allocatedMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.occupiedMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "dataAllocatedMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.dataAllocatedMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "dataOccupiedMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.dataOccupiedMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "dataSize", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.dataSize();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "dataVitalMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.dataVitalMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.longSize();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, () -> -1L);
-    StatisticsManager.createPassThroughStatistic(this, "vitalMemory", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.vitalMemory();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "removedSlotCount", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.removedSlotCount();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "usedSlotCount", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.usedSlotCount();
-    });
-    StatisticsManager.createPassThroughStatistic(this, "tableCapacity", tags, () -> {
-      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
-      return map == null ? -1L : map.tableCapacity();
-    });
+    registerStatistic("allocatedMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::allocatedMemory);
+    registerStatistic("occupiedMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::occupiedMemory);
+    registerStatistic("dataAllocatedMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::dataAllocatedMemory);
+    registerStatistic("dataOccupiedMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::dataOccupiedMemory);
+    registerStatistic("dataSize", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::dataSize);
+    registerStatistic("dataVitalMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::dataVitalMemory);
+    registerStatistic("mappings", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::longSize);
+    registerStatistic("vitalMemory", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::vitalMemory);
+    registerStatistic("removedSlotCount", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::removedSlotCount);
+    registerStatistic("usedSlotCount", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::usedSlotCount);
+    registerStatistic("tableCapacity", GAUGE, statisticsTag, EhcacheOffHeapBackingMap::tableCapacity);
 
     this.mapEvictionListener = new BackingMapEvictionListener<>(eventDispatcher, evictionObserver);
+  }
+
+  private <T extends Serializable> void registerStatistic(String name, StatisticType type, String tag, Function<EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>>, T> fn) {
+    StatisticsManager.createPassThroughStatistic(this, name, tags(tag, "tier"), type, () -> {
+      EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+      // Returning null means not available.
+      // Do not return -1 because a stat can be negative and it's hard to tell the difference
+      // between -1 meaning unavailable for a stat and for the other one -1 being a right value;
+      return map == null ? null : fn.apply(map);
+    });
   }
 
   @Override

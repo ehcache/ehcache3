@@ -17,7 +17,6 @@ package org.ehcache.management.registry;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.NoSuchElementException;
@@ -160,6 +159,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
+      allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
       assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
@@ -277,7 +277,7 @@ public class DefaultManagementRegistryServiceTest {
         .on(context1);
 
     ContextualStatistics counters = getResultSet(builder1, context1, null, queryStatisticName).getResult(context1);
-    Number counterHistory1 = counters.getStatistic(queryStatisticName);
+    Number counterHistory1 = counters.<Number>getLatestSample(queryStatisticName).get();
 
     assertThat(counters.size()).isEqualTo(1);
     assertThat(counterHistory1.longValue()).isEqualTo(1L);
@@ -292,8 +292,8 @@ public class DefaultManagementRegistryServiceTest {
     assertThat(allCounters.getResult(context1).size()).isEqualTo(1);
     assertThat(allCounters.getResult(context2).size()).isEqualTo(1);
 
-    assertThat(allCounters.getResult(context1).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
-    assertThat(allCounters.getResult(context2).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context1).getLatestSample(queryStatisticName).get()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context2).getLatestSample(queryStatisticName).get()).isEqualTo(1L);
 
     cacheManager1.close();
   }
@@ -306,12 +306,12 @@ public class DefaultManagementRegistryServiceTest {
       counters = builder.build().execute();
 
       ContextualStatistics statisticsContext1 = counters.getResult(context1);
-      Number counterContext1 = statisticsContext1.getStatistic(statisticsName);
+      Number counterContext1 = statisticsContext1.<Number>getLatestSample(statisticsName).get();
 
       if(context2 != null)
       {
         ContextualStatistics statisticsContext2 = counters.getResult(context2);
-        Number counterHistoryContext2 = statisticsContext2.getStatistic(statisticsName);
+        Number counterHistoryContext2 = statisticsContext2.<Number>getLatestSample(statisticsName).get();
 
         if(counterHistoryContext2.longValue() > 0 &&
            counterContext1.longValue() > 0)
@@ -415,25 +415,22 @@ public class DefaultManagementRegistryServiceTest {
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "SIZE"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER"));
 
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "SIZE"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "SIZE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:PutCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:RemovalCount", "COUNTER"));
 
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "SIZE"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "SIZE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "GAUGE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "GAUGE"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"));

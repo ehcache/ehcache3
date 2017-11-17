@@ -16,6 +16,8 @@
 
 package org.ehcache.core.statistics;
 
+import org.terracotta.statistics.ValueStatistic;
+
 import java.util.Map;
 
 /**
@@ -28,7 +30,7 @@ public interface CacheStatistics {
    *
    * @return a map of statistics per name
    */
-  Map<String, TypedValueStatistic> getKnownStatistics();
+  Map<String, ValueStatistic<?>> getKnownStatistics();
 
   /**
    * Map of tier statistics on this cache. Per tier name

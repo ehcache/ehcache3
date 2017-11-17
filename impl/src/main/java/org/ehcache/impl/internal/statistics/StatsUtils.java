@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.statistics;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.ehcache.Cache;
@@ -71,7 +72,7 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
+  static <T> Optional<T> findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
@@ -89,11 +90,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -106,7 +107,7 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String tag, String statName) {
+  static <T> Optional<T> findStatisticOnDescendants(Object context, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
@@ -123,11 +124,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**

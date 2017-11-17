@@ -291,15 +291,6 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
   }
 
   @Test
-  public void testMaxMappingCount() {
-    assertThat(tierStatistics.getMaxMappings()).isEqualTo(-1); // FIXME Shouldn't it be 0?
-    cache.put(1, "a");
-    cache.put(2, "b");
-    cache.remove(1);
-    assertThat(tierStatistics.getMappings()).isEqualTo(1); // FIXME: I was expecting 2
-  }
-
-  @Test
   public void testAllocatedByteSize() {
     assumeFalse(tierName.equals("OnHeap")); // FIXME: Not calculated for OnHeap when a size is allocated
 

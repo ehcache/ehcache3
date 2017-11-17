@@ -28,17 +28,17 @@ import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.core.statistics.TierStatistics;
-import org.ehcache.core.statistics.TypedValueStatistic;
 import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.ValueStatistic;
 import org.terracotta.statistics.derived.LatencySampling;
 import org.terracotta.statistics.derived.MinMaxAverage;
-import org.terracotta.statistics.extended.StatisticType;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import static java.util.EnumSet.allOf;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
+import static org.terracotta.statistics.SuppliedValueStatistic.counter;
 
 /**
  * Contains usage statistics relative to a given cache.
@@ -63,7 +63,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final Map<String, TierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
-  private final Map<String, TypedValueStatistic> knownStatistics;
+  private final Map<String, ValueStatistic<?>> knownStatistics;
 
   public DefaultCacheStatistics(InternalCache<?, ?> cache) {
     bulkMethodEntries = cache.getBulkMethodEntries();
@@ -100,44 +100,14 @@ class DefaultCacheStatistics implements CacheStatistics {
     knownStatistics = createKnownStatistics();
   }
 
-  private Map<String, TypedValueStatistic> createKnownStatistics() {
-    Map<String, TypedValueStatistic> knownStatistics = new HashMap<>(30);
-    knownStatistics.put("Cache:HitCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheHits();
-      }
-    });
-    knownStatistics.put("Cache:MissCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheMisses();
-      }
-    });
-    knownStatistics.put("Cache:PutCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCachePuts();
-      }
-    });
-    knownStatistics.put("Cache:RemovalCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheRemovals();
-      }
-    });
-    knownStatistics.put("Cache:EvictionCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheEvictions();
-      }
-    });
-    knownStatistics.put("Cache:ExpirationCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheExpirations();
-      }
-    });
+  private Map<String, ValueStatistic<?>> createKnownStatistics() {
+    Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(30);
+    knownStatistics.put("Cache:HitCount", counter(this::getCacheHits));
+    knownStatistics.put("Cache:MissCount", counter(this::getCacheMisses));
+    knownStatistics.put("Cache:PutCount", counter(this::getCachePuts));
+    knownStatistics.put("Cache:RemovalCount", counter(this::getCacheRemovals));
+    knownStatistics.put("Cache:EvictionCount", counter(this::getCacheEvictions));
+    knownStatistics.put("Cache:ExpirationCount", counter(this::getCacheExpirations));
 
     for (TierStatistics tier : tierStatistics.values()) {
       knownStatistics.putAll(tier.getKnownStatistics());
@@ -146,14 +116,17 @@ class DefaultCacheStatistics implements CacheStatistics {
     return Collections.unmodifiableMap(knownStatistics);
   }
 
-  public Map<String, TypedValueStatistic> getKnownStatistics() {
+  @Override
+  public Map<String, ValueStatistic<?>> getKnownStatistics() {
     return knownStatistics;
   }
 
+  @Override
   public Map<String, TierStatistics> getTierStatistics() {
     return Collections.unmodifiableMap(tierStatistics);
   }
 
+  @Override
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
     averageGetTime.clear();
@@ -164,29 +137,35 @@ class DefaultCacheStatistics implements CacheStatistics {
     }
   }
 
+  @Override
   public long getCacheHits() {
     return normalize(getHits() - compensatingCounters.cacheHits);
   }
 
+  @Override
   public float getCacheHitPercentage() {
     long cacheHits = getCacheHits();
     return normalize((float) cacheHits / (cacheHits + getCacheMisses())) * 100.0f;
   }
 
+  @Override
   public long getCacheMisses() {
     return normalize(getMisses() - compensatingCounters.cacheMisses);
   }
 
+  @Override
   public float getCacheMissPercentage() {
     long cacheMisses = getCacheMisses();
     return normalize((float) cacheMisses / (getCacheHits() + cacheMisses)) * 100.0f;
   }
 
+  @Override
   public long getCacheGets() {
     return normalize(getHits() + getMisses()
                      - compensatingCounters.cacheGets);
   }
 
+  @Override
   public long getCachePuts() {
     return normalize(getBulkCount(BulkOps.PUT_ALL) +
                      put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
@@ -195,6 +174,7 @@ class DefaultCacheStatistics implements CacheStatistics {
                      compensatingCounters.cachePuts);
   }
 
+  @Override
   public long getCacheRemovals() {
     return normalize(getBulkCount(BulkOps.REMOVE_ALL) +
                      remove.sum(EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS)) +
@@ -202,22 +182,27 @@ class DefaultCacheStatistics implements CacheStatistics {
                      compensatingCounters.cacheRemovals);
   }
 
+  @Override
   public long getCacheEvictions() {
     return normalize(lowestTier.getEvictions());
   }
 
+  @Override
   public long getCacheExpirations() {
     return normalize(lowestTier.getExpirations());
   }
 
+  @Override
   public float getCacheAverageGetTime() {
     return (float) averageGetTime.value();
   }
 
+  @Override
   public float getCacheAveragePutTime() {
     return (float) averagePutTime.value();
   }
 
+  @Override
   public float getCacheAverageRemoveTime() {
     return (float) averageRemoveTime.value();
   }
