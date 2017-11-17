@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
 import org.terracotta.offheapstore.buffersource.BufferSource;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.buffersource.TimingBufferSource;
@@ -26,7 +24,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * OffHeapStoreUtils
  */
-public class OffHeapStoreUtils {
+public final class OffHeapStoreUtils {
+
+  static final String PATH_PREFIX = "org.ehcache.offheap.config.";
 
   /* threshold in ms for a chunk allocation over which a warning will be logged */
   private static final long SLOW_DELAY = 3000L;
@@ -38,6 +38,8 @@ public class OffHeapStoreUtils {
   private static final boolean HALT_ON_CRITICAL_DELAY = true;
   private static final String HALT_ON_CRITICAL_DELAY_PROPERTY = "haltOnCriticalAllocationDelay";
 
+  private OffHeapStoreUtils() {}
+
   public static BufferSource getBufferSource() {
     long slowDelay = getAdvancedLongConfigProperty(SLOW_DELAY_PROPERTY, SLOW_DELAY);
     long critDelay = getAdvancedLongConfigProperty(CRITICAL_DELAY_PROPERTY, CRITICAL_DELAY);
@@ -46,17 +48,17 @@ public class OffHeapStoreUtils {
   }
 
   public static long getAdvancedMemorySizeConfigProperty(String property, long defaultValue) {
-    String globalPropertyKey = "net.sf.ehcache.offheap.config." + property;
+    String globalPropertyKey = PATH_PREFIX + property;
     return MemorySizeParser.parse(System.getProperty(globalPropertyKey, Long.toString(defaultValue)));
   }
 
   public static long getAdvancedLongConfigProperty(String property, long defaultValue) {
-    String globalPropertyKey = "net.sf.ehcache.offheap.config." + property;
+    String globalPropertyKey = PATH_PREFIX + property;
     return Long.parseLong(System.getProperty(globalPropertyKey, Long.toString(defaultValue)));
   }
 
   public static boolean getAdvancedBooleanConfigProperty(String property, boolean defaultValue) {
-    String globalPropertyKey = "net.sf.ehcache.offheap.config." + property;
+    String globalPropertyKey = PATH_PREFIX + property;
     return Boolean.parseBoolean(System.getProperty(globalPropertyKey, Boolean.toString(defaultValue)));
   }
 }
