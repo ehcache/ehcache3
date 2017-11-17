@@ -18,7 +18,6 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -93,7 +92,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Cache:PutCount", "COUNTER"),
     new StatisticDescriptor("Cache:RemovalCount", "COUNTER"),
     new StatisticDescriptor("Cache:EvictionCount", "COUNTER"),
-    new StatisticDescriptor("Cache:ExpirationCount", "COUNTER")
+    new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"),
+    new StatisticDescriptor("Cache:GetLatency", "GAUGE")
   );
   private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = Arrays.asList(
     new StatisticDescriptor("Pool:AllocatedSize", "GAUGE")

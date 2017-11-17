@@ -60,10 +60,10 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
     PoolBinding.AllocationType allocationType = managedObject.getAllocationType();
 
     if (allocationType == PoolBinding.AllocationType.DEDICATED) {
-      return new StatisticRegistry(ehcacheStateService.getDedicatedResourcePageSource(poolName));
+      return new StatisticRegistry(ehcacheStateService.getDedicatedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
 
     } else {
-      return new StatisticRegistry(ehcacheStateService.getSharedResourcePageSource(poolName));
+      return new StatisticRegistry(ehcacheStateService.getSharedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
     }
   }
 
