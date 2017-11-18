@@ -19,6 +19,7 @@ package org.ehcache.clustered.replication;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -40,6 +41,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -86,6 +88,9 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
+            .operationTimeouts(Timeouts.builder() // we need to give some time for the failover to occur
+                .setReadOperationTimeout(Duration.ofMinutes(1))
+                .setMutativeOperationTimeout(Duration.ofMinutes(1)))
             .autoCreate()
             .defaultServerResource("primary-server-resource"));
     CACHE_MANAGER = clusteredCacheManagerBuilder.build(true);

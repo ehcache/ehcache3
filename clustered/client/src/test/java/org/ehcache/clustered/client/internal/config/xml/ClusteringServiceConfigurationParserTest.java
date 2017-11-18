@@ -146,7 +146,6 @@ public class ClusteringServiceConfigurationParserTest {
     Timeouts timeouts = clusteringServiceConfiguration.getOperationTimeouts();
     assertThat(timeouts.getReadOperationTimeout(), is(Duration.of(5, MINUTES)));
     assertThat(timeouts.getMutativeOperationTimeout(), is(Duration.of(10, MINUTES)));
-    assertThat(timeouts.getLifecycleOperationTimeout(), is(Duration.of(15, MINUTES)));
   }
 
   @Test

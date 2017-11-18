@@ -21,6 +21,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import java.time.Duration;
 import java.util.Objects;
 
+import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import java.util.function.LongSupplier;
 
@@ -30,16 +31,14 @@ import java.util.function.LongSupplier;
  */
 public final class Timeouts {
 
-  public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.of(5, SECONDS);
+  public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.ofSeconds(5);
 
   private final Duration readOperationTimeout;
   private final Duration mutativeOperationTimeout;
-  private final Duration lifecycleOperationTimeout;
 
-  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout, Duration lifecycleOperationTimeout) {
+  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout) {
     this.readOperationTimeout = readOperationTimeout;
     this.mutativeOperationTimeout = mutativeOperationTimeout;
-    this.lifecycleOperationTimeout = lifecycleOperationTimeout;
   }
 
   public Duration getReadOperationTimeout() {
@@ -48,10 +47,6 @@ public final class Timeouts {
 
   public Duration getMutativeOperationTimeout() {
     return mutativeOperationTimeout;
-  }
-
-  public Duration getLifecycleOperationTimeout() {
-    return lifecycleOperationTimeout;
   }
 
   @Override
@@ -64,17 +59,13 @@ public final class Timeouts {
     if (!readOperationTimeout.equals(timeouts.readOperationTimeout)) {
       return false;
     }
-    if (!mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout)) {
-      return false;
-    }
-    return lifecycleOperationTimeout.equals(timeouts.lifecycleOperationTimeout);
+    return mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout);
   }
 
   @Override
   public int hashCode() {
     int result = readOperationTimeout.hashCode();
     result = 31 * result + mutativeOperationTimeout.hashCode();
-    result = 31 * result + lifecycleOperationTimeout.hashCode();
     return result;
   }
 
@@ -92,7 +83,6 @@ public final class Timeouts {
     return "Timeouts{" +
         "readOperationTimeout=" + readOperationTimeout +
         ", mutativeOperationTimeout=" + mutativeOperationTimeout +
-        ", lifecycleOperationTimeout=" + lifecycleOperationTimeout +
         '}';
   }
 
@@ -103,7 +93,6 @@ public final class Timeouts {
   public static final class Builder implements org.ehcache.config.Builder<Timeouts> {
     private Duration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
     private Duration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private Duration lifecycleOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
 
     /**
      * Sets the timeout for read operations.  The default value for this timeout is
@@ -132,25 +121,12 @@ public final class Timeouts {
     }
 
     /**
-     * Sets the timeout for server store manager lifecycle operations like {@code validate} and {@code validateCache}.
-     * The default value for this timeout is 5 seconds.
-     *
-     * @param lifecycleOperationTimeout the {@code Duration} to use for a store manager lifecycle operation timeout
-     *
-     * @return this {@code Builder}
-     */
-    public Builder setLifecycleOperationTimeout(Duration lifecycleOperationTimeout) {
-      this.lifecycleOperationTimeout = Objects.requireNonNull(lifecycleOperationTimeout, "Lifecycle operation timeout can't be null");
-      return this;
-    }
-
-    /**
      * Gets a new {@link Timeouts} instance using the current timeout duration settings.
      *
      * @return a new {@code Timeouts} instance
      */
     public Timeouts build() {
-      return new Timeouts(readOperationTimeout, mutativeOperationTimeout, lifecycleOperationTimeout);
+      return new Timeouts(readOperationTimeout, mutativeOperationTimeout);
     }
   }
 }

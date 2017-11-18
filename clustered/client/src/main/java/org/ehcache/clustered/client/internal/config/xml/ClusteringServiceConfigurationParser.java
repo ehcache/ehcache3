@@ -182,9 +182,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
     if(putTimeout != null) {
       timeouts.setMutativeOperationTimeout(putTimeout);
     }
-    if(lifecycleTimeout != null) {
-      timeouts.setLifecycleOperationTimeout(lifecycleTimeout);
-    }
     return timeouts.build();
   }
 

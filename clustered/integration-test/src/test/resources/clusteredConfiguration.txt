@@ -33,7 +33,7 @@ caches:
 services:
     - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:
         clusterUri: terracotta://server-1/my-server-entity-2
-        readOperationTimeout: TimeoutDuration{20 SECONDS}
+        readOperationTimeout: PT5S
         autoCreate: true
         defaultServerResource: primary-server-resource
             resourcePools:

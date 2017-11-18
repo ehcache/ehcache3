@@ -115,14 +115,13 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       try {
         while (true) {
           ref.create(new ClusterTierManagerConfiguration(identifier, config));
           try {
-            InternalClusterTierManagerClientEntity entity = ref.fetchEntity(null);
+            ClusterTierManagerClientEntity entity = ref.fetchEntity(null);
             try {
-              entity.setTimeouts(entityTimeouts);
               finished = true;
               return;
             } finally {
@@ -172,7 +171,7 @@ public class ClusterTierManagerClientEntityFactory {
 
     Hold fetchHold = createAccessLockFor(identifier).readLock();
 
-    InternalClusterTierManagerClientEntity entity;
+    ClusterTierManagerClientEntity entity;
     try {
       entity = getEntityRef(identifier).fetchEntity(null);
     } catch (EntityVersionMismatchException e) {
@@ -181,7 +180,6 @@ public class ClusterTierManagerClientEntityFactory {
       throw new AssertionError(e);
     }
 
-    entity.setTimeouts(entityTimeouts);
     boolean validated = false;
     try {
       entity.validate(config);
@@ -214,7 +212,7 @@ public class ClusterTierManagerClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -241,8 +239,8 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) throws ClusterTierManagerNotFoundException {
-    InternalClusterTierManagerClientEntity entity;
+  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) throws ClusterTierManagerNotFoundException {
+    ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity(null);
     } catch (EntityNotFoundException e) {
@@ -285,9 +283,9 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
+  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(ClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get cluster tier manager for id {}", identifier, e);
       throw new AssertionError(e);
