@@ -57,8 +57,8 @@ import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.EntityManagementRegistry;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -1230,7 +1230,7 @@ public class ClusterTierActiveEntityTest {
           this.entityMessenger = mock(IEntityMessenger.class);
         }
         return (T) this.entityMessenger;
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
         OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
