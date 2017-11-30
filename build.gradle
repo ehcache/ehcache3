@@ -86,33 +86,14 @@ ext {
 }
 
 
-// Java 6 build setup
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
   testJava = Jvm.current()
 }
 
 if (hasProperty('testVM')) {
-  switch (testVM) {
-    case '8':
-      if (JavaVersion.current().isJava8()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 8 installation'
-        testJava = Jvm.discovered(new File(java8Home), JavaVersion.VERSION_1_8)
-      }
-      break
-    case '9':
-      if (JavaVersion.current().isJava9()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java9Home'): 'Set the poperty \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
-        testJava = Jvm.discovered(new File(java9Home), JavaVersion.VERSION_1_9)
-      }
-      break
-    default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 8 or 9")
-  }
+  testJava = Utils.jvmForHome(new File(testVM))
+  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
 subprojects {
