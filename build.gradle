@@ -48,7 +48,7 @@ if (deployUrl.contains('nexus')) {
 project.nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
-  logger.warn("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
 // Disable automatic promotion for added safety
@@ -58,27 +58,6 @@ closeAndReleaseRepository.enabled = false
 ext {
 
   baseVersion = findProperty('overrideVersion') ?: '3.5.0-SNAPSHOT'
-
-  // Third parties
-  offheapVersion = '2.4.0'
-  statisticVersion = '1.5.0'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.25'
-  sizeofVersion = '0.3.0'
-  ehcache2Version = '2.10.3'
-
-  // Clustered
-  terracottaPlatformVersion = '5.4.0-pre5'
-  managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.4.0-pre7'
-  terracottaCoreVersion = '5.4.0-pre12'
-  offheapResourceVersion = terracottaPlatformVersion
-  entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.4.0-pre8'
-  entityTestLibVersion = terracottaPassthroughTestingVersion
-
-  // Tools
-  findbugsVersion = '3.0.1'
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
@@ -131,8 +110,8 @@ subprojects {
   dependencies {
     compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:3.8.0', 'org.hamcrest:hamcrest-library:1.3'
-    testCompile('org.mockito:mockito-core:2.12.0') {
+    testCompile "junit:junit:$junitVersion", "org.assertj:assertj-core:$assertjVersion", "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testCompile("org.mockito:mockito-core:$mockitoVersion") {
       exclude group:'org.hamcrest', module:'hamcrest-core'
     }
     testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
@@ -185,13 +164,13 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.9'
+    toolVersion = checkstyleVersion
   }
 
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    findbugs.toolVersion = parent.findbugsVersion
+    toolVersion = findbugsVersion
   }
 
   findbugsMain {
@@ -203,7 +182,7 @@ subprojects {
   }
 
   jacoco {
-    toolVersion = '0.7.9'
+    toolVersion = jacocoVersion
   }
 
   jacocoTestReport {
