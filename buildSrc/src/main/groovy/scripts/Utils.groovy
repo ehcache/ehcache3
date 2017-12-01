@@ -16,6 +16,9 @@
 
 package scripts
 
+import org.gradle.api.JavaVersion
+import org.gradle.internal.jvm.Jvm
+
 class Utils {
 
   String version
@@ -86,5 +89,12 @@ class Utils {
         }
       }
     }
+  }
+
+  static def jvmForHome(File home) {
+    def java = Jvm.forHome(home).javaExecutable
+    def versionCommand = "$java -version".execute();
+    def version = JavaVersion.toVersion((versionCommand.err.text =~ /\w+ version "(.+)"/)[0][1])
+    return Jvm.discovered(home, version)
   }
 }
