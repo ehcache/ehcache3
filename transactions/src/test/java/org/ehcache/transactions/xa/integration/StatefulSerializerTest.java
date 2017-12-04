@@ -28,6 +28,8 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -38,6 +40,18 @@ import static org.junit.Assert.assertNotNull;
  * StatefulSerializerTest
  */
 public class StatefulSerializerTest {
+
+  @Before
+  public void setUp() throws Exception {
+    TransactionManagerServices.getConfiguration().setJournal("null").setServerId(getClass().getSimpleName());
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if (TransactionManagerServices.isTransactionManagerRunning()) {
+      TransactionManagerServices.getTransactionManager().shutdown();
+    }
+  }
 
   @Test
   public void testXAWithStatefulSerializer() throws Exception {
