@@ -18,6 +18,7 @@ package org.ehcache.clustered.replication;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -38,6 +39,7 @@ import org.terracotta.testing.rules.Cluster;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,6 +85,7 @@ public class DuplicateTest extends ClusteredTests {
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
+        .timeouts(Timeouts.builder().setMutativeOperationTimeout(Duration.ofSeconds(20)))
         .autoCreate()
         .defaultServerResource("primary-server-resource"))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,

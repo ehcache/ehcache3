@@ -131,9 +131,9 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   @Override
   public void close() {
+    endpoint.close();
     reconnectListener = null;
     disconnectionListener = null;
-    endpoint.close();
   }
 
   @Override
