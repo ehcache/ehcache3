@@ -45,7 +45,7 @@ public class ClusteringServiceConfiguration
   private final URI clusterUri;
   private final boolean autoCreate;
   private final ServerSideConfiguration serverConfiguration;
-  private final Timeouts operationTimeouts;
+  private final Timeouts timeouts;
 
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
@@ -80,13 +80,13 @@ public class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param operationTimeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
    *
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(URI clusterUri, Timeouts operationTimeouts) {
-    this(clusterUri, operationTimeouts, null);
+  public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts) {
+    this(clusterUri, timeouts, null);
   }
 
   /**
@@ -124,14 +124,14 @@ public class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param operationTimeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
    * @param serverConfig  the server side entity configuration required
    *
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(URI clusterUri, Timeouts operationTimeouts, ServerSideConfiguration serverConfig) {
-    this(clusterUri, operationTimeouts, false, serverConfig);
+  public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts, ServerSideConfiguration serverConfig) {
+    this(clusterUri, timeouts, false, serverConfig);
   }
 
   /**
@@ -171,24 +171,24 @@ public class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param operationTimeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
    * @param autoCreate {@code true} if server components should be auto created
    * @param serverConfig  the server side entity configuration required
    *
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(URI clusterUri, Timeouts operationTimeouts, boolean autoCreate, ServerSideConfiguration serverConfig) {
+  public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts, boolean autoCreate, ServerSideConfiguration serverConfig) {
     this.clusterUri = Objects.requireNonNull(clusterUri, "Cluster URI cannot be null");
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
-    this.operationTimeouts = Objects.requireNonNull(operationTimeouts, "Operation timeouts cannot be null");
+    this.timeouts = Objects.requireNonNull(timeouts, "Operation timeouts cannot be null");
   }
 
   protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
     Objects.requireNonNull(baseConfig, "Base configuration cannot be null");
     this.clusterUri = baseConfig.getClusterUri();
-    this.operationTimeouts = baseConfig.getOperationTimeouts();
+    this.timeouts = baseConfig.getTimeouts();
     this.autoCreate = baseConfig.isAutoCreate();
     this.serverConfiguration = baseConfig.getServerConfiguration();
   }
@@ -225,8 +225,8 @@ public class ClusteringServiceConfiguration
    *
    * @return the cache timeouts
    */
-  public Timeouts getOperationTimeouts() {
-    return operationTimeouts;
+  public Timeouts getTimeouts() {
+    return timeouts;
   }
 
   /**
@@ -234,11 +234,11 @@ public class ClusteringServiceConfiguration
    *
    * @return the cache read operation timeout
    *
-   * @deprecated Use {@link #getOperationTimeouts()}
+   * @deprecated Use {@link #getTimeouts()}
    */
   @Deprecated
   public Duration getReadOperationTimeout() {
-    return operationTimeouts.getReadOperationTimeout();
+    return timeouts.getReadOperationTimeout();
   }
 
   @Override

@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.config;
 
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,7 +25,6 @@ import org.junit.rules.ExpectedException;
 
 import java.net.URI;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,12 +50,12 @@ public class ClusteringServiceConfigurationTest {
   @Test
   public void testOperationTimeouts() throws Exception {
     Timeouts timeouts = Timeouts.builder().build();
-    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getOperationTimeouts()).isSameAs(timeouts);
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getTimeouts()).isSameAs(timeouts);
   }
 
   @Test
   public void testDefaultOperationTimeouts() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getOperationTimeouts()).isEqualTo(Timeouts.builder().build());
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(Timeouts.builder().build());
   }
 
   @Test

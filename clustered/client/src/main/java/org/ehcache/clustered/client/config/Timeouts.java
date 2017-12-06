@@ -32,13 +32,16 @@ import java.util.function.LongSupplier;
 public final class Timeouts {
 
   public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration INFINITE_TIMEOUT = Duration.ofMillis(Long.MAX_VALUE);
 
   private final Duration readOperationTimeout;
   private final Duration mutativeOperationTimeout;
+  private final Duration connectionTimeout;
 
-  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout) {
+  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout, Duration connectionTimeout) {
     this.readOperationTimeout = readOperationTimeout;
     this.mutativeOperationTimeout = mutativeOperationTimeout;
+    this.connectionTimeout = connectionTimeout;
   }
 
   public Duration getReadOperationTimeout() {
@@ -47,6 +50,10 @@ public final class Timeouts {
 
   public Duration getMutativeOperationTimeout() {
     return mutativeOperationTimeout;
+  }
+
+  public Duration getConnectionTimeout() {
+    return connectionTimeout;
   }
 
   @Override
@@ -59,13 +66,17 @@ public final class Timeouts {
     if (!readOperationTimeout.equals(timeouts.readOperationTimeout)) {
       return false;
     }
-    return mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout);
+    if (!mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout)) {
+      return false;
+    }
+    return connectionTimeout.equals(timeouts.connectionTimeout);
   }
 
   @Override
   public int hashCode() {
     int result = readOperationTimeout.hashCode();
     result = 31 * result + mutativeOperationTimeout.hashCode();
+    result = 31 * result + connectionTimeout.hashCode();
     return result;
   }
 
@@ -81,8 +92,9 @@ public final class Timeouts {
   @Override
   public String toString() {
     return "Timeouts{" +
-        "readOperationTimeout=" + readOperationTimeout +
-        ", mutativeOperationTimeout=" + mutativeOperationTimeout +
+        "readOperation=" + readOperationTimeout +
+        ", mutativeOperation=" + mutativeOperationTimeout +
+        ", connection=" + connectionTimeout +
         '}';
   }
 
@@ -93,6 +105,7 @@ public final class Timeouts {
   public static final class Builder implements org.ehcache.config.Builder<Timeouts> {
     private Duration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
     private Duration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private Duration connectionTimeout = INFINITE_TIMEOUT;
 
     /**
      * Sets the timeout for read operations.  The default value for this timeout is
@@ -121,12 +134,25 @@ public final class Timeouts {
     }
 
     /**
+     * Sets the timeout for connecting to the server. The default value for this timeout
+     * is {@link #INFINITE_TIMEOUT}.
+     *
+     * @param connectionTimeout the {@code Duration} to use for a connection timeout
+     *
+     * @return this {@code Builder}
+     */
+    public Builder setConnectionTimeout(Duration connectionTimeout) {
+      this.connectionTimeout = Objects.requireNonNull(connectionTimeout, "Connection timeout can't be null");
+      return this;
+    }
+
+    /**
      * Gets a new {@link Timeouts} instance using the current timeout duration settings.
      *
      * @return a new {@code Timeouts} instance
      */
     public Timeouts build() {
-      return new Timeouts(readOperationTimeout, mutativeOperationTimeout);
+      return new Timeouts(readOperationTimeout, mutativeOperationTimeout, connectionTimeout);
     }
   }
 }

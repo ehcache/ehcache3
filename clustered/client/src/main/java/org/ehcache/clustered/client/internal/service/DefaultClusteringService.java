@@ -78,7 +78,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final URI clusterUri;
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
-  private final Timeouts operationTimeouts;
+  private final Timeouts timeouts;
 
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
@@ -92,7 +92,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.operationTimeouts = configuration.getOperationTimeouts();
+    this.timeouts = configuration.getTimeouts();
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -166,13 +166,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   private void createEntityFactory() {
-    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, operationTimeouts);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
   }
 
   private void initClusterConnection() {
     try {
       Properties properties = new Properties();
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
+      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
       clusterConnection = ConnectionFactory.connect(clusterUri, properties);
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);

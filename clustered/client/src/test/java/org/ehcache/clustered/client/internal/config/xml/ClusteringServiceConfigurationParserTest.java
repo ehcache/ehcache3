@@ -143,7 +143,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    Timeouts timeouts = clusteringServiceConfiguration.getOperationTimeouts();
+    Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
     assertThat(timeouts.getReadOperationTimeout(), is(Duration.of(5, MINUTES)));
     assertThat(timeouts.getMutativeOperationTimeout(), is(Duration.of(10, MINUTES)));
   }
@@ -176,7 +176,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getOperationTimeouts(), is(Timeouts.builder().build()));
+    assertThat(clusteringServiceConfiguration.getTimeouts(), is(Timeouts.builder().build()));
   }
 
   @Test
@@ -209,7 +209,7 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
-    assertThat(clusteringServiceConfiguration.getOperationTimeouts().getReadOperationTimeout(),
+    assertThat(clusteringServiceConfiguration.getTimeouts().getReadOperationTimeout(),
       is(equalTo(Duration.of(5, defaultUnit))));
   }
 

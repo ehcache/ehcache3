@@ -83,7 +83,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
-  public ClusteringServiceConfigurationBuilder operationTimeouts(Timeouts timeouts) {
+  public ClusteringServiceConfigurationBuilder timeouts(Timeouts timeouts) {
     return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeouts, this.autoCreate);
   }
 
@@ -99,7 +99,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
-  public ClusteringServiceConfigurationBuilder operationTimeouts(Timeouts.Builder timeoutsBuilder) {
+  public ClusteringServiceConfigurationBuilder timeouts(Timeouts.Builder timeoutsBuilder) {
     return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeoutsBuilder.build(), this.autoCreate);
   }
 
@@ -120,7 +120,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   @Deprecated
   public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
     Duration readTimeout = Duration.of(duration, toChronoUnit(unit));
-    return operationTimeouts(Timeouts.builder().setReadOperationTimeout(readTimeout).build());
+    return timeouts(Timeouts.builder().setReadOperationTimeout(readTimeout).build());
   }
 
   @Override

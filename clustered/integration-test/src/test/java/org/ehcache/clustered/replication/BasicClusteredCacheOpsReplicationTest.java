@@ -88,7 +88,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
-            .operationTimeouts(Timeouts.builder() // we need to give some time for the failover to occur
+            .timeouts(Timeouts.builder() // we need to give some time for the failover to occur
                 .setReadOperationTimeout(Duration.ofMinutes(1))
                 .setMutativeOperationTimeout(Duration.ofMinutes(1)))
             .autoCreate()
