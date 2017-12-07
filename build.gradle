@@ -17,12 +17,19 @@ import scripts.*
 import org.gradle.internal.jvm.Jvm
 
 plugins {
+  // Allow to perform a build scan
+  id 'com.gradle.build-scan' version '1.11'
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
   id 'io.codearte.nexus-staging' version '0.9.0'
   // This adds the ability to print a taskTree
   // ./gradlew <task1> ... <taskN> taskTree
   id "com.dorongold.task-tree" version "1.3"
+}
+
+buildScan {
+  licenseAgreementUrl = 'https://gradle.com/terms-of-service'
+  licenseAgree = 'yes'
 }
 
 if (deployUrl.contains('nexus')) {
@@ -97,6 +104,7 @@ if (hasProperty('testVM')) {
 }
 
 subprojects {
+
   apply plugin: 'java'
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
