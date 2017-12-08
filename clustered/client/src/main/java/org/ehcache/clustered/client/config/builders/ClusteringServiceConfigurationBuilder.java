@@ -99,7 +99,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
-  public ClusteringServiceConfigurationBuilder timeouts(Timeouts.Builder timeoutsBuilder) {
+  public ClusteringServiceConfigurationBuilder timeouts(Builder<? extends Timeouts> timeoutsBuilder) {
     return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeoutsBuilder.build(), this.autoCreate);
   }
 
