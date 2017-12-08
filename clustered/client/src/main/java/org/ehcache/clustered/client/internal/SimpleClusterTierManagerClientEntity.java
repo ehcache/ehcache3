@@ -32,7 +32,6 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -55,7 +54,7 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
   }
 
   @Override
-  public void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException {
+  public void validate(ServerSideConfiguration config) throws ClusterException {
     invokeInternal(messageFactory.validateStoreManager(config), false);
   }
 
@@ -64,14 +63,14 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
     try {
       PrepareForDestroy response = (PrepareForDestroy) invokeInternal(messageFactory.prepareForDestroy(), true);
       return response.getStores();
-    } catch (ClusterException | TimeoutException e) {
+    } catch (ClusterException e) {
       // TODO handle this
     }
     return null;
   }
 
   private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)
-      throws ClusterException, TimeoutException {
+      throws ClusterException {
 
     try {
       EhcacheEntityResponse response = waitFor(invokeAsync(message, replicate));
