@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
@@ -62,6 +63,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {
@@ -168,8 +170,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
       "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
       "SERVER_ENTITY_DESTROYED",
-      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
-      "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_UNFETCHED"
+      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
+      "SERVER_ENTITY_UNFETCHED"
     );
 
     sendManagementCallOnEntityToCollectStats();
@@ -249,22 +251,32 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
-  protected static List<ContextualNotification> waitForAllNotifications(String... notificationTypes) throws InterruptedException {
+  protected static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
 //    System.out.println("waitForAllNotifications: " + waitingFor);
-    return nmsService.waitForMessage(message -> {
-      if (message.getType().equals("NOTIFICATION")) {
-        for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
-          if (waitingFor.remove(notification.getType())) {
-//            System.out.println(" - " + notification.getType());
+
+    Thread t = new Thread(() -> {
+      try {
+        nmsService.waitForMessage(message -> {
+          if (message.getType().equals("NOTIFICATION")) {
+            for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
+              if (waitingFor.remove(notification.getType())) {
+//                System.out.println("Remove " + notification.getType());
+//                System.out.println("Still waiting for: " + waitingFor);
+              }
+            }
           }
-        }
+          return waitingFor.isEmpty();
+        });
+      } catch (InterruptedException e) {
+        // Get out
       }
-      return waitingFor.isEmpty();
-    }).stream()
-      .filter(message -> message.getType().equals("NOTIFICATION"))
-      .flatMap(message -> message.unwrap(ContextualNotification.class).stream())
-      .collect(Collectors.toList());
+    });
+    t.start();
+    t.join(30_000); // should be way enough to receive all messages
+    t.interrupt(); // we interrupt the thread that is waiting on the message queue
+
+    assertTrue("Still waiting for: " + waitingFor, waitingFor.isEmpty());
   }
 }

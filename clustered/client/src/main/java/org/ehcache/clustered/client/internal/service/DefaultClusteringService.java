@@ -188,9 +188,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (TimeoutException e) {
-        throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
-            + "'; create operation timed out", e);
       }
       try {
         return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
@@ -215,8 +212,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (ClusterTierManagerNotFoundException e) {
-      // Ignore - was removed by a racing client
     } catch (EntityBusyException e) {
       // Ignore - we have a racy client
       LOGGER.debug("ClusterTierManager {} marked busy when trying to clean it up", entityIdentifier);
@@ -252,8 +247,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (ClusterTierManagerNotFoundException e) {
-      throw new CachePersistenceException("Cluster tiers on " + this.clusterUri + " not found", e);
     } catch (EntityBusyException e) {
       throw new CachePersistenceException("Can not delete cluster tiers on " + this.clusterUri, e);
     }

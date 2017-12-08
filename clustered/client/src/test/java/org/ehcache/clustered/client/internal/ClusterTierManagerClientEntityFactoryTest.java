@@ -39,6 +39,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
@@ -62,7 +63,6 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
   @Test
   public void testCreate() throws Exception {
-    when(entityRef.fetchEntity(null)).thenReturn(entity);
     when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
@@ -70,7 +70,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
     factory.create("test", null);
     verify(entityRef).create(isA(ClusterTierManagerConfiguration.class));
-    verify(entity).close();
+    verifyNoMoreInteractions(entityRef);
   }
 
   @Test
