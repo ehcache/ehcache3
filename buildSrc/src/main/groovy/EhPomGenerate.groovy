@@ -45,13 +45,6 @@ class EhPomGenerate implements Plugin<Project> {
       }
     }
 
-    //ensure that we generate maven stuff and delay resolution as the first task is created dynamically
-    project.processResources.dependsOn {
-      project.tasks.findAll { task ->
-        task.name == 'generatePomFileForMavenJavaPublication' || task.name == 'writeMavenProperties'
-      }
-    }
-
     // Configure pom generation
     project.publishing {
       publications {
@@ -111,11 +104,20 @@ class EhPomGenerate implements Plugin<Project> {
       }
     }
 
-    // Pick up pom.xml and pom.properties from temp location
-    project.sourceSets {
-      main {
-        resources {
-          srcDir "${project.buildDir}/mvn"
+    if (utils.isReleaseVersion) {
+      //ensure that we generate maven stuff and delay resolution as the first task is created dynamically
+      project.processResources.dependsOn {
+        project.tasks.findAll { task ->
+          task.name == 'generatePomFileForMavenJavaPublication' || task.name == 'writeMavenProperties'
+        }
+      }
+
+      // Pick up pom.xml and pom.properties from temp location
+      project.sourceSets {
+        main {
+          resources {
+            srcDir "${project.buildDir}/mvn"
+          }
         }
       }
     }
