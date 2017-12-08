@@ -256,7 +256,7 @@ public class ClusteringServiceConfiguration
   public String readableString() {
     return this.getClass().getName() + ":\n    " +
         "clusterUri: " + getClusterUri()+ "\n    " +
-        "readOperationTimeout: " + getReadOperationTimeout()+ "\n    " +
+        "timeouts: " + getTimeouts()+ "\n    " +
         "autoCreate: " + isAutoCreate() + "\n    " +
         "defaultServerResource: " + serverConfiguration.getDefaultServerResource() + "\n    " +
         readablePoolsString();

@@ -48,30 +48,30 @@ public class ClusteringServiceConfigurationTest {
   }
 
   @Test
-  public void testOperationTimeouts() throws Exception {
+  public void testTimeouts() throws Exception {
     Timeouts timeouts = Timeouts.builder().build();
     assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getTimeouts()).isSameAs(timeouts);
   }
 
   @Test
-  public void testDefaultOperationTimeouts() throws Exception {
+  public void testDefaultTimeouts() throws Exception {
     assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(Timeouts.builder().build());
   }
 
   @Test
-  public void testOperationTimeoutsCannotBeNull2Args() throws Exception {
+  public void testTimeoutsCannotBeNull2Args() throws Exception {
     expectedException.expect(NullPointerException.class);
     new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null);
   }
 
   @Test
-  public void testOperationTimeoutsCannotBeNull3Args() throws Exception {
+  public void testTimeoutsCannotBeNull3Args() throws Exception {
     expectedException.expect(NullPointerException.class);
     new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null, new ServerSideConfiguration(Collections.emptyMap()));
   }
 
   @Test
-  public void testOperationTimeoutsCannotBeNull4Args() throws Exception {
+  public void testTimeoutsCannotBeNull4Args() throws Exception {
     expectedException.expect(NullPointerException.class);
     new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null, true, new ServerSideConfiguration(Collections.emptyMap()));
   }
