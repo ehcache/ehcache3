@@ -206,12 +206,12 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     performWaitingForHashInvalidation(key, () -> {
       delegate.append(key, payLoad);
       return null;
-    }, entity.getTimeouts().getMutativeOperationTimeout());
+    }, entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
-    return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getMutativeOperationTimeout());
+    return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
@@ -224,6 +224,6 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     performWaitingForAllInvalidation(() -> {
       delegate.clear();
       return null;
-    }, entity.getTimeouts().getMutativeOperationTimeout());
+    }, entity.getTimeouts().getWriteOperationTimeout());
   }
 }

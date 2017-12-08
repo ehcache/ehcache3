@@ -21,8 +21,6 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import java.time.Duration;
 import java.util.Objects;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import java.util.function.LongSupplier;
 
 /**
@@ -35,12 +33,12 @@ public final class Timeouts {
   public static final Duration INFINITE_TIMEOUT = Duration.ofMillis(Long.MAX_VALUE);
 
   private final Duration readOperationTimeout;
-  private final Duration mutativeOperationTimeout;
+  private final Duration writeOperationTimeout;
   private final Duration connectionTimeout;
 
-  private Timeouts(Duration readOperationTimeout, Duration mutativeOperationTimeout, Duration connectionTimeout) {
+  private Timeouts(Duration readOperationTimeout, Duration writeOperationTimeout, Duration connectionTimeout) {
     this.readOperationTimeout = readOperationTimeout;
-    this.mutativeOperationTimeout = mutativeOperationTimeout;
+    this.writeOperationTimeout = writeOperationTimeout;
     this.connectionTimeout = connectionTimeout;
   }
 
@@ -48,8 +46,8 @@ public final class Timeouts {
     return readOperationTimeout;
   }
 
-  public Duration getMutativeOperationTimeout() {
-    return mutativeOperationTimeout;
+  public Duration getWriteOperationTimeout() {
+    return writeOperationTimeout;
   }
 
   public Duration getConnectionTimeout() {
@@ -66,7 +64,7 @@ public final class Timeouts {
     if (!readOperationTimeout.equals(timeouts.readOperationTimeout)) {
       return false;
     }
-    if (!mutativeOperationTimeout.equals(timeouts.mutativeOperationTimeout)) {
+    if (!writeOperationTimeout.equals(timeouts.writeOperationTimeout)) {
       return false;
     }
     return connectionTimeout.equals(timeouts.connectionTimeout);
@@ -75,7 +73,7 @@ public final class Timeouts {
   @Override
   public int hashCode() {
     int result = readOperationTimeout.hashCode();
-    result = 31 * result + mutativeOperationTimeout.hashCode();
+    result = 31 * result + writeOperationTimeout.hashCode();
     result = 31 * result + connectionTimeout.hashCode();
     return result;
   }
@@ -92,10 +90,10 @@ public final class Timeouts {
   @Override
   public String toString() {
     return "Timeouts{" +
-        "readOperation=" + readOperationTimeout +
-        ", mutativeOperation=" + mutativeOperationTimeout +
-        ", connection=" + connectionTimeout +
-        '}';
+           "readOperation=" + readOperationTimeout +
+           ", writeOperation=" + writeOperationTimeout +
+           ", connection=" + connectionTimeout +
+           '}';
   }
 
   /**
@@ -104,7 +102,7 @@ public final class Timeouts {
    */
   public static final class Builder implements org.ehcache.config.Builder<Timeouts> {
     private Duration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private Duration mutativeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
+    private Duration writeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
     private Duration connectionTimeout = INFINITE_TIMEOUT;
 
     /**
@@ -121,15 +119,15 @@ public final class Timeouts {
     }
 
     /**
-     * Sets the timeout for mutative operations like {@code put} and {@code remove}. The default value for this timeout
+     * Sets the timeout for write operations like {@code put} and {@code remove}. The default value for this timeout
      * is 5 seconds.
      *
-     * @param mutativeOperationTimeout the {@code Duration} to use for a mutative operation timeout
+     * @param writeOperationTimeout the {@code Duration} to use for a write operation timeout
      *
      * @return this {@code Builder}
      */
-    public Builder setMutativeOperationTimeout(Duration mutativeOperationTimeout) {
-      this.mutativeOperationTimeout = Objects.requireNonNull(mutativeOperationTimeout, "Mutative operation timeout can't be null");
+    public Builder setWriteOperationTimeout(Duration writeOperationTimeout) {
+      this.writeOperationTimeout = Objects.requireNonNull(writeOperationTimeout, "Write operation timeout can't be null");
       return this;
     }
 
@@ -152,7 +150,7 @@ public final class Timeouts {
      * @return a new {@code Timeouts} instance
      */
     public Timeouts build() {
-      return new Timeouts(readOperationTimeout, mutativeOperationTimeout, connectionTimeout);
+      return new Timeouts(readOperationTimeout, writeOperationTimeout, connectionTimeout);
     }
   }
 }

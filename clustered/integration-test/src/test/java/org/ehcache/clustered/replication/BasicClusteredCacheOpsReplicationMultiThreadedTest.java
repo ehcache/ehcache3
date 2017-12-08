@@ -122,7 +122,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
             .timeouts(Timeouts.builder() // we need to give some time for the failover to occur
                 .setReadOperationTimeout(Duration.ofMinutes(1))
-                .setMutativeOperationTimeout(Duration.ofMinutes(1)))
+                .setWriteOperationTimeout(Duration.ofMinutes(1)))
             .autoCreate()
             .defaultServerResource("primary-server-resource"));
     CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);

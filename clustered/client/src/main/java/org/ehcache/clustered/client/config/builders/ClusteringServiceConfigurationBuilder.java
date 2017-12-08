@@ -74,7 +74,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   /**
    * Adds timeouts.
    * Read operations which time out return a result comparable to a cache miss.
-   * Mutative operations which time out won't do anything.
+   * Write operations which time out won't do anything.
    * Lifecycle operations which time out will fail with exception
    *
    * @param timeouts the amount of time permitted for all operations
@@ -90,7 +90,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   /**
    * Adds timeouts.
    * Read operations which time out return a result comparable to a cache miss.
-   * Mutative operations which time out won't do anything.
+   * Write operations which time out won't do anything.
    * Lifecycle operations which time out will fail with exception
    *
    * @param timeoutsBuilder the builder for amount of time permitted for all operations

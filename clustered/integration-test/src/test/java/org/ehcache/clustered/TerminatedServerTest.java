@@ -473,7 +473,7 @@ public class TerminatedServerTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .timeouts(Timeouts.builder().setMutativeOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .timeouts(Timeouts.builder().setWriteOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",
@@ -510,7 +510,7 @@ public class TerminatedServerTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .timeouts(Timeouts.builder().setMutativeOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .timeouts(Timeouts.builder().setWriteOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",
@@ -545,7 +545,7 @@ public class TerminatedServerTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .timeouts(Timeouts.builder().setMutativeOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .timeouts(Timeouts.builder().setWriteOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",
@@ -581,7 +581,7 @@ public class TerminatedServerTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .timeouts(Timeouts.builder().setMutativeOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .timeouts(Timeouts.builder().setWriteOperationTimeout(Duration.of(1, ChronoUnit.SECONDS)).build())
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",

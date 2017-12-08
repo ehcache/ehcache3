@@ -125,8 +125,8 @@ public class ClusteringServiceConfigurationParserTest {
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
             "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
-            "      <tc:mutative-timeout unit=\"minutes\">10</tc:mutative-timeout>",
-            "      <tc:lifecycle-timeout unit=\"minutes\">15</tc:lifecycle-timeout>",
+            "      <tc:write-timeout unit=\"minutes\">10</tc:write-timeout>",
+            "      <tc:connection-timeout unit=\"minutes\">15</tc:connection-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -145,7 +145,8 @@ public class ClusteringServiceConfigurationParserTest {
 
     Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
     assertThat(timeouts.getReadOperationTimeout(), is(Duration.of(5, MINUTES)));
-    assertThat(timeouts.getMutativeOperationTimeout(), is(Duration.of(10, MINUTES)));
+    assertThat(timeouts.getWriteOperationTimeout(), is(Duration.of(10, MINUTES)));
+    assertThat(timeouts.getConnectionTimeout(), is(Duration.of(15, MINUTES)));
   }
 
   @Test

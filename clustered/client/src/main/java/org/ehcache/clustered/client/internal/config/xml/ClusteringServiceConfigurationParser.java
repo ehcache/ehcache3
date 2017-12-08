@@ -106,7 +106,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
       ServerSideConfig serverConfig = null;
       URI connectionUri = null;
-      Duration getTimeout = null, putTimeout = null, lifecycleTimeout = null;
+      Duration getTimeout = null, putTimeout = null, connectionTimeout = null;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
@@ -131,17 +131,17 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
              */
             getTimeout = processTimeout(fragment, item);
 
-          } else if ("mutative-timeout".equals(item.getLocalName())) {
+          } else if ("write-timeout".equals(item.getLocalName())) {
             /*
-             * <mutative-timeout> is an optional element
+             * <write-timeout> is an optional element
              */
             putTimeout = processTimeout(fragment, item);
 
-          } else if ("lifecycle-timeout".equals(item.getLocalName())) {
+          } else if ("connection-timeout".equals(item.getLocalName())) {
             /*
-             * <lifecycle-timeout> is an optional element
+             * <connection-timeout> is an optional element
              */
-            lifecycleTimeout = processTimeout(fragment, item);
+            connectionTimeout = processTimeout(fragment, item);
 
           } else if ("server-side-config".equals(item.getLocalName())) {
             /*
@@ -153,7 +153,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       }
 
       try {
-        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, lifecycleTimeout);
+        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, connectionTimeout);
         if (serverConfig == null) {
           return new ClusteringServiceConfiguration(connectionUri, timeouts);
         }
@@ -174,13 +174,16 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 
-  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration lifecycleTimeout) {
+  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
     Timeouts.Builder timeouts = Timeouts.builder();
     if (getTimeout != null) {
       timeouts.setReadOperationTimeout(getTimeout);
     }
     if(putTimeout != null) {
-      timeouts.setMutativeOperationTimeout(putTimeout);
+      timeouts.setWriteOperationTimeout(putTimeout);
+    }
+    if(connectionTimeout != null) {
+      timeouts.setConnectionTimeout(connectionTimeout);
     }
     return timeouts.build();
   }
