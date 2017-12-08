@@ -23,9 +23,11 @@ class Utils {
 
   String version
   String revision
+  boolean isReleaseVersion
 
   Utils(version, logger) {
     this.version = version
+    this.isReleaseVersion = !version.endsWith('SNAPSHOT')
     def tmp = System.getenv("GIT_COMMIT")
     if(tmp != null) {
       revision = tmp
@@ -48,9 +50,10 @@ class Utils {
             'Implementation-Title': title,
             'Implementation-Version': "$version $revision",
             'Built-By': System.getProperty('user.name'),
-            'Built-JDK': System.getProperty('java.version'),
-            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-    )
+            'Built-JDK': System.getProperty('java.version'))
+    if (isReleaseVersion) {
+      manifest.attributes('Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"))
+    }
   }
 
   def pomFiller(pom, nameVar, descriptionVar) {
