@@ -220,7 +220,7 @@ public class BasicClusteredCacheTest {
                                     .with(clusteredDedicated("secondary-server-resource", 4, MemoryUnit.MB))));
 
     // The idea here is to add big things in the cache, and cause eviction of them to see if something crashes
-    
+
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
       Cache<Long, BigInteger> cache = cacheManager.getCache("small-cache", Long.class, BigInteger.class);
