@@ -189,9 +189,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   }
 
   private Duration processTimeout(Element parentElement, Node timeoutNode) {
-    Duration timeout;
     try {
-      // <read-timeout> is a direct subtype of ehcache:time-type; use JAXB to interpret it
+      // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
       JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
       Unmarshaller unmarshaller = context.createUnmarshaller();
       JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
@@ -203,12 +202,11 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
                 timeoutNode.getNodeName(), parentElement.getTagName(), amount));
       }
-      timeout = Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
+      return Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
 
     } catch (JAXBException e) {
       throw new XmlConfigurationException(e);
     }
-    return timeout;
   }
 
   private ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
