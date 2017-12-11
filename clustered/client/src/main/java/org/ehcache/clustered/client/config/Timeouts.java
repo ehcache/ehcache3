@@ -31,6 +31,7 @@ public final class Timeouts {
 
   public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.ofSeconds(5);
   public static final Duration INFINITE_TIMEOUT = Duration.ofMillis(Long.MAX_VALUE);
+  public static final Timeouts DEFAULT = Timeouts.builder().build();
 
   private final Duration readOperationTimeout;
   private final Duration writeOperationTimeout;

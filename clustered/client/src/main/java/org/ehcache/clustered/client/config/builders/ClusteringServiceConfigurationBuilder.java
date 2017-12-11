@@ -115,7 +115,8 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @throws NullPointerException if {@code unit} is {@code null}
    * @throws IllegalArgumentException if {@code amount} is negative
    *
-   * @deprecated
+   * @deprecated Use {@link #timeouts(Timeouts)}. Note that calling this method will override any timeouts previously set
+   * by setting the read operation timeout to the specified value and everything else to its default.
    */
   @Deprecated
   public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {

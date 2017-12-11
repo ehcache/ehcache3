@@ -56,24 +56,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(URI clusterUri) {
-    this(clusterUri, DEFAULT_OPERATION_TIMEOUT);
-  }
-
-  /**
-   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
-   *
-   * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
-   *                            read operations
-   *
-   * @throws NullPointerException if {@code clusterUri} is {@code null}
-   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
-   *
-   * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts)} instead
-   */
-  @Deprecated
-  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout) {
-    this(clusterUri, Timeouts.builder().setReadOperationTimeout(readOperationTimeout).build());
+    this(clusterUri, Timeouts.DEFAULT);
   }
 
   /**
@@ -99,25 +82,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(URI clusterUri, ServerSideConfiguration serverConfig) {
-    this(clusterUri, DEFAULT_OPERATION_TIMEOUT, serverConfig);
-  }
-
-  /**
-   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
-   *
-   * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
-   *                            read operations
-   * @param serverConfig  the server side entity configuration required
-   *
-   * @throws NullPointerException if {@code clusterUri} is {@code null}
-   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
-   *
-   * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts, ServerSideConfiguration)}
-   */
-  @Deprecated
-  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout, ServerSideConfiguration serverConfig) {
-    this(clusterUri, readOperationTimeout, false, serverConfig);
+    this(clusterUri, Timeouts.DEFAULT, serverConfig);
   }
 
   /**
@@ -145,26 +110,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
-    this(clusterUri, DEFAULT_OPERATION_TIMEOUT, autoCreate, serverConfig);
-  }
-
-  /**
-   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
-   *
-   * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
-   *                            read operations
-   * @param autoCreate {@code true} if server components should be auto created
-   * @param serverConfig  the server side entity configuration required
-   *
-   * @throws NullPointerException if {@code clusterUri} is {@code null}
-   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
-   *
-   * @deprecated Use {@link #ClusteringServiceConfiguration(URI, Timeouts, boolean, ServerSideConfiguration)}
-   */
-  @Deprecated
-  public ClusteringServiceConfiguration(URI clusterUri, Duration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
-    this(clusterUri, Timeouts.builder().setReadOperationTimeout(readOperationTimeout).build(), autoCreate, serverConfig);
+    this(clusterUri, Timeouts.DEFAULT, autoCreate, serverConfig);
   }
 
   /**
