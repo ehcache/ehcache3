@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -75,7 +76,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private DisconnectionListener disconnectionListener = () -> {
     // No op
   };
-  private Timeouts timeouts = Timeouts.builder().build();
+  private Timeouts timeouts = TimeoutsBuilder.get().build();
   private String storeIdentifier;
   private volatile boolean connected = true;
 

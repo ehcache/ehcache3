@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.client.config;
+package org.ehcache.clustered.client.config.builders;
 
+import org.ehcache.clustered.client.config.Timeouts;
 import org.junit.Test;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.*;
 
-public class TimeoutsTest {
+public class TimeoutsBuilderTest {
 
   @Test
   public void build_empty() throws Exception {
-    Timeouts t = Timeouts.builder().build();
+    Timeouts t = TimeoutsBuilder.get().build();
     assertThat(t.getReadOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
     assertThat(t.getWriteOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
     assertThat(t.getConnectionTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
@@ -33,7 +34,7 @@ public class TimeoutsTest {
 
   @Test
   public void build_filled() throws Exception {
-    Timeouts t = Timeouts.builder()
+    Timeouts t = TimeoutsBuilder.get()
       .setReadOperationTimeout(Duration.ofDays(1))
       .setWriteOperationTimeout(Duration.ofDays(2))
       .setConnectionTimeout(Duration.ofDays(3))

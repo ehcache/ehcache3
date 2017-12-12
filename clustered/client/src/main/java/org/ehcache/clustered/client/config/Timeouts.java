@@ -13,31 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.client.config;
 
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 
 import java.time.Duration;
-import java.util.Objects;
 
 import java.util.function.LongSupplier;
 
 /**
  * Describes the timeouts for {@link ClusterTierManagerClientEntity} operations.  Use
- * {@link #builder()} to construct an instance.
+ * {@link TimeoutsBuilder} to construct an instance.
  */
 public final class Timeouts {
 
   public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.ofSeconds(5);
   public static final Duration INFINITE_TIMEOUT = Duration.ofMillis(Long.MAX_VALUE);
-  public static final Timeouts DEFAULT = Timeouts.builder().build();
+  public static final Timeouts DEFAULT = new Timeouts(DEFAULT_OPERATION_TIMEOUT, DEFAULT_OPERATION_TIMEOUT, INFINITE_TIMEOUT);
 
   private final Duration readOperationTimeout;
   private final Duration writeOperationTimeout;
   private final Duration connectionTimeout;
 
-  private Timeouts(Duration readOperationTimeout, Duration writeOperationTimeout, Duration connectionTimeout) {
+  public Timeouts(Duration readOperationTimeout, Duration writeOperationTimeout, Duration connectionTimeout) {
     this.readOperationTimeout = readOperationTimeout;
     this.writeOperationTimeout = writeOperationTimeout;
     this.connectionTimeout = connectionTimeout;
@@ -79,10 +78,6 @@ public final class Timeouts {
     return result;
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   public static LongSupplier nanosStartingFromNow(Duration timeout) {
     long end = System.nanoTime() + timeout.toNanos();
     return () -> end - System.nanoTime();
@@ -95,63 +90,5 @@ public final class Timeouts {
            ", writeOperation=" + writeOperationTimeout +
            ", connection=" + connectionTimeout +
            '}';
-  }
-
-  /**
-   * Constructs instances of {@link Timeouts}.  When obtained from
-   * {@link Timeouts#builder()}, the default values are pre-set.
-   */
-  public static final class Builder implements org.ehcache.config.Builder<Timeouts> {
-    private Duration readOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private Duration writeOperationTimeout = DEFAULT_OPERATION_TIMEOUT;
-    private Duration connectionTimeout = INFINITE_TIMEOUT;
-
-    /**
-     * Sets the timeout for read operations.  The default value for this timeout is
-     * 5 seconds.
-     *
-     * @param readOperationTimeout the {@code Duration} to use for the read operation timeout
-     *
-     * @return this {@code Builder}
-     */
-    public Builder setReadOperationTimeout(Duration readOperationTimeout) {
-      this.readOperationTimeout = Objects.requireNonNull(readOperationTimeout, "Read operation timeout can't be null");
-      return this;
-    }
-
-    /**
-     * Sets the timeout for write operations like {@code put} and {@code remove}. The default value for this timeout
-     * is 5 seconds.
-     *
-     * @param writeOperationTimeout the {@code Duration} to use for a write operation timeout
-     *
-     * @return this {@code Builder}
-     */
-    public Builder setWriteOperationTimeout(Duration writeOperationTimeout) {
-      this.writeOperationTimeout = Objects.requireNonNull(writeOperationTimeout, "Write operation timeout can't be null");
-      return this;
-    }
-
-    /**
-     * Sets the timeout for connecting to the server. The default value for this timeout
-     * is {@link #INFINITE_TIMEOUT}.
-     *
-     * @param connectionTimeout the {@code Duration} to use for a connection timeout
-     *
-     * @return this {@code Builder}
-     */
-    public Builder setConnectionTimeout(Duration connectionTimeout) {
-      this.connectionTimeout = Objects.requireNonNull(connectionTimeout, "Connection timeout can't be null");
-      return this;
-    }
-
-    /**
-     * Gets a new {@link Timeouts} instance using the current timeout duration settings.
-     *
-     * @return a new {@code Timeouts} instance
-     */
-    public Timeouts build() {
-      return new Timeouts(readOperationTimeout, writeOperationTimeout, connectionTimeout);
-    }
   }
 }

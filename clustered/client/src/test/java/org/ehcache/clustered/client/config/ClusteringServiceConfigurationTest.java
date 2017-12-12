@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.config;
 
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -49,13 +50,13 @@ public class ClusteringServiceConfigurationTest {
 
   @Test
   public void testTimeouts() throws Exception {
-    Timeouts timeouts = Timeouts.builder().build();
+    Timeouts timeouts = TimeoutsBuilder.get().build();
     assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getTimeouts()).isSameAs(timeouts);
   }
 
   @Test
   public void testDefaultTimeouts() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(Timeouts.builder().build());
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(TimeoutsBuilder.get().build());
   }
 
   @Test

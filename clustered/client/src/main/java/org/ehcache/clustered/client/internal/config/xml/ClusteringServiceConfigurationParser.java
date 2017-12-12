@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
@@ -175,17 +176,17 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   }
 
   private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
-    Timeouts.Builder timeouts = Timeouts.builder();
+    TimeoutsBuilder builder = TimeoutsBuilder.get();
     if (getTimeout != null) {
-      timeouts.setReadOperationTimeout(getTimeout);
+      builder.setReadOperationTimeout(getTimeout);
     }
     if(putTimeout != null) {
-      timeouts.setWriteOperationTimeout(putTimeout);
+      builder.setWriteOperationTimeout(putTimeout);
     }
     if(connectionTimeout != null) {
-      timeouts.setConnectionTimeout(connectionTimeout);
+      builder.setConnectionTimeout(connectionTimeout);
     }
-    return timeouts.build();
+    return builder.build();
   }
 
   private Duration processTimeout(Element parentElement, Node timeoutNode) {

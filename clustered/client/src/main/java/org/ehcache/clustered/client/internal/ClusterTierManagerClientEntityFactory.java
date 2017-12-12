@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
@@ -58,7 +59,7 @@ public class ClusterTierManagerClientEntityFactory {
   private final Timeouts entityTimeouts;
 
   public ClusterTierManagerClientEntityFactory(Connection connection) {
-    this(connection, Timeouts.builder().build());
+    this(connection, TimeoutsBuilder.get().build());
   }
 
   public ClusterTierManagerClientEntityFactory(Connection connection, Timeouts entityTimeouts) {

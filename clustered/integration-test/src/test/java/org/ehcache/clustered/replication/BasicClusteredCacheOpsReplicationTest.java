@@ -19,10 +19,10 @@ package org.ehcache.clustered.replication;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
-import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -88,7 +88,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
-            .timeouts(Timeouts.builder() // we need to give some time for the failover to occur
+            .timeouts(TimeoutsBuilder.get() // we need to give some time for the failover to occur
                 .setReadOperationTimeout(Duration.ofMinutes(1))
                 .setWriteOperationTimeout(Duration.ofMinutes(1)))
             .autoCreate()

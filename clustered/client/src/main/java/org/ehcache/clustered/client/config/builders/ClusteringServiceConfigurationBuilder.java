@@ -44,7 +44,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(clusterUri, Timeouts.builder().build(), false);
+    return new ClusteringServiceConfigurationBuilder(clusterUri, TimeoutsBuilder.get().build(), false);
   }
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri, Timeouts timeouts, boolean autoCreate) {
@@ -121,7 +121,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   @Deprecated
   public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
     Duration readTimeout = Duration.of(duration, toChronoUnit(unit));
-    return timeouts(Timeouts.builder().setReadOperationTimeout(readTimeout).build());
+    return timeouts(TimeoutsBuilder.get().setReadOperationTimeout(readTimeout).build());
   }
 
   @Override

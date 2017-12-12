@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
@@ -177,7 +178,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getTimeouts(), is(Timeouts.builder().build()));
+    assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.get().build()));
   }
 
   @Test
