@@ -37,11 +37,14 @@ import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
@@ -57,6 +60,9 @@ import static org.junit.Assert.fail;
  * @author Ludovic Orban
  */
 public class XAGettingStarted {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   @Before
   public void setUp() throws Exception {
@@ -209,10 +215,9 @@ public class XAGettingStarted {
     // end::testXACacheWithXMLConfig[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return folder.newFolder().getAbsolutePath();
   }
-
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
