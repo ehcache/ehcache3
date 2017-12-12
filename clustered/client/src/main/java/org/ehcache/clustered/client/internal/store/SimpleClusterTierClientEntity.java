@@ -170,7 +170,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
-      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getWriteOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
+      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
