@@ -50,13 +50,13 @@ public class ClusteringServiceConfigurationTest {
 
   @Test
   public void testTimeouts() throws Exception {
-    Timeouts timeouts = TimeoutsBuilder.get().build();
+    Timeouts timeouts = TimeoutsBuilder.timeouts().build();
     assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getTimeouts()).isSameAs(timeouts);
   }
 
   @Test
   public void testDefaultTimeouts() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(TimeoutsBuilder.get().build());
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(TimeoutsBuilder.timeouts().build());
   }
 
   @Test

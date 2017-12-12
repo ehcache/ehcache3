@@ -59,7 +59,7 @@ public class ClusterTierManagerClientEntityFactory {
   private final Timeouts entityTimeouts;
 
   public ClusterTierManagerClientEntityFactory(Connection connection) {
-    this(connection, TimeoutsBuilder.get().build());
+    this(connection, TimeoutsBuilder.timeouts().build());
   }
 
   public ClusterTierManagerClientEntityFactory(Connection connection, Timeouts entityTimeouts) {

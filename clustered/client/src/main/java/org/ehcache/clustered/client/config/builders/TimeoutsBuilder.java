@@ -34,7 +34,7 @@ public final class TimeoutsBuilder implements Builder<Timeouts> {
    *
    * @return timeout get
    */
-  public static TimeoutsBuilder get() {
+  public static TimeoutsBuilder timeouts() {
     return new TimeoutsBuilder();
   }
 
@@ -48,7 +48,7 @@ public final class TimeoutsBuilder implements Builder<Timeouts> {
    *
    * @return this {@code Builder}
    */
-  public TimeoutsBuilder setReadOperationTimeout(Duration readOperationTimeout) {
+  public TimeoutsBuilder read(Duration readOperationTimeout) {
     this.readOperationTimeout = Objects.requireNonNull(readOperationTimeout, "Read operation timeout can't be null");
     return this;
   }
@@ -61,7 +61,7 @@ public final class TimeoutsBuilder implements Builder<Timeouts> {
    *
    * @return this {@code Builder}
    */
-  public TimeoutsBuilder setWriteOperationTimeout(Duration writeOperationTimeout) {
+  public TimeoutsBuilder write(Duration writeOperationTimeout) {
     this.writeOperationTimeout = Objects.requireNonNull(writeOperationTimeout, "Write operation timeout can't be null");
     return this;
   }
@@ -74,7 +74,7 @@ public final class TimeoutsBuilder implements Builder<Timeouts> {
    *
    * @return this {@code Builder}
    */
-  public TimeoutsBuilder setConnectionTimeout(Duration connectionTimeout) {
+  public TimeoutsBuilder connection(Duration connectionTimeout) {
     this.connectionTimeout = Objects.requireNonNull(connectionTimeout, "Connection timeout can't be null");
     return this;
   }

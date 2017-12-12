@@ -26,7 +26,7 @@ public class TimeoutsBuilderTest {
 
   @Test
   public void build_empty() throws Exception {
-    Timeouts t = TimeoutsBuilder.get().build();
+    Timeouts t = TimeoutsBuilder.timeouts().build();
     assertThat(t.getReadOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
     assertThat(t.getWriteOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
     assertThat(t.getConnectionTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
@@ -34,10 +34,10 @@ public class TimeoutsBuilderTest {
 
   @Test
   public void build_filled() throws Exception {
-    Timeouts t = TimeoutsBuilder.get()
-      .setReadOperationTimeout(Duration.ofDays(1))
-      .setWriteOperationTimeout(Duration.ofDays(2))
-      .setConnectionTimeout(Duration.ofDays(3))
+    Timeouts t = TimeoutsBuilder.timeouts()
+      .read(Duration.ofDays(1))
+      .write(Duration.ofDays(2))
+      .connection(Duration.ofDays(3))
       .build();
     assertThat(t.getReadOperationTimeout()).isEqualTo(Duration.ofDays(1));
     assertThat(t.getWriteOperationTimeout()).isEqualTo(Duration.ofDays(2));

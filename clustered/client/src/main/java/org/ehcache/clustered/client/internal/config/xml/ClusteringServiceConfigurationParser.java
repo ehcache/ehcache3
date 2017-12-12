@@ -176,15 +176,15 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   }
 
   private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
-    TimeoutsBuilder builder = TimeoutsBuilder.get();
+    TimeoutsBuilder builder = TimeoutsBuilder.timeouts();
     if (getTimeout != null) {
-      builder.setReadOperationTimeout(getTimeout);
+      builder.read(getTimeout);
     }
     if(putTimeout != null) {
-      builder.setWriteOperationTimeout(putTimeout);
+      builder.write(putTimeout);
     }
     if(connectionTimeout != null) {
-      builder.setConnectionTimeout(connectionTimeout);
+      builder.connection(connectionTimeout);
     }
     return builder.build();
   }

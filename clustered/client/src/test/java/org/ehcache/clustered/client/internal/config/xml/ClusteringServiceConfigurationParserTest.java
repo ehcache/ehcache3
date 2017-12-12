@@ -178,7 +178,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.get().build()));
+    assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.timeouts().build()));
   }
 
   @Test

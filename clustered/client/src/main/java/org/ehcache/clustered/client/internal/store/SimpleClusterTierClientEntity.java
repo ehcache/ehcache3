@@ -76,7 +76,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private DisconnectionListener disconnectionListener = () -> {
     // No op
   };
-  private Timeouts timeouts = TimeoutsBuilder.get().build();
+  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
   private String storeIdentifier;
   private volatile boolean connected = true;
 
