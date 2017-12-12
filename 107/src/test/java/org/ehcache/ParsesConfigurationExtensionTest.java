@@ -83,7 +83,7 @@ public class ParsesConfigurationExtensionTest {
         assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
 
         final ExpiryPolicy<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiryPolicy();
-        assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.ExpiryPolicies$TimeToIdleExpiryPolicy"));
+        assertThat(expiry.getClass().getName(), equalTo("org.ehcache.config.builders.ExpiryPolicyBuilder$TimeToIdleExpiryPolicy"));
         assertThat(expiry.getExpiryForAccess(42L, null), equalTo(Duration.ofMinutes(2)));
 
         assertThat(runtimeConfiguration.getEvictionAdvisor(), instanceOf(com.pany.ehcache.MyEvictionAdvisor.class));

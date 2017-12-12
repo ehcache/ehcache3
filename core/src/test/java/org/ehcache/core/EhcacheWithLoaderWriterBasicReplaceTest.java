@@ -22,7 +22,6 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -543,7 +542,7 @@ public class EhcacheWithLoaderWriterBasicReplaceTest extends EhcacheBasicCrudBas
    * @return a new {@code EhcacheWithLoaderWriter} instance
    */
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    return getEhcache(cacheLoaderWriter, ExpiryPolicies.noExpiration());
+    return getEhcache(cacheLoaderWriter, ExpiryPolicy.NO_EXPIRY);
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, ExpiryPolicy<? super String, ? super String> expiry) {

@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -52,7 +52,7 @@ public abstract class ExpiryEhcacheTestBase {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
     cacheManager = builder.build(true);
     CacheConfigurationBuilder<Number, CharSequence> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
     testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.build());
   }
 

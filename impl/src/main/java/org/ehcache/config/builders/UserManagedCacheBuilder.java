@@ -47,7 +47,6 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
@@ -110,7 +109,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private String id;
   private final Set<Service> services = new HashSet<>();
   private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
-  private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicies.noExpiration();
+  private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;

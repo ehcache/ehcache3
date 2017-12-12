@@ -16,6 +16,7 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -26,7 +27,6 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.basic.NopStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -173,7 +173,7 @@ public class TieredStoreMutatorTest {
 
     // Not relevant to the test, just used to instantiate the OnHeapStore
     Store.Configuration<String, String> config = new StoreConfigurationImpl<>(String.class, String.class,
-      null, getClass().getClassLoader(), ExpiryPolicies.noExpiration(), resourcePools, 0, null, null);
+      null, getClass().getClassLoader(), ExpiryPolicyBuilder.noExpiration(), resourcePools, 0, null, null);
 
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
     CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,

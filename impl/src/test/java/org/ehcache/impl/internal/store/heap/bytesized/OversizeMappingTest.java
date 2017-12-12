@@ -19,8 +19,8 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -48,7 +48,7 @@ public class OversizeMappingTest {
   private static final String OVER_SIZED_VALUE = new String(new byte[1000]);
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicies.noExpiration(), Eviction.noAdvice(), 100);
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice(), 100);
   }
 
   private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final ExpiryPolicy<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,

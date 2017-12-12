@@ -18,11 +18,11 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -55,12 +55,12 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
       @Override
       public AuthoritativeTier<String, String> newStore() {
-        return newStore(null, null, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
@@ -70,7 +70,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
 

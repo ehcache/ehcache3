@@ -18,9 +18,9 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -57,12 +57,12 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
 
       @Override
       public Store<String, String> newStore() {
-        return newStore(null, null, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public Store<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
@@ -72,7 +72,7 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
 
       @Override
       public Store<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, ExpiryPolicies.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @SuppressWarnings("unchecked")

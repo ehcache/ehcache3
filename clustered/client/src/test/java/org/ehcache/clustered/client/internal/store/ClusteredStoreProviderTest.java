@@ -25,12 +25,12 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -169,7 +169,7 @@ public class ClusteredStoreProviderTest {
 
       @Override
       public ExpiryPolicy<? super Long, ? super String> getExpiry() {
-        return ExpiryPolicies.noExpiration();
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override

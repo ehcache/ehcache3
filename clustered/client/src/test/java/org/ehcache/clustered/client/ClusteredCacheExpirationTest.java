@@ -24,12 +24,12 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.TierStatistics;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
@@ -70,7 +70,7 @@ public class ClusteredCacheExpirationTest {
   }
 
   private ExpiryPolicy<Object, Object> oneSecondExpiration() {
-    return ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1));
+    return ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
   }
 
   @Before
@@ -117,7 +117,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testGetNoExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(ExpiryPolicies.noExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(ExpiryPolicyBuilder.noExpiration());
 
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 

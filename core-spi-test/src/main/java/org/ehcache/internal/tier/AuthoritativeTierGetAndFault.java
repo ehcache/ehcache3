@@ -17,7 +17,7 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
@@ -101,7 +101,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @Ignore
   public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newStoreWithExpiry(ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(1)), timeSource);
+    tier = factory.newStoreWithExpiry(TestExpiries.tTI(Duration.ofMillis(1L)), timeSource);
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);

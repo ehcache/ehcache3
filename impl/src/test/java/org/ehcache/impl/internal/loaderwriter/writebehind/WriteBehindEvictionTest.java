@@ -19,7 +19,7 @@ import java.time.Duration;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -34,7 +34,7 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
   @Override
   protected CacheConfigurationBuilder<String, String> configurationBuilder() {
     return newCacheConfigurationBuilder(String.class, String.class, heap(10))
-            .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(100)));
+            .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(100)));
   }
 
   @Override

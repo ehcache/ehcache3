@@ -184,12 +184,22 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       serviceConfigurationsToStringBuilder.append(" None");
     }
 
+    String expiryPolicy = "";
+
+    if (expiryPolicy != null) {
+      if (ExpiryPolicy.NO_EXPIRY == expiry) {
+        expiryPolicy = "NoExpiryPolicy";
+      } else {
+        expiryPolicy = expiry.toString();
+      }
+    }
+
     return
         "keyType: " + keyType.getName() + "\n" +
         "valueType: " + valueType.getName() + "\n" +
         "serviceConfigurations:" + serviceConfigurationsToStringBuilder.toString().replace("\n", "\n    ") + "\n" +
         "evictionAdvisor: " + ((evictionAdvisor != null) ? evictionAdvisor.getClass().getName() : "None") + "\n" +
-        "expiry: " + ((expiry != null) ? expiry.getClass().getSimpleName() : "") + "\n" +
+        "expiry: " + expiryPolicy + "\n" +
         "resourcePools: " + "\n    " + ((resourcePools instanceof HumanReadable) ? ((HumanReadable)resourcePools).readableString() : "").replace("\n", "\n    ");
   }
 }

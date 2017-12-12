@@ -24,6 +24,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
@@ -33,7 +34,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
@@ -343,11 +343,11 @@ public class XmlConfiguration implements Configuration {
       }
       expiry = tmpExpiry;
     } else if (parsedExpiry.isTTL()) {
-      expiry = ExpiryPolicies.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else if (parsedExpiry.isTTI()) {
-      expiry = ExpiryPolicies.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else {
-      expiry = ExpiryPolicies.noExpiration();
+      expiry = ExpiryPolicyBuilder.noExpiration();
     }
     return expiry;
   }

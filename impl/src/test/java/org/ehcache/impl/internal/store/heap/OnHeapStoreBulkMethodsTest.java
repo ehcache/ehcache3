@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.store.heap;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -54,7 +54,7 @@ public class OnHeapStoreBulkMethodsTest {
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(ExpiryPolicies.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
@@ -73,7 +73,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(ExpiryPolicies.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());

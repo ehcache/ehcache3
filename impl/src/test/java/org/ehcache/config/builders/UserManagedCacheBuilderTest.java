@@ -21,7 +21,6 @@ import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
@@ -80,7 +79,7 @@ public class UserManagedCacheBuilderTest {
   @Test
   public void testTypedCacheWithExpirationPolicy() {
     try (UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
-      .withExpiry(ExpiryPolicies.timeToIdleExpiration(Duration.ofSeconds(30)))
+      .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(30)))
       .build(true)) {
       assertThat(cache, notNullValue());
     }

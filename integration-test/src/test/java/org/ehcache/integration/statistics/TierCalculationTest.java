@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.data.MapEntry;
 import org.ehcache.Cache;
@@ -28,9 +27,9 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
@@ -65,7 +64,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     CacheConfiguration<Integer, String> cacheConfiguration =
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();

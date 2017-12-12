@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.offheap;
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.StoreAccessException;
@@ -29,7 +30,6 @@ import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -51,6 +51,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
@@ -88,7 +89,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetAndRemoveNoValue() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.noExpiration());
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.noExpiration());
 
     assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
     validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.MISS));
@@ -96,7 +97,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetAndRemoveValue() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.noExpiration());
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.noExpiration());
 
     offHeapStore.put("1", "one");
     assertThat(offHeapStore.getAndRemove("1").value(), equalTo("one"));
@@ -106,7 +107,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetAndRemoveExpiredElementReturnsNull() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
 
@@ -124,7 +125,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testInstallMapping() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     assertThat(offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("one", timeSource.getTimeMillis(), 15)).value(), equalTo("one"));
 
@@ -142,7 +143,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testInvalidateKeyAbsent() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
     offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
@@ -154,7 +155,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testInvalidateKeyPresent() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     offHeapStore.put("1", "one");
 
@@ -170,7 +171,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testClear() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     offHeapStore.put("1", "one");
     offHeapStore.put("2", "two");
@@ -184,7 +185,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testWriteBackOfValueHolder() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
     offHeapStore.put("key1", "value1");
     timeSource.advanceTime(10);
@@ -198,7 +199,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testEvictionAdvisor() throws StoreAccessException {
-    ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
     EvictionAdvisor<String, byte[]> evictionAdvisor = (key, value) -> true;
 
     performEvictionTest(timeSource, expiry, evictionAdvisor);
@@ -206,7 +207,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testBrokenEvictionAdvisor() throws StoreAccessException {
-    ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
     EvictionAdvisor<String, byte[]> evictionAdvisor = (key, value) -> {
       throw new UnsupportedOperationException("Broken advisor!");
     };
@@ -216,7 +217,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testFlushUpdatesAccessStats() throws StoreAccessException {
-    ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(15L));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
     offHeapStore = createAndInitStore(timeSource, expiry);
     try {
       final String key = "foo";
@@ -240,7 +241,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testFlushUpdatesHits() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.noExpiration());
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     final String key = "foo1";
     final String value = "bar1";
     offHeapStore.put(key, value);
@@ -255,7 +256,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testExpiryEventFiredOnExpiredCachedEntry() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
 
     final List<String> expiredKeys = new ArrayList<>();
     offHeapStore.getStoreEventSource().addEventListener(event -> {
@@ -279,7 +280,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetWithExpiryOnAccess() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.builder().setAccess(Duration.ZERO).build());
+    offHeapStore = createAndInitStore(timeSource, expiry().access(Duration.ZERO).build());
     offHeapStore.put("key", "value");
     final AtomicReference<String> expired = new AtomicReference<>();
     offHeapStore.getStoreEventSource().addEventListener(event -> {
@@ -368,7 +369,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testGetAndFaultOnExpiredEntry() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
     try {
       offHeapStore.put("key", "value");
       timeSource.advanceTime(20L);
@@ -385,7 +386,7 @@ public abstract class AbstractOffHeapStoreTest {
   public void testComputeExpiresOnAccess() throws StoreAccessException {
     timeSource.advanceTime(1000L);
     offHeapStore = createAndInitStore(timeSource,
-      ExpiryPolicies.builder().setAccess(Duration.ZERO).setUpdate(Duration.ZERO).build());
+      expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
     Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> s2, () -> false);
@@ -398,7 +399,7 @@ public abstract class AbstractOffHeapStoreTest {
     timeSource.advanceTime(1000L);
 
     offHeapStore = createAndInitStore(timeSource,
-      ExpiryPolicies.builder().setAccess(Duration.ZERO).setUpdate(Duration.ZERO).build());
+      expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
     Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> "newValue", () -> false);
@@ -408,7 +409,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testComputeOnExpiredEntry() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
 
     offHeapStore.put("key", "value");
     timeSource.advanceTime(20L);
@@ -423,7 +424,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testComputeIfAbsentOnExpiredEntry() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
 
     offHeapStore.put("key", "value");
     timeSource.advanceTime(20L);
@@ -437,7 +438,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testIteratorDoesNotSkipOrExpiresEntries() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10L)));
 
     offHeapStore.put("key1", "value1");
     offHeapStore.put("key2", "value2");
@@ -466,7 +467,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testIteratorWithSingleExpiredEntry() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10L)));
 
     offHeapStore.put("key1", "value1");
 
@@ -480,7 +481,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testIteratorWithSingleNonExpiredEntry() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10L)));
 
     offHeapStore.put("key1", "value1");
 
@@ -493,7 +494,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   @Test
   public void testIteratorOnEmptyStore() throws Exception {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(10L)));
+    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10L)));
 
     Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
     assertFalse(iterator.hasNext());

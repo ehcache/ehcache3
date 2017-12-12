@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -79,7 +79,7 @@ public class OnHeapStoreValueCopierTest {
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Long.class);
     when(configuration.getValueType()).thenReturn(Value.class);
-    when(configuration.getExpiry()).thenReturn(ExpiryPolicies.noExpiration());
+    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     @SuppressWarnings("unchecked")
     Store.Configuration<Long, Value> config = configuration;
 

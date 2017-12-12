@@ -20,8 +20,8 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -42,7 +42,6 @@ import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -58,7 +57,7 @@ public class ExpiryEventsTest {
 
   private static final CacheConfigurationBuilder<Long, String> byRefCacheConfigBuilder =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+          .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<>(

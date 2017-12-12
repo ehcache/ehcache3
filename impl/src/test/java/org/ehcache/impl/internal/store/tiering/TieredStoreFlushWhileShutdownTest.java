@@ -19,8 +19,8 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -80,7 +80,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
       @Override
       public ExpiryPolicy<? super Number, ? super String> getExpiry() {
-        return ExpiryPolicies.noExpiration();
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override

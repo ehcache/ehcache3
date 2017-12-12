@@ -22,7 +22,7 @@ import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -59,7 +59,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @Before
   public void setUp() {
     timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(1)), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.tTL(Duration.ofMillis(1)), timeSource);
   }
 
   @After

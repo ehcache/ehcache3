@@ -20,7 +20,6 @@ import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -220,7 +219,7 @@ public class CacheConfigurationBuilderTest {
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
-    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(ExpiryPolicy.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
     builder
         .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
@@ -234,7 +233,7 @@ public class CacheConfigurationBuilderTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
             .offheap(10, MemoryUnit.MB));
 
-    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToIdleExpiration(ExpiryPolicy.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
     CacheConfiguration config = builder
         .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')

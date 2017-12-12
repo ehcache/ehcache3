@@ -17,11 +17,11 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -106,7 +106,7 @@ public class OnHeapStoreEvictionTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<>(
       String.class, String.class, noAdvice(),
-      getClass().getClassLoader(), ExpiryPolicies.noExpiration(), heap(1).build(), 1, null, null);
+      getClass().getClassLoader(), ExpiryPolicyBuilder.noExpiration(), heap(1).build(), 1, null, null);
     TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<>();
     final String firstKey = "daFirst";
     eventDispatcher.addEventListener(event -> {
@@ -149,7 +149,7 @@ public class OnHeapStoreEvictionTest {
 
       @Override
       public ExpiryPolicy<? super K, ? super V> getExpiry() {
-        return ExpiryPolicies.noExpiration();
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override

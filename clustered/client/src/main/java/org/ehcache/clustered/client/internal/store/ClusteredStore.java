@@ -37,6 +37,7 @@ import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIden
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
@@ -52,7 +53,6 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -634,7 +634,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
       ChainResolver<K, V> resolver;
       ExpiryPolicy<? super K, ? super V> expiry = storeConfig.getExpiry();
-      if (ExpiryPolicies.noExpiration().equals(expiry)) {
+      if (ExpiryPolicyBuilder.noExpiration().equals(expiry)) {
         resolver = new EternalChainResolver<>(codec);
       } else {
         resolver = new ExpiryChainResolver<>(codec, expiry);

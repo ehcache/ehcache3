@@ -21,10 +21,10 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
@@ -82,7 +82,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -190,7 +189,7 @@ public class XmlConfigurationTest {
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class,
         newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES));
     assertThat(example.build().getExpiryPolicy(),
-        equalTo((ExpiryPolicy) ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(30))));
+        equalTo((ExpiryPolicy) ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
@@ -213,11 +212,11 @@ public class XmlConfigurationTest {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
 
     ExpiryPolicy expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
-    ExpiryPolicy value = ExpiryPolicies.noExpiration();
+    ExpiryPolicy value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiryPolicy();
-    value = ExpiryPolicies.noExpiration();
+    value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiryPolicy();
@@ -229,11 +228,11 @@ public class XmlConfigurationTest {
     assertThat(expiry.getExpiryForUpdate(null, null, null), is(Duration.ofSeconds(42)));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiryPolicy();
-    value = ExpiryPolicies.timeToIdleExpiration(Duration.ofMillis(500));
+    value = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(500));
     assertThat(expiry, equalTo(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiryPolicy();
-    value = ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(30));
+    value = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30));
     assertThat(expiry, equalTo(value));
   }
 

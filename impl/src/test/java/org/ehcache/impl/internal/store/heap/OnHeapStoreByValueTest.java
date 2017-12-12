@@ -21,7 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.core.spi.store.StoreAccessException;
@@ -70,7 +70,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   @Test
   public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
     LongCopier keyCopier = new LongCopier();
-    OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, ExpiryPolicies.noExpiration(), Eviction.noAdvice(),
+    OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice(),
         keyCopier, new SerializingCopier<>(new JavaSerializer<>(ClassLoader.getSystemClassLoader())), 100);
 
     ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, key -> new AbstractValueHolder<Long>(-1, -1) {

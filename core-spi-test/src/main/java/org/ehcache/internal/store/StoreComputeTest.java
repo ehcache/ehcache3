@@ -17,7 +17,8 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -193,7 +194,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setAccess(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, Duration.ZERO, null), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);
@@ -211,7 +212,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setUpdate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, null, Duration.ZERO), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);

@@ -18,7 +18,8 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -30,7 +31,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-
 
 /**
  * Test the {@link Store#put(Object, Object)} contract of the
@@ -182,7 +182,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   public void indicatesValueReplacedWhenUpdateExpires() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
 
-    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setUpdate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, null, Duration.ZERO), timeSource);
 
     K key = factory.createKey(42L);
     V value = factory.createValue(42L);
@@ -203,7 +203,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   public void indicatesOperationNoOp() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
 
-    kvStore = factory.newStoreWithExpiry(ExpiryPolicies.builder().setCreate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(Duration.ZERO, null, null), timeSource);
 
     K key = factory.createKey(42L);
     try {

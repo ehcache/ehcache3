@@ -30,7 +30,7 @@ public final class Expirations {
    *
    * @return the no expiry instance
    *
-   * @deprecated Use {@link ExpiryPolicies#noExpiration()} instead
+   * @deprecated Use {@link org.ehcache.config.builders.ExpiryPolicyBuilder#noExpiration()} instead
    */
   @Deprecated
   public static Expiry<Object, Object> noExpiration() {
@@ -43,7 +43,7 @@ public final class Expirations {
    * @param timeToLive the TTL duration
    * @return a TTL expiry
    *
-   * @deprecated Use {@link ExpiryPolicies#timeToLiveExpiration(java.time.Duration)} instead
+   * @deprecated Use {@link org.ehcache.config.builders.ExpiryPolicyBuilder#timeToLiveExpiration(java.time.Duration)} instead
    */
   @Deprecated
   public static Expiry<Object, Object> timeToLiveExpiration(Duration timeToLive) {
@@ -59,7 +59,7 @@ public final class Expirations {
    * @param timeToIdle the TTI duration
    * @return a TTI expiry
    *
-   * @deprecated Use {@link ExpiryPolicies#timeToIdleExpiration(java.time.Duration)} instead
+   * @deprecated Use {@link org.ehcache.config.builders.ExpiryPolicyBuilder#timeToIdleExpiration(java.time.Duration)} instead
    */
   @Deprecated
   public static Expiry<Object, Object> timeToIdleExpiration(Duration timeToIdle) {
@@ -78,7 +78,7 @@ public final class Expirations {
    * @param <V> the value type for the cache
    * @return an {@link Expiry} builder
    *
-   * @deprecated Use {@link ExpiryPolicies#builder()} instead
+   * @deprecated Use {@link org.ehcache.config.builders.ExpiryPolicyBuilder#expiry()} instead
    */
   @Deprecated
   public static <K, V> ExpiryBuilder<K, V> builder() {

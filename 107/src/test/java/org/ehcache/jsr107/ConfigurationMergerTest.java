@@ -17,8 +17,8 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -163,7 +163,7 @@ public class ConfigurationMergerTest {
   public void jsr107ExpiryGetsOverriddenByTemplate() throws Exception {
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class)).thenReturn(
-        newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofMinutes(5)))
+        newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMinutes(5)))
     );
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();

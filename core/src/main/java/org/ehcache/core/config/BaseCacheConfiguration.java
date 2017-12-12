@@ -24,7 +24,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -72,7 +71,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     if (expiry != null) {
       this.expiry = expiry;
     } else {
-      this.expiry = ExpiryPolicies.noExpiration();
+      this.expiry = ExpiryPolicy.NO_EXPIRY;
     }
     this.resourcePools = resourcePools;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));

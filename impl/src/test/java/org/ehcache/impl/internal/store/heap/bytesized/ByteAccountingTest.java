@@ -18,12 +18,12 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -46,8 +46,8 @@ import org.junit.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -77,11 +77,11 @@ public class ByteAccountingTest {
 
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicies.noExpiration(), Eviction.noAdvice());
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice());
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(int capacity) {
-    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicies.noExpiration(), Eviction.noAdvice(), capacity);
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice(), capacity);
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, ExpiryPolicy<? super K, ? super V> expiry) {
@@ -170,7 +170,7 @@ public class ByteAccountingTest {
   @Test
   public void testPutExpiryOnCreate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setCreate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().create(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
 
@@ -180,7 +180,7 @@ public class ByteAccountingTest {
   @Test
   public void testPutExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.put(KEY, "otherValue");
@@ -237,7 +237,7 @@ public class ByteAccountingTest {
   @Test
   public void testRemoveTwoArgExpiresOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.remove(KEY, "whatever value, it expires on access");
@@ -279,7 +279,7 @@ public class ByteAccountingTest {
   @Test
   public void testReplaceTwoArgExpiresOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.replace(KEY, "whatever value, it expires on update");
@@ -321,7 +321,7 @@ public class ByteAccountingTest {
   @Test
   public void testReplaceThreeArgExpiresOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.replace(KEY, VALUE, "whatever value, it expires on update");
@@ -354,7 +354,7 @@ public class ByteAccountingTest {
   @Test
   public void testPutIfAbsentExpiresOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.putIfAbsent(KEY, "another value ... whatever");
@@ -417,7 +417,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.compute(KEY, (s, s2) -> s2, () -> false);
@@ -428,7 +428,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.compute(KEY, (s, s2) -> s2);
@@ -452,7 +452,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeIfAbsentExpireOnCreate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setCreate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().create(Duration.ZERO).build());
 
     store.computeIfAbsent(KEY, s -> VALUE);
 
@@ -462,7 +462,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeIfAbsentExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.computeIfAbsent(KEY, s -> {
@@ -476,7 +476,7 @@ public class ByteAccountingTest {
   @Test
   public void testExpiry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicies.timeToLiveExpiration(Duration.ofMillis(1)));
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
@@ -515,7 +515,7 @@ public class ByteAccountingTest {
   }
 
   private ExpiryPolicy<Object, Object> ttlCreation600ms() {
-    return ExpiryPolicies.builder().setCreate(Duration.ofMillis(600L)).build();
+    return expiry().create(Duration.ofMillis(600L)).build();
   }
 
   static long getSize(String key, String value) {

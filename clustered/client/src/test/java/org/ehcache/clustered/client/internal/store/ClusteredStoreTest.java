@@ -35,7 +35,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;

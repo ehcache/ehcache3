@@ -22,10 +22,11 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.expiry.ExpiryPolicies;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
@@ -273,7 +274,7 @@ public class XACacheTest {
         newResourcePoolsBuilder()
                         .heap(10, EntryUnit.ENTRIES)
                         .offheap(10, MemoryUnit.MB))
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
@@ -431,7 +432,7 @@ public class XACacheTest {
         newResourcePoolsBuilder()
                         .heap(10, EntryUnit.ENTRIES)
                         .offheap(10, MemoryUnit.MB))
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
@@ -496,7 +497,7 @@ public class XACacheTest {
                     .heap(10, EntryUnit.ENTRIES)
                     .offheap(10, MemoryUnit.MB)
                 )
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
@@ -524,7 +525,7 @@ public class XACacheTest {
         newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .offheap(10, MemoryUnit.MB))
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)))
         .withLoaderWriter(loaderWriter);
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -674,7 +675,7 @@ public class XACacheTest {
         newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .offheap(10, MemoryUnit.MB))
-        .withExpiry(ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1)));
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())

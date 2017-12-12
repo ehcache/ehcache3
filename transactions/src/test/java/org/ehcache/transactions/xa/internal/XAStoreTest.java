@@ -21,6 +21,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -29,7 +30,6 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicies;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -92,8 +92,8 @@ import javax.transaction.xa.XAResource;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptySet;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.ehcache.expiry.ExpiryPolicies.timeToLiveExpiration;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -136,7 +136,7 @@ public class XAStoreTest {
     keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
     valueCopier = copyProvider.createValueCopier(valueClass, valueSerializer);
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      null, classLoader, ExpiryPolicies.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      null, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
@@ -691,7 +691,7 @@ public class XAStoreTest {
   @Test
   public void testCompute() throws Exception {
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      null, classLoader, ExpiryPolicies.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      null, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .offheap(10, MemoryUnit.MB)
       .build(),
       0, keySerializer, valueSerializer);
@@ -867,7 +867,7 @@ public class XAStoreTest {
   @Test
   public void testComputeIfAbsent() throws Exception {
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
-      classLoader, ExpiryPolicies.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .offheap(10, MemoryUnit.MB)
       .build(),
       0, keySerializer, valueSerializer);
@@ -1090,7 +1090,7 @@ public class XAStoreTest {
   @Test
   public void testBulkCompute() throws Exception {
     String uniqueXAResourceId = "testBulkCompute";
-    ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
@@ -1166,7 +1166,7 @@ public class XAStoreTest {
 
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
-    ExpiryPolicy<Object, Object> expiry = ExpiryPolicies.timeToLiveExpiration(Duration.ofSeconds(1));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
@@ -1237,7 +1237,7 @@ public class XAStoreTest {
       return false;
     };
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      evictionAdvisor, classLoader, ExpiryPolicies.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      evictionAdvisor, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
