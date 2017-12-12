@@ -100,7 +100,7 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
    */
   private static <T extends EntityResponse> T waitFor(InvokeFuture<T> future)
       throws EntityException {
-    boolean interrupted = false;
+    boolean interrupted = Thread.interrupted();
     try {
       while (true) {
         try {
