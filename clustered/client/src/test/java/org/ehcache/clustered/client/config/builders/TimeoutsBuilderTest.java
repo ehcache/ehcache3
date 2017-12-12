@@ -19,6 +19,7 @@ import org.ehcache.clustered.client.config.Timeouts;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -42,5 +43,18 @@ public class TimeoutsBuilderTest {
     assertThat(t.getReadOperationTimeout()).isEqualTo(Duration.ofDays(1));
     assertThat(t.getWriteOperationTimeout()).isEqualTo(Duration.ofDays(2));
     assertThat(t.getConnectionTimeout()).isEqualTo(Duration.ofDays(3));
+  }
+
+  @Test
+  public void neverGoAfterInfinite() {
+    Duration afterInfinite = ChronoUnit.FOREVER.getDuration();
+    Timeouts t = TimeoutsBuilder.timeouts()
+      .read(afterInfinite)
+      .write(afterInfinite)
+      .connection(afterInfinite)
+      .build();
+    assertThat(t.getReadOperationTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
+    assertThat(t.getWriteOperationTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
+    assertThat(t.getConnectionTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
   }
 }
