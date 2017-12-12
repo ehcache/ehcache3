@@ -47,7 +47,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsNull;
@@ -74,7 +73,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -98,6 +96,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
@@ -404,11 +403,7 @@ public class XmlConfigurationTest {
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE));
-  }
-
-  public static <T> Matcher<T> isIn(T... elements) {
-    return org.hamcrest.collection.IsIn.isIn(elements);
+    assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
   }
 
   @Test
