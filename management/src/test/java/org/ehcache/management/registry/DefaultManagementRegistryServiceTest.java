@@ -16,6 +16,7 @@
 package org.ehcache.management.registry;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -169,7 +170,7 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @Test
-  public void descriptorDiskStoreTest() throws URISyntaxException {
+  public void descriptorDiskStoreTest() throws Exception {
     PersistentCacheManager persistentCacheManager = null;
     try {
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -206,10 +207,9 @@ public class DefaultManagementRegistryServiceTest {
     }
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
-
 
   @Test
   public void testCanGetCapabilities() {
