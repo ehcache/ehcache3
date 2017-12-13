@@ -287,18 +287,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<K, V> cache = safeCacheRetrieval(cacheName);
-
-    if (cache == null) {
-      return null;
-    }
-
-    if (cache.getConfiguration(Configuration.class).getKeyType() != Object.class
-        || cache.getConfiguration(Configuration.class).getValueType() != Object.class) {
-      throw new IllegalArgumentException("Cache [" + cacheName
-          + "] specifies key/value types. Use getCache(String, Class, Class)");
-    }
-    return cache;
+    return safeCacheRetrieval(cacheName);
   }
 
   @SuppressWarnings("unchecked")
@@ -312,6 +301,7 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public Iterable<String> getCacheNames() {
+    checkClosed();
     refreshAllCaches();
     return Collections.unmodifiableList(new ArrayList<>(caches.keySet()));
   }
