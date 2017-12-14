@@ -44,8 +44,6 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
@@ -229,10 +227,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       long extractedKey = extractLongKey(key);
       storeProxy.append(extractedKey, payload);
       return PutStatus.PUT;
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -259,10 +255,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
         return new ClusteredValueHolder<>(result.getValue());
       }
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -292,10 +286,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       } else {
         return false;
       }
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -324,10 +316,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
         return RemoveStatus.KEY_MISSING;
       }
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -354,10 +344,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
         return new ClusteredValueHolder<>(result.getValue());
       }
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -390,10 +378,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
         return ReplaceStatus.MISS_NOT_PRESENT;
       }
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -401,10 +387,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   public void clear() throws StoreAccessException {
     try {
       storeProxy.clear();
-    } catch (RuntimeException re) {
+    } catch (Exception re) {
       throw handleRuntimeException(re);
-    } catch (TimeoutException e) {
-      throw new StoreAccessTimeoutException(e);
     }
   }
 
