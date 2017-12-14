@@ -25,8 +25,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFacto
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
-import org.ehcache.clustered.client.internal.Timeouts;
-import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -79,7 +78,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final URI clusterUri;
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
-  private final Timeouts operationTimeouts;
+  private final Timeouts timeouts;
 
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
@@ -93,19 +92,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-
-    Timeouts.Builder timeoutsBuilder = Timeouts.builder();
-    timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
-    if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
-      ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;
-      if (experimentalConfiguration.getMutativeOperationTimeout() != null) {
-        timeoutsBuilder.setMutativeOperationTimeout(experimentalConfiguration.getMutativeOperationTimeout());
-      }
-      if (experimentalConfiguration.getLifecycleOperationTimeout() != null) {
-        timeoutsBuilder.setLifecycleOperationTimeout(experimentalConfiguration.getLifecycleOperationTimeout());
-      }
-    }
-    this.operationTimeouts = timeoutsBuilder.build();
+    this.timeouts = configuration.getTimeouts();
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -179,15 +166,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   private void createEntityFactory() {
-    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, operationTimeouts);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
   }
 
   private void initClusterConnection() {
     try {
       Properties properties = new Properties();
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
-      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT,
-          Long.toString(operationTimeouts.getLifecycleOperationTimeout().toMillis()));
+      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
       clusterConnection = ConnectionFactory.connect(clusterUri, properties);
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
@@ -202,9 +188,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (TimeoutException e) {
-        throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
-            + "'; create operation timed out", e);
       }
       try {
         return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
@@ -229,8 +212,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (ClusterTierManagerNotFoundException e) {
-      // Ignore - was removed by a racing client
     } catch (EntityBusyException e) {
       // Ignore - we have a racy client
       LOGGER.debug("ClusterTierManager {} marked busy when trying to clean it up", entityIdentifier);
@@ -266,8 +247,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (ClusterTierManagerNotFoundException e) {
-      throw new CachePersistenceException("Cluster tiers on " + this.clusterUri + " not found", e);
     } catch (EntityBusyException e) {
       throw new CachePersistenceException("Can not delete cluster tiers on " + this.clusterUri, e);
     }

@@ -25,7 +25,6 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
@@ -33,7 +32,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -58,7 +56,7 @@ public class LoaderWriterSimpleEhcacheTest {
   public void setUp() throws Exception {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), org.mockito.Matchers.<CacheConfiguration<Number, CharSequence>>any()))
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), org.mockito.ArgumentMatchers.<CacheConfiguration<Number, CharSequence>>any()))
       .thenReturn(CacheLoaderWriter.class.cast(cacheLoaderWriter));
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());

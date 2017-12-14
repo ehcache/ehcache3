@@ -60,7 +60,7 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity".equals(typeName);
   }
 
   @Override

@@ -75,6 +75,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -921,7 +922,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        return XmlModel.convertToJavaTimeUnit(time.getUnit());
+        return XmlModel.convertToJUCTimeUnit(time.getUnit());
       }
       return null;
     }
@@ -1027,7 +1028,7 @@ class ConfigurationParser {
 
     @Override
     public TimeUnit maxDelayUnit() {
-      return XmlModel.convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+      return XmlModel.convertToJUCTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
 
   }

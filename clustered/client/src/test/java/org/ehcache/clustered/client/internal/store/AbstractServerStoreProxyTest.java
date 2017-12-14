@@ -64,11 +64,13 @@ public abstract class AbstractServerStoreProxyTest {
                                                                   boolean create) throws Exception {
     Connection connection = CONNECTION_SERVICE.connect(CLUSTER_URI, new Properties());
 
+    // Create ClusterTierManagerClientEntity if needed
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
     if (create) {
       entityFactory.create(name, new ServerSideConfiguration("defaultResource", Collections.emptyMap()));
     }
-    SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, true);
+    // Create or fetch the ClusterTierClientEntity
+    SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, create);
     clientEntity.validate(configuration);
     return clientEntity;
   }

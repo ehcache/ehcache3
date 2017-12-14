@@ -57,7 +57,7 @@ public interface ServerStore {
    * @param key to which the payLoad has to be appended
    * @param payLoad to be appended
    *
-   * @throws TimeoutException if the append exceeds the timeout configured for mutative operations
+   * @throws TimeoutException if the append exceeds the timeout configured for write operations
    */
   void append(long key, ByteBuffer payLoad) throws TimeoutException;
 
@@ -125,7 +125,7 @@ public interface ServerStore {
    * If appends are happening in parallel, this operation does not guarantee an
    * empty store on the completion of this operation.
    *
-   * @throws TimeoutException if the get exceeds the timeout configured for mutative operations
+   * @throws TimeoutException if the get exceeds the timeout configured for write operations
    */
   void clear() throws TimeoutException;
 }
