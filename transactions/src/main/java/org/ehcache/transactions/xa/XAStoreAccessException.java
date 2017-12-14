@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.core.internal.resilience.RethrowingStoreAccessException;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
@@ -26,7 +24,8 @@ import org.ehcache.transactions.xa.internal.XAStore;
  *
  * @author Ludovic Orban
  */
-public class XAStoreAccessException extends RethrowingStoreAccessException {
+@SuppressWarnings("deprecation")
+public class XAStoreAccessException extends org.ehcache.resilience.RethrowingStoreAccessException {
   public XAStoreAccessException(RuntimeException cause) {
     super(cause);
   }

@@ -20,7 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;

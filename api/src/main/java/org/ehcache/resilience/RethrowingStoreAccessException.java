@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.resilience;
-
-import org.ehcache.core.spi.store.StoreAccessException;
+package org.ehcache.resilience;
 
 /**
  * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache} but shouldn't be

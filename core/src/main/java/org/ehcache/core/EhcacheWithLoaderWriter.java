@@ -22,7 +22,7 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.core.spi.store.Store;

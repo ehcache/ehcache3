@@ -17,8 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;

@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.resilience;
+package org.ehcache.resilience;
 
 import java.util.Map;
 
 import org.ehcache.Cache;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;

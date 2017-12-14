@@ -25,7 +25,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.ExpiryPolicy;

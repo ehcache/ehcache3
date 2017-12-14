@@ -19,9 +19,11 @@ package org.ehcache.core.internal.resilience;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.resilience.RethrowingStoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 

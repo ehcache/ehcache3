@@ -22,7 +22,7 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;

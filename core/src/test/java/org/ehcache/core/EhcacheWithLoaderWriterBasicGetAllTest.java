@@ -24,8 +24,9 @@ import java.util.Set;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -93,7 +94,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#getAllFailure(Iterable, Map, StoreAccessException)
+   * {@link ResilienceStrategy#getAllFailure(Iterable, Map, StoreAccessException)
    *    ResilienceStrategy.getAllFailure(Iterable, Map, StoreAccessException)} method.
    */
   @Captor
@@ -103,7 +104,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
    * A Mockito {@code ArgumentCaptor} for the
    * {@link BulkCacheLoadingException BulkCacheLoadingException}
    * provided to the
-   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)
+   * {@link ResilienceStrategy#getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)
    *    ResilienceStrategy.getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)} method.
    */
   @Captor

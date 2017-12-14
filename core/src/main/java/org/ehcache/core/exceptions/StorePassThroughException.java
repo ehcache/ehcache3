@@ -16,7 +16,7 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 
 /**
  * A generic wrapper runtime exception that will not be caught and

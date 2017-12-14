@@ -17,7 +17,7 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.CacheOperationOutcomes;

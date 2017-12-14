@@ -35,7 +35,7 @@ import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;

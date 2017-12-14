@@ -33,7 +33,6 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.AfterClass;
 import org.junit.Before;

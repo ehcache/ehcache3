@@ -17,7 +17,7 @@
 package org.ehcache.core.internal.resilience;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.CacheIterationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

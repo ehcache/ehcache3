@@ -16,11 +16,11 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
-import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.After;;
 import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;

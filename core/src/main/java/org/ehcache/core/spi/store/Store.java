@@ -22,6 +22,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;

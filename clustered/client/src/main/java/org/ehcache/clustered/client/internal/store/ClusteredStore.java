@@ -45,6 +45,7 @@ import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;

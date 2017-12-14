@@ -35,7 +35,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
