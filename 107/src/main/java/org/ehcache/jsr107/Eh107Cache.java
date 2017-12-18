@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -84,7 +81,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ehCache.getJsr107Cache();
+    this.jsr107Cache = ehCache.createJsr107Cache();
   }
 
   @Override
