@@ -46,7 +46,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
@@ -446,7 +445,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds {@link Expiry} configuration to the returned builder.
+   * Adds {@link org.ehcache.expiry.Expiry} configuration to the returned builder.
    *
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
@@ -454,7 +453,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @deprecated Use {@link #withExpiry(ExpiryPolicy)} instead
    */
   @Deprecated
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(org.ehcache.expiry.Expiry<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }

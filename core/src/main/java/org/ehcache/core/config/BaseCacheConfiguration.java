@@ -23,7 +23,6 @@ import java.util.Collections;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -120,8 +119,9 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   /**
    * {@inheritDoc}
    */
+  @SuppressWarnings("deprecation")
   @Override
-  public Expiry<? super K, ? super V> getExpiry() {
+  public org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry() {
     return ExpiryUtils.convertToExpiry(expiry);
   }
 

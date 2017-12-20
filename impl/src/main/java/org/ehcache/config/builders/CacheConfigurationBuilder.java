@@ -25,7 +25,6 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -284,7 +283,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds {@link Expiry} configuration to the returned builder.
+   * Adds {@link org.ehcache.expiry.Expiry} configuration to the returned builder.
    * <p>
    * {@code Expiry} is what controls data freshness in a cache.
    *
@@ -294,7 +293,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @deprecated Use {@link #withExpiry(ExpiryPolicy)} instead
    */
   @Deprecated
-  public CacheConfigurationBuilder<K, V> withExpiry(Expiry<? super K, ? super V> expiry) {
+  public CacheConfigurationBuilder<K, V> withExpiry(org.ehcache.expiry.Expiry<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }

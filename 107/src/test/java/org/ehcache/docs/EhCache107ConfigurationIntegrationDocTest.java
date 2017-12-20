@@ -200,7 +200,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CacheRuntimeConfiguration<Long, Client> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, Client>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
     Client client1 = new Client("client1", 1);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getLength(); // <8>
+    foosEhcacheConfig.getExpiryPolicy().getExpiryForCreation(42L, client1).toMinutes(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
