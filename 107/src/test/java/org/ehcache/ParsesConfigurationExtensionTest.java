@@ -23,20 +23,19 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -83,9 +82,9 @@ public class ParsesConfigurationExtensionTest {
         final CacheRuntimeConfiguration<Long, Product> runtimeConfiguration = productCache.getRuntimeConfiguration();
         assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
 
-        final Expiry<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiry();
-        assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
-        assertThat(expiry.getExpiryForAccess(42L, null), equalTo(new Duration(2, TimeUnit.MINUTES)));
+        final ExpiryPolicy<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiryPolicy();
+        assertThat(expiry.getClass().getName(), equalTo("org.ehcache.config.builders.ExpiryPolicyBuilder$TimeToIdleExpiryPolicy"));
+        assertThat(expiry.getExpiryForAccess(42L, null), equalTo(Duration.ofMinutes(2)));
 
         assertThat(runtimeConfiguration.getEvictionAdvisor(), instanceOf(com.pany.ehcache.MyEvictionAdvisor.class));
       }

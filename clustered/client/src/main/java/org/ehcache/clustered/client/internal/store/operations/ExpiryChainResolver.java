@@ -17,10 +17,13 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.config.ExpiryUtils;
+import org.ehcache.expiry.ExpiryPolicy;
+
+import java.time.Duration;
 
 import static java.util.Objects.requireNonNull;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
 /**
  * A specialized chain resolver for non-eternal caches.
@@ -30,7 +33,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
 
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
 
   /**
    * Creates a resolver with the given codec and expiry policy.
@@ -38,7 +41,7 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
    * @param codec operation codec
    * @param expiry expiry policy
    */
-  public ExpiryChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
+  public ExpiryChainResolver(final OperationsCodec<K, V> codec, ExpiryPolicy<? super K, ? super V> expiry) {
     super(codec);
     this.expiry = requireNonNull(expiry, "Expiry cannot be null");
   }
@@ -93,12 +96,12 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
             return existing.expirationTime();
           }
         }
-        if (duration.isInfinite()) {
+        if (duration.isNegative()) {
+          duration = Duration.ZERO;
+        } else if (isExpiryDurationInfinite(duration)) {
           return Long.MAX_VALUE;
-        } else {
-          long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
-          return time + operation.timeStamp();
         }
+        return ExpiryUtils.getExpirationMillis(operation.timeStamp(), duration);
       } catch (Exception ex) {
         LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
         return Long.MIN_VALUE;

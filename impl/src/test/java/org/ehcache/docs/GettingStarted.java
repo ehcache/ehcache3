@@ -23,15 +23,14 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
@@ -244,7 +244,7 @@ public class GettingStarted {
     // tag::expiry[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.heap(100)) // <1>
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS))) // <2>
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(20))) // <2>
         .build();
     // end::expiry[]
   }
@@ -354,7 +354,7 @@ public class GettingStarted {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
   }
 
-  public static class CustomExpiry implements Expiry<Long, String> {
+  public static class CustomExpiry implements ExpiryPolicy<Long, String> {
 
     @Override
     public Duration getExpiryForCreation(Long key, String value) {

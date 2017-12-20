@@ -17,10 +17,10 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
@@ -57,8 +57,8 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       }
 
       @Override
-      public Expiry<? super K, ? super V> getExpiry() {
-        return Expirations.noExpiration();
+      public ExpiryPolicy<? super K, ? super V> getExpiry() {
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override

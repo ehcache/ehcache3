@@ -39,7 +39,6 @@ import com.pany.domain.Product;
 
 import java.io.File;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -129,11 +128,11 @@ public class EhCache107ConfigurationIntegrationDocTest {
     long nanoTime = System.nanoTime();
     LOGGER.info("Seeding random with {}", nanoTime);
     Random random = new Random(nanoTime);
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
-                equalTo(org.ehcache.expiry.Duration.INFINITE));
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
+                equalTo(org.ehcache.expiry.ExpiryPolicy.INFINITE));
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForAccess(random.nextLong(),
                   ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForUpdate(random.nextLong(),
                   ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong())), Long.toOctalString(random.nextLong())), nullValue());
   }
 
@@ -214,8 +213,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
     }
     // end::jsr107SupplementWithTemplatesExample[]
     assertThat(ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1),
-        is(new org.ehcache.expiry.Duration(2, TimeUnit.MINUTES)));
+    assertThat(foosEhcacheConfig.getExpiryPolicy().getExpiryForCreation(42L, client1),
+        is(java.time.Duration.ofMinutes(2)));
   }
 
   @Test

@@ -16,13 +16,13 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.expiry.Duration;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
@@ -38,7 +38,7 @@ public class XAValueHolderTest {
 
     long now = System.currentTimeMillis();
     XAValueHolder<String> valueHolder = new XAValueHolder<>("value", now - 1000);
-    valueHolder.accessed(now, new Duration(100, TimeUnit.SECONDS));
+    valueHolder.accessed(now, Duration.ofSeconds(100));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream outputStream = new ObjectOutputStream(baos);

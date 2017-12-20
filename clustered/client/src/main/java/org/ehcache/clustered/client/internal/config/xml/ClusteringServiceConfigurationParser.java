@@ -54,6 +54,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.*;
+import static org.ehcache.xml.XmlModel.convertToJavaTemporalUnit;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 
 /**

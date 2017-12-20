@@ -21,12 +21,11 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
@@ -70,6 +69,7 @@ import com.pany.ehcache.serializer.TestSerializer4;
 
 import java.io.File;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,7 +82,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -189,8 +188,8 @@ public class XmlConfigurationTest {
 
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class,
         newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES));
-    assertThat(example.build().getExpiry(),
-        equalTo((Expiry) Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
+    assertThat(example.build().getExpiryPolicy(),
+        equalTo((ExpiryPolicy) ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
@@ -212,23 +211,28 @@ public class XmlConfigurationTest {
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
 
-    Expiry expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiry();
-    Expiry value = Expirations.noExpiration();
+    ExpiryPolicy expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
+    ExpiryPolicy value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiry();
-    value = Expirations.noExpiration();
+    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiry();
+    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiryPolicy();
     assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiry();
-    value = Expirations.timeToIdleExpiration(new Duration(500, TimeUnit.MILLISECONDS));
+    expiry = xmlConfiguration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
+    assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForAccess(null, null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForUpdate(null, null, null), is(Duration.ofSeconds(42)));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(500));
     assertThat(expiry, equalTo(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiry();
-    value = Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS));
+    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30));
     assertThat(expiry, equalTo(value));
   }
 

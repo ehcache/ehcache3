@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An abstract chain resolver.
@@ -42,7 +41,6 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class ChainResolver<K, V> {
   protected static final Logger LOG = LoggerFactory.getLogger(EternalChainResolver.class);
-  protected static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
   protected final OperationsCodec<K, V> codec;
 
   public ChainResolver(final OperationsCodec<K, V> codec) {

@@ -23,17 +23,16 @@ import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -63,10 +62,10 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetExpiryForAccessIsIgnored() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
     List<Operation<Long, String>> list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "One", timeSource.getTimeMillis()));
@@ -86,10 +85,10 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedOnlyOnce() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
     List<Operation<Long, String>> list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "One", timeSource.getTimeMillis()));
@@ -112,10 +111,10 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsNotInvokedForReplacedChains() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
     List<Operation<Long, String>> list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "Replaced", -10L));
@@ -136,10 +135,10 @@ public class ExpiryChainResolverExpiryTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedAfterRemoveOperations() {
 
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
     List<Operation<Long, String>> list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "Replaced", 10L));
@@ -161,7 +160,7 @@ public class ExpiryChainResolverExpiryTest {
 
     reset(expiry);
 
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
     list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "One", timeSource.getTimeMillis()));
@@ -186,7 +185,7 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testNullGetExpiryForCreation() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
@@ -205,7 +204,7 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testNullGetExpiryForUpdate() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(null);
@@ -226,10 +225,10 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetExpiryForUpdateUpdatesExpirationTimeStamp() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
-    when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(new Duration(2L, TimeUnit.MILLISECONDS));
+    when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(Duration.ofMillis(2L));
 
     List<Operation<Long, String>> list = new ArrayList<>();
     list.add(new PutOperation<>(1L, "Replaced", -10L));
@@ -247,7 +246,7 @@ public class ExpiryChainResolverExpiryTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testExpiryThrowsException() {
-    Expiry<Long, String> expiry = mock(Expiry.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ExpiryChainResolver<Long, String> chainResolver = new ExpiryChainResolver<>(codec, expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));

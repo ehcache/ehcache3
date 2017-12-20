@@ -18,29 +18,53 @@ package org.ehcache.expiry;
 
 import org.ehcache.ValueSupplier;
 
+import java.time.Duration;
+
 /**
  * A policy object that governs expiration for mappings in a {@link org.ehcache.Cache Cache}.
  * <p>
  * Previous values are not accessible directly but are rather available through a {@link ValueSupplier value supplier}
  * to indicate that access can require computation (such as deserialization).
  * <p>
+ * {@link Duration#isNegative() Negative duration} are not supported, expiry policy implementation returning such a
+ * duration will result in immediate expiry, as if the duration was {@link Duration#ZERO zero}.
+ * <p>
  * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
  * to decide whether to call {@link #getExpiryForUpdate(Object, ValueSupplier, Object)}  vs.
  * {@link #getExpiryForCreation(Object, Object)}. For these cache configurations it is advised to return the same
  * value for both of these methods
  * <p>
- * See {@link Expirations} for helper methods to create common {@code Expiry} instances.
  *
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
  *
- * @see Expirations
- * @see ExpiryPolicy
- *
- * @deprecated Replaced with {@link ExpiryPolicy} that builds on the {@code java.time} types.
  */
-@Deprecated
-public interface Expiry<K, V> {
+public interface ExpiryPolicy<K, V> {
+
+  /**
+   * A {@link Duration duration} that represents an infinite time.
+   */
+  Duration INFINITE = Duration.ofNanos(Long.MAX_VALUE);
+
+  /**
+   * An {@code ExpiryPolicy} that represents a no expiration policy
+   */
+  ExpiryPolicy<Object, Object> NO_EXPIRY = new ExpiryPolicy<Object, Object>() {
+    @Override
+    public Duration getExpiryForCreation(Object key, Object value) {
+      return INFINITE;
+    }
+
+    @Override
+    public Duration getExpiryForAccess(Object key, ValueSupplier<?> value) {
+      return null;
+    }
+
+    @Override
+    public Duration getExpiryForUpdate(Object key, ValueSupplier<?> oldValue, Object newValue) {
+      return null;
+    }
+  };
 
   /**
    * Returns the lifetime of an entry when it is initially added to a {@link org.ehcache.Cache Cache}.
@@ -52,13 +76,13 @@ public interface Expiry<K, V> {
    *
    * @param key the key of the newly added entry
    * @param value the value of the newly added entry
-   * @return a non-null {@link Duration}
+   * @return a non-null {@code Duration}
    */
   Duration getExpiryForCreation(K key, V value);
 
   /**
-   * Returns the expiration {@link Duration} (relative to the current time) when an existing entry is accessed from a
-   * {@link org.ehcache.Cache Cache}.
+   * Returns the expiration {@link Duration duration} (relative to the current time) when an existing entry
+   * is accessed from a {@link org.ehcache.Cache Cache}.
    * <p>
    * Returning {@code null} indicates that the expiration time remains unchanged.
    * <p>
@@ -73,8 +97,8 @@ public interface Expiry<K, V> {
 
 
   /**
-   * Returns the expiration {@link Duration} (relative to the current time) when an existing entry is updated in a
-   * {@link org.ehcache.Cache Cache}.
+   * Returns the expiration {@link Duration duration} (relative to the current time) when an existing entry
+   * is updated in a {@link org.ehcache.Cache Cache}.
    * <p>
    * Returning {@code null} indicates that the expiration time remains unchanged.
    * <p>

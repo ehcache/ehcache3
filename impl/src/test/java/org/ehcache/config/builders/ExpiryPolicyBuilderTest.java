@@ -13,30 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.expiry;
+
+package org.ehcache.config.builders;
+
+import org.ehcache.expiry.ExpiryPolicy;
+import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-
-public class ExpirationsTest {
+/**
+ * ExpiryPolicyBuilderTest
+ */
+public class ExpiryPolicyBuilderTest {
 
   @Test
   public void testNoExpiration() {
-    Expiry<Object, Object> expiry = Expirations.noExpiration();
-    assertThat(expiry.getExpiryForCreation(this, this), equalTo(Duration.INFINITE));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.noExpiration();
+    assertThat(expiry, sameInstance(ExpiryPolicy.NO_EXPIRY));
+    assertThat(expiry.getExpiryForCreation(this, this), equalTo(ExpiryPolicy.INFINITE));
     assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
     assertThat(expiry.getExpiryForUpdate(this, () -> this, this), nullValue());
   }
 
   @Test
   public void testTTIExpiration() {
-    Duration duration = new Duration(1L, TimeUnit.SECONDS);
-    Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(duration);
+    java.time.Duration duration = java.time.Duration.ofSeconds(1L);
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(duration);
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(duration));
     assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
@@ -44,8 +49,8 @@ public class ExpirationsTest {
 
   @Test
   public void testTTLExpiration() {
-    Duration duration = new Duration(1L, TimeUnit.SECONDS);
-    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(duration);
+    java.time.Duration duration = java.time.Duration.ofSeconds(1L);
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(duration);
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
     assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
@@ -53,13 +58,12 @@ public class ExpirationsTest {
 
   @Test
   public void testExpiration() {
-    Duration creation = new Duration(1L, TimeUnit.SECONDS);
-    Duration access = new Duration(2L, TimeUnit.SECONDS);
-    Duration update = new Duration(3L, TimeUnit.SECONDS);
-    Expiry<Object, Object> expiry = Expirations.builder().setCreate(creation).setAccess(access).setUpdate(update).build();
+    java.time.Duration creation = java.time.Duration.ofSeconds(1L);
+    java.time.Duration access = java.time.Duration.ofSeconds(2L);
+    java.time.Duration update = java.time.Duration.ofSeconds(3L);
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.expiry().create(creation).access(access).update(update).build();
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(creation));
     assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(access));
     assertThat(expiry.getExpiryForUpdate(this, () -> this,this), equalTo(update));
   }
-
 }

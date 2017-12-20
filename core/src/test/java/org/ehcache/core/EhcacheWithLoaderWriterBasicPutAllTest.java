@@ -15,6 +15,7 @@
  */
 package org.ehcache.core;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -28,10 +29,9 @@ import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -1870,7 +1870,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
     @SuppressWarnings("unchecked")
-    final Expiry<String, String> expiry = mock(Expiry.class);
+    final ExpiryPolicy<String, String> expiry = mock(ExpiryPolicy.class);
     when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
 
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
@@ -1901,7 +1901,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
     @SuppressWarnings("unchecked")
-    final Expiry<String, String> expiry = mock(Expiry.class);
+    final ExpiryPolicy<String, String> expiry = mock(ExpiryPolicy.class);
     when(expiry.getExpiryForUpdate(any(String.class), argThat(org.ehcache.core.util.Matchers.<String>holding(instanceOf(String.class))), any(String.class))).thenReturn(Duration.ZERO);
 
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
@@ -1930,7 +1930,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     return getEhcache(cacheLoaderWriter, CACHE_CONFIGURATION);
   }
 
-  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, ExpiryPolicy<String, String> expiry) {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
       expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);

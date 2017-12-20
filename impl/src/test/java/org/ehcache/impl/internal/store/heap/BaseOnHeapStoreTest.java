@@ -19,12 +19,11 @@ import org.ehcache.Cache.Entry;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -46,6 +45,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.InOrder;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,10 +54,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.impl.internal.util.Matchers.holding;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -196,7 +194,7 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
@@ -212,7 +210,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testGetNoExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(2, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(2)));
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -224,7 +222,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testAccessTime() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     store.put("key", "value");
 
     long first = store.get("key").lastAccessTime(TimeUnit.MILLISECONDS);
@@ -254,7 +252,7 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -295,7 +293,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testCreateTime() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     assertThat(store.containsKey("key"), is(false));
     store.put("key", "value");
     ValueHolder<String> valueHolder = store.get("key");
@@ -338,7 +336,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testPutIfAbsentUpdatesAccessTime() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     assertThat(store.get("key"), nullValue());
     store.putIfAbsent("key", "value");
     long first = store.get("key").lastAccessTime(TimeUnit.MILLISECONDS);
@@ -351,7 +349,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testPutIfAbsentExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
     timeSource.advanceTime(1);
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
@@ -405,7 +403,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
@@ -447,7 +445,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -494,7 +492,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put("key", "value");
     timeSource.advanceTime(1);
@@ -535,7 +533,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testIteratorExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key1", "value1");
     store.put("key2", "value2");
     store.put("key3", "value3");
@@ -553,7 +551,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testIteratorDoesNotUpdateAccessTime() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
 
     store.put("key1", "value1");
     store.put("key2", "value2");
@@ -569,7 +567,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeReplaceTrue() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
@@ -592,7 +590,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeReplaceFalse() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
 
     store.put("key", "value");
     ValueHolder<String> installedHolder = store.get("key");
@@ -692,7 +690,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
     timeSource.advanceTime(1);
     ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> {
@@ -711,7 +709,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnCreate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
+    OnHeapStore<String, String> store = newStore(timeSource, expiry().create(Duration.ZERO).build());
 
     ValueHolder<String> result = store.compute("key", (key, value) -> "value", () -> false);
     assertThat(result, nullValue());
@@ -721,7 +719,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStore<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", (key, value) -> "newValue", () -> false);
@@ -732,7 +730,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
+    OnHeapStore<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put("key", "value");
     ValueHolder<String> result = store.compute("key", (key, value) -> value, () -> false);
@@ -804,7 +802,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeIfAbsentExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
 
     timeSource.advanceTime(1);
@@ -826,7 +824,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testExpiryCreateException() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new ExpiryPolicy<String, String>() {
 
       @Override
       public Duration getExpiryForCreation(String key, String value) {
@@ -852,11 +850,11 @@ public abstract class BaseOnHeapStoreTest {
   public void testExpiryAccessExceptionReturnsValueAndExpiresIt() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(5);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new ExpiryPolicy<String, String>() {
 
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
@@ -878,15 +876,15 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testExpiryUpdateException() throws Exception{
     final TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+    OnHeapStore<String, String> store = newStore(timeSource, new ExpiryPolicy<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
@@ -894,7 +892,7 @@ public abstract class BaseOnHeapStoreTest {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
     });
 
@@ -910,7 +908,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testGetOrComputeIfAbsentExpiresOnHit() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     @SuppressWarnings("unchecked")
     CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
@@ -932,7 +930,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testGetOfComputeIfAbsentExpiresWithLoaderWriter() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
-      Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+      ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     @SuppressWarnings("unchecked")
     CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
@@ -1217,7 +1215,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test(timeout = 2000L)
   public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
-    final OnHeapStore<String, String> store = newStore(testTimeSource, Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
+    final OnHeapStore<String, String> store = newStore(testTimeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10)));
 
     store.put("key", "value");
 
@@ -1335,19 +1333,19 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   protected <K, V> OnHeapStore<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice());
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice());
   }
 
   protected <K, V> OnHeapStore<K, V> newStore(EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), evictionAdvisor);
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), evictionAdvisor);
   }
 
-  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
+  protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, ExpiryPolicy<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.noAdvice());
   }
 
   protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity);
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor);
+      final ExpiryPolicy<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor);
 }

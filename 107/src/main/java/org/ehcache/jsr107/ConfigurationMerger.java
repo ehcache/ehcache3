@@ -127,7 +127,7 @@ class ConfigurationMerger {
       setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
 
       if (hasConfiguredExpiry) {
-        expiryPolicy = new EhcacheExpiryWrapper<>(cacheConfiguration.getExpiry());
+        expiryPolicy = new EhcacheExpiryWrapper<>(cacheConfiguration.getExpiryPolicy());
       }
 
       return new ConfigHolder<>(

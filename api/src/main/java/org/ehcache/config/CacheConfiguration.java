@@ -18,6 +18,7 @@ package org.ehcache.config;
 
 import org.ehcache.Cache;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -87,8 +88,20 @@ public interface CacheConfiguration<K, V> {
    * The {@code Expiry} cannot be null.
    *
    * @return the {@code Expiry}
+   *
+   * @deprecated Use {@link #getExpiryPolicy()}
    */
+  @Deprecated
   Expiry<? super K, ? super V> getExpiry();
+
+  /**
+   * The {@link ExpiryPolicy} rules for the {@link Cache}.
+   * <p>
+   * The {@code ExpiryPolicy} cannot be null.
+   *
+   * @return the {@code ExpiryPolicy}
+   */
+  ExpiryPolicy<? super K, ? super V> getExpiryPolicy();
 
   /**
    * The {@link ResourcePools} for the {@link Cache}.

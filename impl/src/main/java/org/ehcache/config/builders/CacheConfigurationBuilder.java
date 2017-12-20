@@ -22,9 +22,11 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
@@ -59,7 +61,7 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
 public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfiguration<K, V>> {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<>();
-  private Expiry<? super K, ? super V> expiry;
+  private ExpiryPolicy<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
@@ -108,7 +110,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), configuration.getResourcePools())
       .withClassLoader(configuration.getClassLoader())
       .withEvictionAdvisor(configuration.getEvictionAdvisor())
-      .withExpiry(configuration.getExpiry());
+      .withExpiry(configuration.getExpiryPolicy());
     for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
       builder = builder.add(serviceConfig);
     }
@@ -284,12 +286,32 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   /**
    * Adds {@link Expiry} configuration to the returned builder.
    * <p>
-   * {@link Expiry} is what controls data freshness in a cache.
+   * {@code Expiry} is what controls data freshness in a cache.
+   *
+   * @param expiry the expiry to use
+   * @return a new builder with the added expiry
+   *
+   * @deprecated Use {@link #withExpiry(ExpiryPolicy)} instead
+   */
+  @Deprecated
+  public CacheConfigurationBuilder<K, V> withExpiry(Expiry<? super K, ? super V> expiry) {
+    if (expiry == null) {
+      throw new NullPointerException("Null expiry");
+    }
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
+    otherBuilder.expiry = ExpiryUtils.convertToExpiryPolicy(expiry);
+    return otherBuilder;
+  }
+
+  /**
+   * Adds {@link ExpiryPolicy} configuration to the returned builder.
+   * <p>
+   * {@code ExpiryPolicy} is what controls data freshness in a cache.
    *
    * @param expiry the expiry to use
    * @return a new builder with the added expiry
    */
-  public CacheConfigurationBuilder<K, V> withExpiry(Expiry<? super K, ? super V> expiry) {
+  public CacheConfigurationBuilder<K, V> withExpiry(ExpiryPolicy<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }

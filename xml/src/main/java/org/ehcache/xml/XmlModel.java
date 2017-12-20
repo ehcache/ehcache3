@@ -61,4 +61,26 @@ public class XmlModel {
         throw new IllegalArgumentException("Unknown time unit: " + unit);
     }
   }
+
+  public static TemporalUnit convertToJavaTemporalUnit(org.ehcache.xml.model.TimeUnit unit) {
+    switch (unit) {
+      case NANOS:
+        return ChronoUnit.NANOS;
+      case MICROS:
+      return ChronoUnit.MICROS;
+      case MILLIS:
+        return ChronoUnit.MILLIS;
+      case SECONDS:
+        return ChronoUnit.SECONDS;
+      case MINUTES:
+        return ChronoUnit.MINUTES;
+      case HOURS:
+        return ChronoUnit.HOURS;
+      case DAYS:
+        return ChronoUnit.DAYS;
+      default:
+        throw new IllegalArgumentException("Unknown time unit: " + unit);
+    }
+  }
+
 }

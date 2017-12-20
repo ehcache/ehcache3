@@ -25,9 +25,8 @@ import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -55,6 +54,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -778,18 +778,18 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       // expiry
-      final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
-      Expiry<? super K, ? super SoftLock<V>> expiry = new Expiry<K, SoftLock<V>>() {
+      final ExpiryPolicy<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
+      ExpiryPolicy<? super K, ? super SoftLock<V>> expiry = new ExpiryPolicy<K, SoftLock<V>>() {
         @Override
         public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, create -> some time
             Duration duration;
             try {
-              duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              duration = configuredExpiry.getExpiryForCreation(key, softLock.getOldValue());
             } catch (RuntimeException re) {
               LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
               return Duration.ZERO;
@@ -802,7 +802,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
           if (softLock.value().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
@@ -821,7 +821,7 @@ public class XAStore<K, V> implements Store<K, V> {
           SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime
             if (oldSoftLock.getOldValue() == null) {

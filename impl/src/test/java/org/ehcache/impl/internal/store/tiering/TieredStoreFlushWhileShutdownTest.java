@@ -19,12 +19,12 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -34,13 +34,11 @@ import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.Serializable;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
@@ -81,8 +79,8 @@ public class TieredStoreFlushWhileShutdownTest {
       }
 
       @Override
-      public Expiry<? super Number, ? super String> getExpiry() {
-        return Expirations.noExpiration();
+      public ExpiryPolicy<? super Number, ? super String> getExpiry() {
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override

@@ -18,7 +18,6 @@ package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
@@ -760,7 +759,7 @@ class ConfigurationParser {
 
     long value();
 
-    TimeUnit unit();
+    TemporalUnit unit();
 
   }
 
@@ -914,7 +913,7 @@ class ConfigurationParser {
     }
 
     @Override
-    public TimeUnit unit() {
+    public TemporalUnit unit() {
       final TimeType time;
       if(isTTI()) {
         time = type.getTti();
@@ -922,7 +921,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        return XmlModel.convertToJUCTimeUnit(time.getUnit());
+        return XmlModel.convertToJavaTemporalUnit(time.getUnit());
       }
       return null;
     }
