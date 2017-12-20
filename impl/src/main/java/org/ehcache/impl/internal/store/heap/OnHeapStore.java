@@ -93,6 +93,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.ehcache.config.Eviction.noAdvice;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
@@ -1355,7 +1356,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (duration == null) {
       expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
     } else {
-      if (duration.getSeconds() == Long.MAX_VALUE) {
+      if (isExpiryDurationInfinite(duration)) {
         expirationTime = ValueHolder.NO_EXPIRE;
       } else {
         expirationTime = ExpiryUtils.getExpirationMillis(now, duration);
@@ -1392,7 +1393,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return null;
     }
 
-    long expirationTime = duration.getSeconds() == Long.MAX_VALUE ? ValueHolder.NO_EXPIRE : ExpiryUtils.getExpirationMillis(now, duration);
+    long expirationTime = isExpiryDurationInfinite(duration) ? ValueHolder.NO_EXPIRE : ExpiryUtils.getExpirationMillis(now, duration);
 
     OnHeapValueHolder<V> holder = null;
     try {

@@ -55,6 +55,7 @@ import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
@@ -1033,7 +1034,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     if (duration == null) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
-    } else if (duration.getSeconds() == Long.MAX_VALUE) {
+    } else if (isExpiryDurationInfinite(duration)) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, ExpiryUtils.getExpirationMillis(now, duration));
@@ -1056,7 +1057,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     eventSink.created(key, value);
 
-    if (duration.getSeconds() == Long.MAX_VALUE) {
+    if (isExpiryDurationInfinite(duration)) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, ExpiryUtils.getExpirationMillis(now, duration));

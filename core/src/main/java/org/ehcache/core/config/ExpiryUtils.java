@@ -17,6 +17,7 @@
 package org.ehcache.core.config;
 
 import org.ehcache.ValueSupplier;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 
@@ -30,7 +31,17 @@ import java.util.concurrent.TimeUnit;
  */
 public class ExpiryUtils {
 
+  public static boolean isExpiryDurationInfinite(Duration duration) {
+    return duration.compareTo(ExpiryPolicy.INFINITE) >= 0;
+  }
+
   public static <K, V> Expiry<K, V> convertToExpiry(ExpiryPolicy<K, V> expiryPolicy) {
+
+    if (expiryPolicy == ExpiryPolicy.NO_EXPIRY) {
+      @SuppressWarnings("unchecked")
+      Expiry<K, V> expiry = (Expiry<K, V>) Expirations.noExpiration();
+      return expiry;
+    }
 
     return new Expiry<K, V>() {
 
@@ -90,6 +101,12 @@ public class ExpiryUtils {
   }
 
   public static <K, V> ExpiryPolicy<K, V> convertToExpiryPolicy(Expiry<K, V> expiry) {
+    if (expiry == Expirations.noExpiration()) {
+      @SuppressWarnings("unchecked")
+      ExpiryPolicy<K, V> expiryPolicy = (ExpiryPolicy<K, V>) ExpiryPolicy.NO_EXPIRY;
+      return expiryPolicy;
+    }
+
     return new ExpiryPolicy<K, V>() {
       @Override
       public Duration getExpiryForCreation(K key, V value) {

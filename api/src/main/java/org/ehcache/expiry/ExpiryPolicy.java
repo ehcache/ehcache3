@@ -44,7 +44,7 @@ public interface ExpiryPolicy<K, V> {
   /**
    * A {@link Duration duration} that represents an infinite time.
    */
-  Duration INFINITE = Duration.ofSeconds(Long.MAX_VALUE);
+  Duration INFINITE = Duration.ofNanos(Long.MAX_VALUE);
 
   /**
    * An {@code ExpiryPolicy} that represents a no expiration policy

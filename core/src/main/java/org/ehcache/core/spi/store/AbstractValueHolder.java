@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 import static java.lang.String.format;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
 /**
  * @author Ludovic Orban
@@ -82,7 +83,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   public void accessed(long now, Duration expiration) {
     final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
-      if (expiration.getSeconds() == Long.MAX_VALUE) {
+      if (isExpiryDurationInfinite(expiration)) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
       } else {
         long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);

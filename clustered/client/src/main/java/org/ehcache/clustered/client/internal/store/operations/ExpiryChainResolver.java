@@ -23,6 +23,7 @@ import org.ehcache.expiry.ExpiryPolicy;
 import java.time.Duration;
 
 import static java.util.Objects.requireNonNull;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
 /**
  * A specialized chain resolver for non-eternal caches.
@@ -97,7 +98,7 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
         }
         if (duration.isNegative()) {
           duration = Duration.ZERO;
-        } else if (duration.getSeconds() == Long.MAX_VALUE) {
+        } else if (isExpiryDurationInfinite(duration)) {
           return Long.MAX_VALUE;
         }
         return ExpiryUtils.getExpirationMillis(operation.timeStamp(), duration);
