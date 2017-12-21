@@ -26,7 +26,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -100,8 +99,9 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     return this.classLoader;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public Expiry<? super K, ? super V> getExpiry() {
+  public org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry() {
     return ExpiryUtils.convertToExpiry(expiry);
   }
 

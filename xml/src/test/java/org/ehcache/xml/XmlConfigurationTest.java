@@ -211,8 +211,8 @@ public class XmlConfigurationTest {
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
 
-    ExpiryPolicy expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
-    ExpiryPolicy value = ExpiryPolicyBuilder.noExpiration();
+    ExpiryPolicy<?, ?> expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
+    ExpiryPolicy<?, ?> value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiryPolicy();

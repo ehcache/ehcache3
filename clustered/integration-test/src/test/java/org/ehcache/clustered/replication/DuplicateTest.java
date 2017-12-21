@@ -27,7 +27,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheBase;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.junit.After;
@@ -104,7 +104,7 @@ public class DuplicateTest extends ClusteredTests {
     //Perform put operations in another thread
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     try {
-      Future<?> puts = executorService.submit((Runnable) () -> {
+      Future<?> puts = executorService.submit(() -> {
         while (true) {
           int i = currentEntry.getAndIncrement();
           if (i >= numEntries) {
@@ -132,13 +132,12 @@ public class DuplicateTest extends ClusteredTests {
   }
 
   private void switchResilienceStrategy(Cache<?,?> cache) throws Exception {
-    Field field = Ehcache.class.getDeclaredField("resilienceStrategy");
+    Field field = EhcacheBase.class.getDeclaredField("resilienceStrategy");
     field.setAccessible(true);
     ResilienceStrategy<?, ?> newResilienceStrategy = (ResilienceStrategy<?, ?>)
       Proxy.newProxyInstance(cache.getClass().getClassLoader(),
         new Class<?>[] { ResilienceStrategy.class},
         (proxy, method, args) -> {
-          System.out.println("In there!!!!!!!!!!!!!!!!!!!!!!!!!");
           fail("Failure on " + method.getName(), findStoreAccessException(args)); // 1 is always the exception
           return null;
         });

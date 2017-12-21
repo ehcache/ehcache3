@@ -17,7 +17,7 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
-import org.ehcache.expiry.Expiry;
+
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -92,7 +92,7 @@ public interface CacheConfiguration<K, V> {
    * @deprecated Use {@link #getExpiryPolicy()}
    */
   @Deprecated
-  Expiry<? super K, ? super V> getExpiry();
+  org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry();
 
   /**
    * The {@link ExpiryPolicy} rules for the {@link Cache}.

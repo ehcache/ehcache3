@@ -220,7 +220,7 @@ public abstract class EhcacheBasicCrudBase {
   protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
     assert ehcache != null;
     try {
-      final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");
+      final Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
       resilienceStrategyField.setAccessible(true);
       @SuppressWarnings("unchecked")
       ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);

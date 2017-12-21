@@ -33,7 +33,6 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
@@ -330,7 +329,7 @@ public class XmlConfiguration implements Configuration {
     templates.putAll(configurationParser.getTemplates());
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "deprecation"})
   private ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     final ExpiryPolicy<? super Object, ? super Object> expiry;
@@ -339,7 +338,7 @@ public class XmlConfiguration implements Configuration {
       try {
         tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
       } catch (ClassCastException e) {
-        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class));
+        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
       }
       expiry = tmpExpiry;
     } else if (parsedExpiry.isTTL()) {

@@ -44,7 +44,7 @@ public interface InternalCache<K, V> extends UserManagedCache<K, V> {
    *
    * @return Jsr107Cache
    */
-  Jsr107Cache<K, V> getJsr107Cache();
+  Jsr107Cache<K, V> createJsr107Cache();
 
   /**
    * CacheLoaderWriter

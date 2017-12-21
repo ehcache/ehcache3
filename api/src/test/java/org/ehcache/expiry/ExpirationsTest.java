@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class ExpirationsTest {
 
   @Test
