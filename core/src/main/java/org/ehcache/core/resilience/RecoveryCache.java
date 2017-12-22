@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.resilience;
+package org.ehcache.core.resilience;
 
 import org.ehcache.resilience.StoreAccessException;
 
