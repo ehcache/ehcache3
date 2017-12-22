@@ -25,8 +25,8 @@ import java.util.function.Supplier;
  * Previous values are not accessible directly but are rather available through a value {@code Supplier}
  * to indicate that access can require computation (such as deserialization).
  * <p>
- * {@link Duration#isNegative() Negative duration} are not supported, expiry policy implementation returning such a
- * duration will result in immediate expiry, as if the duration was {@link Duration#ZERO zero}.
+ * {@link java.time.Duration#isNegative() Negative durations} are not supported, expiry policy implementation returning such a
+ * duration will result in immediate expiry, as if the duration was {@link java.time.Duration#ZERO zero}.
  * <p>
  * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
  * to decide whether to call {@link #getExpiryForUpdate(Object, Supplier, Object)}  vs.
