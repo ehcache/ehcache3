@@ -75,7 +75,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
     ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, key -> new AbstractValueHolder<Long>(-1, -1) {
       @Override
-      public Long value() {
+      public Long get() {
         return key * 1000L;
       }
 
@@ -84,7 +84,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
         return TimeUnit.MILLISECONDS;
       }
     });
-    assertThat(computed.value(), is(1000L));
+    assertThat(computed.get(), is(1000L));
     assertThat(keyCopier.copyForWriteCount, is(1));
     assertThat(keyCopier.copyForReadCount, is(0));
   }
@@ -125,7 +125,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     value.clear();
 
     ValueHolder<Serializable> valueHolder = store.get(key);
-    if (valueHolder.value() == value || ! valueHolder.value().equals(Collections.singletonList("value"))) {
+    if (valueHolder.get() == value || ! valueHolder.get().equals(Collections.singletonList("value"))) {
       throw new AssertionError();
     }
   }

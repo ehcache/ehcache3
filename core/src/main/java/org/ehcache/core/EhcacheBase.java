@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -158,7 +157,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         return null;
       } else {
         getObserver.end(GetOutcome.HIT);
-        return valueHolder.value();
+        return valueHolder.get();
       }
     } catch (StoreAccessException e) {
       try {
@@ -243,7 +242,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       if (oldValue == null) {
         duration = expiry.getExpiryForCreation(key, newValue);
       } else {
-        duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
+        duration = expiry.getExpiryForUpdate(key, () -> oldValue, newValue);
       }
     } catch (RuntimeException re) {
       logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
@@ -476,7 +475,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       if (current == null) {
         throw new IllegalStateException("No current element");
       }
-      EhcacheBase.this.remove(current.getKey(), current.getValue().value());
+      EhcacheBase.this.remove(current.getKey(), current.getValue().get());
       current = null;
     }
   }
@@ -495,7 +494,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
     @Override
     public V getValue() {
-      return storeEntry.getValue().value();
+      return storeEntry.getValue().get();
     }
 
   }

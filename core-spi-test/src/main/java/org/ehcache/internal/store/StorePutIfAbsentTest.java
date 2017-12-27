@@ -94,7 +94,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V updatedValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.putIfAbsent(key, updatedValue).value(), is(equalTo(value)));
+      assertThat(kvStore.putIfAbsent(key, updatedValue).get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -187,7 +187,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      assertThat(kvStore.putIfAbsent(key, newValue).value(), is(value));
+      assertThat(kvStore.putIfAbsent(key, newValue).get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

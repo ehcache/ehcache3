@@ -97,7 +97,7 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -132,7 +132,7 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -159,7 +159,7 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new2"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new2"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old2"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new2"));
   }
@@ -176,7 +176,7 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -238,7 +238,7 @@ public class XATransactionContextTest {
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
     when(underlyingStore.replace(eq(2L), eq(new SoftLock<>(null, "two", null)), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null)))).thenReturn(ReplaceStatus.HIT);
 
@@ -280,7 +280,7 @@ public class XATransactionContextTest {
 
     @SuppressWarnings("unchecked")
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
     try {
@@ -304,14 +304,14 @@ public class XATransactionContextTest {
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder1 = mock(Store.ValueHolder.class);
-    when(mockValueHolder1.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource
+    when(mockValueHolder1.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource
       .getTimeMillis())));
     when(underlyingStore.get(eq(1L))).thenReturn(mockValueHolder1);
     Store.ValueHolder<SoftLock<String>> mockValueHolder2 = mock(Store.ValueHolder.class);
-    when(mockValueHolder2.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null));
+    when(mockValueHolder2.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder2);
     Store.ValueHolder<SoftLock<String>> mockValueHolder3 = mock(Store.ValueHolder.class);
-    when(mockValueHolder3.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "three", null));
+    when(mockValueHolder3.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "three", null));
     when(underlyingStore.get(eq(3L))).thenReturn(mockValueHolder3);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
@@ -364,7 +364,7 @@ public class XATransactionContextTest {
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
     final AtomicReference<Collection<Long>> savedInDoubtCollectionRef = new AtomicReference<>();
@@ -377,7 +377,7 @@ public class XATransactionContextTest {
     final AtomicReference<SoftLock> softLock1Ref = new AtomicReference<>();
     when(underlyingStore.get(eq(1L))).then(invocation -> softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
       @Override
-      public Object value() {
+      public Object get() {
         return softLock1Ref.get();
       }
       @Override
@@ -398,7 +398,7 @@ public class XATransactionContextTest {
     final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<>(new SoftLock(null, "two", null));
     when(underlyingStore.get(eq(2L))).then(invocation -> softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
       @Override
-      public Object value() {
+      public Object get() {
         return softLock2Ref.get();
       }
       @Override
@@ -470,7 +470,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource.getTimeMillis()));
       }
     });
@@ -480,7 +480,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null);
       }
     });
@@ -551,7 +551,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
@@ -562,7 +562,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);
       }
     });
@@ -617,7 +617,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
@@ -628,7 +628,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);
       }
     });

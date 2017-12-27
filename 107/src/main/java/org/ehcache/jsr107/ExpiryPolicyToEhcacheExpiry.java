@@ -15,11 +15,11 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.config.ExpiryUtils;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
@@ -43,7 +43,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public java.time.Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+  public java.time.Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
     if (isShortCircuitAccessCalls()) {
       return null;
     }
@@ -60,7 +60,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public java.time.Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+  public java.time.Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
     try {
       Duration duration = expiryPolicy.getExpiryForUpdate();
       if (duration == null) {

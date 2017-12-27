@@ -52,7 +52,7 @@ public class XAValueHolderTest {
     assertThat(result.creationTime(TimeUnit.MILLISECONDS), is(valueHolder.creationTime(TimeUnit.MILLISECONDS)));
     assertThat(result.lastAccessTime(TimeUnit.MILLISECONDS), is(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS)));
     assertThat(result.expirationTime(TimeUnit.MILLISECONDS), is(valueHolder.expirationTime(TimeUnit.MILLISECONDS)));
-    assertThat(result.value(), is(valueHolder.value()));
+    assertThat(result.get(), is(valueHolder.get()));
     assertThat(result.hits(), is(valueHolder.hits()));
   }
 }

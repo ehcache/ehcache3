@@ -109,7 +109,7 @@ public class OversizeMappingTest {
   }
 
   private static void assertNotNullMapping(OnHeapStore<String, String> store) throws Exception {
-    assertThat(store.get(KEY).value(), equalTo(VALUE));
+    assertThat(store.get(KEY).get(), equalTo(VALUE));
   }
 
   @Test

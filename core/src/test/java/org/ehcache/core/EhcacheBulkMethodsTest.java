@@ -149,7 +149,7 @@ public class EhcacheBulkMethodsTest {
   static <V> ValueHolder<V> valueHolder(final V value) {
     return new ValueHolder<V>() {
       @Override
-      public V value() {
+      public V get() {
         return value;
       }
 

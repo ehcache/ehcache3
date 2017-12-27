@@ -15,12 +15,12 @@
  */
 package org.ehcache.config.builders;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.Builder;
 import org.ehcache.expiry.ExpiryPolicy;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Builder and utilities for getting predefined {@link ExpiryPolicy} instances.
@@ -152,12 +152,12 @@ public final class ExpiryPolicyBuilder implements Builder<ExpiryPolicy<Object, O
     }
 
     @Override
-    public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
+    public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
       return access;
     }
 
     @Override
-    public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
+    public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
       return update;
     }
 

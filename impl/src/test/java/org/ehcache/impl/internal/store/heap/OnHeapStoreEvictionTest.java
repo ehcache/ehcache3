@@ -87,7 +87,7 @@ public class OnHeapStoreEvictionTest {
         semaphore.acquireUninterruptibly();
         return new OnHeapValueHolder<String>(0, 0, false) {
           @Override
-          public String value() {
+          public String get() {
             return key;
           }
         };
@@ -180,12 +180,12 @@ public class OnHeapStoreEvictionTest {
 
     @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     private boolean enforceCapacityWasCalled = false;

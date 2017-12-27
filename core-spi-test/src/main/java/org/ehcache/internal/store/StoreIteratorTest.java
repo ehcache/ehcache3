@@ -80,7 +80,7 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
       keys.add(nextEntry.getKey());
-      values.add(nextEntry.getValue().value());
+      values.add(nextEntry.getValue().get());
     }
     assertThat(keys, containsInAnyOrder(equalTo(key1), equalTo(key2), equalTo(key3)));
     assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));

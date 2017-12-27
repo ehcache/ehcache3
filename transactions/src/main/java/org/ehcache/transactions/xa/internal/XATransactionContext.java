@@ -123,7 +123,7 @@ public class XATransactionContext<K, V> {
   public V newValueOf(K key) {
     Command<V> command = commands.get(key);
     XAValueHolder<V> valueHolder = command == null ? null : command.getNewValueHolder();
-    return valueHolder == null ? null : valueHolder.value();
+    return valueHolder == null ? null : valueHolder.get();
   }
 
   public int prepare() throws StoreAccessException, IllegalStateException, TransactionTimeoutException {
@@ -186,7 +186,7 @@ public class XATransactionContext<K, V> {
     for (K key : keys) {
       SoftLock<V> preparedSoftLock = getFromUnderlyingStore(key);
       XAValueHolder<V> newValueHolder = preparedSoftLock == null ? null : preparedSoftLock.getNewValueHolder();
-      SoftLock<V> definitiveSoftLock = newValueHolder == null ? null : new SoftLock<>(null, newValueHolder.value(), null);
+      SoftLock<V> definitiveSoftLock = newValueHolder == null ? null : new SoftLock<>(null, newValueHolder.get(), null);
 
       if (preparedSoftLock != null) {
         if (preparedSoftLock.getTransactionId() != null && !preparedSoftLock.getTransactionId().equals(transactionId)) {
@@ -298,7 +298,7 @@ public class XATransactionContext<K, V> {
 
   private SoftLock<V> getFromUnderlyingStore(K key) throws StoreAccessException {
     Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
-    return softLockValueHolder == null ? null : softLockValueHolder.value();
+    return softLockValueHolder == null ? null : softLockValueHolder.get();
   }
 
   private void evictFromUnderlyingStore(K key) throws StoreAccessException {

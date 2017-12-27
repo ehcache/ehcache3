@@ -63,7 +63,7 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
   }
 
   @Override
-  public final V value() {
+  public final V get() {
     try {
       return serializer.read(buffer.duplicate());
     } catch (ClassNotFoundException cnfe) {
@@ -91,7 +91,7 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
 
     if (!super.equals(that)) return false;
     try {
-      if (!serializer.equals(that.value(), buffer)) return false;
+      if (!serializer.equals(that.get(), buffer)) return false;
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }

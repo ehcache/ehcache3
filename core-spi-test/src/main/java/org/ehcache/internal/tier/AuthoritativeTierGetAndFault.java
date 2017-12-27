@@ -86,11 +86,11 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
 
     try {
       tier.put(key, value);
-      assertThat(tier.getAndFault(key).value(), is(equalTo(value)));
+      assertThat(tier.getAndFault(key).get(), is(equalTo(value)));
 
       fillTierOverCapacity(tier, factory);
 
-      assertThat(tier.get(key).value(), is(equalTo(value)));
+      assertThat(tier.get(key).get(), is(equalTo(value)));
 
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

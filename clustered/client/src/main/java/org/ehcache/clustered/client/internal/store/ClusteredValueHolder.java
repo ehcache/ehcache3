@@ -44,7 +44,7 @@ public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 }

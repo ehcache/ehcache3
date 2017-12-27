@@ -59,7 +59,7 @@ class SpecIterator<K, V> implements Iterator<Cache.Entry<K, V>> {
 
       current = next;
 
-      final V nextValue = nextValueHolder.value();
+      final V nextValue = nextValueHolder.get();
       return new Cache.Entry<K, V>() {
         @Override
         public K getKey() {

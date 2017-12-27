@@ -16,13 +16,13 @@
 
 package org.ehcache.core.config;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.expiry.ExpiryPolicy;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * ExpiryUtils
@@ -50,13 +50,13 @@ public class ExpiryUtils {
       }
 
       @Override
-      public org.ehcache.expiry.Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
-        return convertDuration(expiryPolicy.getExpiryForAccess(key, value));
+      public org.ehcache.expiry.Duration getExpiryForAccess(K key, org.ehcache.ValueSupplier<? extends V> value) {
+        return convertDuration(expiryPolicy.getExpiryForAccess(key, () -> value.value()));
       }
 
       @Override
-      public org.ehcache.expiry.Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
-        return convertDuration(expiryPolicy.getExpiryForUpdate(key, oldValue, newValue));
+      public org.ehcache.expiry.Duration getExpiryForUpdate(K key, org.ehcache.ValueSupplier<? extends V> oldValue, V newValue) {
+        return convertDuration(expiryPolicy.getExpiryForUpdate(key, () -> oldValue.value(), newValue));
       }
 
       @Override
@@ -114,14 +114,14 @@ public class ExpiryUtils {
       }
 
       @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
-        org.ehcache.expiry.Duration duration = expiry.getExpiryForAccess(key, value);
+      public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
+        org.ehcache.expiry.Duration duration = expiry.getExpiryForAccess(key, () -> value.get());
         return convertDuration(duration);
       }
 
       @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
-        org.ehcache.expiry.Duration duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
+      public Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
+        org.ehcache.expiry.Duration duration = expiry.getExpiryForUpdate(key, () -> oldValue.get(), newValue);
         return convertDuration(duration);
       }
 

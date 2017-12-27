@@ -70,7 +70,7 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 

@@ -30,9 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiFunction;
 
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -109,7 +107,7 @@ public class ScopedStoreEventDispatcherTest {
     dispatcher.addEventFilter(filter);
 
     StoreEventSink<String, String> sink = dispatcher.eventSink();
-    sink.removed("gone", supplierOf("really gone"));
+    sink.removed("gone", () -> "really gone");
     sink.created("new", "and shiny");
     dispatcher.releaseEventSink(sink);
 

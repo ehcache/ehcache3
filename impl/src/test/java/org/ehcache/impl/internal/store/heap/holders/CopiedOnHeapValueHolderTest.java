@@ -35,7 +35,7 @@ public class CopiedOnHeapValueHolderTest {
     CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, copier);
     person.age = 25;
 
-    assertNotSame(person, valueHolder.value());
+    assertNotSame(person, valueHolder.get());
   }
 
   @Test
@@ -44,7 +44,7 @@ public class CopiedOnHeapValueHolderTest {
     CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, new IdentityCopier<>());
     person.age = 25;
 
-    assertSame(person, valueHolder.value());
+    assertSame(person, valueHolder.get());
   }
 
   private static class Person {

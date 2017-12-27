@@ -177,6 +177,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
   @Override
   public String toString() {
-    return format("%s", value());
+    return format("%s", get());
   }
 }

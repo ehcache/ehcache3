@@ -66,7 +66,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     try {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iterator.next();
       assertThat(entry.getKey(), is(equalTo(key)));
-      assertThat(entry.getValue().value(), is(equalTo(value)));
+      assertThat(entry.getValue().get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

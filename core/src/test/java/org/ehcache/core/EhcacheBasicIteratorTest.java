@@ -63,7 +63,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreGet() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
@@ -73,7 +73,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreHasNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(false));
@@ -84,7 +84,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -100,7 +100,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreRemoveBeforeNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -209,7 +209,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   public void testIteratorStoreAccessException() throws Exception {
     @SuppressWarnings("unchecked")
     Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    doReturn("bar").when(valueHolder).value();
+    doReturn("bar").when(valueHolder).get();
 
     @SuppressWarnings("unchecked")
     Cache.Entry<String, Store.ValueHolder<String>> storeEntry = mock(Cache.Entry.class);

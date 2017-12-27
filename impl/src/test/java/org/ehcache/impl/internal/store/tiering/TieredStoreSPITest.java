@@ -225,7 +225,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         return new Store.ValueHolder<String>() {
 
           @Override
-          public String value() {
+          public String get() {
             return value;
           }
 

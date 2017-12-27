@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
@@ -26,6 +25,7 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * TestStoreEventDispatcher
@@ -92,9 +92,9 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
 
   private class EventBridge implements StoreEventSink<K, V> {
     @Override
-    public void evicted(K key, ValueSupplier<V> value) {
-      if (accepted(EventType.EVICTED, key, value.value(), null)) {
-        StoreEvent<K, V> event = StoreEvents.evictEvent(key, value.value());
+    public void evicted(K key, Supplier<V> value) {
+      if (accepted(EventType.EVICTED, key, value.get(), null)) {
+        StoreEvent<K, V> event = StoreEvents.evictEvent(key, value.get());
         for (StoreEventListener<K, V> listener : listeners) {
           listener.onEvent(event);
         }
@@ -102,9 +102,9 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
     }
 
     @Override
-    public void expired(K key, ValueSupplier<V> value) {
-      if (accepted(EventType.EXPIRED, key, value.value(), null)) {
-        StoreEvent<K, V> event = StoreEvents.expireEvent(key, value.value());
+    public void expired(K key, Supplier<V> value) {
+      if (accepted(EventType.EXPIRED, key, value.get(), null)) {
+        StoreEvent<K, V> event = StoreEvents.expireEvent(key, value.get());
         for (StoreEventListener<K, V> listener : listeners) {
           listener.onEvent(event);
         }
@@ -122,9 +122,9 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
     }
 
     @Override
-    public void updated(K key, ValueSupplier<V> previousValue, V newValue) {
-      if (accepted(EventType.UPDATED, key, previousValue.value(), newValue)) {
-        StoreEvent<K, V> event = StoreEvents.updateEvent(key, previousValue.value(), newValue);
+    public void updated(K key, Supplier<V> previousValue, V newValue) {
+      if (accepted(EventType.UPDATED, key, previousValue.get(), newValue)) {
+        StoreEvent<K, V> event = StoreEvents.updateEvent(key, previousValue.get(), newValue);
         for (StoreEventListener<K, V> listener : listeners) {
           listener.onEvent(event);
         }
@@ -132,9 +132,9 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
     }
 
     @Override
-    public void removed(K key, ValueSupplier<V> removed) {
-      if (accepted(EventType.REMOVED, key, removed.value(), null)) {
-        StoreEvent<K, V> event = StoreEvents.removeEvent(key, removed.value());
+    public void removed(K key, Supplier<V> removed) {
+      if (accepted(EventType.REMOVED, key, removed.get(), null)) {
+        StoreEvent<K, V> event = StoreEvents.removeEvent(key, removed.get());
         for (StoreEventListener<K, V> listener : listeners) {
           listener.onEvent(event);
         }

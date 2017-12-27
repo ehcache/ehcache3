@@ -103,7 +103,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> emptySet());
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -137,7 +137,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -192,7 +192,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (Map.Entry<K, V> entry : computedEntries.entrySet()) {
-        assertThat(kvStore.get(entry.getKey()).value(), is(entry.getValue()));
+        assertThat(kvStore.get(entry.getKey()).get(), is(entry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

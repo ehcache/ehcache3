@@ -42,7 +42,7 @@ public class LazyOffHeapValueHolderTest {
 
     valueHolder.detach();
     serialized.clear();
-    assertThat(valueHolder.value(), is(testValue));
+    assertThat(valueHolder.get(), is(testValue));
   }
 
   @Test

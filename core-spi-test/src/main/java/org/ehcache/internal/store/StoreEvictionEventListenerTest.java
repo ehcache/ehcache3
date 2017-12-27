@@ -89,7 +89,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k2, v2);
     verifyListenerInteractions(listener);
     kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
-    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
+    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).get(), is(v3));
   }
 
   @SPITest

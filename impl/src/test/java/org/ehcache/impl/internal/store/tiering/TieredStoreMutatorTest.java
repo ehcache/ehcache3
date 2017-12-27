@@ -212,7 +212,7 @@ public class TieredStoreMutatorTest {
     // 4. Test Thread receives a value from putIfAbsent. We would expect the get to receive the same value right after
     //    a. Test Thread -> TieredStore.putIfAbsent
     //    b. Test Thread -> AuthoritativeTierMock.putIfAbsent - returns VALUE
-    assertThat(putIfAbsentToTieredStore().value(), is(VALUE));
+    assertThat(putIfAbsentToTieredStore().get(), is(VALUE));
 
     // 5. Test Thread -> TieredStore.get()
     //    If Test Thread bugged -> Fault.get() - synchronized - blocked on the fault because thread 2 already locks the fault
@@ -222,7 +222,7 @@ public class TieredStoreMutatorTest {
     // These assertions will in fact work most of the time even if a failure occurred. Because as soon as the latches are
     // released by thread 3, the thread 2 will invalidate the fault
     assertThat(value, notNullValue());
-    assertThat(value.value(), is(VALUE));
+    assertThat(value.get(), is(VALUE));
 
     // If the Test thread was blocked, Thread 3 will eventually flag the failure
     assertThat(failed, is(false));
@@ -251,7 +251,7 @@ public class TieredStoreMutatorTest {
     //    Else Test Thread fixed -> new Fault ... correct value
     Store.ValueHolder<String> value = getFromTieredStore();
     assertThat(value, notNullValue());
-    assertThat(value.value(), is(VALUE));
+    assertThat(value.get(), is(VALUE));
 
     assertThat(failed, is(false));
   }

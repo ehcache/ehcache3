@@ -73,7 +73,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return valueCopier.copyForRead(copiedValue);
   }
 }

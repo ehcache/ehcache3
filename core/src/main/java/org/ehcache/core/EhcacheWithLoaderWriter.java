@@ -142,7 +142,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return null;
       } else {
         getObserver.end(GetOutcome.HIT);
-        return valueHolder.value();
+        return valueHolder.get();
       }
     } catch (StoreAccessException e) {
       try {
@@ -288,7 +288,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
         keyCount++;
         if (entry.getValue() != null) {
-          result.put(entry.getKey(), entry.getValue().value());
+          result.put(entry.getKey(), entry.getValue().get());
           hits++;
         } else if (includeNulls && failures.isEmpty()) {
           result.put(entry.getKey(), null);
@@ -602,7 +602,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return null;
       } else {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.value();
+        return inCache.get();
       }
     } catch (StoreAccessException e) {
       try {
