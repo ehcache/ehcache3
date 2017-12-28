@@ -270,8 +270,8 @@ select {
 
 #preamble {
   position: fixed;
-  top: 0px;
-  left: 0px;
+  top: 0;
+  left: 0;
   height: 100%;
   background-color: #5d6e7e;
   padding: 15px 10px;
@@ -643,10 +643,7 @@ p a > code:hover {
 
 #header, #content, #footnotes, #footer {
     width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0;
-    margin-bottom: 0;
+    margin: 0 auto;
     max-width: 62.5em;
     *zoom: 1;
     position: relative;
@@ -870,9 +867,7 @@ p a > code:hover {
 }
 
 #content #toc {
-    border-style: solid;
-    border-width: 1px;
-    border-color: #e0e0dc;
+    border: 1px solid #e0e0dc;
     margin-bottom: 1.25em;
     padding: 1.25em;
     background: #f8f8f7;
@@ -1005,9 +1000,7 @@ table.tableblock #preamble > .sectionbody > .paragraph:first-of-type p {
 }
 
 .exampleblock > .content {
-    border-style: solid;
-    border-width: 1px;
-    border-color: #e6e6e6;
+    border: 1px solid #e6e6e6;
     margin-bottom: 1.25em;
     padding: 1.25em;
     background: #fff;
@@ -1024,9 +1017,7 @@ table.tableblock #preamble > .sectionbody > .paragraph:first-of-type p {
 }
 
 .sidebarblock {
-    border-style: solid;
-    border-width: 1px;
-    border-color: #e0e0dc;
+    border: 1px solid #e0e0dc;
     margin-bottom: 1.25em;
     padding: 1.25em;
     background: #f8f8f7;
@@ -1432,9 +1423,7 @@ ul.checklist li > p:first-child > input[type="checkbox"]:first-child {
 }
 
 ul.inline {
-    margin: 0 auto .625em auto;
-    margin-left: -1.375em;
-    margin-right: 0;
+    margin: 0 0 .625em -1.375em;
     padding: 0;
     list-style: none;
     overflow: hidden
