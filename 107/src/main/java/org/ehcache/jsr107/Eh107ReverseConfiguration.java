@@ -102,7 +102,7 @@ class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
     return storeByValueOnHeap;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
   }
 }

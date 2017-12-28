@@ -17,7 +17,7 @@ package org.ehcache.clustered.client.service;
 
 /**
  * Thrown by {@link org.terracotta.connection.entity.Entity} operations requiring access to the
- * {@code {@link org.terracotta.entity.ActiveServerEntity}} when the {@code {@link org.terracotta.entity.ActiveServerEntity}} is not available.
+ * {@code org.terracotta.entity.ActiveServerEntity} when the {@code org.terracotta.entity.ActiveServerEntity} is not available.
  */
 public class EntityBusyException extends Exception {
   private static final long serialVersionUID = -7706902691622092177L;

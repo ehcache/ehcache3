@@ -55,7 +55,7 @@ final class StatsUtils {
       @Override
       protected boolean matchesSafely(Map<String, Object> properties) {
         Object val = properties.get(key);
-        return val == null ? false : value.equals(val);
+        return val != null && value.equals(val);
       }
     });
   }
@@ -76,7 +76,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasProperty("discriminator", discriminator),
         hasTag(tag)))))
@@ -111,7 +111,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasTag(tag)))))
       .build().execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -144,7 +144,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Query query = queryBuilder()
       .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
       .build();
 
     Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -177,7 +177,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
       .build();
 
     Set<TreeNode> statResult = statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));

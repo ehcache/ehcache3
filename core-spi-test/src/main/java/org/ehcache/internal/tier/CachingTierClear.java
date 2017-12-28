@@ -26,7 +26,6 @@ import org.ehcache.spi.test.SPITest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,10 +45,6 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
   public CachingTierClear(final CachingTierFactory<K, V> factory) {
     super(factory);
-  }
-
-  @Before
-  public void setUp() {
   }
 
   @After

@@ -18,8 +18,6 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.terracotta.runnel.encoding.StructEncoder;
 
-import java.util.UUID;
-
 /**
  * MessageCodecUtils
  */

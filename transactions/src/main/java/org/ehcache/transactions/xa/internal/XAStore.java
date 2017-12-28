@@ -761,12 +761,14 @@ public class XAStore<K, V> implements Store<K, V> {
         throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
-      final Store.Provider underlyingStoreProvider =
-          selectProvider(configuredTypes, Arrays.asList(serviceConfigs), xaServiceConfiguration);
+      List<ServiceConfiguration<?>> serviceConfigList = Arrays.asList(serviceConfigs);
+
+      Store.Provider underlyingStoreProvider =
+          selectProvider(configuredTypes, serviceConfigList, xaServiceConfiguration);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
-      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>();
-      underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
+      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
+      underlyingServiceConfigs.addAll(serviceConfigList);
 
       // eviction advisor
       EvictionAdvisor<? super K, ? super V> realEvictionAdvisor = storeConfig.getEvictionAdvisor();
@@ -892,7 +894,8 @@ public class XAStore<K, V> implements Store<K, V> {
       AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<>();
       SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer;
       if (storeConfig.getValueSerializer() instanceof StatefulSerializer) {
-        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
+          .getValueSerializer());
       } else {
         softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
         .getValueSerializer());

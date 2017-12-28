@@ -26,7 +26,6 @@ import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -93,7 +92,7 @@ final class ExceptionCodec {
     }
     arrayDecoder.end();
     Class clazz = null;
-    ClusterException exception = null;
+    ClusterException exception;
     try {
       clazz = Class.forName(exceptionClassName);
     } catch (ClassNotFoundException e) {

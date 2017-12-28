@@ -68,7 +68,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public V load(K key) throws Exception {
-    V v = null;
+    V v;
     readLock.lock();
     try {
       v = getStripe(key).load(key);

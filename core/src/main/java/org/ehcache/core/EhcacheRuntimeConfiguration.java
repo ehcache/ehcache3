@@ -184,14 +184,12 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       serviceConfigurationsToStringBuilder.append(" None");
     }
 
-    String expiryPolicy = "";
+    String expiryPolicy;
 
-    if (expiryPolicy != null) {
-      if (ExpiryPolicy.NO_EXPIRY == expiry) {
-        expiryPolicy = "NoExpiryPolicy";
-      } else {
-        expiryPolicy = expiry.toString();
-      }
+    if (ExpiryPolicy.NO_EXPIRY == expiry) {
+      expiryPolicy = "NoExpiryPolicy";
+    } else {
+      expiryPolicy = expiry.toString();
     }
 
     return

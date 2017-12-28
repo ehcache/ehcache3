@@ -23,7 +23,6 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
-import org.ehcache.clustered.client.internal.ClusterTierManagerNotFoundException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
@@ -64,6 +63,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * Provides support for accessing server-based cluster services.
@@ -254,11 +254,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return (Arrays.asList(ClusteredResourceType.Types.values()).contains(resourceType));
+    return Stream.of(ClusteredResourceType.Types.values()).anyMatch(t -> t.equals(resourceType));
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;

@@ -59,7 +59,7 @@ public enum OperationCode {
     }
   };
 
-  private byte value;
+  private final byte value;
 
   OperationCode(byte value) {
     this.value = value;

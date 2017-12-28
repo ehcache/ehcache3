@@ -83,7 +83,7 @@ public interface CacheConfiguration<K, V> {
   ClassLoader getClassLoader();
 
   /**
-   * The {@link Expiry} rules for the {@link Cache}.
+   * The {@link org.ehcache.expiry.Expiry} rules for the {@link Cache}.
    * <p>
    * The {@code Expiry} cannot be null.
    *

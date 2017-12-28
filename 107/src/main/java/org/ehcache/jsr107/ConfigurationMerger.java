@@ -81,7 +81,7 @@ class ConfigurationMerger {
 
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
-        CacheConfigurationBuilder<K, V> templateBuilder = null;
+        CacheConfigurationBuilder<K, V> templateBuilder;
         try {
           templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
               jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());

@@ -27,9 +27,6 @@ import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -48,10 +45,10 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   final K k = factory.createKey(1L);
-  final V v = factory.createValue(1l);
+  final V v = factory.createValue(1L);
   final K k2 = factory.createKey(2L);
-  final V v2 = factory.createValue(2l);
-  final V v3 = factory.createValue(3l);
+  final V v2 = factory.createValue(2L);
+  final V v3 = factory.createValue(3L);
 
   protected Store<K, V> kvStore;
 

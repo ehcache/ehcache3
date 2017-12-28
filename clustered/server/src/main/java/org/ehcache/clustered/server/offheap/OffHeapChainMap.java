@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -223,9 +222,7 @@ public class OffHeapChainMap<K> implements MapInternals {
   private void evict() {
     int evictionIndex = heads.getEvictionIndex();
     if (evictionIndex < 0) {
-      StringBuilder sb = new StringBuilder("Storage Engine and Eviction Failed - Everything Pinned (");
-      sb.append(getSize()).append(" mappings) \n").append("Storage Engine : ").append(chainStorage);
-      throw new OversizeMappingException(sb.toString());
+      throw new OversizeMappingException("Storage Engine and Eviction Failed - Everything Pinned (" + getSize() + " mappings) \n" + "Storage Engine : " + chainStorage);
     } else {
       heads.evict(evictionIndex, false);
     }

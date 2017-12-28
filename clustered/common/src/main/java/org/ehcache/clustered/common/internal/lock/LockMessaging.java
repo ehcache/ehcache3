@@ -25,7 +25,7 @@ public class LockMessaging {
 
   private static final MessageCodec<LockOperation, LockTransition> CODEC = new MessageCodec<LockOperation, LockTransition>() {
     @Override
-    public byte[] encodeMessage(LockOperation message) throws MessageCodecException {
+    public byte[] encodeMessage(LockOperation message) {
       return new byte[] {
         (byte) message.getOperation().ordinal(),
         (byte) message.getHoldType().ordinal()
@@ -33,12 +33,12 @@ public class LockMessaging {
     }
 
     @Override
-    public LockOperation decodeMessage(byte[] bytes) throws MessageCodecException {
+    public LockOperation decodeMessage(byte[] bytes) {
       return new LockOperation(Operation.values()[bytes[0]], HoldType.values()[bytes[1]]);
     }
 
     @Override
-    public byte[] encodeResponse(LockTransition response) throws MessageCodecException {
+    public byte[] encodeResponse(LockTransition response) {
       if (response.isAcquired()) {
         return new byte[] {0x00};
       } else if (response.isReleased()) {
@@ -126,10 +126,10 @@ public class LockMessaging {
   }
 
   public enum HoldType {
-    WRITE, READ;
+    WRITE, READ
   }
 
   public enum Operation {
-    ACQUIRE, TRY_ACQUIRE, RELEASE;
+    ACQUIRE, TRY_ACQUIRE, RELEASE
   }
 }

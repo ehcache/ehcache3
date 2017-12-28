@@ -49,10 +49,6 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {

@@ -20,7 +20,6 @@ import org.ehcache.clustered.common.internal.messages.ChainCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
-import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +104,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .int32(MESSAGE_TRACKER_SEGMENT_FIELD, 30)
     .build();
 
-  private ResponseCodec responseCodec;
+  private final ResponseCodec responseCodec;
 
   public EhcacheSyncMessageCodec(ResponseCodec responseCodec) {
     this.responseCodec = responseCodec;

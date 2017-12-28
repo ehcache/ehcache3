@@ -30,8 +30,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 
 /**
- * <p> Utility reflection methods focused on constructors, modeled after
- * {@link MethodUtils}. </li>
+ * <p>Utility reflection methods focused on constructors, modeled after
+ * {@code MethodUtils}. </li>
  *
  * <h3>Known Limitations</h3> <h4>Accessing Public Constructors In A Default
  * Access Superclass</h4> <p>There is an issue when invoking {@code public} constructors

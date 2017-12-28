@@ -27,8 +27,6 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
-import java.util.function.BiFunction;
-
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;

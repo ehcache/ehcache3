@@ -30,13 +30,12 @@ import java.util.Map;
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
   private final StatisticRegistry statisticRegistry;
-  private final String cacheName;
 
   StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService) {
     super(registryConfiguration, cacheBinding);
-    this.cacheName = cacheBinding.getAlias();
     this.statisticRegistry = new StatisticRegistry(cacheBinding.getCache());
 
+    String cacheName = cacheBinding.getAlias();
     CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
     Map<String, TypedValueStatistic> knownStatistics = cacheStatistics.getKnownStatistics();
 

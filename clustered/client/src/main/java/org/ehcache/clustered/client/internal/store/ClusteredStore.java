@@ -429,22 +429,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction)
-      throws StoreAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual)
-      throws StoreAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction)
-      throws StoreAccessException {
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -481,8 +478,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, final Supplier<Boolean> replaceEqual)
-      throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, final Supplier<Boolean> replaceEqual) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -503,8 +499,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
           // This timeout handling is safe **only** in the context of a get/read operation!
           value = null;
         }
-        ValueHolder<V> holder = (value != null) ? value : null;
-        map.put(key, holder);
+        map.put(key, value);
       }
       return map;
     } else {
@@ -710,7 +705,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
       Serializer keySerializer = clusteredStore.codec.getKeySerializer();
       if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
         } catch (CachePersistenceException e) {
@@ -720,7 +715,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       }
       Serializer valueSerializer = clusteredStore.codec.getValueSerializer();
       if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
         } catch (CachePersistenceException e) {

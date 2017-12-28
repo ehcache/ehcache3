@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import static java.util.concurrent.Executors.unconfigurableExecutorService;
 import static java.util.concurrent.Executors.unconfigurableScheduledExecutorService;
-import java.util.concurrent.RejectedExecutionHandler;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;

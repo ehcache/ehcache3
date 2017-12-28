@@ -25,8 +25,6 @@ import org.ehcache.core.HumanReadable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,25 +67,27 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
    */
   @Override
   public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
+    Set<ResourceType<?>> resourceTypeSet = toBeUpdated.getResourceTypeSet();
+
     // Ensure update pool types already exist in existing pools
-    if(!getResourceTypeSet().containsAll(toBeUpdated.getResourceTypeSet())) {
+    if(!getResourceTypeSet().containsAll(resourceTypeSet)) {
       throw new IllegalArgumentException("Pools to be updated cannot contain previously undefined resources pools");
     }
     // Can not update OFFHEAP
-    if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.OFFHEAP)) {
+    if(resourceTypeSet.contains(ResourceType.Core.OFFHEAP)) {
       throw new UnsupportedOperationException("Updating OFFHEAP resource is not supported");
     }
     // Can not update DISK
-    if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.DISK)) {
+    if(resourceTypeSet.contains(ResourceType.Core.DISK)) {
       throw new UnsupportedOperationException("Updating DISK resource is not supported");
     }
-    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
+    for(ResourceType<?> currentResourceType : resourceTypeSet) {
       getPoolForResource(currentResourceType).validateUpdate(toBeUpdated.getPoolForResource(currentResourceType));
     }
 
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
+    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>(pools.size() + resourceTypeSet.size());
     poolsMap.putAll(pools);
-    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
+    for(ResourceType<?> currentResourceType : resourceTypeSet) {
       ResourcePool poolForResource = toBeUpdated.getPoolForResource(currentResourceType);
       poolsMap.put(currentResourceType, poolForResource);
     }
@@ -107,9 +107,9 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
         ordered.add((SizedResourcePool)pool);
       }
     }
-    Collections.sort(ordered, (o1, o2) -> {
+    ordered.sort((o1, o2) -> {
       int retVal = o2.getType().getTierHeight() - o1.getType().getTierHeight();
-      if(retVal == 0) {
+      if (retVal == 0) {
         return o1.toString().compareTo(o2.toString());
       } else {
         return retVal;

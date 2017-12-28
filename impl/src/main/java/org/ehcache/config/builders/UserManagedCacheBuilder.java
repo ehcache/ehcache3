@@ -278,12 +278,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() throws Exception {
+      public void init() {
         storeProvider.initStore(store);
       }
 
       @Override
-      public void close() throws Exception {
+      public void close() {
         storeProvider.releaseStore(store);
       }
     });
@@ -356,7 +356,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
           lifeCycledList.add(new LifeCycled() {
 
             @Override
-            public void init() throws Exception {
+            public void init() {
 
             }
 

@@ -59,8 +59,7 @@ public class LongSerializer implements Serializer<Long> {
    */
   @Override
   public Long read(ByteBuffer binary) throws ClassNotFoundException {
-    long l = binary.getLong();
-    return l;
+    return binary.getLong();
   }
 
   /**

@@ -92,7 +92,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
       @SuppressWarnings("unchecked")
-      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration((Class) IdentityCopier.class, type));
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration(IdentityCopier.class, type));
       copier = defaultInstance;
     }
     return copier;

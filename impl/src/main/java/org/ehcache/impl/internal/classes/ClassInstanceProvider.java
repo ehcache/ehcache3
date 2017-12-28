@@ -104,7 +104,7 @@ public class ClassInstanceProvider<K, T> {
       }
     }
 
-    T instance = null;
+    T instance;
 
     if(config.getInstance() != null) {
       instance = config.getInstance();

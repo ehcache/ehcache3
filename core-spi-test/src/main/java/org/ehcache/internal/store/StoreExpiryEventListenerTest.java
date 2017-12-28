@@ -51,8 +51,8 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   final K k = factory.createKey(1L);
-  final V v = factory.createValue(1l);
-  final V v2 = factory.createValue(2l);
+  final V v = factory.createValue(1L);
+  final V v2 = factory.createValue(2L);
 
   protected Store<K, V> kvStore;
 

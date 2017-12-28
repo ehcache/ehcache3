@@ -220,7 +220,7 @@ final class StatusTransitioner {
     public StateTransitionException failed(Throwable t) {
       if (st.done()) {
         if (t != null) {
-          throw (AssertionError) new AssertionError("Throwable cannot be thrown if Transition is done.").initCause(t);
+          throw new AssertionError("Throwable cannot be thrown if Transition is done.", t);
         }
         return null;
       }

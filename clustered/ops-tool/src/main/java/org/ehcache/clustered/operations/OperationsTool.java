@@ -33,7 +33,7 @@ public class OperationsTool {
     }
   };
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     System.exit(innerMain(args));
   }
 

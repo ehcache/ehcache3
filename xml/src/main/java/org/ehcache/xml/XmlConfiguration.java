@@ -129,7 +129,7 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader)
       throws XmlConfigurationException {
-    this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
+    this(url, classLoader, Collections.emptyMap());
   }
 
   /**
@@ -231,9 +231,7 @@ public class XmlConfiguration implements Configuration {
       serviceConfigs.add(new OffHeapDiskStoreProviderConfiguration(diskStoreThreading.getThreadPool()));
     }
 
-    for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
-      serviceConfigurations.add(serviceConfiguration);
-    }
+    serviceConfigurations.addAll(serviceConfigs);
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
       String alias = cacheDefinition.id();

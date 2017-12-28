@@ -21,7 +21,6 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import com.tc.classloader.CommonComponent;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 @CommonComponent

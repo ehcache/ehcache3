@@ -99,7 +99,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
 
   private volatile InvalidationValve valve;
-  protected BackingMapEvictionListener<K, V> mapEvictionListener;
+  protected final BackingMapEvictionListener<K, V> mapEvictionListener;
   @SuppressWarnings("unchecked")
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
@@ -518,7 +518,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
 
       @Override
-      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+      public Cache.Entry<K, ValueHolder<V>> next() {
         Map.Entry<K, OffHeapValueHolder<V>> next = mapIterator.next();
         final K key = next.getKey();
         final OffHeapValueHolder<V> value = next.getValue();
@@ -765,7 +765,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public ValueHolder<V> getAndFault(K key) throws StoreAccessException {
     getAndFaultObserver.begin();
     checkKey(key);
-    ValueHolder<V> mappedValue = null;
+    ValueHolder<V> mappedValue;
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
       mappedValue = backingMap().computeIfPresentAndPin(key, (mappedKey, mappedValue1) -> {
@@ -969,7 +969,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> computeWithRetry(K key, BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction, boolean fault) throws StoreAccessException {
-    OffHeapValueHolder<V> computeResult = null;
+    OffHeapValueHolder<V> computeResult;
     try {
       computeResult = backingMap().compute(key, computeFunction, fault);
     } catch (OversizeMappingException ex) {

@@ -174,7 +174,7 @@ public interface StoreOperationOutcomes {
     SUCCESS,
     /** failure */
     FAILURE
-  };
+  }
 
   /**
    * Outcomes for expiration

@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;

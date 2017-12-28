@@ -16,7 +16,6 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.events.StoreEventImpl;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;

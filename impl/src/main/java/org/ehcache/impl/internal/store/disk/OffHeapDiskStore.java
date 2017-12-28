@@ -70,8 +70,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -422,7 +420,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
       Serializer keySerializer = diskStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
         } catch (CachePersistenceException e) {
@@ -432,7 +430,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       Serializer valueSerializer = diskStore.valueSerializer;
       if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
         } catch (CachePersistenceException e) {

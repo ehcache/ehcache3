@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.concurrent;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -146,7 +145,7 @@ public class ConcurrentHashMapITest {
         assertThat(map.size(), is(ENTRIES));
 
         for(int i = 0; i < 100; i ++) {
-            final HashSet randomValues = new HashSet(getRandomValues(map, ENTRIES));
+            final HashSet randomValues = new HashSet(getRandomValues(map));
             assertThat(randomValues.size(), is(ENTRIES));
             for (Object randomValue : randomValues) {
                 assertThat(randomValue, instanceOf(KeyHolder.class));
@@ -156,10 +155,10 @@ public class ConcurrentHashMapITest {
         }
     }
 
-    private static List<?> getRandomValues(Map<?, ?> map, int amount) {
+    private static List<?> getRandomValues(Map<?, ?> map) {
         List<?> values = new ArrayList<Object>(map.values());
         Collections.shuffle(values);
-        return values.subList(0, amount);
+        return values.subList(0, ENTRIES);
     }
 
 
@@ -202,7 +201,7 @@ public class ConcurrentHashMapITest {
 
         @Override
         public int compareTo(final EvilComparableKey o) {
-            return value.compareTo(o != null ? o.value : null);
+            return value.compareTo(o.value);
         }
     }
 
