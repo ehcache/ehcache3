@@ -47,7 +47,7 @@ task copyImages(type: Copy) {
 asciidoctor.dependsOn copyCSS, copyImages
 
 asciidoctor {
-  separateOutputDirs = false;
+  separateOutputDirs = false
   attributes 'skip-front-matter': 'true'
 
   resources {
