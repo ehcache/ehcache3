@@ -178,7 +178,7 @@ public class ConstructorUtils {
         // return best match:
         for (Constructor<?> ctor : ctors) {
             // compare parameters
-            if (ClassUtils.isAssignable(parameterTypes, ctor.getParameterTypes(), true)) {
+            if (ClassUtils.isAssignable(parameterTypes, ctor.getParameterTypes())) {
                 // get accessible version of constructor
                 ctor = getAccessibleConstructor(ctor);
                 if (ctor != null) {
