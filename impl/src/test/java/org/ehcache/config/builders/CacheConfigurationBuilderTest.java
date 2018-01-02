@@ -66,32 +66,32 @@ public class CacheConfigurationBuilderTest {
   public void testLoaderWriter() throws Exception {
     CacheLoaderWriter<Object, Object> loaderWriter = new CacheLoaderWriter<Object, Object>() {
       @Override
-      public Object load(Object key) throws Exception {
+      public Object load(Object key) {
         return null;
       }
 
       @Override
-      public Map<Object, Object> loadAll(Iterable keys) throws Exception {
+      public Map<Object, Object> loadAll(Iterable keys) {
         return null;
       }
 
       @Override
-      public void write(Object key, Object value) throws Exception {
+      public void write(Object key, Object value) {
 
       }
 
       @Override
-      public void writeAll(Iterable iterable) throws BulkCacheWritingException, Exception {
+      public void writeAll(Iterable iterable) {
 
       }
 
       @Override
-      public void delete(Object key) throws Exception {
+      public void delete(Object key) {
 
       }
 
       @Override
-      public void deleteAll(Iterable keys) throws BulkCacheWritingException, Exception {
+      public void deleteAll(Iterable keys) {
 
       }
     };

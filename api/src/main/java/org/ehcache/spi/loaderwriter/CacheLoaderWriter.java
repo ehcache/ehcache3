@@ -16,6 +16,7 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -75,7 +76,13 @@ public interface CacheLoaderWriter<K, V> {
    * @throws BulkCacheLoadingException in case of partial success
    * @throws Exception in case no values could be loaded
    */
-  Map<K, V> loadAll(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception;
+  default Map<K, V> loadAll(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception {
+    Map<K, V> entries = new HashMap<>();
+    for (K k : keys) {
+      entries.put(k, load(k)) ;
+    }
+    return entries;
+  }
 
   /**
    * Writes a single mapping.
@@ -105,7 +112,11 @@ public interface CacheLoaderWriter<K, V> {
    * @throws BulkCacheWritingException in case of partial success
    * @throws Exception in case no values could be written
    */
-  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception;
+  default void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      write(entry.getKey(), entry.getValue());
+    }
+  }
 
   /**
    * Deletes a single mapping.
@@ -127,6 +138,10 @@ public interface CacheLoaderWriter<K, V> {
    * @throws BulkCacheWritingException in case of partial success
    * @throws Exception in case no values can be loaded
    */
-  void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception;
+  default void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    for (K k : keys) {
+      delete(k);
+    }
+  }
 
 }

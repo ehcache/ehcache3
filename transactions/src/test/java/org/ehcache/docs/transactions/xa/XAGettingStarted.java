@@ -231,7 +231,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(K key) {
       lock.readLock().lock();
       try {
         V v = data.get(key);
@@ -243,12 +243,12 @@ public class XAGettingStarted {
     }
 
     @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    public Map<K, V> loadAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void write(K key, V value) throws Exception {
+    public void write(K key, V value) {
       lock.writeLock().lock();
       try {
         data.put(key, value);
@@ -259,7 +259,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       lock.writeLock().lock();
       try {
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
@@ -272,7 +272,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void delete(K key) throws Exception {
+    public void delete(K key) {
       lock.writeLock().lock();
       try {
         data.remove(key);
@@ -283,7 +283,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends K> keys) {
       lock.writeLock().lock();
       try {
         for (K key : keys) {

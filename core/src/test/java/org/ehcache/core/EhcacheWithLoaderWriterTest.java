@@ -194,7 +194,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
 
   private static class KeyFumblingCacheLoaderWriter implements CacheLoaderWriter<String, String> {
     @Override
-    public Map<String, String> loadAll(Iterable<? extends String> keys) throws Exception {
+    public Map<String, String> loadAll(Iterable<? extends String> keys) {
       HashMap<String, String> result = new HashMap<>();
       for (String key : keys) {
         result.put(new String(key), "valueFor" + key);
@@ -203,27 +203,27 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public void write(String key, String value) throws Exception {
+    public void write(String key, String value) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void delete(String key) throws Exception {
+    public void delete(String key) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void deleteAll(Iterable<? extends String> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends String> keys) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public String load(String key) throws Exception {
+    public String load(String key) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }

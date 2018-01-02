@@ -38,13 +38,13 @@ public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product
   public static final Set<Long> seen = new HashSet<>();
 
   @Override
-  public Product load(final Long key) throws Exception {
+  public Product load(final Long key) {
     seen.add(key);
     return new Product(key);
   }
 
   @Override
-  public Map<Long, Product> loadAll(final Iterable<? extends Long> keys) throws Exception {
+  public Map<Long, Product> loadAll(final Iterable<? extends Long> keys) {
     for (Long key : keys) {
       seen.add(key);
     }
@@ -52,7 +52,7 @@ public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product
   }
 
   @Override
-  public void write(final Long key, final Product value) throws Exception {
+  public void write(final Long key, final Product value)  {
     List<Product> products = written.get(key);
     if(products == null) {
       products = new ArrayList<>();
@@ -65,17 +65,17 @@ public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product
   }
 
   @Override
-  public void writeAll(final Iterable<? extends Map.Entry<? extends Long, ? extends Product>> entries) throws Exception {
+  public void writeAll(final Iterable<? extends Map.Entry<? extends Long, ? extends Product>> entries) {
     // no-op
   }
 
   @Override
-  public void delete(final Long key) throws Exception {
+  public void delete(final Long key) {
     // no-op
   }
 
   @Override
-  public void deleteAll(final Iterable<? extends Long> keys) throws Exception {
+  public void deleteAll(final Iterable<? extends Long> keys) {
     // no-op
   }
 }
