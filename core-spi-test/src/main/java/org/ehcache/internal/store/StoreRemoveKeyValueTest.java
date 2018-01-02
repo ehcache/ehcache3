@@ -203,7 +203,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       if (this.factory.getKeyType() == String.class) {
         kvStore2.remove((K) (Object) 1.0f, value);
       } else {
-        kvStore2.remove((K) (Object) "key", value);
+        kvStore2.remove((K) "key", value);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -225,7 +225,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       if (this.factory.getValueType() == String.class) {
         kvStore2.remove(key, (V) (Object) 1.0f);
       } else {
-        kvStore2.remove(key, (V) (Object) "value");
+        kvStore2.remove(key, (V) "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {

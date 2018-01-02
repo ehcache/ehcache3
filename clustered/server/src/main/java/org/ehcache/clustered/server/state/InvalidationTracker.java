@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.state;
 import com.tc.classloader.CommonComponent;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 @CommonComponent
 public interface InvalidationTracker {

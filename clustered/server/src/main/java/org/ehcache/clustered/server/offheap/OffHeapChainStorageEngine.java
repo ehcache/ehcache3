@@ -19,7 +19,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -264,11 +263,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       } else {
         long oldTail = storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET);
         storage.writeLong(newTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
-        try {
-          storage.writeLong(oldTail + ELEMENT_HEADER_NEXT_OFFSET, newTail);
-        } catch (NullPointerException e) {
-          throw e;
-        }
+        storage.writeLong(oldTail + ELEMENT_HEADER_NEXT_OFFSET, newTail);
         storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, newTail);
         return true;
       }
@@ -445,11 +440,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
   }
 
-  private long writeElement(long address, ByteBuffer element) {
+  private void writeElement(long address, ByteBuffer element) {
     storage.writeLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET, nextSequenceNumber++);
     storage.writeInt(address + ELEMENT_HEADER_LENGTH_OFFSET, element.remaining());
     storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element.duplicate());
-    return address;
   }
 
   private Long createAttachedChain(K key, int hash, PrimordialChain value) {

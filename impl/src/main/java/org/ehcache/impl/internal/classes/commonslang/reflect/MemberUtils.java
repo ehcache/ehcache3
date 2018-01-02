@@ -29,7 +29,7 @@ import java.lang.reflect.Modifier;
 
 /**
  * Contains common code for working with {@link java.lang.reflect.Method Methods}/{@link java.lang.reflect.Constructor Constructors},
- * extracted and refactored from {@link MethodUtils} when it was imported from Commons BeanUtils.
+ * extracted and refactored from {@code MethodUtils} when it was imported from Commons BeanUtils.
  *
  * @since 2.5
  */
@@ -104,7 +104,7 @@ abstract class MemberUtils {
     static int compareParameterTypes(final Class<?>[] left, final Class<?>[] right, final Class<?>[] actual) {
         final float leftCost = getTotalTransformationCost(actual, left);
         final float rightCost = getTotalTransformationCost(actual, right);
-        return leftCost < rightCost ? -1 : rightCost < leftCost ? 1 : 0;
+        return Float.compare(leftCost, rightCost);
     }
 
     /**

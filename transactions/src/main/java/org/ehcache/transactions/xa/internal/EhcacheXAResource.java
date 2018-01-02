@@ -104,12 +104,12 @@ public class EhcacheXAResource<K, V> implements XAResource {
   }
 
   @Override
-  public int getTransactionTimeout() throws XAException {
+  public int getTransactionTimeout() {
     return transactionTimeoutInSeconds;
   }
 
   @Override
-  public boolean isSameRM(XAResource xaResource) throws XAException {
+  public boolean isSameRM(XAResource xaResource) {
     return xaResource == this;
   }
 

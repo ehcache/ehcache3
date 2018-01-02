@@ -207,7 +207,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       return Unwrap.unwrap(clazz, this, ehcacheConfig);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
   }
 

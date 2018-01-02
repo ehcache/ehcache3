@@ -65,12 +65,12 @@ public class TransientJournal<K> implements Journal<K> {
 
   @Override
   public void saveCommitted(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.emptySet());
   }
 
   @Override
   public void saveRolledBack(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.emptySet());
   }
 
   @Override
@@ -97,7 +97,7 @@ public class TransientJournal<K> implements Journal<K> {
       if (xaState == XAState.IN_DOUBT) {
         throw new IllegalStateException("A transaction cannot enter in-doubt state heuristically");
       } else {
-        Entry replaced = states.replace(transactionId, new Entry<>(xaState, true, Collections.<K>emptySet()));
+        Entry replaced = states.replace(transactionId, new Entry<>(xaState, true, Collections.emptySet()));
         if (replaced == null) {
           throw new IllegalStateException("Only in-doubt transactions can be heuristically terminated");
         }

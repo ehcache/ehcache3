@@ -44,5 +44,5 @@ public enum BulkOps {
   /**
    * The "put all" bulk operation performing an update
    */
-  UPDATE_ALL;
+  UPDATE_ALL
 }

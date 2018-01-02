@@ -97,7 +97,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   protected final ServiceLocator serviceLocator;
 
   public EhcacheManager(Configuration config) {
-    this(config, Collections.<Service>emptyList(), true);
+    this(config, Collections.emptyList(), true);
   }
 
   public EhcacheManager(Configuration config, Collection<Service> services) {
@@ -247,7 +247,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Class<K> keyType = config.getKeyType();
     Class<V> valueType = config.getValueType();
 
-    final CacheHolder value = new CacheHolder(keyType, valueType, null);
+    CacheHolder value = new CacheHolder(keyType, valueType);
     if (caches.putIfAbsent(alias, value) != null) {
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
@@ -374,7 +374,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
               lsnrConfig.fireOn());
           lifeCycledList.add(new LifeCycled() {
             @Override
-            public void init() throws Exception {
+            public void init() {
               // no-op for now
             }
 
@@ -495,7 +495,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() throws Exception {
+      public void init() {
         storeProvider.initStore(store);
       }
 
@@ -756,10 +756,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     private volatile InternalCache<?, ?> cache;
     private volatile boolean isValueSet = false;
 
-    CacheHolder(Class<?> keyType, Class<?> valueType, InternalCache<?, ?> cache) {
+    CacheHolder(Class<?> keyType, Class<?> valueType) {
       this.keyType = keyType;
       this.valueType = valueType;
-      this.cache = cache;
     }
 
     <K, V> InternalCache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {

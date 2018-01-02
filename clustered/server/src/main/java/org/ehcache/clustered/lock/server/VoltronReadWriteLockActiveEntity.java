@@ -29,7 +29,6 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.StateDumpCollector;
 
 /**

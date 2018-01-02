@@ -64,8 +64,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
-  private Class<K> keyType;
-  private Class<V> valueType;
+  private final Class<K> keyType;
+  private final Class<V> valueType;
 
   /**
    * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type

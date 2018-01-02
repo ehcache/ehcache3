@@ -109,11 +109,10 @@ public class ClassUtils {
      *
      * @param classArray  the array of Classes to check, may be {@code null}
      * @param toClassArray  the array of Classes to try to assign into, may be {@code null}
-     * @param autoboxing  whether to use implicit autoboxing/unboxing between primitives and wrappers
      * @return {@code true} if assignment possible
      */
-    public static boolean isAssignable(Class<?>[] classArray, Class<?>[] toClassArray, final boolean autoboxing) {
-        if (ArrayUtils.isSameLength(classArray, toClassArray) == false) {
+    public static boolean isAssignable(Class<?>[] classArray, Class<?>[] toClassArray) {
+        if (!ArrayUtils.isSameLength(classArray, toClassArray)) {
             return false;
         }
         if (classArray == null) {
@@ -123,7 +122,7 @@ public class ClassUtils {
             toClassArray = ArrayUtils.EMPTY_CLASS_ARRAY;
         }
         for (int i = 0; i < classArray.length; i++) {
-            if (isAssignable(classArray[i], toClassArray[i], autoboxing) == false) {
+            if (!isAssignable(classArray[i], toClassArray[i])) {
                 return false;
             }
         }
@@ -152,47 +151,11 @@ public class ClassUtils {
      * <em><a href="http://docs.oracle.com/javase/specs/">The Java Language Specification</a></em>,
      * sections 5.1.1, 5.1.2 and 5.1.4 for details.</li>
      *
-     * <p><strong>Since Lang 3.0,</strong> this method will default behavior for
-     * calculating assignability between primitive and wrapper types <em>corresponding
-     * to the running Java version</em>; i.e. autoboxing will be the default
-     * behavior in VMs running Java versions &gt; 1.5.</li>
-     *
      * @param cls  the Class to check, may be null
      * @param toClass  the Class to try to assign into, returns false if null
      * @return {@code true} if assignment possible
      */
-    public static boolean isAssignable(final Class<?> cls, final Class<?> toClass) {
-        return isAssignable(cls, toClass, SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_5));
-    }
-
-    /**
-     * <p>Checks if one {@code Class} can be assigned to a variable of
-     * another {@code Class}.</li>
-     *
-     * <p>Unlike the {@link Class#isAssignableFrom(java.lang.Class)} method,
-     * this method takes into account widenings of primitive classes and
-     * {@code null}s.</li>
-     *
-     * <p>Primitive widenings allow an int to be assigned to a long, float or
-     * double. This method returns the correct result for these cases.</li>
-     *
-     * <p>{@code Null} may be assigned to any reference type. This method
-     * will return {@code true} if {@code null} is passed in and the
-     * toClass is non-primitive.</li>
-     *
-     * <p>Specifically, this method tests whether the type represented by the
-     * specified {@code Class} parameter can be converted to the type
-     * represented by this {@code Class} object via an identity conversion
-     * widening primitive or widening reference conversion. See
-     * <em><a href="http://docs.oracle.com/javase/specs/">The Java Language Specification</a></em>,
-     * sections 5.1.1, 5.1.2 and 5.1.4 for details.</li>
-     *
-     * @param cls  the Class to check, may be null
-     * @param toClass  the Class to try to assign into, returns false if null
-     * @param autoboxing  whether to use implicit autoboxing/unboxing between primitives and wrappers
-     * @return {@code true} if assignment possible
-     */
-    public static boolean isAssignable(Class<?> cls, final Class<?> toClass, final boolean autoboxing) {
+    public static boolean isAssignable(Class<?> cls, final Class<?> toClass) {
         if (toClass == null) {
             return false;
         }
@@ -201,25 +164,23 @@ public class ClassUtils {
             return !toClass.isPrimitive();
         }
         //autoboxing:
-        if (autoboxing) {
-            if (cls.isPrimitive() && !toClass.isPrimitive()) {
-                cls = primitiveToWrapper(cls);
-                if (cls == null) {
-                    return false;
-                }
+        if (cls.isPrimitive() && !toClass.isPrimitive()) {
+            cls = primitiveToWrapper(cls);
+            if (cls == null) {
+                return false;
             }
-            if (toClass.isPrimitive() && !cls.isPrimitive()) {
-                cls = wrapperToPrimitive(cls);
-                if (cls == null) {
-                    return false;
-                }
+        }
+        if (toClass.isPrimitive() && !cls.isPrimitive()) {
+            cls = wrapperToPrimitive(cls);
+            if (cls == null) {
+                return false;
             }
         }
         if (cls.equals(toClass)) {
             return true;
         }
         if (cls.isPrimitive()) {
-            if (toClass.isPrimitive() == false) {
+            if (!toClass.isPrimitive()) {
                 return false;
             }
             if (Integer.TYPE.equals(cls)) {

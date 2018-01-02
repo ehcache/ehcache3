@@ -191,13 +191,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException {
+  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException {
     invokeInternal(endpoint.beginInvoke().ackSent(), getTimeoutDuration(message), message, track);
   }
 
   @Override
   public void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track)
-    throws ClusterException, TimeoutException {
+    throws TimeoutException {
     invokeInternal(endpoint.beginInvoke().ackReceived(), getTimeoutDuration(message), message, track);
   }
 

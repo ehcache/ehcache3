@@ -24,8 +24,6 @@ import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
-import java.util.function.Function;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -44,10 +42,6 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
 
   public CachingTierRemove(final CachingTierFactory<K, V> factory) {
     super(factory);
-  }
-
-  @Before
-  public void setUp() {
   }
 
   @After

@@ -39,16 +39,6 @@ public class ClusteredResourcePoolImpl
   }
 
   @Override
-  public ClusteredResourceType<ClusteredResourcePool> getType() {
-    return super.getType();
-  }
-
-  @Override
-  public boolean isPersistent() {
-    return super.isPersistent();
-  }
-
-  @Override
   public void validateUpdate(ResourcePool newPool) {
     throw new UnsupportedOperationException("Updating CLUSTERED resource is not supported");
   }

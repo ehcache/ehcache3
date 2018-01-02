@@ -106,12 +106,12 @@ public class ClusterTierManagerServerEntityService implements EntityServerServic
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
     return new SyncMessageCodec<EhcacheEntityMessage>() {
       @Override
-      public byte[] encode(int concurrencyKey, EhcacheEntityMessage response) throws MessageCodecException {
+      public byte[] encode(int concurrencyKey, EhcacheEntityMessage response) {
         throw new UnsupportedOperationException("This entity does not have sync messages");
       }
 
       @Override
-      public EhcacheEntityMessage decode(int concurrencyKey, byte[] payload) throws MessageCodecException {
+      public EhcacheEntityMessage decode(int concurrencyKey, byte[] payload) {
         throw new UnsupportedOperationException("This entity does not have sync messages");
       }
     };

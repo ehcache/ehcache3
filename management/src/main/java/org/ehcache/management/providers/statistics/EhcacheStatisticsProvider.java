@@ -61,7 +61,7 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
       capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
     }
     List<StatisticDescriptor> list = new ArrayList<>(capabilities);
-    Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
+    list.sort(STATISTIC_DESCRIPTOR_COMPARATOR);
     return list;
   }
 

@@ -90,7 +90,7 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
     return LockSyncMessaging.syncCodec();
   }
 
-  private static final <T> ServiceConfiguration<T> config(final Class<T> klazz) {
+  private static <T> ServiceConfiguration<T> config(Class<T> klazz) {
     return () -> klazz;
   }
 }

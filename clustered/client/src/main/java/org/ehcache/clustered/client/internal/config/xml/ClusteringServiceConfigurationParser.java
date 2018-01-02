@@ -54,7 +54,6 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.*;
-import static org.ehcache.xml.XmlModel.convertToJavaTemporalUnit;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 
 /**
@@ -113,43 +112,49 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
         if (Node.ELEMENT_NODE == item.getNodeType()) {
-          if ("connection".equals(item.getLocalName())) {
-            /*
-             * <connection> is a required element in the XSD
-             */
-            final Attr urlAttribute = ((Element)item).getAttributeNode("url");
-            final String urlValue = urlAttribute.getValue();
-            try {
-              connectionUri = new URI(urlValue);
-            } catch (URISyntaxException e) {
-              throw new XmlConfigurationException(
+          switch (item.getLocalName()) {
+            case "connection":
+              /*
+               * <connection> is a required element in the XSD
+               */
+              final Attr urlAttribute = ((Element) item).getAttributeNode("url");
+              final String urlValue = urlAttribute.getValue();
+              try {
+                connectionUri = new URI(urlValue);
+              } catch (URISyntaxException e) {
+                throw new XmlConfigurationException(
                   String.format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
-                      urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
-            }
+                    urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
+              }
 
-          } else if ("read-timeout".equals(item.getLocalName())) {
-            /*
-             * <read-timeout> is an optional element
-             */
-            getTimeout = processTimeout(fragment, item);
+              break;
+            case "read-timeout":
+              /*
+               * <read-timeout> is an optional element
+               */
+              getTimeout = processTimeout(fragment, item);
 
-          } else if ("write-timeout".equals(item.getLocalName())) {
-            /*
-             * <write-timeout> is an optional element
-             */
-            putTimeout = processTimeout(fragment, item);
+              break;
+            case "write-timeout":
+              /*
+               * <write-timeout> is an optional element
+               */
+              putTimeout = processTimeout(fragment, item);
 
-          } else if ("connection-timeout".equals(item.getLocalName())) {
-            /*
-             * <connection-timeout> is an optional element
-             */
-            connectionTimeout = processTimeout(fragment, item);
+              break;
+            case "connection-timeout":
+              /*
+               * <connection-timeout> is an optional element
+               */
+              connectionTimeout = processTimeout(fragment, item);
 
-          } else if ("server-side-config".equals(item.getLocalName())) {
-            /*
-             * <server-side-config> is an optional element
-             */
-            serverConfig = processServerSideConfig(item);
+              break;
+            case "server-side-config":
+              /*
+               * <server-side-config> is an optional element
+               */
+              serverConfig = processServerSideConfig(item);
+              break;
           }
         }
       }

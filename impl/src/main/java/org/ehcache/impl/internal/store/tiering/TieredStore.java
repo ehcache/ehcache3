@@ -336,8 +336,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       if (authorityRank == 0) {
         return 0;
       }
-      Set<ResourceType<?>> cachingResources = new HashSet<>();
-      cachingResources.addAll(resourceTypes);
+      Set<ResourceType<?>> cachingResources = new HashSet<>(resourceTypes);
       cachingResources.remove(authorityResource);
       int cachingTierRank = 0;
       Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
@@ -376,8 +375,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       ResourceType<?> authorityResource = getAuthorityResource(resourcePools.getResourceTypeSet());
       AuthoritativeTier.Provider authoritativeTierProvider = getAuthoritativeTierProvider(authorityResource, enhancedServiceConfigs);
 
-      Set<ResourceType<?>> cachingResources = new HashSet<>();
-      cachingResources.addAll(resourcePools.getResourceTypeSet());
+      Set<ResourceType<?>> cachingResources = new HashSet<>(resourcePools.getResourceTypeSet());
       cachingResources.remove(authorityResource);
 
       CachingTier.Provider cachingTierProvider = getCachingTierProvider(cachingResources, enhancedServiceConfigs);
@@ -439,11 +437,11 @@ public class TieredStore<K, V> implements Store<K, V> {
       // and thus not be in a state when they can invalidate anymore
       tieredStore.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
         @Override
-        public void invalidateAll() throws StoreAccessException {
+        public void invalidateAll() {
         }
 
         @Override
-        public void invalidateAllWithHash(long hash) throws StoreAccessException {
+        public void invalidateAllWithHash(long hash) {
         }
       });
       entry.getKey().releaseCachingTier(tieredStore.realCachingTier);
@@ -482,14 +480,14 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws StoreAccessException {
+    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
       authoritativeTier.flush(key, apply);
       return apply;
     }
 
     @Override
-    public void invalidate(final K key) throws StoreAccessException {
+    public void invalidate(final K key) {
       // noop
     }
 
@@ -499,7 +497,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void clear() throws StoreAccessException {
+    public void clear() {
       // noop
     }
 
@@ -509,7 +507,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void invalidateAllWithHash(long hash) throws StoreAccessException {
+    public void invalidateAllWithHash(long hash) {
       // noop
     }
 

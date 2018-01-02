@@ -303,13 +303,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   private void registerStoreStatistics(ServerStoreImpl store, String storeName) {
-    STAT_STORE_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
-      registerStatistic(store, storeName, entry.getKey(), STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> entry.getValue().apply(store) ));
+    STAT_STORE_METHOD_REFERENCES.forEach((key, value) ->
+      registerStatistic(store, storeName, key, STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> value.apply(store) ));
   }
 
   private void registerPoolStatistics(String poolName, ResourcePageSource pageSource) {
-    STAT_POOL_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
-      registerStatistic(pageSource, poolName, entry.getKey(), STATISTICS_POOL_TAG, PROPERTY_POOL_KEY, () -> entry.getValue().apply(pageSource))
+    STAT_POOL_METHOD_REFERENCES.forEach((key, value)->
+      registerStatistic(pageSource, poolName, key, STATISTICS_POOL_TAG, PROPERTY_POOL_KEY, () -> value.apply(pageSource))
     );
   }
 

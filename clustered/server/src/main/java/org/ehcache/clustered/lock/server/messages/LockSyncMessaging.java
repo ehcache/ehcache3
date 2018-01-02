@@ -31,12 +31,12 @@ public class LockSyncMessaging {
 
   private static final SyncMessageCodec<LockMessaging.LockOperation> SYNC_CODEC = new SyncMessageCodec<LockMessaging.LockOperation>() {
     @Override
-    public byte[] encode(int i, LockMessaging.LockOperation message) throws MessageCodecException {
+    public byte[] encode(int i, LockMessaging.LockOperation message) {
       throw new AssertionError();
     }
 
     @Override
-    public LockMessaging.LockOperation decode(int i, byte[] bytes) throws MessageCodecException {
+    public LockMessaging.LockOperation decode(int i, byte[] bytes) {
       throw new AssertionError();
     }
   };

@@ -31,8 +31,6 @@ import java.util.Objects;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
-import static org.ehcache.clustered.client.config.Timeouts.DEFAULT_OPERATION_TIMEOUT;
-
 /**
  * Specifies the configuration for a {@link ClusteringService}.
  */
@@ -210,9 +208,13 @@ public class ClusteringServiceConfiguration
 
   private String readablePoolsString() {
     StringBuilder pools = new StringBuilder("resourcePools:\n");
-    for(Map.Entry entry : serverConfiguration.getResourcePools().entrySet()) {
-      pools.append("        " + entry.getKey() + ": " + entry.getValue() + "\n");
-    }
+    serverConfiguration.getResourcePools().forEach((key, value) -> {
+      pools.append("        ");
+      pools.append(key);
+      pools.append(": ");
+      pools.append(value);
+      pools.append("\n");
+    });
     return pools.toString();
   }
 }

@@ -33,7 +33,7 @@ public class ByteBufferInputStream extends InputStream {
   }
 
   @Override
-  public int read() throws IOException {
+  public int read() {
     if (buffer.hasRemaining()) {
       return 0xff & buffer.get();
     } else {

@@ -24,7 +24,6 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
-import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;

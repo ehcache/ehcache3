@@ -16,11 +16,9 @@
 
 package org.ehcache.spi.persistence;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 
-import java.util.Collection;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PluralService;

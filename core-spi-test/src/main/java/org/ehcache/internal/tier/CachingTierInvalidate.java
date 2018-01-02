@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

@@ -63,10 +63,9 @@ public class ResourcePageSource implements PageSource {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("ResourcePageSource{");
-    sb.append("pool=").append(pool);
-    sb.append(", delegatePageSource=").append(delegatePageSource);
-    sb.append('}');
-    return sb.toString();
+    String sb = "ResourcePageSource{" + "pool=" + pool +
+                ", delegatePageSource=" + delegatePageSource +
+                '}';
+    return sb;
   }
 }

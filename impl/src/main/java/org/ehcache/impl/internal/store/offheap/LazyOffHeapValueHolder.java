@@ -125,7 +125,7 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
     ATTACHED, DETACHED
   }
 
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+  private void writeObject(java.io.ObjectOutputStream out) {
     throw new UnsupportedOperationException("This subclass of AbstractValueHolder is NOT serializable");
   }
 

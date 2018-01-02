@@ -63,7 +63,7 @@ public class PeeperServlet extends HttpServlet {
 
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
     String peepText = req.getParameter("peep");
 
     try {

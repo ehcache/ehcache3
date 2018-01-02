@@ -26,12 +26,12 @@ import java.util.function.ToIntFunction;
  */
 class MessageToTrackerSegmentFunction implements ToIntFunction<EhcacheEntityMessage> {
 
-  private ConcurrencyStrategy<EhcacheEntityMessage> concurrencyStrategy;
+  private final ConcurrencyStrategy<EhcacheEntityMessage> concurrencyStrategy;
 
   MessageToTrackerSegmentFunction(ConcurrencyStrategy<EhcacheEntityMessage> concurrencyStrategy) {
-
     this.concurrencyStrategy = concurrencyStrategy;
   }
+
   @Override
   public int applyAsInt(EhcacheEntityMessage value) {
     // Concurrency is 1 based, segments are 0 based

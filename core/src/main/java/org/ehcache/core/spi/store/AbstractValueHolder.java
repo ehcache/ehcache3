@@ -33,7 +33,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long lastAccessTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long expirationTime;
   private volatile long hits;
 
@@ -77,7 +79,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (EXPIRATIONTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   public void accessed(long now, Duration expiration) {
@@ -127,7 +129,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   @Override

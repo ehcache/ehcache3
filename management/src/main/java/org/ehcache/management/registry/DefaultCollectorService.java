@@ -29,11 +29,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.collect.DefaultStatisticCollector;
-import org.terracotta.management.registry.collect.StatisticCollector;
 
-import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
