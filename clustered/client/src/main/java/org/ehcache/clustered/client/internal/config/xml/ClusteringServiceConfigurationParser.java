@@ -155,6 +155,10 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
                */
               serverConfig = processServerSideConfig(item);
               break;
+            default:
+              throw new XmlConfigurationException(
+                String.format("Unknown XML configuration element <%s> in <%s>",
+                              item.getNodeName(), fragment.getTagName()));
           }
         }
       }
