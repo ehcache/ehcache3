@@ -20,7 +20,10 @@ import org.ehcache.ValueSupplier;
 
 /**
  * Utility for creating basic {@link ValueSupplier} instances
+ *
+ * @deprecated Now using {@code Supplier} for {@link org.ehcache.expiry.ExpiryPolicy}
  */
+@Deprecated
 public class ValueSuppliers {
 
   /**

@@ -22,7 +22,6 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.ehcache.jsr107.EhcacheCachingProvider;
@@ -131,9 +130,9 @@ public class EhCache107ConfigurationIntegrationDocTest {
     assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
                 equalTo(org.ehcache.expiry.ExpiryPolicy.INFINITE));
     assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForAccess(random.nextLong(),
-                  ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
+      () -> Long.toOctalString(random.nextLong())), nullValue());
     assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForUpdate(random.nextLong(),
-                  ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong())), Long.toOctalString(random.nextLong())), nullValue());
+      () -> Long.toOctalString(random.nextLong()), Long.toOctalString(random.nextLong())), nullValue());
   }
 
   @Test

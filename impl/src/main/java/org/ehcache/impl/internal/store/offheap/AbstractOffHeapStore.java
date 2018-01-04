@@ -57,7 +57,6 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
@@ -378,7 +377,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
-        } else if (mappedValue.value().equals(value)) {
+        } else if (mappedValue.get().equals(value)) {
           removed.set(true);
           eventSink.removed(mappedKey, mappedValue);
           return null;
@@ -464,7 +463,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           onExpiration(mappedKey, mappedValue, eventSink);
         }
         return null;
-      } else if (oldValue.equals(mappedValue.value())) {
+      } else if (oldValue.equals(mappedValue.get())) {
         replaced.set(true);
         return newUpdatedValueHolder(mappedKey, newValue, mappedValue, now, eventSink);
       } else {
@@ -558,7 +557,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
         mappedValue = null;
       } else {
-        existingValue = mappedValue.value();
+        existingValue = mappedValue.get();
       }
       V computedValue = mappingFunction.apply(mappedKey, existingValue);
       if (computedValue == null) {
@@ -1028,7 +1027,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
     if (Duration.ZERO.equals(duration)) {
-      eventSink.expired(key, supplierOf(value));
+      eventSink.expired(key, () -> value);
       return null;
     }
 
@@ -1066,11 +1065,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
-      return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.value(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
+      return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
         valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
         valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
     } else {
-      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
+      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
         valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder
         .hits());
     }
@@ -1138,7 +1137,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     @Override
     public boolean adviseAgainstEviction(K key, OffHeapValueHolder<V> value) {
       try {
-        return delegate.adviseAgainstEviction(key, value.value());
+        return delegate.adviseAgainstEviction(key, value.get());
       } catch (Exception e) {
         LOG.error("Exception raised while running eviction advisor " +
                   "- Eviction will assume entry is NOT advised against eviction", e);

@@ -61,7 +61,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     V newValue = factory.createValue(2);
 
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.value()).thenReturn(originalValue);
+    when(valueHolder.get()).thenReturn(originalValue);
 
     tier = factory.newCachingTier(1L);
 
@@ -71,10 +71,10 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
       tier.invalidate(key);
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
-      when(newValueHolder.value()).thenReturn(newValue);
+      when(newValueHolder.get()).thenReturn(newValue);
       Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
-      assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
+      assertThat(newReturnedValueHolder.get(), is(equalTo(newValueHolder.get())));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

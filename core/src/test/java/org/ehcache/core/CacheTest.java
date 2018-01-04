@@ -226,7 +226,7 @@ public abstract class CacheTest {
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return existingValue.get();
         }
 
@@ -273,7 +273,7 @@ public abstract class CacheTest {
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return toReturn;
         }
 
@@ -316,9 +316,9 @@ public abstract class CacheTest {
     InternalCache<Object, Object> ehcache = getCache(store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
-    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.is(value));
   }
 
   @Test

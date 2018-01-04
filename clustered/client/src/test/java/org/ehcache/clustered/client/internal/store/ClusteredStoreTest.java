@@ -139,7 +139,7 @@ public class ClusteredStoreTest {
     assertThat(store.get(1L), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
     store.put(1L, "one");
-    assertThat(store.get(1L).value(), is("one"));
+    assertThat(store.get(1L).get(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.HIT));
   }
 
@@ -318,7 +318,7 @@ public class ClusteredStoreTest {
   public void testPutIfAbsent() throws Exception {
     assertThat(store.putIfAbsent(1L, "one"), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
-    assertThat(store.putIfAbsent(1L, "another one").value(), is("one"));
+    assertThat(store.putIfAbsent(1L, "another one").get(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT, StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
@@ -387,7 +387,7 @@ public class ClusteredStoreTest {
     assertThat(store.replace(1L, "one"), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS));
     store.put(1L, "one");
-    assertThat(store.replace(1L, "another one").value(), is("one"));
+    assertThat(store.replace(1L, "another one").get(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS, StoreOperationOutcomes.ReplaceOutcome.REPLACED));
   }
 
@@ -461,10 +461,10 @@ public class ClusteredStoreTest {
     Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.PutAllFunction<>(null, map, null);
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), putAllFunction);
 
-    assertThat(valueHolderMap.get(1L).value(), is(map.get(1L)));
-    assertThat(store.get(1L).value(), is(map.get(1L)));
-    assertThat(valueHolderMap.get(2L).value(), is(map.get(2L)));
-    assertThat(store.get(2L).value(), is(map.get(2L)));
+    assertThat(valueHolderMap.get(1L).get(), is(map.get(1L)));
+    assertThat(store.get(1L).get(), is(map.get(1L)));
+    assertThat(valueHolderMap.get(2L).get(), is(map.get(2L)));
+    assertThat(store.get(2L).get(), is(map.get(2L)));
     assertThat(putAllFunction.getActualPutCount().get(), is(2));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT));  //outcome of the initial store put
   }
@@ -501,10 +501,10 @@ public class ClusteredStoreTest {
     Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<>();
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), getAllAllFunction);
 
-    assertThat(valueHolderMap.get(1L).value(), is("one"));
-    assertThat(store.get(1L).value(), is("one"));
-    assertThat(valueHolderMap.get(2L).value(), is("two"));
-    assertThat(store.get(2L).value(), is("two"));
+    assertThat(valueHolderMap.get(1L).get(), is("one"));
+    assertThat(store.get(1L).get(), is("one"));
+    assertThat(valueHolderMap.get(2L).get(), is("two"));
+    assertThat(store.get(2L).get(), is("two"));
   }
 
   @Test(expected = UnsupportedOperationException.class)

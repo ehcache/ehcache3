@@ -16,24 +16,22 @@
 
 package org.ehcache.expiry;
 
-import org.ehcache.ValueSupplier;
-
 import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * A policy object that governs expiration for mappings in a {@link org.ehcache.Cache Cache}.
  * <p>
- * Previous values are not accessible directly but are rather available through a {@link ValueSupplier value supplier}
+ * Previous values are not accessible directly but are rather available through a value {@code Supplier}
  * to indicate that access can require computation (such as deserialization).
  * <p>
  * {@link Duration#isNegative() Negative duration} are not supported, expiry policy implementation returning such a
  * duration will result in immediate expiry, as if the duration was {@link Duration#ZERO zero}.
  * <p>
  * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
- * to decide whether to call {@link #getExpiryForUpdate(Object, ValueSupplier, Object)}  vs.
+ * to decide whether to call {@link #getExpiryForUpdate(Object, Supplier, Object)}  vs.
  * {@link #getExpiryForCreation(Object, Object)}. For these cache configurations it is advised to return the same
  * value for both of these methods
- * <p>
  *
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
@@ -56,12 +54,12 @@ public interface ExpiryPolicy<K, V> {
     }
 
     @Override
-    public Duration getExpiryForAccess(Object key, ValueSupplier<?> value) {
+    public Duration getExpiryForAccess(Object key, Supplier<?> value) {
       return null;
     }
 
     @Override
-    public Duration getExpiryForUpdate(Object key, ValueSupplier<?> oldValue, Object newValue) {
+    public Duration getExpiryForUpdate(Object key, Supplier<?> oldValue, Object newValue) {
       return null;
     }
   };
@@ -93,7 +91,7 @@ public interface ExpiryPolicy<K, V> {
    * @param value a value supplier for the accessed entry
    * @return an expiration {@code Duration}, {@code null} means unchanged
    */
-  Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value);
+  Duration getExpiryForAccess(K key, Supplier<? extends V> value);
 
 
   /**
@@ -110,6 +108,6 @@ public interface ExpiryPolicy<K, V> {
    * @param newValue the new value of the entry
    * @return an expiration {@code Duration}, {@code null} means unchanged
    */
-  Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue);
+  Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue);
 
 }

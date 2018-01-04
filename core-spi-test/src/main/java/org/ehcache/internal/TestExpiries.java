@@ -16,10 +16,10 @@
 
 package org.ehcache.internal;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.expiry.ExpiryPolicy;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * TestExpiries
@@ -34,12 +34,12 @@ public class TestExpiries {
       }
 
       @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+      public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
         return duration;
       }
 
       @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+      public Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
         return duration;
       }
     };
@@ -53,12 +53,12 @@ public class TestExpiries {
       }
 
       @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+      public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
         return null;
       }
 
       @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+      public Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
         return duration;
       }
     };
@@ -72,12 +72,12 @@ public class TestExpiries {
       }
 
       @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+      public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
         return access;
       }
 
       @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+      public Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
         return update;
       }
     };

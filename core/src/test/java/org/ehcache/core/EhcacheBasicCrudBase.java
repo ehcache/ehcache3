@@ -258,7 +258,7 @@ public abstract class EhcacheBasicCrudBase {
     private final Set<String> failingKeys;
 
     public FakeStore(final Map<String, String> entries) {
-      this(entries, Collections.<String>emptySet());
+      this(entries, Collections.emptySet());
     }
 
     public FakeStore(final Map<String, String> entries, final Set<String> failingKeys) {
@@ -282,7 +282,7 @@ public abstract class EhcacheBasicCrudBase {
     protected Map<String, String> getEntryMap() {
       final Map<String, String> result = new HashMap<>();
       for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().value());
+        result.put(entry.getKey(), entry.getValue().get());
       }
       return Collections.unmodifiableMap(result);
     }
@@ -338,7 +338,7 @@ public abstract class EhcacheBasicCrudBase {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null) {
         return RemoveStatus.KEY_MISSING;
-      } else if (!currentValue.value().equals(value)) {
+      } else if (!currentValue.get().equals(value)) {
         return RemoveStatus.KEY_PRESENT;
       }
       this.entries.remove(key);
@@ -362,7 +362,7 @@ public abstract class EhcacheBasicCrudBase {
       if (currentValue == null) {
         return ReplaceStatus.MISS_NOT_PRESENT;
       }
-      if (!currentValue.value().equals(oldValue)) {
+      if (!currentValue.get().equals(oldValue)) {
         return ReplaceStatus.MISS_PRESENT;
       }
       this.entries.put(key, new FakeValueHolder(newValue));
@@ -457,9 +457,9 @@ public abstract class EhcacheBasicCrudBase {
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
         final Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
-      String remappedValue = null;
+      String remappedValue;
       try {
-        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
+        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.get()));
       } catch (StorePassThroughException cpte) {
         Throwable cause = cpte.getCause();
         if(cause instanceof RuntimeException) {
@@ -508,7 +508,7 @@ public abstract class EhcacheBasicCrudBase {
       this.checkFailingKey(key);
       FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
-        String newValue = null;
+        String newValue;
         try {
           newValue = mappingFunction.apply(key);
         } catch (StorePassThroughException cpte) {
@@ -630,7 +630,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public String value() {
+      public String get() {
         return this.value;
       }
 
@@ -752,7 +752,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       this.failingKeys = (failingKeys.isEmpty()
-          ? Collections.<String>emptySet()
+          ? Collections.emptySet()
           : Collections.unmodifiableSet(new HashSet<>(failingKeys)));
     }
 

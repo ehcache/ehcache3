@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -26,6 +25,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Supplier;
 
 import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
 import static org.ehcache.impl.internal.events.StoreEvents.evictEvent;
@@ -54,24 +54,24 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   }
 
   @Override
-  public void removed(K key, ValueSupplier<V> value) {
-    V removedValue = value.value();
+  public void removed(K key, Supplier<V> value) {
+    V removedValue = value.get();
     if (acceptEvent(EventType.REMOVED, key, removedValue, null)) {
       handleEvent(key, new FireableStoreEventHolder<>(removeEvent(key, removedValue)));
     }
   }
 
   @Override
-  public void updated(K key, ValueSupplier<V> oldValue, V newValue) {
-    V oldValueValue = oldValue.value();
+  public void updated(K key, Supplier<V> oldValue, V newValue) {
+    V oldValueValue = oldValue.get();
     if (acceptEvent(EventType.UPDATED, key, oldValueValue, newValue)) {
       handleEvent(key, new FireableStoreEventHolder<>(updateEvent(key, oldValueValue, newValue)));
     }
   }
 
   @Override
-  public void expired(K key, ValueSupplier<V> value) {
-    V expired = value.value();
+  public void expired(K key, Supplier<V> value) {
+    V expired = value.get();
     if (acceptEvent(EventType.EXPIRED, key, expired, null)) {
       handleEvent(key, new FireableStoreEventHolder<>(expireEvent(key, expired)));
     }
@@ -85,8 +85,8 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   }
 
   @Override
-  public void evicted(K key, ValueSupplier<V> value) {
-    V evicted = value.value();
+  public void evicted(K key, Supplier<V> value) {
+    V evicted = value.get();
     if (acceptEvent(EventType.EVICTED, key, evicted, null)) {
       handleEvent(key, new FireableStoreEventHolder<>(evictEvent(key, evicted)));
     }

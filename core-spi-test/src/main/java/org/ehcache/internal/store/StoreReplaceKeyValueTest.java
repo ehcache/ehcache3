@@ -75,7 +75,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
+    assertThat(kvStore.get(key).get(), is(equalTo(newValue)));
   }
 
   @SPITest
@@ -91,7 +91,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     V newValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.replace(key, newValue).value(), is(equalTo(originalValue)));
+      assertThat(kvStore.replace(key, newValue).get(), is(equalTo(originalValue)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

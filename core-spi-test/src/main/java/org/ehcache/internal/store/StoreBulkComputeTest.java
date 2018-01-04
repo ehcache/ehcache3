@@ -204,7 +204,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (K inputKey : inputKeys) {
-        assertThat(kvStore.get(inputKey).value(), is(computedEntries.get(inputKey)));
+        assertThat(kvStore.get(inputKey).get(), is(computedEntries.get(inputKey)));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

@@ -49,7 +49,7 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
   }
 
   @Override
-  public V value() {
+  public V get() {
     forceDeserialization();
     return value;
   }

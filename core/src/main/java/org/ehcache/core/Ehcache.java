@@ -159,7 +159,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
         keyCount++;
         if (entry.getValue() != null) {
-          result.put(entry.getKey(), entry.getValue().value());
+          result.put(entry.getKey(), entry.getValue().get());
           hits++;
         } else if (includeNulls) {
           result.put(entry.getKey(), null);
@@ -268,7 +268,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
         return null;
       } else {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.value();
+        return inCache.get();
       }
     } catch (StoreAccessException e) {
       try {
@@ -331,7 +331,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       } else {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
-      return old == null ? null : old.value();
+      return old == null ? null : old.get();
     } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.replaceFailure(key, value, e);

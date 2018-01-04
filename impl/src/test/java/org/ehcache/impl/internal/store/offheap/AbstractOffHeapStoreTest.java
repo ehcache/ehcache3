@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -50,9 +49,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -100,7 +99,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.noExpiration());
 
     offHeapStore.put("1", "one");
-    assertThat(offHeapStore.getAndRemove("1").value(), equalTo("one"));
+    assertThat(offHeapStore.getAndRemove("1").get(), equalTo("one"));
     validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.HIT_REMOVED));
     assertThat(offHeapStore.get("1"), is(nullValue()));
   }
@@ -118,7 +117,7 @@ public abstract class AbstractOffHeapStoreTest {
 
     timeSource.advanceTime(20);
     assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
-    assertThat(invalidated.get().value(), equalTo("one"));
+    assertThat(invalidated.get().get(), equalTo("one"));
     assertThat(invalidated.get().isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS), is(true));
     assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
@@ -127,7 +126,7 @@ public abstract class AbstractOffHeapStoreTest {
   public void testInstallMapping() throws Exception {
     offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L)));
 
-    assertThat(offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("one", timeSource.getTimeMillis(), 15)).value(), equalTo("one"));
+    assertThat(offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("one", timeSource.getTimeMillis(), 15)).get(), equalTo("one"));
 
     validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InstallMappingOutcome.PUT));
 
@@ -163,7 +162,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     offHeapStore.invalidate("1");
-    assertThat(invalidated.get().value(), equalTo("one"));
+    assertThat(invalidated.get().get(), equalTo("one"));
     validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
 
     assertThat(offHeapStore.get("1"), is(nullValue()));
@@ -227,9 +226,9 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.put(key, value);
       final Store.ValueHolder<String> secondValueHolder = offHeapStore.getAndFault(key);
       timeSource.advanceTime(10);
-      ((AbstractValueHolder) firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
+      ((AbstractValueHolder) firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, () -> value));
       timeSource.advanceTime(10);
-      ((AbstractValueHolder) secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
+      ((AbstractValueHolder) secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, () -> value));
       assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(firstValueHolder)), is(false));
       assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(secondValueHolder)), is(true));
       timeSource.advanceTime(10); // this should NOT affect
@@ -293,7 +292,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testExpiryCreateException() throws Exception{
+  public void testExpiryCreateException() throws Exception {
     offHeapStore = createAndInitStore(timeSource, new ExpiryPolicy<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
@@ -301,12 +300,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         throw new AssertionError();
       }
     });
@@ -315,7 +314,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testExpiryAccessException() throws Exception{
+  public void testExpiryAccessException() throws Exception {
     offHeapStore = createAndInitStore(timeSource, new ExpiryPolicy<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
@@ -323,12 +322,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         throw new RuntimeException();
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         return null;
       }
     });
@@ -339,7 +338,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testExpiryUpdateException() throws Exception{
+  public void testExpiryUpdateException() throws Exception {
     offHeapStore = createAndInitStore(timeSource, new ExpiryPolicy<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
@@ -347,12 +346,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -361,7 +360,7 @@ public abstract class AbstractOffHeapStoreTest {
     });
 
     offHeapStore.put("key", "value");
-    assertThat(offHeapStore.get("key").value(), is("value"));
+    assertThat(offHeapStore.get("key").get(), is("value"));
     timeSource.advanceTime(1000);
     offHeapStore.put("key", "newValue");
     assertNull(offHeapStore.get("key"));
@@ -549,7 +548,7 @@ public abstract class AbstractOffHeapStoreTest {
     TreeNode treeNode = statisticsManager.queryForSingleton(QueryBuilder.queryBuilder()
         .descendants()
         .filter(org.terracotta.context.query.Matchers.context(
-            org.terracotta.context.query.Matchers.<ContextElement>allOf(org.terracotta.context.query.Matchers.identifier(org.terracotta.context.query.Matchers
+            org.terracotta.context.query.Matchers.allOf(org.terracotta.context.query.Matchers.identifier(org.terracotta.context.query.Matchers
                 .subclassOf(OperationStatistic.class)),
                 org.terracotta.context.query.Matchers.attributes(org.terracotta.context.query.Matchers.hasAttribute("name", "expiration")))))
         .build());
@@ -587,8 +586,8 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    public T value() {
-      return valueHolder.value();
+    public T get() {
+      return valueHolder.get();
     }
 
     @Override
@@ -642,7 +641,7 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    public T value() {
+    public T get() {
       return value;
     }
 

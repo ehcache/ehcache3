@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
@@ -29,7 +28,6 @@ import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -58,11 +56,11 @@ public class InvocationScopedEventSinkTest {
   @Test
   public void testReset() {
     eventSink.created("k1", "v1");
-    eventSink.evicted("k1", supplierOf("v2"));
+    eventSink.evicted("k1", () -> "v2");
     eventSink.reset();
     eventSink.created("k1", "v1");
-    eventSink.updated("k1", supplierOf("v1"), "v2");
-    eventSink.evicted("k1", supplierOf("v2"));
+    eventSink.updated("k1", () -> "v1", "v2");
+    eventSink.evicted("k1", () -> "v2");
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);

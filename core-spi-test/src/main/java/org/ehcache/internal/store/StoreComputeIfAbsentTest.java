@@ -128,7 +128,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.get(key), nullValue());
     try {
       kvStore.computeIfAbsent(key, keyParam -> value);
-      assertThat(kvStore.get(key).value(), is(value));
+      assertThat(kvStore.get(key).get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -151,7 +151,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
-    assertThat(kvStore.get(key).value(), is(value));
+    assertThat(kvStore.get(key).get(), is(value));
   }
 
   @SPITest
@@ -212,7 +212,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
         fail("Should not be invoked");
         return newValue;
       });
-      assertThat(result.value(), is(value));
+      assertThat(result.get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

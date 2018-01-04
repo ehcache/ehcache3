@@ -17,7 +17,6 @@ package org.ehcache.docs;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -27,6 +26,7 @@ import org.ehcache.internal.TestTimeSource;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 public class Ehcache3 {
 
@@ -46,12 +46,12 @@ public class Ehcache3 {
               }
 
               @Override
-              public Duration getExpiryForAccess(Long key, ValueSupplier<? extends String> value) {
+              public Duration getExpiryForAccess(Long key, Supplier<? extends String> value) {
                 return null;  // Keeping the existing expiry
               }
 
               @Override
-              public Duration getExpiryForUpdate(Long key, ValueSupplier<? extends String> oldValue, String newValue) {
+              public Duration getExpiryForUpdate(Long key, Supplier<? extends String> oldValue, String newValue) {
                 return null;  // Keeping the existing expiry
               }
             });
@@ -96,7 +96,7 @@ public class Ehcache3 {
       .build(true);
   }
 
-  private void sleep(int millisecondsToSleep) throws Exception {
+  private void sleep(int millisecondsToSleep) {
     timeSource.advanceTime(millisecondsToSleep);
   }
 }

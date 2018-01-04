@@ -51,7 +51,6 @@ import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -175,8 +174,8 @@ public class ConfigurationMergerTest {
     assertThat(factory.called, is(false));
     Eh107Expiry<Object, Object> expiryPolicy = configHolder.cacheResources.getExpiryPolicy();
     org.ehcache.expiry.ExpiryPolicy<? super Object, ? super Object> expiry = configHolder.cacheConfiguration.getExpiryPolicy();
-    assertThat(expiryPolicy.getExpiryForAccess(42, supplierOf("Yay")), is(expiry.getExpiryForAccess(42, supplierOf("Yay"))));
-    assertThat(expiryPolicy.getExpiryForUpdate(42, supplierOf("Yay"), "Lala"), is(expiry.getExpiryForUpdate(42, supplierOf("Yay"), "Lala")));
+    assertThat(expiryPolicy.getExpiryForAccess(42, () -> "Yay"), is(expiry.getExpiryForAccess(42, () -> "Yay")));
+    assertThat(expiryPolicy.getExpiryForUpdate(42, () -> "Yay", "Lala"), is(expiry.getExpiryForUpdate(42, () -> "Yay", "Lala")));
     assertThat(expiryPolicy.getExpiryForCreation(42, "Yay"), is(expiry.getExpiryForCreation(42, "Yay")));
   }
 

@@ -107,7 +107,7 @@ public class AbstractValueHolderTest {
   public void testSubclassEquals() throws Exception {
     assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -118,19 +118,19 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
     }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -141,14 +141,14 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
 
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
@@ -156,7 +156,7 @@ public class AbstractValueHolderTest {
 
     assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -167,19 +167,19 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
     }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
-      public String value() {
+      public String get() {
         return "bbb";
       }
 
@@ -190,14 +190,14 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
 
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
@@ -215,7 +215,7 @@ public class AbstractValueHolderTest {
       }
 
       @Override
-      public String value() {
+      public String get() {
         return "abc";
       }
     };
@@ -233,7 +233,7 @@ public class AbstractValueHolderTest {
         return timeUnit;
       }
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };
@@ -245,7 +245,7 @@ public class AbstractValueHolderTest {
         return timeUnit;
       }
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };
@@ -258,7 +258,7 @@ public class AbstractValueHolderTest {
       }
 
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };

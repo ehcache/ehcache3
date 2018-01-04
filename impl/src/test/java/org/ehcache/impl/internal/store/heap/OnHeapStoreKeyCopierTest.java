@@ -101,7 +101,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
   }
 
   @Test
@@ -114,11 +114,11 @@ public class OnHeapStoreKeyCopierTest {
     Store.ValueHolder<String> firstStoreValue = store.get(KEY);
     Store.ValueHolder<String> secondStoreValue = store.get(copyKey);
     if (copyForWrite) {
-      assertThat(firstStoreValue.value(), is(VALUE));
+      assertThat(firstStoreValue.get(), is(VALUE));
       assertThat(secondStoreValue, nullValue());
     } else {
       assertThat(firstStoreValue, nullValue());
-      assertThat(secondStoreValue.value(), is(VALUE));
+      assertThat(secondStoreValue.get(), is(VALUE));
     }
   }
 

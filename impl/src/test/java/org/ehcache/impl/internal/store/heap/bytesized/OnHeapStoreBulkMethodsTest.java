@@ -54,7 +54,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   }
 
   @SuppressWarnings("unchecked")
-  protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
+  protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
         new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
@@ -103,17 +103,17 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     check.put(5, 0);
     check.put(6, 0);
 
-    assertThat(result.get(1).value(), Matchers.<Number>is(check.get(1)));
-    assertThat(result.get(2).value(), Matchers.<Number>is(check.get(2)));
-    assertThat(result.get(3).value(), Matchers.<Number>is(check.get(3)));
+    assertThat(result.get(1).get(), Matchers.is(check.get(1)));
+    assertThat(result.get(2).get(), Matchers.is(check.get(2)));
+    assertThat(result.get(3).get(), Matchers.is(check.get(3)));
     assertThat(result.get(4), nullValue());
-    assertThat(result.get(5).value(), Matchers.<Number>is(check.get(5)));
-    assertThat(result.get(6).value(), Matchers.<Number>is(check.get(6)));
+    assertThat(result.get(5).get(), Matchers.is(check.get(5)));
+    assertThat(result.get(6).get(), Matchers.is(check.get(6)));
 
     for (Number key : check.keySet()) {
       final Store.ValueHolder<Number> holder = store.get(key);
       if(holder != null) {
-        check.remove(key, holder.value());
+        check.remove(key, holder.get());
       }
     }
     assertThat(check.size(), is(1));

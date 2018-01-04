@@ -57,7 +57,7 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 }

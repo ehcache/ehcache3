@@ -95,7 +95,6 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -481,7 +480,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           updateUsageInBytesIfRequired(- mappedValue.size());
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           return null;
-        } else if (value.equals(mappedValue.value())) {
+        } else if (value.equals(mappedValue.get())) {
           updateUsageInBytesIfRequired(- mappedValue.size());
           eventSink.removed(mappedKey, mappedValue);
           outcome.set(RemoveStatus.REMOVED);
@@ -574,7 +573,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
         final long now = timeSource.getTimeMillis();
 
-        V existingValue = mappedValue.value();
+        V existingValue = mappedValue.get();
         if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           updateUsageInBytesIfRequired(- mappedValue.size());
@@ -701,7 +700,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private ValueHolder<V> resolveFault(final K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
     try {
-      final ValueHolder<V> value = fault.get();
+      final ValueHolder<V> value = fault.getValueHolder();
       final OnHeapValueHolder<V> newValue;
       if(value != null) {
         newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
@@ -906,7 +905,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private ValueHolder<V> getValue(final ValueHolder<V> cachedValue) {
     if (cachedValue instanceof Fault) {
-      return ((Fault<V>)cachedValue).get();
+      return ((Fault<V>)cachedValue).getValueHolder();
     } else {
       return cachedValue;
     }
@@ -944,7 +943,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     }
 
-    private ValueHolder<V> get() {
+    private ValueHolder<V> getValueHolder() {
       synchronized (this) {
         if (!complete) {
           try {
@@ -983,7 +982,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     @Override
-    public V value() {
+    public V get() {
       throw new UnsupportedOperationException();
     }
 
@@ -1068,7 +1067,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           mappedValue = null;
         }
 
-        V existingValue = mappedValue == null ? null : mappedValue.value();
+        V existingValue = mappedValue == null ? null : mappedValue.get();
         V computedValue = mappingFunction.apply(mappedKey, existingValue);
         if (computedValue == null) {
           if (existingValue != null) {
@@ -1337,7 +1336,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
     if (Duration.ZERO.equals(duration)) {
       eventSink.updated(key, oldValue, newValue);
-      eventSink.expired(key, supplierOf(newValue));
+      eventSink.expired(key, () -> newValue);
       return null;
     }
 
@@ -1422,7 +1421,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration, boolean sizingEnabled) throws LimitExceededException {
-    V realValue = valueHolder.value();
+    V realValue = valueHolder.get();
     boolean evictionAdvice = checkEvictionAdvice(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder;
     if(valueCopier instanceof SerializingCopier) {

@@ -29,7 +29,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.BiFunction;
@@ -84,7 +83,7 @@ public class EhcacheLoaderWriterTest {
   public void testGetThrowsOnCompute() throws Exception {
     when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new StoreAccessException("boom"));
     String expected = "foo";
-    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
+    when(cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
     assertThat(cache.get(1), is(expected));
     verify(store).remove(1);
   }
@@ -382,7 +381,7 @@ public class EhcacheLoaderWriterTest {
       @SuppressWarnings("unchecked")
       final Store.ValueHolder<Object> mock = mock(Store.ValueHolder.class);
 
-      when(mock.value()).thenReturn(applied);
+      when(mock.get()).thenReturn(applied);
       return mock;
     });
     doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());

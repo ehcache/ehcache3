@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache.Entry;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
@@ -54,6 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.impl.internal.util.Matchers.holding;
@@ -177,7 +177,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testGet() throws Exception {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
   }
 
@@ -196,7 +196,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource,
       ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
     timeSource.advanceTime(1);
 
     assertThat(store.get("key"), nullValue());
@@ -214,7 +214,7 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     store.put("key", "value");
     timeSource.advanceTime(1);
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
     verify(eventSink, never()).expired(anyString(), anyValueSupplier());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
   }
@@ -273,7 +273,7 @@ public abstract class BaseOnHeapStoreTest {
     verify(eventSink).created(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -287,7 +287,7 @@ public abstract class BaseOnHeapStoreTest {
     store.put("key", "value2");
     verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value2"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
   }
 
   @Test
@@ -321,7 +321,7 @@ public abstract class BaseOnHeapStoreTest {
     verify(eventSink).created(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -329,7 +329,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
-    assertThat(prev.value(), equalTo("value"));
+    assertThat(prev.get(), equalTo("value"));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
@@ -354,7 +354,7 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
     assertThat(prev, nullValue());
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
     checkExpiryEvent(getStoreEventSink(), "key", "value");
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
@@ -395,7 +395,7 @@ public abstract class BaseOnHeapStoreTest {
     RemoveStatus removed = store.remove("key", "not value");
     assertThat(removed, equalTo(RemoveStatus.KEY_PRESENT));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -406,7 +406,7 @@ public abstract class BaseOnHeapStoreTest {
       ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put("key", "value");
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
     timeSource.advanceTime(1);
     RemoveStatus removed = store.remove("key", "value");
     assertThat(removed, equalTo(RemoveStatus.KEY_MISSING));
@@ -423,8 +423,8 @@ public abstract class BaseOnHeapStoreTest {
     store.put("key", "value");
 
     ValueHolder<String> existing = store.replace("key", "value2");
-    assertThat(existing.value(), equalTo("value"));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(existing.get(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value2"));
     verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value2"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED));
@@ -466,7 +466,7 @@ public abstract class BaseOnHeapStoreTest {
 
     ReplaceStatus replaced = store.replace("key", "value", "value2");
     assertThat(replaced, equalTo(ReplaceStatus.HIT));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
     verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value2"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED));
@@ -579,7 +579,7 @@ public abstract class BaseOnHeapStoreTest {
 
     ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> mappedValue, () -> true);
 
-    assertThat(newValue.value(), equalTo("value"));
+    assertThat(newValue.get(), equalTo("value"));
     assertThat(createTime + 1, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
     assertThat(accessTime + 1, equalTo(newValue.lastAccessTime(TimeUnit.MILLISECONDS)));
     verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value"));
@@ -600,7 +600,7 @@ public abstract class BaseOnHeapStoreTest {
 
     ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> mappedValue, () -> false);
 
-    assertThat(newValue.value(), equalTo("value"));
+    assertThat(newValue.get(), equalTo("value"));
     assertThat(createTime, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
     assertThat(accessTime + 1, equalTo(newValue.lastAccessTime(TimeUnit.MILLISECONDS)));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.HIT));
@@ -618,11 +618,11 @@ public abstract class BaseOnHeapStoreTest {
       return "value";
     });
 
-    assertThat(newValue.value(), equalTo("value"));
+    assertThat(newValue.get(), equalTo("value"));
     verify(eventSink).created(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -661,7 +661,7 @@ public abstract class BaseOnHeapStoreTest {
     } catch (StoreAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -678,11 +678,11 @@ public abstract class BaseOnHeapStoreTest {
       return "value2";
     });
 
-    assertThat(newValue.value(), equalTo("value2"));
+    assertThat(newValue.get(), equalTo("value2"));
     verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value2"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
   }
 
   @Test
@@ -699,8 +699,8 @@ public abstract class BaseOnHeapStoreTest {
       return "value2";
     });
 
-    assertThat(newValue.value(), equalTo("value2"));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(newValue.get(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
     checkExpiryEvent(eventSink, "key", "value");
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
@@ -748,11 +748,11 @@ public abstract class BaseOnHeapStoreTest {
       return "value";
     });
 
-    assertThat(newValue.value(), equalTo("value"));
+    assertThat(newValue.get(), equalTo("value"));
     verify(eventSink).created(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -765,9 +765,9 @@ public abstract class BaseOnHeapStoreTest {
       return null;
     });
 
-    assertThat(newValue.value(), equalTo("value"));
+    assertThat(newValue.get(), equalTo("value"));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT));
-    assertThat(store.get("key").value(), equalTo("value"));
+    assertThat(store.get("key").get(), equalTo("value"));
   }
 
   @Test
@@ -812,8 +812,8 @@ public abstract class BaseOnHeapStoreTest {
       return "value2";
     });
 
-    assertThat(newValue.value(), equalTo("value2"));
-    assertThat(store.get("key").value(), equalTo("value2"));
+    assertThat(newValue.get(), equalTo("value2"));
+    assertThat(store.get("key").get(), equalTo("value2"));
     final String value = "value";
     verify(eventSink).expired(eq("key"), argThat(holding(value)));
     verify(eventSink).created(eq("key"), eq("value2"));
@@ -832,12 +832,12 @@ public abstract class BaseOnHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         throw new AssertionError();
       }
     });
@@ -858,12 +858,12 @@ public abstract class BaseOnHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         throw RUNTIME_EXCEPTION;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         return null;
       }
     });
@@ -883,12 +883,12 @@ public abstract class BaseOnHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+      public Duration getExpiryForAccess(String key, Supplier<? extends String> value) {
         return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, Supplier<? extends String> oldValue, String newValue) {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -944,7 +944,7 @@ public abstract class BaseOnHeapStoreTest {
 
     @SuppressWarnings("unchecked")
     final ValueHolder<String> vh = mock(ValueHolder.class);
-    when(vh.value()).thenReturn("newvalue");
+    when(vh.get()).thenReturn("newvalue");
     when(vh.expirationTime(TimeUnit.MILLISECONDS)).thenReturn(2L);
 
     ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", s -> vh);
@@ -1056,7 +1056,7 @@ public abstract class BaseOnHeapStoreTest {
       try {
         ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new CopiedOnHeapValueHolder<>("theAnswer!", System
           .currentTimeMillis(), -1, false, new IdentityCopier<>()));
-        assertThat(result.value(), is("theAnswer!"));
+        assertThat(result.get(), is("theAnswer!"));
         endLatch.countDown();
       } catch (Exception e) {
         e.printStackTrace();
@@ -1245,8 +1245,8 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @SuppressWarnings("unchecked")
-  private ValueSupplier<String> anyValueSupplier() {
-    return any(ValueSupplier.class);
+  private Supplier<String> anyValueSupplier() {
+    return any(Supplier.class);
   }
 
   private void verifyListenerReleaseEventsInOrder(StoreEventDispatcher<String, String> listener) {
@@ -1298,14 +1298,14 @@ public abstract class BaseOnHeapStoreTest {
     Map<String, String> map = new HashMap<>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
-      map.put(entry.getKey(), entry.getValue().value());
+      map.put(entry.getKey(), entry.getValue().get());
     }
     return map;
   }
 
   private static void assertEntry(Entry<String, ValueHolder<String>> entry, String key, String value) {
     assertThat(entry.getKey(), equalTo(key));
-    assertThat(entry.getValue().value(), equalTo(value));
+    assertThat(entry.getValue().get(), equalTo(value));
   }
 
   private static class TestTimeSource implements TimeSource {

@@ -108,7 +108,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(key, value);
 
     try {
-      assertThat(kvStore.get(key).value(), is(equalTo(value)));
+      assertThat(kvStore.get(key).get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -161,7 +161,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      assertThat(kvStore.get(key).value(), is(value));
+      assertThat(kvStore.get(key).get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

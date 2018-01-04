@@ -64,14 +64,14 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     V value = factory.createValue(1);
 
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
-    when(computedValueHolder.value()).thenReturn(value);
+    when(computedValueHolder.get()).thenReturn(value);
 
     tier = factory.newCachingTier(1L);
 
     try {
       Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> computedValueHolder);
 
-      assertThat(valueHolder.value(), is(equalTo(value)));
+      assertThat(valueHolder.get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -83,7 +83,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
-    when(computedValueHolder.value()).thenReturn(value);
+    when(computedValueHolder.get()).thenReturn(value);
     when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
     tier = factory.newCachingTier();
@@ -94,7 +94,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
 
       Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> null);
 
-      assertThat(valueHolder.value(), is(equalTo(value)));
+      assertThat(valueHolder.get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
