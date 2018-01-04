@@ -15,11 +15,13 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -186,6 +188,73 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       assertThat(e, is(re));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+
+    assertThat(kvStore.get(key).get(), is(value));
+  }
+
+  @SPITest
+  public void testStorePassThroughException() throws Exception {
+    kvStore = factory.newStore();
+
+    K key = factory.createKey(520928098);
+    V value = factory.createValue(15098209865L);
+
+    RuntimeException exception = new RuntimeException("error");
+    StorePassThroughException re = new StorePassThroughException(exception);
+
+    try {
+      kvStore.put(key, value);
+      assertThat(kvStore.get(key).get(), is(value));
+
+      kvStore.compute(key, (keyParam, oldValue) -> {
+        throw re;
+      });
+    } catch (RuntimeException e) {
+      assertThat(e, is(exception));
+    }
+
+    assertThat(kvStore.get(key).get(), is(value));
+  }
+
+  @SPITest
+  public void testExceptionOnSupplier() throws Exception {
+    kvStore = factory.newStore();
+
+    K key = factory.createKey(520928098);
+    V value = factory.createValue(15098209865L);
+
+    RuntimeException re = new RuntimeException();
+
+    try {
+      kvStore.put(key, value);
+      assertThat(kvStore.get(key).get(), is(value));
+
+      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; });
+    } catch (StoreAccessException e) {
+      assertThat(e.getCause(), is(re));
+    }
+
+    assertThat(kvStore.get(key).get(), is(value));
+  }
+
+  @SPITest
+  public void testPassThroughExceptionOnSupplier() throws Exception {
+    kvStore = factory.newStore();
+
+    K key = factory.createKey(520928098);
+    V value = factory.createValue(15098209865L);
+
+    RuntimeException exception = new RuntimeException("error");
+    StorePassThroughException re = new StorePassThroughException(exception);
+
+    try {
+      kvStore.put(key, value);
+      assertThat(kvStore.get(key).get(), is(value));
+
+      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; });
+    } catch (RuntimeException e) {
+      assertThat(e, is(exception));
     }
 
     assertThat(kvStore.get(key).get(), is(value));
