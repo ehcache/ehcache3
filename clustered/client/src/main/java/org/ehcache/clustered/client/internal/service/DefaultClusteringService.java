@@ -57,7 +57,6 @@ import org.terracotta.exception.EntityNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,6 +78,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
+  private final Properties properties;
 
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
@@ -93,6 +93,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     this.timeouts = configuration.getTimeouts();
+    this.properties = configuration.getProperties();
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -171,7 +172,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   private void initClusterConnection() {
     try {
-      Properties properties = new Properties();
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
       properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
       clusterConnection = ConnectionFactory.connect(clusterUri, properties);

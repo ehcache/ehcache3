@@ -26,8 +26,8 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
@@ -44,6 +44,7 @@ public class ClusteringServiceConfiguration
   private final boolean autoCreate;
   private final ServerSideConfiguration serverConfiguration;
   private final Timeouts timeouts;
+  private final Properties properties;
 
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
@@ -123,10 +124,27 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts, boolean autoCreate, ServerSideConfiguration serverConfig) {
+    this(clusterUri, timeouts, autoCreate, serverConfig, new Properties());
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverConfig  the server side entity configuration required
+   * @param properties the non-{@code null} connection Properties
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts, boolean autoCreate, ServerSideConfiguration serverConfig, Properties properties) {
     this.clusterUri = Objects.requireNonNull(clusterUri, "Cluster URI cannot be null");
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
     this.timeouts = Objects.requireNonNull(timeouts, "Operation timeouts cannot be null");
+    this.properties = Objects.requireNonNull(properties, "Properties cannot be null");
   }
 
   protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
@@ -135,6 +153,7 @@ public class ClusteringServiceConfiguration
     this.timeouts = baseConfig.getTimeouts();
     this.autoCreate = baseConfig.isAutoCreate();
     this.serverConfiguration = baseConfig.getServerConfiguration();
+    this.properties = baseConfig.getProperties();
   }
 
   /**
@@ -171,6 +190,15 @@ public class ClusteringServiceConfiguration
    */
   public Timeouts getTimeouts() {
     return timeouts;
+  }
+
+  /**
+   * The {@code Properties} for the connection.
+   *
+   * @return the connection {@code Properties}
+   */
+  public Properties getProperties() {
+    return properties;
   }
 
   /**
