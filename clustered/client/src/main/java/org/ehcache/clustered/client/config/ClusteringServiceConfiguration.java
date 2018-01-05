@@ -144,7 +144,7 @@ public class ClusteringServiceConfiguration
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
     this.timeouts = Objects.requireNonNull(timeouts, "Operation timeouts cannot be null");
-    this.properties = Objects.requireNonNull(properties, "Properties cannot be null");
+    this.properties = (Properties) Objects.requireNonNull(properties, "Properties cannot be null").clone();
   }
 
   protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
@@ -198,7 +198,7 @@ public class ClusteringServiceConfiguration
    * @return the connection {@code Properties}
    */
   public Properties getProperties() {
-    return properties;
+    return (Properties) properties.clone();
   }
 
   /**
