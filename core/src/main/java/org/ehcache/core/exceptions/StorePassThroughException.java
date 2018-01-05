@@ -48,6 +48,13 @@ public class StorePassThroughException extends RuntimeException {
     super(cause);
   }
 
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    // skip the stack trace filling because this exception is just a placeholder and won't ever be caught outside of
+    // a store
+    return this;
+  }
+
   /**
    * Helper method for handling runtime exceptions.
    * <p>
