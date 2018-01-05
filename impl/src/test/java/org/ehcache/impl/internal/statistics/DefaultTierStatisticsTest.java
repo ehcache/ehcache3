@@ -70,9 +70,7 @@ public class DefaultTierStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount",
-      "OnHeap:OccupiedByteSize");
+    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount");
   }
 
   @Test
@@ -139,12 +137,6 @@ public class DefaultTierStatisticsTest {
   }
 
   @Test
-  public void getMaxMappings() throws Exception {
-    cache.put(1L, "a");
-    assertThat(onHeap.getAllocatedByteSize()).isEqualTo(-1L);
-  }
-
-  @Test
   public void getAllocatedByteSize() throws Exception {
     cache.put(1L, "a");
     assertThat(onHeap.getAllocatedByteSize()).isEqualTo(-1L);
@@ -157,6 +149,6 @@ public class DefaultTierStatisticsTest {
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
-    return assertThat(onHeap.getKnownStatistics().get(key).value());
+    return assertThat((Number) onHeap.getKnownStatistics().get(key).value());
   }
 }

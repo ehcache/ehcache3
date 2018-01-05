@@ -63,7 +63,7 @@ public class DefaultCacheStatisticsTest {
 
   @After
   public void after() {
-    if(cacheManager != null) {
+    if (cacheManager != null) {
       cacheManager.close();
     }
   }
@@ -74,7 +74,7 @@ public class DefaultCacheStatisticsTest {
       "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
       "OnHeap:ExpirationCount", "Cache:ExpirationCount", "OnHeap:HitCount", "OnHeap:MissCount",
       "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount",
-      "OnHeap:MappingCount", "OnHeap:OccupiedByteSize");
+      "OnHeap:MappingCount");
   }
 
   @Test
@@ -163,6 +163,6 @@ public class DefaultCacheStatisticsTest {
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
-    return assertThat(cacheStatistics.getKnownStatistics().get(key).value());
+    return assertThat((Number) cacheStatistics.getKnownStatistics().get(key).value());
   }
 }
