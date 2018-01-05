@@ -32,8 +32,8 @@ sourceSets {
 dependencies {
   compile project(':impl'), project(':xml')
   provided "javax.cache:cache-api:$parent.jcacheVersion"
-  tckTestRuntime 'javax.cache:cache-tests:1.0.1'
-  tckTestClasses('javax.cache:cache-tests:1.0.1:tests') {
+  tckTestRuntime "javax.cache:cache-tests:$jcacheTckVersion"
+  tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
 }
