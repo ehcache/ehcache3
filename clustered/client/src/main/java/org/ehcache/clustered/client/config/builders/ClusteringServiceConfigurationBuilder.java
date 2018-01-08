@@ -27,6 +27,8 @@ import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 
+import static org.ehcache.clustered.client.config.ClusteringServiceConfiguration.DEFAULT_AUTOCREATE;
+
 /**
  * A builder of ClusteringService configurations.
  */
@@ -44,7 +46,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(clusterUri, TimeoutsBuilder.timeouts().build(), false);
+    return new ClusteringServiceConfigurationBuilder(clusterUri, TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
   }
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri, Timeouts timeouts, boolean autoCreate) {
