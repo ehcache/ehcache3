@@ -40,6 +40,7 @@ public class ClusteringServiceConfiguration
     CacheManagerConfiguration<PersistentCacheManager>,
     HumanReadable {
 
+  public static final boolean DEFAULT_AUTOCREATE = false;
   private final URI clusterUri;
   private final boolean autoCreate;
   private final ServerSideConfiguration serverConfiguration;
@@ -95,7 +96,7 @@ public class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
   public ClusteringServiceConfiguration(URI clusterUri, Timeouts timeouts, ServerSideConfiguration serverConfig) {
-    this(clusterUri, timeouts, false, serverConfig);
+    this(clusterUri, timeouts, DEFAULT_AUTOCREATE, serverConfig);
   }
 
   /**
