@@ -23,6 +23,7 @@ dependencies {
   provided "org.terracotta:entity-client-api:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
   provided "org.terracotta:lease-api:$terracottaPlatformVersion"
+  provided "org.terracotta.internal:connection-loader:$terracottaCoreVersion"
 
   testCompile project(':api')
   testCompile project(':xml')
