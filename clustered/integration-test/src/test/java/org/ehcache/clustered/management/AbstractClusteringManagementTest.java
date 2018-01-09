@@ -215,7 +215,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   @Before
   public void init() throws Exception {
     if (nmsService != null) {
-      // this call clear the CURRRENT arrived messages, but be aware that some other messages can arrive just after the drain
+      // this call clear the CURRENT arrived messages, but be aware that some other messages can arrive just after the drain
       nmsService.readMessages();
     }
   }
@@ -233,7 +233,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   protected static List<ContextualStatistics> waitForNextStats() throws Exception {
-    // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
+    // uses the monitoring to get the content of the stat buffer when some stats are collected
     return nmsService.waitForMessage(message -> message.getType().equals("STATISTICS"))
       .stream()
       .filter(message -> message.getType().equals("STATISTICS"))
@@ -250,7 +250,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       .collect(Collectors.toList());
   }
 
-  protected static String read(String path) throws FileNotFoundException {
+  protected static String read(String path) {
     try (Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8")) {
       return scanner.useDelimiter("\\A").next();
     }

@@ -33,12 +33,12 @@ public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> 
   public static CountDownLatch latch;
 
   @Override
-  public String load(final Number key) throws Exception {
+  public String load(final Number key) {
     return key.toString();
   }
 
   @Override
-  public Map<Number, String> loadAll(final Iterable<? extends Number> keys) throws Exception {
+  public Map<Number, String> loadAll(final Iterable<? extends Number> keys) {
     final Map<Number, String> loaded = new HashMap<>();
     for (Number key : keys) {
       loaded.put(key, load(key));
@@ -47,7 +47,7 @@ public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> 
   }
 
   @Override
-  public void write(final Number key, final String value) throws Exception {
+  public void write(final Number key, final String value) {
     lastWrittenKey = key;
     if(latch != null) {
       latch.countDown();
@@ -55,7 +55,7 @@ public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> 
   }
 
   @Override
-  public void writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) throws Exception {
+  public void writeAll(final Iterable<? extends Map.Entry<? extends Number, ? extends String>> entries) {
     for (Entry<? extends Number, ? extends String> entry : entries) {
       lastWrittenKey = entry.getKey();
       if(latch != null) {
@@ -65,12 +65,12 @@ public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> 
   }
 
   @Override
-  public void delete(final Number key) throws Exception {
+  public void delete(final Number key) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
   @Override
-  public void deleteAll(final Iterable<? extends Number> keys) throws Exception {
+  public void deleteAll(final Iterable<? extends Number> keys) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }

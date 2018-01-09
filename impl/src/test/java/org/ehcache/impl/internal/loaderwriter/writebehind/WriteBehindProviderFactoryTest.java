@@ -79,32 +79,32 @@ public class WriteBehindProviderFactoryTest {
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(K key) {
       throw new UnsupportedOperationException("Implement Me");
     }
 
     @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    public Map<K, V> loadAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void write(K key, V value) throws Exception {
+    public void write(K key, V value) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void delete(K key) throws Exception {
+    public void delete(K key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void deleteAll(Iterable<? extends K> keys) throws Exception {
+    public void deleteAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

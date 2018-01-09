@@ -18,7 +18,6 @@ package com.pany.ehcache.integration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 public class ThreadRememberingLoaderWriter implements CacheLoaderWriter<String, String> {
@@ -26,35 +25,35 @@ public class ThreadRememberingLoaderWriter implements CacheLoaderWriter<String, 
   public static volatile Thread LAST_SEEN_THREAD;
 
   @Override
-  public String load(String key) throws Exception {
+  public String load(String key) {
     return null;
   }
 
   @Override
-  public Map<String, String> loadAll(Iterable<? extends String> keys) throws Exception {
+  public Map<String, String> loadAll(Iterable<? extends String> keys) {
     return Collections.emptyMap();
   }
 
   @Override
-  public void write(String key, String value) throws Exception {
+  public void write(String key, String value) {
     LAST_SEEN_THREAD = Thread.currentThread();
     USED.release();
   }
 
   @Override
-  public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) throws BulkCacheWritingException, Exception {
+  public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) {
     LAST_SEEN_THREAD = Thread.currentThread();
     USED.release();
   }
 
   @Override
-  public void delete(String key) throws Exception {
+  public void delete(String key) {
     LAST_SEEN_THREAD = Thread.currentThread();
     USED.release();
   }
 
   @Override
-  public void deleteAll(Iterable<? extends String> keys) throws BulkCacheWritingException, Exception {
+  public void deleteAll(Iterable<? extends String> keys) {
     LAST_SEEN_THREAD = Thread.currentThread();
     USED.release();
   }

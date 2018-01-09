@@ -360,29 +360,29 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         heap(1000).offheap(20, MB).disk(30, MB))
         .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
           @Override
-          public CacheValue load(Long key) throws Exception {
+          public CacheValue load(Long key) {
             return null;
           }
 
           @Override
-          public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
+          public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) {
             return Collections.emptyMap();
           }
 
           @Override
-          public void write(Long key, CacheValue value) throws Exception {
+          public void write(Long key, CacheValue value) {
           }
 
           @Override
-          public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) throws BulkCacheWritingException, Exception {
+          public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) {
           }
 
           @Override
-          public void delete(Long key) throws Exception {
+          public void delete(Long key) {
           }
 
           @Override
-          public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
+          public void deleteAll(Iterable<? extends Long> keys) {
           }
         }));
 
