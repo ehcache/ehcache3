@@ -173,8 +173,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private void initClusterConnection() {
     try {
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
-      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
+      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(Timeouts.INFINITE_TIMEOUT.toMillis()));
       clusterConnection = ConnectionFactory.connect(clusterUri, properties);
+
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
     }
