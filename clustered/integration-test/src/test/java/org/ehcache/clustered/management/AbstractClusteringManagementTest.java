@@ -269,6 +269,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   protected static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
+    List<ContextualNotification> missingOnes = new ArrayList<>();
+
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
 //    System.out.println("waitForAllNotifications: " + waitingFor);
 
@@ -280,6 +282,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
               if (waitingFor.remove(notification.getType())) {
 //                System.out.println("Remove " + notification.getType());
 //                System.out.println("Still waiting for: " + waitingFor);
+              } else {
+                missingOnes.add(notification);
               }
             }
           }
@@ -294,5 +298,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     t.interrupt(); // we interrupt the thread that is waiting on the message queue
 
     assertTrue("Still waiting for: " + waitingFor, waitingFor.isEmpty());
+    assertTrue("Unexpected notification: " + missingOnes, missingOnes.isEmpty());
   }
 }
