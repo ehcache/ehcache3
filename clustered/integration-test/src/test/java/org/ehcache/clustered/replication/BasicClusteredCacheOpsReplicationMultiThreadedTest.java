@@ -278,7 +278,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   private void drainTasks(List<Future> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
     for (int i = 0; i < futures.size(); i++) {
       try {
-        futures.get(i).get(10, TimeUnit.SECONDS);
+        futures.get(i).get(60, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         fail("Stuck on number " + i);
       }
