@@ -55,6 +55,10 @@ dependencies {
 
   // Needed because declared as provided in the different projects
   serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  serverLibs "org.terracotta:lease-entity-api:$parent.terracottaPlatformVersion"
+  serverLibs "org.terracotta:lease-common:$parent.terracottaPlatformVersion"
+  serverLibs "org.terracotta:lease-entity-common:$parent.terracottaPlatformVersion"
+  serverLibs "org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion"
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 

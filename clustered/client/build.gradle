@@ -22,6 +22,7 @@ dependencies {
   compile project(':clustered:common'), "org.slf4j:slf4j-api:$slf4jVersion"
   provided "org.terracotta:entity-client-api:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
+  provided "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   testCompile project(':api')
   testCompile project(':xml')
