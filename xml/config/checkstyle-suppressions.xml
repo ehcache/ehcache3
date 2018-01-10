@@ -5,6 +5,6 @@
     "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-  <suppress files="src[\\/]generated[\\/]java[\\/]" checks=".*"/>
+  <suppress files="build[\\/]xjc[\\/]generated-sources[\\/]" checks=".*"/>
   <suppress files="^((?!.*test[\\/]java[\\/]org[\\/]ehcache[\\/]docs[\\/].*).)*$" checks="AvoidStaticImport"/>
 </suppressions>
