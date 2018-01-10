@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -29,8 +30,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
@@ -51,8 +50,6 @@ import java.util.function.Supplier;
  * A {@link Store} implementation supporting a tiered caching model.
  */
 public class TieredStore<K, V> implements Store<K, V> {
-
-  private static final Logger LOG = LoggerFactory.getLogger(TieredStore.class);
 
   private final AtomicReference<CachingTier<K, V>> cachingTierRef;
   private final CachingTier<K, V> noopCachingTier;
@@ -84,7 +81,6 @@ public class TieredStore<K, V> implements Store<K, V> {
     StatisticsManager.associate(authoritativeTier).withParent(this);
   }
 
-
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     try {
@@ -92,27 +88,14 @@ public class TieredStore<K, V> implements Store<K, V> {
         try {
           return authoritativeTier.getAndFault(keyParam);
         } catch (StoreAccessException cae) {
-          throw new ComputationException(cae);
+          throw new StorePassThroughException(cae);
         }
       });
-    } catch (ComputationException ce) {
-      throw ce.getStoreAccessException();
-    }
-  }
-
-  static class ComputationException extends RuntimeException {
-
-    public ComputationException(StoreAccessException cause) {
-      super(cause);
-    }
-
-    public StoreAccessException getStoreAccessException() {
-      return (StoreAccessException) getCause();
-    }
-
-    @Override
-    public synchronized Throwable fillInStackTrace() {
-      return this;
+    } catch (StoreAccessException ce) {
+      if(ce.getCause() instanceof StorePassThroughException) {
+        throw (StoreAccessException) ce.getCause().getCause();
+      }
+      throw (RuntimeException) ce.getCause();
     }
   }
 
@@ -259,11 +242,14 @@ public class TieredStore<K, V> implements Store<K, V> {
         try {
           return authoritativeTier.computeIfAbsentAndFault(keyParam, mappingFunction);
         } catch (StoreAccessException cae) {
-          throw new ComputationException(cae);
+          throw new StorePassThroughException(cae);
         }
       });
-    } catch (ComputationException ce) {
-      throw ce.getStoreAccessException();
+    } catch (StoreAccessException ce) {
+      if(ce.getCause() instanceof StorePassThroughException) {
+        throw (StoreAccessException) ce.getCause().getCause();
+      }
+      throw (RuntimeException) ce.getCause();
     }
   }
 
