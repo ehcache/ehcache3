@@ -27,6 +27,8 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerValidationExcepti
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.LeaseCheckingClusterTierEntity;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -53,6 +55,7 @@ import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.lease.connection.LeasedConnection;
 
 import java.io.IOException;
 import java.net.URI;
@@ -174,7 +177,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
       properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(Timeouts.INFINITE_TIMEOUT.toMillis()));
-      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
+      Connection connection = ConnectionFactory.connect(clusterUri, properties);
+      if (connection instanceof LeasedConnection) {
+        clusterConnection = (LeasedConnection) connection;
+      } else {
+        throw new IllegalStateException("Invalid Connection provided, wrong service loaded");
+      }
 
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
@@ -381,11 +389,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         configuredConsistency
     );
 
-    ClusterTierClientEntity storeClientEntity;
+    LeaseCheckingClusterTierEntity leaseCheckingClusterTierEntity;
     try {
-      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+      ClusterTierClientEntity storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
         clientStoreConfiguration, configuration.isAutoCreate());
-      clusterTierEntities.put(cacheId, storeClientEntity);
+      leaseCheckingClusterTierEntity =
+              new LeaseCheckingClusterTierEntity((InternalClusterTierClientEntity) storeClientEntity,
+                      ((LeasedConnection)clusterConnection).getLeaseMaintainer());
+      clusterTierEntities.put(cacheId, leaseCheckingClusterTierEntity);
     } catch (EntityNotFoundException e) {
       throw new CachePersistenceException("Cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "' does not exist.", e);
     }
@@ -394,17 +405,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, leaseCheckingClusterTierEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, leaseCheckingClusterTierEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);
     }
 
     try {
-      storeClientEntity.validate(clientStoreConfiguration);
+      leaseCheckingClusterTierEntity.validate(clientStoreConfiguration);
     } catch (ClusterTierException e) {
       serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);

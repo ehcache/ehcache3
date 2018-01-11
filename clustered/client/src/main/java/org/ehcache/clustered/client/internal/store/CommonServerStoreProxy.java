@@ -51,6 +51,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     this.cacheId = requireNonNull(cacheId, "Cache-ID must be non-null");
     this.entity = requireNonNull(entity, "ClusterTierClientEntity must be non-null");
     requireNonNull(invalidation, "ServerCallback must be non-null");
+    entity.setLeaseExpiredCallback(invalidation);
 
     entity.addResponseListener(ServerInvalidateHash.class, response -> {
       long key = response.getKey();

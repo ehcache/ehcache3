@@ -34,6 +34,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.lease.connection.LeasedConnection;
 
 import java.net.URI;
 import java.util.HashSet;
@@ -59,7 +60,7 @@ import static org.mockito.Mockito.when;
 public class DefaultClusteringServiceDestroyTest {
 
   @Mock
-  private Connection connection;
+  private LeasedConnection connection;
   @Mock
   private EntityRef<ClusterTierManagerClientEntity, Object, Void> managerEntityRef;
   @Mock

@@ -55,6 +55,8 @@ public interface ClusterTierClientEntity extends Entity {
 
   void setReconnectListener(ReconnectListener reconnectListener);
 
+  void setLeaseExpiredCallback(ServerStoreProxy.ServerCallback callback);
+
   interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);
   }

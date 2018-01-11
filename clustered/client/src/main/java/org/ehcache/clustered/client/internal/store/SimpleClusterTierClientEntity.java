@@ -148,6 +148,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
+  public void setLeaseExpiredCallback(ServerStoreProxy.ServerCallback callback) {
+    throw new UnsupportedOperationException("Server call back is not supported");
+  }
+
+  @Override
   public void setDisconnectionListener(DisconnectionListener disconnectionListener) {
     this.disconnectionListener = disconnectionListener;
   }

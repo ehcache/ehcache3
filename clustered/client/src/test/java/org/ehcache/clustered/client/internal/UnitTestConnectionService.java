@@ -34,7 +34,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
@@ -58,6 +60,11 @@ import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.PermanentEntityException;
+import org.terracotta.lease.LeaseAcquirerClientService;
+import org.terracotta.lease.LeaseAcquirerServerService;
+import org.terracotta.lease.connection.BasicLeasedConnection;
+import org.terracotta.lease.connection.LeasedConnection;
+import org.terracotta.lease.connection.TimeBudget;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -149,6 +156,7 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -372,6 +380,9 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServiceProvider(entry.getKey(), entry.getValue());
       }
 
+      newServer.registerClientEntityService(new LeaseAcquirerClientService());
+      newServer.registerServerEntityService(new LeaseAcquirerServerService());
+
       return newServer;
     }
   }
@@ -409,7 +420,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
           Connection connection = server.connectNewClient(connectionName);
           STRIPES.get(uri.getAuthority()).add(connection);
-          return connection;
+          return BasicLeasedConnection.create(connection, createTimeBudget(properties));
         }
       } else {
         throw new IllegalArgumentException("UnitTestConnectionService failed to find stripe" + uri.getAuthority());
@@ -428,16 +439,24 @@ public class UnitTestConnectionService implements ConnectionService {
       name = "Ehcache:UNKNOWN";
     }
     Connection connection = serverDescriptor.server.connectNewClient(name);
-    serverDescriptor.add(connection, properties);
+    BasicLeasedConnection leasedConnection = BasicLeasedConnection.create(connection, createTimeBudget(properties));
+    serverDescriptor.add(leasedConnection, properties);
 
     LOGGER.info("Client opened {} to PassthroughServer at {}", formatConnectionId(connection), uri);
 
     /*
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
-    return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class[] { Connection.class },
-        new ConnectionInvocationHandler(serverDescriptor, connection));
+    return (Connection) Proxy.newProxyInstance(LeasedConnection.class.getClassLoader(),
+        new Class[] { LeasedConnection.class },
+        new ConnectionInvocationHandler(serverDescriptor, leasedConnection));
+  }
+
+  private TimeBudget createTimeBudget(Properties properties) {
+    String timeoutString = properties.getProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT,
+            Long.toString(Timeouts.DEFAULT_CONNECTION_TIMEOUT.toMillis()));
+    long timeout = Long.parseLong(timeoutString);
+    return new TimeBudget(timeout, TimeUnit.MILLISECONDS);
   }
 
   /**
