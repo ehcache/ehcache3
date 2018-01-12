@@ -314,7 +314,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.<Long>getLatestSample("Cache:HitCount").get();
+        val = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
       }
     } while(!Thread.currentThread().isInterrupted() && val != 2);
 
@@ -332,7 +332,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.<Long>getLatestSample("Cache:HitCount").get();
+        val = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
       }
 
     } while(!Thread.currentThread().isInterrupted() && val != 4);

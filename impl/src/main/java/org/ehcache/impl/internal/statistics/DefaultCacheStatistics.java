@@ -38,7 +38,7 @@ import static java.util.EnumSet.allOf;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
-import static org.terracotta.statistics.SuppliedValueStatistic.counter;
+import static org.terracotta.statistics.ValueStatistics.counter;
 
 /**
  * Contains usage statistics relative to a given cache.

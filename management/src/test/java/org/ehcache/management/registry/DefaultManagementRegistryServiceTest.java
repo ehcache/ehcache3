@@ -277,7 +277,7 @@ public class DefaultManagementRegistryServiceTest {
         .on(context1);
 
     ContextualStatistics counters = getResultSet(builder1, context1, null, queryStatisticName).getResult(context1);
-    Number counterHistory1 = counters.<Number>getLatestSample(queryStatisticName).get();
+    Number counterHistory1 = counters.<Number>getLatestSampleValue(queryStatisticName).get();
 
     assertThat(counters.size()).isEqualTo(1);
     assertThat(counterHistory1.longValue()).isEqualTo(1L);
@@ -292,8 +292,8 @@ public class DefaultManagementRegistryServiceTest {
     assertThat(allCounters.getResult(context1).size()).isEqualTo(1);
     assertThat(allCounters.getResult(context2).size()).isEqualTo(1);
 
-    assertThat(allCounters.getResult(context1).getLatestSample(queryStatisticName).get()).isEqualTo(1L);
-    assertThat(allCounters.getResult(context2).getLatestSample(queryStatisticName).get()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context1).getLatestSampleValue(queryStatisticName).get()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context2).getLatestSampleValue(queryStatisticName).get()).isEqualTo(1L);
 
     cacheManager1.close();
   }
@@ -306,12 +306,12 @@ public class DefaultManagementRegistryServiceTest {
       counters = builder.build().execute();
 
       ContextualStatistics statisticsContext1 = counters.getResult(context1);
-      Number counterContext1 = statisticsContext1.<Number>getLatestSample(statisticsName).get();
+      Number counterContext1 = statisticsContext1.<Number>getLatestSampleValue(statisticsName).get();
 
       if(context2 != null)
       {
         ContextualStatistics statisticsContext2 = counters.getResult(context2);
-        Number counterHistoryContext2 = statisticsContext2.<Number>getLatestSample(statisticsName).get();
+        Number counterHistoryContext2 = statisticsContext2.<Number>getLatestSampleValue(statisticsName).get();
 
         if(counterHistoryContext2.longValue() > 0 &&
            counterContext1.longValue() > 0)

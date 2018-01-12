@@ -53,7 +53,7 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.toMap;
 import static org.terracotta.offheapresource.OffHeapResourceIdentifier.identifier;
 import static org.terracotta.statistics.StatisticsManager.tags;
-import static org.terracotta.statistics.SuppliedValueStatistic.supply;
+import static org.terracotta.statistics.ValueStatistics.supply;
 import static org.terracotta.statistics.StatisticType.COUNTER;
 import static org.terracotta.statistics.StatisticType.GAUGE;
 
