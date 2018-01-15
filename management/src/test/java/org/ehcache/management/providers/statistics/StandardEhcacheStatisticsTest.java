@@ -73,7 +73,7 @@ public class StandardEhcacheStatisticsTest {
         .getSingleResult();
 
       assertThat(counter.size(), Matchers.is(1));
-      Long count = counter. <Long>getLatestSample("Cache:HitCount").get();
+      Long count = counter. <Long>getLatestSampleValue("Cache:HitCount").get();
 
       assertThat(count.longValue(), Matchers.equalTo(1L));
     }

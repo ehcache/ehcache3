@@ -54,7 +54,7 @@ public class StatsUtil {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Number counter = statisticsContext.<Number>getLatestSample(statName).get();
+    Number counter = statisticsContext.<Number>getLatestSampleValue(statName).get();
     long value = counter.longValue();
 
     assertThat(value, Matchers.is(expectedResult));

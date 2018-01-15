@@ -162,7 +162,7 @@ public class StandardEhCacheStatisticsQueryTest {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Long counter = statisticsContext.<Long>getLatestSample(statName).get();
+    Long counter = statisticsContext.<Long>getLatestSampleValue(statName).get();
 
     assertThat(counter, Matchers.is(expectedResult));
 

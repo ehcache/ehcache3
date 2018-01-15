@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
-import static org.terracotta.statistics.SuppliedValueStatistic.counter;
-import static org.terracotta.statistics.SuppliedValueStatistic.gauge;
+import static org.terracotta.statistics.ValueStatistics.counter;
+import static org.terracotta.statistics.ValueStatistics.gauge;
 
 /**
  * Contains usage statistics relative to a given tier.
