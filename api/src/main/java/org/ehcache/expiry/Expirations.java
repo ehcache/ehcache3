@@ -15,8 +15,6 @@
  */
 package org.ehcache.expiry;
 
-import org.ehcache.ValueSupplier;
-
 import java.util.Objects;
 
 /**
@@ -111,12 +109,12 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+    public Duration getExpiryForAccess(K key, org.ehcache.ValueSupplier<? extends V> value) {
       return access;
     }
 
     @Override
-    public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+    public Duration getExpiryForUpdate(K key, org.ehcache.ValueSupplier<? extends V> oldValue, V newValue) {
       return update;
     }
 
