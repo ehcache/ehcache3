@@ -106,6 +106,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
+  @Override
   protected Store.ValueHolder<V> doGet(K key) throws StoreAccessException {
     Function<K, V> mappingFunction = k -> {
       try {
@@ -118,40 +119,19 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     return store.computeIfAbsent(key, mappingFunction);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public void put(final K key, final V value) throws CacheWritingException {
-    putObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    final BiFunction<K, V, V> remappingFunction = memoize((key1, previousValue) -> {
+  public Store.PutStatus doPut(K key, V value) throws StoreAccessException {
+    BiFunction<K, V, V> remappingFunction = (key1, previousValue) -> {
       try {
         cacheLoaderWriter.write(key1, value);
       } catch (Exception e) {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
       return value;
-    });
+    };
 
-    try {
-      store.compute(key, remappingFunction);
-      putObserver.end(PutOutcome.PUT);
-    } catch (StoreAccessException e) {
-      try {
-        try {
-          remappingFunction.apply(key, value);
-        } catch (StorePassThroughException cpte) {
-          resilienceStrategy.putFailure(key, value, e, (CacheWritingException) cpte.getCause());
-          return;
-        }
-        resilienceStrategy.putFailure(key, value, e);
-      } finally {
-        putObserver.end(PutOutcome.FAILURE);
-      }
-    }
+    store.compute(key, remappingFunction);
+    return Store.PutStatus.PUT;
   }
 
   protected boolean removeInternal(final K key) throws CacheWritingException {

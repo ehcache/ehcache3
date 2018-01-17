@@ -89,34 +89,8 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return store.get(key);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void put(final K key, final V value) {
-    putObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      PutStatus status = store.put(key, value);
-      switch (status) {
-      case PUT:
-        putObserver.end(PutOutcome.PUT);
-        break;
-      case NOOP:
-        putObserver.end(PutOutcome.NOOP);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.putFailure(key, value, e);
-      } finally {
-        putObserver.end(PutOutcome.FAILURE);
-      }
-    }
+  protected Store.PutStatus doPut(K key, V value) throws StoreAccessException {
+    return store.put(key, value);
   }
 
   protected boolean removeInternal(final K key) {

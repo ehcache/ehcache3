@@ -78,18 +78,6 @@ public interface ResilienceStrategy<K, V> {
   void putFailure(K key, V value, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#put(java.lang.Object, java.lang.Object)} fails
-   * due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param key the key being put
-   * @param value the value being put
-   * @param e the cache failure
-   * @param f the writer failure
-   */
-  void putFailure(K key, V value, StoreAccessException e, CacheWritingException f);
-
-  /**
    * Called when a {@link Cache#remove(java.lang.Object)} fails due to an
    * underlying store failure.
    *

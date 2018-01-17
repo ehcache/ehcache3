@@ -171,6 +171,38 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
+  public void put(K key, V value) {
+    putObserver.begin();
+    statusTransitioner.checkAvailable();
+    checkNonNull(key, value);
+
+    try {
+      Store.PutStatus status = doPut(key, value);
+      switch (status) {
+        case PUT:
+          putObserver.end(PutOutcome.PUT);
+          break;
+        case NOOP:
+          putObserver.end(PutOutcome.NOOP);
+          break;
+        default:
+          throw new AssertionError("Invalid Status.");
+      }
+    } catch (StoreAccessException e) {
+      try {
+        resilienceStrategy.putFailure(key, value, e);
+      } finally {
+        putObserver.end(PutOutcome.FAILURE);
+      }
+    }
+  }
+
+  protected abstract Store.PutStatus doPut(K key, V value) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public boolean containsKey(final K key) {
     statusTransitioner.checkAvailable();
     checkNonNull(key);

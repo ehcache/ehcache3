@@ -16,6 +16,7 @@
 
 package org.ehcache.core.resilience;
 
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
+import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
 /**
  *
@@ -64,12 +66,11 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @Override
   public void putFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-  }
-
-  @Override
-  public void putFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
+    try {
+      loaderWriter.write(key, value);
+    } catch (Exception e1) {
+      throw new CacheWritingException(e1);
+    }
   }
 
   @Override
