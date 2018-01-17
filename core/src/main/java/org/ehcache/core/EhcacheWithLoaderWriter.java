@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.resilience.RobustLoaderWriterResilienceStrategy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.resilience.StoreAccessException;
@@ -29,7 +30,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
-import org.ehcache.core.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
@@ -40,7 +40,6 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +59,6 @@ import java.util.function.Supplier;
 import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implementation of the {@link Cache} interface when a {@link CacheLoaderWriter} is involved.
@@ -76,8 +74,6 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final boolean useLoaderInAtomics;
-
-  private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
 
   /**
    * Constructs a new {@code EhcacheWithLoaderWriter} based on the provided parameters.
@@ -104,59 +100,22 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   EhcacheWithLoaderWriter(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
             CacheLoaderWriter<? super K, V> cacheLoaderWriter,
             CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, eventDispatcher, logger, statusTransitioner);
+    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter), eventDispatcher, logger, statusTransitioner);
 
     this.cacheLoaderWriter = Objects.requireNonNull(cacheLoaderWriter, "CacheLoaderWriter cannot be null");
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public V get(final K key) throws CacheLoadingException {
-    getObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
-    final Function<K, V> mappingFunction = memoize(k -> {
-      V loaded;
+  protected Store.ValueHolder<V> doGet(K key) throws StoreAccessException {
+    Function<K, V> mappingFunction = k -> {
       try {
-        cacheLoadingObserver.begin();
-        loaded = cacheLoaderWriter.load(k);
-        cacheLoadingObserver.end(CacheLoadingOutcome.SUCCESS);
+        return cacheLoaderWriter.load(k);
       } catch (Exception e) {
-        cacheLoadingObserver.end(CacheLoadingOutcome.FAILURE);
         throw new StorePassThroughException(newCacheLoadingException(e));
       }
+    };
 
-      return loaded;
-    });
-
-    try {
-      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
-
-      // Check for expiry first
-      if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS);
-        return null;
-      } else {
-        getObserver.end(GetOutcome.HIT);
-        return valueHolder.get();
-      }
-    } catch (StoreAccessException e) {
-      try {
-        V fromLoader;
-        try {
-          fromLoader = mappingFunction.apply(key);
-        } catch (StorePassThroughException cpte) {
-          return resilienceStrategy.getFailure(key, e, (CacheLoadingException) cpte.getCause());
-        }
-        return resilienceStrategy.getFailure(key, fromLoader, e);
-      } finally {
-        getObserver.end(GetOutcome.FAILURE);
-      }
-    }
+    return store.computeIfAbsent(key, mappingFunction);
   }
 
   /**

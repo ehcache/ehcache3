@@ -58,28 +58,6 @@ public interface ResilienceStrategy<K, V> {
   V getFailure(K key, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#get(java.lang.Object)} fails on a cache with a
-   * cache loader due to an underlying store failure.
-   *
-   * @param key the key being retrieved
-   * @param loaded the value from the loader
-   * @param e the triggered failure
-   * @return the value to return from the operation
-   */
-  V getFailure(K key, V loaded, StoreAccessException e);
-
-  /**
-   * Called when a {@link Cache#get(java.lang.Object)} fails on a cache with a
-   * cache loader due to an underlying store failure.
-   *
-   * @param key the key being retrieved
-   * @param e the cache failure
-   * @param f the loader failure
-   * @return the value to return from the operation
-   */
-  V getFailure(K key, StoreAccessException e, CacheLoadingException f);
-
-  /**
    * Called when a {@link Cache#containsKey(java.lang.Object)} fails due to an
    * underlying store failure, and the resultant cache load operation also fails.
    *

@@ -19,8 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.resilience.LoggingRobustResilienceStrategy;
-import org.ehcache.core.resilience.RecoveryCache;
+import org.ehcache.core.resilience.RecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
@@ -94,17 +93,13 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * @param eventDispatcher the event dispatcher
    * @param logger the logger
    */
-  EhcacheBase(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+  EhcacheBase(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
           CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
 
-    if (store instanceof RecoveryCache) {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(castToRecoveryCache(store));
-    } else {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(recoveryCache(store));
-    }
+    this.resilienceStrategy = resilienceStrategy;
 
     this.runtimeConfiguration = runtimeConfiguration;
     runtimeConfiguration.addCacheConfigurationListener(eventDispatcher.getConfigurationChangeListeners());
@@ -116,32 +111,36 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private RecoveryCache<K> castToRecoveryCache(Store<K, V> store) {
-    return (RecoveryCache<K>) store;
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public V get(K key) {
+    getObserver.begin();
+    statusTransitioner.checkAvailable();
+    checkNonNull(key);
+
+    try {
+      Store.ValueHolder<V> valueHolder = doGet(key);
+
+      // Check for expiry first
+      if (valueHolder == null) {
+        getObserver.end(GetOutcome.MISS);
+        return null;
+      } else {
+        getObserver.end(GetOutcome.HIT);
+        return valueHolder.get();
+      }
+    } catch (StoreAccessException e) {
+      try {
+        return resilienceStrategy.getFailure(key, e);
+      } finally {
+        getObserver.end(GetOutcome.FAILURE);
+      }
+    }
   }
 
-  private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
-    return new RecoveryCache<K>() {
-
-      @Override
-      public void obliterate() throws StoreAccessException {
-        store.clear();
-      }
-
-      @Override
-      public void obliterate(K key) throws StoreAccessException {
-        store.remove(key);
-      }
-
-      @Override
-      public void obliterate(Iterable<? extends K> keys) throws StoreAccessException {
-        for (K key : keys) {
-          obliterate(key);
-        }
-      }
-    };
-  }
+  protected abstract Store.ValueHolder<V> doGet(K key) throws StoreAccessException;
 
   protected V getNoLoader(K key) {
     getObserver.begin();

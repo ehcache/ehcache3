@@ -220,14 +220,12 @@ public abstract class EhcacheBasicCrudBase {
   protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
     assert ehcache != null;
     try {
-      final Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
+      Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
       resilienceStrategyField.setAccessible(true);
       @SuppressWarnings("unchecked")
       ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);
-      if (resilienceStrategy != null) {
-        resilienceStrategy = spy(resilienceStrategy);
-        resilienceStrategyField.set(ehcache, resilienceStrategy);
-      }
+      resilienceStrategy = spy(resilienceStrategy);
+      resilienceStrategyField.set(ehcache, resilienceStrategy);
       return resilienceStrategy;
     } catch (Exception e) {
       throw new AssertionError(String.format("Unable to wrap ResilienceStrategy in Ehcache instance: %s", e));

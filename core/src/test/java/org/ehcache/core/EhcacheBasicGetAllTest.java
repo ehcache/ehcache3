@@ -298,9 +298,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   private void validateStatsNoneof(Ehcache<String, String> cache) {
     validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
-    if (!(cache instanceof Ehcache)) {
-      validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-    }
   }
 
   /**

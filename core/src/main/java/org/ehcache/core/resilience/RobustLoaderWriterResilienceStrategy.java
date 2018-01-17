@@ -16,17 +16,18 @@
 
 package org.ehcache.core.resilience;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Collections.emptyMap;
 
@@ -34,18 +35,24 @@ import static java.util.Collections.emptyMap;
  *
  * @author Chris Dennis
  */
-public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K, V> {
+public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilienceStrategy<K, V> {
 
   private final RecoveryStore<K> store;
+  private final CacheLoaderWriter<? super K, V> loaderWriter;
 
-  public RobustResilienceStrategy(Store<K, V> store) {
+  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter) {
     this.store = new DefaultRecoveryStore<>(Objects.requireNonNull(store));
+    this.loaderWriter = Objects.requireNonNull(loaderWriter);
   }
 
   @Override
   public V getFailure(K key, StoreAccessException e) {
     cleanup(key, e);
-    return null;
+    try {
+      return loaderWriter.load(key);
+    } catch (Exception e1) {
+      throw new CacheLoadingException(e1);
+    }
   }
 
   @Override

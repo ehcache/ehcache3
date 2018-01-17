@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.core.internal.resilience;
 
-package org.ehcache.core.resilience;
+import java.util.Map;
 
-import org.ehcache.resilience.StoreAccessException;
+public interface CacheLoaderWriterResilienceStrategy<K, V> {
 
-/**
- *
- * @author Chris Dennis
- */
-public interface RecoveryCache<K> {
+  V load(K key, Exception e) throws Exception;
 
-  void obliterate() throws StoreAccessException;
+  Map<K, V> loadAll(Iterable<? extends K> keys, Exception e) throws Exception;
 
-  void obliterate(K key) throws StoreAccessException;
+  void write(K key, V value, Exception e) throws Exception;
 
-  void obliterate(Iterable<? extends K> keys) throws StoreAccessException;
+  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Exception e) throws Exception;
+
+  void delete(K key, Exception e) throws Exception;
+
+  void deleteAll(Iterable<? extends K> keys, Exception e) throws Exception;
 }

@@ -13,26 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.core.resilience;
 
 import org.ehcache.Cache;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.CacheIterationException;
+import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author cdennis
  */
-public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrategy<K, V> {
+public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStrategy<K, V>{
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LoggingRobustResilienceStrategy.class);
-
-  public LoggingRobustResilienceStrategy(RecoveryCache<K> store) {
-    super(store);
-  }
+  private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
   @Override
   public Cache.Entry<K, V> iteratorFailure(StoreAccessException e) {
@@ -40,32 +35,26 @@ public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrat
     throw new CacheIterationException(e);
   }
 
-  @Override
   protected void recovered(K key, StoreAccessException from) {
     LOGGER.info("Ehcache key {} recovered from", key, from);
   }
 
-  @Override
   protected void recovered(Iterable<? extends K> keys, StoreAccessException from) {
     LOGGER.info("Ehcache keys {} recovered from", keys, from);
   }
 
-  @Override
   protected void recovered(StoreAccessException from) {
     LOGGER.info("Ehcache recovered from", from);
   }
 
-  @Override
   protected void inconsistent(K key, StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache key {} in possible inconsistent state due to ", key, because);
   }
 
-  @Override
   protected void inconsistent(Iterable<? extends K> keys, StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache keys {} in possible inconsistent state due to ", keys, because);
   }
 
-  @Override
   protected void inconsistent(StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache in possible inconsistent state due to ", because);
   }

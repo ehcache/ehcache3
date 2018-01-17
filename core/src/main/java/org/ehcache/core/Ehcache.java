@@ -30,11 +30,13 @@ import java.util.function.Supplier;
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
@@ -76,15 +78,15 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, eventDispatcher, logger, statusTransitioner);
+    super(runtimeConfiguration, store, new RobustResilienceStrategy<>(store), eventDispatcher, logger, statusTransitioner);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public V get(final K key) {
-    return getNoLoader(key);
+  protected Store.ValueHolder<V> doGet(K key) throws StoreAccessException {
+    return store.get(key);
   }
 
   /**
