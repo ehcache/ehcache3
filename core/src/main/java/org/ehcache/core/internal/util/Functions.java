@@ -89,8 +89,8 @@ public class Functions {
       if (computed) {
         return value;
       }
-      computed = true;
       value = function.apply(a, b);
+      computed = true;
       return value;
     }
   }

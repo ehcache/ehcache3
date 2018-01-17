@@ -24,7 +24,7 @@ import org.ehcache.ValueSupplier;
  * @deprecated Now using {@code Supplier} for {@link org.ehcache.expiry.ExpiryPolicy}
  */
 @Deprecated
-public class ValueSuppliers {
+public final class ValueSuppliers {
 
   /**
    * Returns a basic {@link ValueSupplier} that serves the value passed in
