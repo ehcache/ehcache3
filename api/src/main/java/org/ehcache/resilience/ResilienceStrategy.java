@@ -87,17 +87,6 @@ public interface ResilienceStrategy<K, V> {
   void removeFailure(K key, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#remove(java.lang.Object)} fails
-   * due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param key the key being removed
-   * @param e the cache failure
-   * @param f the writer failure
-   */
-  void removeFailure(K key, StoreAccessException e, CacheWritingException f);
-
-  /**
    * Called when a {@link Cache#clear()} fails due to an underlying store
    * failure.
    *

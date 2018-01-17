@@ -52,6 +52,7 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.slf4j.Logger;
 
 /**
@@ -93,28 +94,8 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return store.put(key, value);
   }
 
-  protected boolean removeInternal(final K key) {
-    removeObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
-    boolean removed = false;
-    try {
-      removed = store.remove(key);
-      if (removed) {
-        removeObserver.end(RemoveOutcome.SUCCESS);
-      } else {
-        removeObserver.end(RemoveOutcome.NOOP);
-      }
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.removeFailure(key, e);
-      } finally {
-        removeObserver.end(RemoveOutcome.FAILURE);
-      }
-    }
-
-    return removed;
+  protected boolean doRemoveInternal(final K key) throws StoreAccessException {
+    return store.remove(key);
   }
 
   protected Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {

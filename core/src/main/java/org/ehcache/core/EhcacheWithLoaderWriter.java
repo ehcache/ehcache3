@@ -134,14 +134,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     return Store.PutStatus.PUT;
   }
 
-  protected boolean removeInternal(final K key) throws CacheWritingException {
-    removeObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
+  protected boolean doRemoveInternal(final K key) throws StoreAccessException {
+    AtomicBoolean modified = new AtomicBoolean();
 
-    final AtomicBoolean modified = new AtomicBoolean();
-
-    final BiFunction<K, V, V> remappingFunction = memoize((key1, previousValue) -> {
+    BiFunction<K, V, V> remappingFunction = memoize((key1, previousValue) -> {
       modified.set(previousValue != null);
 
       try {
@@ -152,26 +148,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       return null;
     });
 
-    try {
-      store.compute(key, remappingFunction);
-      if (modified.get()) {
-        removeObserver.end(RemoveOutcome.SUCCESS);
-      } else {
-        removeObserver.end(RemoveOutcome.NOOP);
-      }
-    } catch (StoreAccessException e) {
-      try {
-        try {
-          remappingFunction.apply(key, null);
-        } catch (StorePassThroughException f) {
-          resilienceStrategy.removeFailure(key, e, (CacheWritingException) f.getCause());
-        }
-        resilienceStrategy.removeFailure(key, e);
-      } finally {
-        removeObserver.end(RemoveOutcome.FAILURE);
-      }
-    }
-
+    store.compute(key, remappingFunction);
     return modified.get();
   }
 

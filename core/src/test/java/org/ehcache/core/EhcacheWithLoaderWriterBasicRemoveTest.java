@@ -200,8 +200,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -228,8 +228,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -262,9 +262,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
+    ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
-    ordered.verify(this.spiedResilienceStrategy)
-        .removeFailure(eq("key"), any(StoreAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
@@ -406,8 +405,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -434,8 +433,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -468,9 +467,8 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
+    ordered.verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter).delete(eq("key"));
-    ordered.verify(this.spiedResilienceStrategy)
-        .removeFailure(eq("key"), any(StoreAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 

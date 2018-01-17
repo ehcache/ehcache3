@@ -221,7 +221,31 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     removeInternal(key); // ignore return value;
   }
 
-  protected abstract boolean removeInternal(final K key);
+  protected boolean removeInternal(final K key) {
+    removeObserver.begin();
+    statusTransitioner.checkAvailable();
+    checkNonNull(key);
+
+    boolean removed = false;
+    try {
+      removed = doRemoveInternal(key);
+      if (removed) {
+        removeObserver.end(RemoveOutcome.SUCCESS);
+      } else {
+        removeObserver.end(RemoveOutcome.NOOP);
+      }
+    } catch (StoreAccessException e) {
+      try {
+        resilienceStrategy.removeFailure(key, e);
+      } finally {
+        removeObserver.end(RemoveOutcome.FAILURE);
+      }
+    }
+
+    return removed;
+  }
+
+  protected abstract boolean doRemoveInternal(final K key) throws StoreAccessException;
 
   /**
    * {@inheritDoc}

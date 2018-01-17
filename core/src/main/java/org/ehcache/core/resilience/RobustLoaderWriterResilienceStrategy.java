@@ -76,12 +76,11 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @Override
   public void removeFailure(K key, StoreAccessException e) {
     cleanup(key, e);
-  }
-
-  @Override
-  public void removeFailure(K key, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
+    try {
+      loaderWriter.delete(key);
+    } catch(Exception e1) {
+      throw new CacheWritingException(e1);
+    }
   }
 
   @Override
