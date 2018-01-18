@@ -53,6 +53,7 @@ import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.lease.connection.LeasedConnectionFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -174,7 +175,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
       properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
-      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
+      clusterConnection = LeasedConnectionFactory.connect(clusterUri, properties);
 
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);

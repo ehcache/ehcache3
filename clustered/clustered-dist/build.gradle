@@ -45,6 +45,7 @@ configurations {
 
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -55,6 +56,8 @@ dependencies {
 
   // Needed because declared as provided in the different projects
   serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+
+  serverLibs "org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion"
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 
