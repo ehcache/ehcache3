@@ -83,6 +83,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -1362,21 +1363,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> newCreateValueHolder(K key, V value, long now, StoreEventSink<K, V> eventSink) {
-    if (value == null) {
-      throw new NullPointerException();
-    }
+    Objects.requireNonNull(value);
 
-    Duration duration;
-    try {
-      duration = expiry.getExpiryForCreation(key, value);
-      if (duration.isNegative()) {
-        return null;
-      }
-    } catch (RuntimeException re) {
-      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-      return null;
-    }
-    if (Duration.ZERO.equals(duration)) {
+    Duration duration = ExpiryUtils.getExpiryForCreation(key, value, expiry);
+    if(duration.isZero()) {
       return null;
     }
 

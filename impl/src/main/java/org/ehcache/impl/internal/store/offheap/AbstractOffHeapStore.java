@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1018,26 +1019,18 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now, StoreEventSink<K, V> eventSink) {
-    Duration duration = Duration.ZERO;
-    try {
-      duration = expiry.getExpiryForCreation(key, value);
-      if (duration.isNegative()) {
-        return null;
-      }
-    } catch (RuntimeException re) {
-      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-    }
-    if (Duration.ZERO.equals(duration)) {
+    Objects.requireNonNull(value);
+
+    Duration duration = ExpiryUtils.getExpiryForCreation(key, value, expiry);
+    if(duration.isZero()) {
       return null;
     }
 
     eventSink.created(key, value);
 
-    if (isExpiryDurationInfinite(duration)) {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
-    } else {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, ExpiryUtils.getExpirationMillis(now, duration));
-    }
+    long expirationTime = isExpiryDurationInfinite(duration) ? ValueHolder.NO_EXPIRE : ExpiryUtils.getExpirationMillis(now, duration);
+
+    return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, expirationTime);
   }
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
