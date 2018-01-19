@@ -70,25 +70,9 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, V loaderWriterFunctionResult, StoreAccessException e, boolean knownToBeAbsent) {
+  public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    if (loaderWriterFunctionResult != null && !loaderWriterFunctionResult.equals(value)) {
-      return loaderWriterFunctionResult;
-    } else {
-      return null;
-    }
-  }
-
-  @Override
-  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
-  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
+    return null; // Should it be 'value'?
   }
 
   @Override

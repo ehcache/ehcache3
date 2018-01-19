@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -100,7 +101,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   EhcacheWithLoaderWriter(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
             CacheLoaderWriter<? super K, V> cacheLoaderWriter,
             CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter), eventDispatcher, logger, statusTransitioner);
+    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter, useLoaderInAtomics), eventDispatcher, logger, statusTransitioner);
 
     this.cacheLoaderWriter = Objects.requireNonNull(cacheLoaderWriter, "CacheLoaderWriter cannot be null");
     this.useLoaderInAtomics = useLoaderInAtomics;
@@ -480,13 +481,9 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
    * {@inheritDoc}
    */
   @Override
-  public V putIfAbsent(final K key, final V value) throws CacheWritingException {
-    putIfAbsentObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-    final AtomicBoolean installed = new AtomicBoolean(false);
+  public ValueHolder<V> doPutIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
 
-    final Function<K, V> mappingFunction = memoize(k -> {
+    Function<K, V> mappingFunction = k -> {
       if (useLoaderInAtomics) {
         try {
           V loaded = cacheLoaderWriter.load(k);
@@ -504,42 +501,11 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
 
-      installed.set(true);
+      put.accept(true);
       return value;
-    });
+    };
 
-    try {
-      ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
-      if (installed.get()) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
-        return null;
-      } else if (inCache == null) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return null;
-      } else {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.get();
-      }
-    } catch (StoreAccessException e) {
-      try {
-        V loaded;
-        try {
-          loaded = mappingFunction.apply(key);
-        } catch (StorePassThroughException f) {
-          Throwable cause = f.getCause();
-          if(cause instanceof CacheLoadingException) {
-            return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheLoadingException) cause);
-          } else if(cause instanceof CacheWritingException) {
-            return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheWritingException) cause);
-          } else {
-            throw new AssertionError();
-          }
-        }
-        return resilienceStrategy.putIfAbsentFailure(key, value, loaded, e, installed.get());
-      } finally {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
-      }
-    }
+    return store.computeIfAbsent(key, mappingFunction);
   }
 
   /**

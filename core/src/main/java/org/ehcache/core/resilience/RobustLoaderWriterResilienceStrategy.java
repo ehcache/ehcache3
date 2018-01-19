@@ -18,6 +18,7 @@ package org.ehcache.core.resilience;
 
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
@@ -29,8 +30,10 @@ import org.ehcache.spi.loaderwriter.CacheWritingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
+import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
 /**
@@ -41,10 +44,12 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
 
   private final RecoveryStore<K> store;
   private final CacheLoaderWriter<? super K, V> loaderWriter;
+  private final boolean useLoaderInAtomics;
 
-  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter) {
+  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics) {
     this.store = new DefaultRecoveryStore<>(Objects.requireNonNull(store));
     this.loaderWriter = Objects.requireNonNull(loaderWriter);
+    this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
   @Override
@@ -89,25 +94,23 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, V loaderWriterFunctionResult, StoreAccessException e, boolean knownToBeAbsent) {
+  public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    if (loaderWriterFunctionResult != null && !loaderWriterFunctionResult.equals(value)) {
-      return loaderWriterFunctionResult;
-    } else {
-      return null;
+    // FIXME: This is not atomic
+    try {
+      V loaded = loaderWriter.load(key);
+      if(loaded != null) {
+        return loaded;
+      }
+    } catch (Exception e1) {
+      throw new CacheLoadingException(e1);
     }
-  }
-
-  @Override
-  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
-  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
+    try {
+      loaderWriter.write(key, value);
+    } catch (Exception e1) {
+      throw new CacheWritingException(e1);
+    }
+    return null;
   }
 
   @Override

@@ -142,7 +142,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     ehcache.putIfAbsent("key", "value");
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), (String) isNull(), any(StoreAccessException.class), eq(false));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
@@ -164,7 +164,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     ehcache.putIfAbsent("key", "value");
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), (String) isNull(), any(StoreAccessException.class), eq(false));
+        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 

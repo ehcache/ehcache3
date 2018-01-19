@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -208,32 +209,13 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V putIfAbsent(final K key, final V value) {
-    putIfAbsentObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      ValueHolder<V> inCache = store.putIfAbsent(key, value);
-      boolean absent = (inCache == null);
-      if (absent) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
-        return null;
-      } else {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.get();
-      }
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, null, e, false); // FIXME: We can't know if it's absent or not
-      } finally {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
-      }
+  public ValueHolder<V> doPutIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
+    ValueHolder<V> result = store.putIfAbsent(key, value);
+    if(result == null) {
+      put.accept(true);
     }
+    return result;
   }
 
   /**
