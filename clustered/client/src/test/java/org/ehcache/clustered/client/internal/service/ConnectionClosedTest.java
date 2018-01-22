@@ -34,7 +34,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.exception.ConnectionClosedException;
-import org.terracotta.lease.connection.LeasedConnection;
 
 import java.net.URI;
 import java.time.Duration;
@@ -56,8 +55,9 @@ public class ConnectionClosedTest {
 
   @Parameters
   public static ResourcePoolsBuilder[] data() {
-    return new ResourcePoolsBuilder[]{ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)),
+    return new ResourcePoolsBuilder[]{
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)),
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))
@@ -86,9 +86,9 @@ public class ConnectionClosedTest {
   }
 
   @Test
-  public void testConnectionClosed() throws Exception {
+  public void testCacheOperationThrowsAfterConnectionClosed() throws Exception {
 
-    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
                     .with(cluster(CLUSTER_URI)
                             .timeouts(TimeoutsBuilder
@@ -98,9 +98,9 @@ public class ConnectionClosedTest {
                             .autoCreate())
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                             resourcePoolsBuilder));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
-    final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
 
     Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
 
