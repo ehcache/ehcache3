@@ -149,6 +149,7 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -383,6 +384,11 @@ public class UnitTestConnectionService implements ConnectionService {
     } else {
       return Collections.emptyList();
     }
+  }
+
+  public static Collection<Connection> getConnections(URI uri) {
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
+    return serverDescriptor.getConnections().keySet();
   }
 
   @Override
