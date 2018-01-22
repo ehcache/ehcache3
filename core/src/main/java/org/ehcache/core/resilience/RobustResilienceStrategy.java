@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
@@ -132,23 +133,13 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
     cleanup(keys, e);
-    HashMap<K, V> result = new HashMap<>();
+
+    int size = CollectionUtil.findBestCollectionSize(keys, 16); // 16 is the HashMap default
+    HashMap<K, V> result = new HashMap<>(size);
     for (K key : keys) {
       result.put(key, null);
     }
     return result;
-  }
-
-  @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, StoreAccessException e) {
-    cleanup(keys, e);
-    return loaded;
-  }
-
-  @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e, BulkCacheLoadingException f) {
-    cleanup(keys, e);
-    throw f;
   }
 
   @Override

@@ -16,9 +16,13 @@
 
 package org.ehcache.core;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +35,7 @@ import java.util.function.Supplier;
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.PutStatus;
@@ -99,18 +104,9 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return store.remove(key);
   }
 
-  protected Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
-    getAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNullContent(keys);
-    if(keys.isEmpty()) {
-      getAllObserver.end(GetAllOutcome.SUCCESS);
-      return Collections.emptyMap();
-    }
-
-    Map<K, V> result = new HashMap<>();
-    try {
+  protected Map<K, V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException {
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<>());
+      Map<K, V> result = new HashMap<>(computedMap.size());
 
       int hits = 0;
       int keyCount = 0;
@@ -126,15 +122,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
       addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
-      getAllObserver.end(GetAllOutcome.SUCCESS);
       return result;
-    } catch (StoreAccessException e) {
-      try {
-         return resilienceStrategy.getAllFailure(keys, e);
-      } finally {
-        getAllObserver.end(GetAllOutcome.FAILURE);
-      }
-    }
   }
 
   /**
@@ -526,14 +514,15 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends K> keys) {
-      Map<K, V> computeResult = new LinkedHashMap<>();
+      int size = CollectionUtil.findBestCollectionSize(keys, 1); // in our current implementation, we have one entry all the time
 
-      // put all the entries to get ordering correct
+      List<Map.Entry<K, V>> computeResult = new ArrayList<>(size);
+
       for (K key : keys) {
-        computeResult.put(key, null);
+        computeResult.add(CollectionUtil.entry(key, null));
       }
 
-      return computeResult.entrySet();
+      return computeResult;
     }
   }
 

@@ -154,7 +154,7 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**
@@ -358,7 +358,7 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
   /**

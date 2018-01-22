@@ -45,6 +45,7 @@ import org.terracotta.statistics.observer.OperationObserver;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -118,26 +119,29 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public V get(K key) {
     getObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
     try {
-      Store.ValueHolder<V> valueHolder = doGet(key);
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
 
-      // Check for expiry first
-      if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS);
-        return null;
-      } else {
-        getObserver.end(GetOutcome.HIT);
-        return valueHolder.get();
-      }
-    } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.getFailure(key, e);
-      } finally {
+        Store.ValueHolder<V> valueHolder = doGet(key);
+
+        // Check for expiry first
+        if (valueHolder == null) {
+          getObserver.end(GetOutcome.MISS);
+          return null;
+        } else {
+          getObserver.end(GetOutcome.HIT);
+          return valueHolder.get();
+        }
+      } catch (StoreAccessException e) {
+        V value = resilienceStrategy.getFailure(key, e);
         getObserver.end(GetOutcome.FAILURE);
+        return value;
       }
+    } catch(Exception e) {
+      getObserver.end(GetOutcome.FAILURE);
+      throw e;
     }
   }
 
@@ -145,26 +149,29 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
   protected V getNoLoader(K key) {
     getObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
     try {
-      Store.ValueHolder<V> valueHolder = store.get(key);
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
 
-      // Check for expiry first
-      if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS);
-        return null;
-      } else {
-        getObserver.end(GetOutcome.HIT);
-        return valueHolder.get();
-      }
-    } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.getFailure(key, e);
-      } finally {
+        Store.ValueHolder<V> valueHolder = store.get(key);
+
+        // Check for expiry first
+        if (valueHolder == null) {
+          getObserver.end(GetOutcome.MISS);
+          return null;
+        } else {
+          getObserver.end(GetOutcome.HIT);
+          return valueHolder.get();
+        }
+      } catch (StoreAccessException e) {
+        V value = resilienceStrategy.getFailure(key, e);
         getObserver.end(GetOutcome.FAILURE);
+        return value;
       }
+    } catch(Exception e) {
+      getObserver.end(GetOutcome.FAILURE);
+      throw e;
     }
   }
 
@@ -174,27 +181,29 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public void put(K key, V value) {
     putObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
     try {
-      Store.PutStatus status = doPut(key, value);
-      switch (status) {
-        case PUT:
-          putObserver.end(PutOutcome.PUT);
-          break;
-        case NOOP:
-          putObserver.end(PutOutcome.NOOP);
-          break;
-        default:
-          throw new AssertionError("Invalid Status.");
-      }
-    } catch (StoreAccessException e) {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
       try {
+        Store.PutStatus status = doPut(key, value);
+        switch (status) {
+          case PUT:
+            putObserver.end(PutOutcome.PUT);
+            break;
+          case NOOP:
+            putObserver.end(PutOutcome.NOOP);
+            break;
+          default:
+            throw new AssertionError("Invalid Status.");
+        }
+      } catch (StoreAccessException e) {
         resilienceStrategy.putFailure(key, value, e);
-      } finally {
         putObserver.end(PutOutcome.FAILURE);
       }
+    } catch(Exception e) {
+      putObserver.end(PutOutcome.FAILURE);
+      throw e;
     }
   }
 
@@ -224,26 +233,28 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
   protected boolean removeInternal(final K key) {
     removeObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
-    boolean removed = false;
     try {
-      removed = doRemoveInternal(key);
-      if (removed) {
-        removeObserver.end(RemoveOutcome.SUCCESS);
-      } else {
-        removeObserver.end(RemoveOutcome.NOOP);
-      }
-    } catch (StoreAccessException e) {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
+
+      boolean removed = false;
       try {
+        removed = doRemoveInternal(key);
+        if (removed) {
+          removeObserver.end(RemoveOutcome.SUCCESS);
+        } else {
+          removeObserver.end(RemoveOutcome.NOOP);
+        }
+      } catch (StoreAccessException e) {
         resilienceStrategy.removeFailure(key, e);
-      } finally {
         removeObserver.end(RemoveOutcome.FAILURE);
       }
-    }
 
-    return removed;
+      return removed;
+    } catch(Exception e) {
+      removeObserver.end(RemoveOutcome.FAILURE);
+      throw e;
+    }
   }
 
   protected abstract boolean doRemoveInternal(final K key) throws StoreAccessException;
@@ -254,13 +265,18 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public void clear() {
     clearObserver.begin();
-    statusTransitioner.checkAvailable();
     try {
-      store.clear();
-      clearObserver.end(ClearOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
+      statusTransitioner.checkAvailable();
+      try {
+        store.clear();
+        clearObserver.end(ClearOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.clearFailure(e);
+        clearObserver.end(ClearOutcome.FAILURE);
+      }
+    } catch(Exception e) {
       clearObserver.end(ClearOutcome.FAILURE);
-      resilienceStrategy.clearFailure(e);
+      throw e;
     }
   }
 
@@ -270,29 +286,32 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public V putIfAbsent(final K key, final V value) {
     putIfAbsentObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    AtomicBoolean put = new AtomicBoolean(false);
-
     try {
-      ValueHolder<V> inCache = doPutIfAbsent(key, value, b -> put.set(b));
-      if(put.get()) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
-        return null;
-      } else if (inCache == null) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return null;
-      } else {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.get();
-      }
-    } catch (StoreAccessException e) {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      AtomicBoolean put = new AtomicBoolean(false);
+
       try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, e); // FIXME: We can't know if it's absent or not
-      } finally {
+        ValueHolder<V> inCache = doPutIfAbsent(key, value, b -> put.set(b));
+        if (put.get()) {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+          return null;
+        } else if (inCache == null) {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+          return null;
+        } else {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+          return inCache.get();
+        }
+      } catch (StoreAccessException e) {
+        V newValue = resilienceStrategy.putIfAbsentFailure(key, value, e); // FIXME: We can't know if it's absent or not
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
+        return newValue;
       }
+    } catch(Exception e) {
+      putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
+      throw e;
     }
   }
 
@@ -315,7 +334,32 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     return getAllInternal(keys, true);
   }
 
-  protected abstract Map<K,V> getAllInternal(Set<? extends K> keys, boolean b);
+  protected Map<K,V> getAllInternal(Set<? extends K> keys, boolean includeNulls) {
+    getAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNullContent(keys);
+      if (keys.isEmpty()) {
+        getAllObserver.end(GetAllOutcome.SUCCESS);
+        return Collections.emptyMap();
+      }
+
+      try {
+        Map<K, V> result = doGetAllInternal(keys, includeNulls);
+        getAllObserver.end(GetAllOutcome.SUCCESS);
+        return result;
+      } catch (StoreAccessException e) {
+        Map<K, V> result = resilienceStrategy.getAllFailure(keys, e);
+        getAllObserver.end(GetAllOutcome.FAILURE);
+        return result;
+      }
+    } catch(Exception e) {
+      getAllObserver.end(GetAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Map<K,V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException;
 
 
   protected boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {

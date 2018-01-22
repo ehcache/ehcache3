@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.resilience.RobustLoaderWriterResilienceStrategy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
@@ -33,7 +34,6 @@ import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
@@ -41,11 +41,13 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -153,40 +155,36 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     return modified.get();
   }
 
-  protected Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
-    getAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNullContent(keys);
-    if(keys.isEmpty()) {
-      getAllObserver.end(GetAllOutcome.SUCCESS);
-      return Collections.emptyMap();
-    }
-    final Map<K, V> successes = new HashMap<>();
-    final Map<K, Exception> failures = new HashMap<>();
-
+  protected Map<K, V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException {
+    // we are not expecting failures and these two maps are only used in case of failures. So keep them small
+    Map<K, V> successes = new HashMap<>(1);
+    Map<K, Exception> failures = new HashMap<>(1);
 
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
       keys1 -> {
-        Map<K, V> computeResult = new LinkedHashMap<>();
+        Map<? super K, ? extends V> loaded;
+        try {
+          loaded = cacheLoaderWriter.loadAll(keys1);
+        } catch(BulkCacheLoadingException bcle) {
+          loaded = Collections.emptyMap();
+          collectSuccessesAndFailures(bcle, successes, failures);
+        } catch (Exception e) {
+          loaded = Collections.emptyMap();
+          for (K key : keys1) {
+            failures.put(key, e);
+          }
+        }
+
+        int size = CollectionUtil.findBestCollectionSize(keys1, 1); // this function is actually called with one key at the time
+        Map<K, V> computeResult = new LinkedHashMap<>(size);
 
         // put all the entries to get ordering correct
         for (K key : keys1) {
           computeResult.put(key, null);
         }
 
-        Map<? super K, ? extends V> loaded = Collections.emptyMap();
-        try {
-          loaded = cacheLoaderWriter.loadAll(computeResult.keySet());
-        } catch(BulkCacheLoadingException bcle) {
-          collectSuccessesAndFailures(bcle, successes, failures);
-        } catch (Exception e) {
-          for (K key : computeResult.keySet()) {
-            failures.put(key, e);
-          }
-        }
-
         if (!loaded.isEmpty()) {
-          for (K key : computeResult.keySet()) {
+          for (K key : keys1) {
             V value = loaded.get(key);
             successes.put(key, value);
             computeResult.put(key, value);
@@ -197,45 +195,27 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       };
 
     Map<K, V> result = new HashMap<>();
-    try {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, computeFunction);
+    Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, computeFunction);
 
-      int hits = 0;
-      int keyCount = 0;
-      for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
-        keyCount++;
-        if (entry.getValue() != null) {
-          result.put(entry.getKey(), entry.getValue().get());
-          hits++;
-        } else if (includeNulls && failures.isEmpty()) {
-          result.put(entry.getKey(), null);
-        }
+    int hits = 0;
+    int keyCount = 0;
+    for (Map.Entry<K, Store.ValueHolder<V>> entry : computedMap.entrySet()) {
+      keyCount++;
+      if (entry.getValue() != null) {
+        result.put(entry.getKey(), entry.getValue().get());
+        hits++;
+      } else if (includeNulls && failures.isEmpty()) {
+        result.put(entry.getKey(), null);
       }
+    }
 
-      addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
-      if (failures.isEmpty()) {
-        addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
-        getAllObserver.end(GetAllOutcome.SUCCESS);
-        return result;
-      } else {
-        successes.putAll(result);
-        getAllObserver.end(GetAllOutcome.FAILURE);
-        throw new BulkCacheLoadingException(failures, successes);
-      }
-    } catch (StoreAccessException e) {
-      try {
-        Set<K> toLoad = new HashSet<>(keys);
-        toLoad.removeAll(successes.keySet());
-        toLoad.removeAll(failures.keySet());
-        computeFunction.apply(toLoad);
-        if (failures.isEmpty()) {
-          return resilienceStrategy.getAllFailure(keys, successes, e);
-        } else {
-          return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
-        }
-      } finally {
-        getAllObserver.end(GetAllOutcome.FAILURE);
-      }
+    addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
+    if (failures.isEmpty()) {
+      addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
+      return result;
+    } else {
+      successes.putAll(result);
+      throw new BulkCacheLoadingException(failures, successes);
     }
   }
 
@@ -368,6 +348,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     successes.addAll((Collection<K>)bcwe.getSuccesses());
     failures.putAll((Map<K, Exception>)bcwe.getFailures());
   }
+
   @SuppressWarnings({ "unchecked" })
   private void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
     successes.putAll((Map<K, V>)bcle.getSuccesses());

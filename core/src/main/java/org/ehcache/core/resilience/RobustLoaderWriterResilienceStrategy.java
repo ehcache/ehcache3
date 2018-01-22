@@ -16,9 +16,7 @@
 
 package org.ehcache.core.resilience;
 
-import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
@@ -27,14 +25,10 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
-import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
-import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
 /**
  *
@@ -97,6 +91,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
     // FIXME: This is not atomic
+    // FIXME: Should I care about useLoaderInAtomics?
     try {
       V loaded = loaderWriter.load(key);
       if(loaded != null) {
@@ -167,26 +162,18 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     throw f;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
     cleanup(keys, e);
-    HashMap<K, V> result = new HashMap<>();
-    for (K key : keys) {
-      result.put(key, null);
+
+    try {
+      return loaderWriter.loadAll((Iterable)keys); // FIXME: bad typing that we should fix
+    } catch(BulkCacheLoadingException e1) {
+      throw e1;
+    } catch (Exception e1) {
+      throw new CacheLoadingException(e1);
     }
-    return result;
-  }
-
-  @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, StoreAccessException e) {
-    cleanup(keys, e);
-    return loaded;
-  }
-
-  @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e, BulkCacheLoadingException f) {
-    cleanup(keys, e);
-    throw f;
   }
 
   @Override

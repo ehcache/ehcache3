@@ -253,29 +253,6 @@ public interface ResilienceStrategy<K, V> {
   Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
-   * with a cache loader due to an underlying store failure.
-   *
-   * @param keys the keys being retrieved
-   * @param loaded the values from the loader
-   * @param e the triggered failure
-   * @return the value to return from the operation
-   */
-  Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, StoreAccessException e);
-
-  /**
-   * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache
-   * with a cache loader due to an underlying store failure, and the associated
-   * cache write operation also failed.
-   *
-   * @param keys the keys being retrieved
-   * @param e the cache failure
-   * @param f the writer failure
-   * @return the value to return from the operation
-   */
-  Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e, BulkCacheLoadingException f);
-
-  /**
    * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
    * underlying store failure.
    *

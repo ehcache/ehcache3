@@ -180,7 +180,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
   /**
@@ -384,7 +384,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
   /**
