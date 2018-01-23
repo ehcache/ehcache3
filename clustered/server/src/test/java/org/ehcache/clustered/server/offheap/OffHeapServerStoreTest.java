@@ -19,14 +19,12 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -46,7 +44,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
-import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
@@ -109,7 +106,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
     ByteBuffer payload = createPayload(1L);
 
@@ -134,7 +131,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
 
     ByteBuffer payload = createPayload(1L);
@@ -165,7 +162,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
 
     ByteBuffer payload = createPayload(1L);
