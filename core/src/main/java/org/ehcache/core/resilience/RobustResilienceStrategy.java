@@ -148,12 +148,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   @Override
-  public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e, BulkCacheWritingException f) {
-    cleanup(entries.keySet(), e);
-    throw f;
-  }
-
-  @Override
   public Map<K, V> removeAllFailure(Iterable<? extends K> entries, StoreAccessException e) {
     cleanup(entries, e);
     return emptyMap();

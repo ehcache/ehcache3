@@ -262,17 +262,6 @@ public interface ResilienceStrategy<K, V> {
   void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#putAll(java.util.Map)} fails due to an
-   * underlying store failure, and the associated cache write operation also
-   * failed.
-   *
-   * @param entries the entries being put
-   * @param e the cache failure
-   * @param f the writer failure
-   */
-  void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e, BulkCacheWritingException f);
-
-  /**
    * Called when a {@link Cache#removeAll(java.util.Set)} fails due to an
    * underlying store failure.
    *

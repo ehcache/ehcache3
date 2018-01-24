@@ -33,6 +33,7 @@ import java.util.EnumSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -382,6 +383,10 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
     } catch (CacheWritingException e) {
       // Expected
     }
+
+    // Key and old value should still be in place
+    assertThat(ehcache.get("key"), equalTo("oldValue"));
+
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));

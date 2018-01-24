@@ -32,7 +32,6 @@ import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
@@ -41,13 +40,11 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -219,32 +216,16 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
-    putAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(entries);
-    if(entries.isEmpty()) {
-      putAllObserver.end(PutAllOutcome.SUCCESS);
-      return;
-    }
-    final Set<K> successes = new HashSet<>();
-    final Map<K, Exception> failures = new HashMap<>();
+  public void doPutAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException, StoreAccessException {
+    // we are not expecting failures and these two maps are only used in case of failures. So keep them small
+    Set<K> successes = new HashSet<>(1);
+    Map<K, Exception> failures = new HashMap<>(1);
 
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
-      // If a key/value is null, throw NPE, nothing gets mutated
-      if (entry.getKey() == null || entry.getValue() == null) {
-        throw new NullPointerException();
-      }
-      entriesToRemap.put(entry.getKey(), entry.getValue());
-    }
+    Map<K, V> entriesToRemap = CollectionUtil.copyMapButFailOnNull(entries);
 
-    final AtomicInteger actualPutCount = new AtomicInteger();
+    AtomicInteger actualPutCount = new AtomicInteger();
 
     // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
@@ -253,7 +234,8 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         // If we have a writer, first write this batch
         cacheLoaderWriterWriteAllCall(entries1, entriesToRemap, successes, failures);
 
-        Map<K, V> mutations = new LinkedHashMap<>();
+        int size = CollectionUtil.findBestCollectionSize(entries1, 1);
+        Map<K, V> mutations = new LinkedHashMap<>(size);
 
         // then record we handled these mappings
         for (Map.Entry<? extends K, ? extends V> entry: entries1) {
@@ -276,45 +258,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return mutations.entrySet();
       };
 
-    try {
-      store.bulkCompute(entries.keySet(), computeFunction);
-      addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
-      if (failures.isEmpty()) {
-        putAllObserver.end(PutAllOutcome.SUCCESS);
-      } else {
-        BulkCacheWritingException cacheWritingException = new BulkCacheWritingException(failures, successes);
-        tryRemoveFailedKeys(entries, failures, cacheWritingException);
-        putAllObserver.end(PutAllOutcome.FAILURE);
-        throw cacheWritingException;
-      }
-    } catch (StoreAccessException e) {
-      try {
-        // just in case not all writes happened:
-        if (!entriesToRemap.isEmpty()) {
-          cacheLoaderWriterWriteAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
-        }
-        if (failures.isEmpty()) {
-          resilienceStrategy.putAllFailure(entries, e);
-        } else {
-          resilienceStrategy.putAllFailure(entries, e, new BulkCacheWritingException(failures, successes));
-        }
-      } finally {
-        putAllObserver.end(PutAllOutcome.FAILURE);
-      }
-    }
-  }
-
-  private void tryRemoveFailedKeys(Map<? extends K, ? extends V> entries, Map<K, Exception> failures, BulkCacheWritingException cacheWritingException) {
-    try {
-      store.bulkCompute(failures.keySet(), entries1 -> {
-        HashMap<K, V> result = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries1) {
-          result.put(entry.getKey(), null);
-        }
-        return result.entrySet();
-      });
-    } catch (StoreAccessException e) {
-      resilienceStrategy.putAllFailure(entries, e, cacheWritingException);
+    store.bulkCompute(entries.keySet(), computeFunction);
+    addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
+    if (!failures.isEmpty()) {
+      throw new BulkCacheWritingException(failures, successes);
     }
   }
 

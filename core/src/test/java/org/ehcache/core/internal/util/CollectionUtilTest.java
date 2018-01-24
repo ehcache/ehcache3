@@ -19,8 +19,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
@@ -63,5 +61,43 @@ public class CollectionUtilTest {
     Map.Entry<Integer, String> entry = CollectionUtil.entry(null, null);
     assertThat(entry.getKey()).isNull();
     assertThat(entry.getValue()).isNull();
+  }
+
+  @Test
+  public void copyMapButFailOnNull_nullKey() {
+    Map<Integer, Integer> map = CollectionUtil.map(1, 1, null, 2, 3, 3);
+    assertThatExceptionOfType(NullPointerException.class)
+      .isThrownBy(() -> CollectionUtil.copyMapButFailOnNull(map));
+  }
+
+  @Test
+  public void copyMapButFailOnNull_nullValue() {
+    Map<Integer, Integer> map = CollectionUtil.map(1, 1, 2, null, 3, 3);
+    assertThatExceptionOfType(NullPointerException.class)
+      .isThrownBy(() -> CollectionUtil.copyMapButFailOnNull(Collections.singletonMap(1, null)));
+  }
+
+  @Test
+  public void copyMapButFailOnNull_copy() {
+    Map<Integer, Long> map = CollectionUtil.map(1, 1L, 2, 2L, 3, 3L);
+    assertThat(map).containsExactly(entry(1, 1L), entry(2, 2L), entry(3, 3L));
+  }
+
+  @Test
+  public void map1() {
+    Map<Integer, Long> map = CollectionUtil.map(1, 1L);
+    assertThat(map).containsExactly(entry(1, 1L));
+  }
+
+  @Test
+  public void map2() {
+    Map<Integer, Long> map = CollectionUtil.map(1, 1L, 2, 2L);
+    assertThat(map).containsExactly(entry(1, 1L), entry(2, 2L));
+  }
+
+  @Test
+  public void map3() {
+    Map<Integer, Long> map = CollectionUtil.map(1, 1L, 2, 2L, 3, 3L);
+    assertThat(map).containsExactly(entry(1, 1L), entry(2, 2L), entry(3, 3L));
   }
 }

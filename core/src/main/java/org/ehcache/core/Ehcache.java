@@ -125,42 +125,15 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       return result;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
-    putAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(entries);
-    if(entries.isEmpty()) {
-      putAllObserver.end(PutAllOutcome.SUCCESS);
-      return;
-    }
-
+  public void doPutAll(final Map<? extends K, ? extends V> entries) throws StoreAccessException {
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
-      // If a key/value is null, throw NPE, nothing gets mutated
-      if (entry.getKey() == null || entry.getValue() == null) {
-        throw new NullPointerException();
-      }
-      entriesToRemap.put(entry.getKey(), entry.getValue());
-    }
+    Map<K, V> entriesToRemap = CollectionUtil.copyMapButFailOnNull(entries);
 
-    try {
-      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
-      store.bulkCompute(entries.keySet(), putAllFunction);
-      addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
-      addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
-      putAllObserver.end(PutAllOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.putAllFailure(entries, e);
-      } finally {
-        putAllObserver.end(PutAllOutcome.FAILURE);
-      }
-    }
+    PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
+    store.bulkCompute(entries.keySet(), putAllFunction);
+    addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
+    addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
   }
 
   /**

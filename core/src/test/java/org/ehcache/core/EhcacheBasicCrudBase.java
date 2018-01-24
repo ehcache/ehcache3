@@ -278,10 +278,8 @@ public abstract class EhcacheBasicCrudBase {
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
     protected Map<String, String> getEntryMap() {
-      final Map<String, String> result = new HashMap<>();
-      for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().get());
-      }
+      Map<String, String> result = new HashMap<>(entries.size());
+      entries.forEach((k, v) -> result.put(k, v.get()));
       return Collections.unmodifiableMap(result);
     }
 

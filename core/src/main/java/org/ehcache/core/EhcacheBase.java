@@ -37,6 +37,7 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
@@ -361,6 +362,34 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
   protected abstract Map<K,V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException;
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
+    putAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(entries);
+      if(entries.isEmpty()) {
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+        return;
+      }
+
+      try {
+        doPutAll(entries);
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.putAllFailure(entries, e);
+        putAllObserver.end(PutAllOutcome.FAILURE);
+      }
+    } catch (Exception e) {
+      putAllObserver.end(PutAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract void doPutAll(Map<? extends K, ? extends V> entries) throws StoreAccessException, BulkCacheWritingException;
 
   protected boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
     return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiryPolicy(), key, oldValue, newValue);

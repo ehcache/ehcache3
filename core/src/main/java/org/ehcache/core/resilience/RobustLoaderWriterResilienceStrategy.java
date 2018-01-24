@@ -168,7 +168,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     cleanup(keys, e);
 
     try {
-      return loaderWriter.loadAll((Iterable)keys); // FIXME: bad typing that we should fix
+      return loaderWriter.loadAll((Iterable) keys); // FIXME: bad typing that we should fix
     } catch(BulkCacheLoadingException e1) {
       throw e1;
     } catch (Exception e1) {
@@ -179,12 +179,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @Override
   public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e) {
     cleanup(entries.keySet(), e);
-  }
 
-  @Override
-  public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e, BulkCacheWritingException f) {
-    cleanup(entries.keySet(), e);
-    throw f;
+    try {
+      loaderWriter.writeAll(entries.entrySet()); // FIXME: bad typing that we should fix
+    } catch(BulkCacheWritingException e1) {
+      throw e1;
+    } catch (Exception e1) {
+      throw new CacheWritingException(e1);
+    }
   }
 
   @Override
