@@ -395,6 +395,41 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiryPolicy(), key, oldValue, newValue);
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void removeAll(Set<? extends K> keys) throws BulkCacheWritingException {
+    removeAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(keys);
+      if (keys.isEmpty()) {
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+        return;
+      }
+
+      for (K key : keys) {
+        if (key == null) {
+          throw new NullPointerException();
+        }
+      }
+
+      try {
+        doRemoveAll(keys);
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.removeAllFailure(keys, e);
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
+      }
+    } catch(Exception e) {
+      removeAllObserver.end(RemoveAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract void doRemoveAll(Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException;
+
   protected static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
     if (newValue == null) {
       return false;

@@ -267,19 +267,6 @@ public interface ResilienceStrategy<K, V> {
    *
    * @param keys the keys being removed
    * @param e the triggered failure
-   * @return the value to return from the operation
    */
-  Map<K, V> removeAllFailure(Iterable<? extends K> keys, StoreAccessException e);
-
-  /**
-   * Called when a {@link Cache#removeAll(java.util.Set)} fails
-   * due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param keys the keys being removed
-   * @param e the cache failure
-   * @param f the writer failure
-   * @return the value to return from the operation
-   */
-  Map<K, V> removeAllFailure(Iterable<? extends K> keys, StoreAccessException e, BulkCacheWritingException f);
+  void removeAllFailure(Iterable<? extends K> keys, StoreAccessException e);
 }

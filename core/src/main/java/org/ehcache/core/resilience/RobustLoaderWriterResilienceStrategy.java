@@ -25,6 +25,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -190,15 +191,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   }
 
   @Override
-  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, StoreAccessException e) {
+  public void removeAllFailure(Iterable<? extends K> entries, StoreAccessException e) {
     cleanup(entries, e);
-    return emptyMap();
-  }
 
-  @Override
-  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, StoreAccessException e, BulkCacheWritingException f) {
-    cleanup(entries, e);
-    throw f;
+    try {
+      loaderWriter.deleteAll(entries);
+    } catch (Exception e1) {
+      throw new CacheWritingException(e1);
+    }
   }
 
   private void cleanup(StoreAccessException from) {

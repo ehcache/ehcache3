@@ -302,36 +302,24 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     failures.putAll((Map<K, Exception>)bcle.getFailures());
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
-    removeAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(keys);
-    if(keys.isEmpty()) {
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-      return;
-    }
-    final Set<K> successes = new HashSet<>();
-    final Map<K, Exception> failures = new HashMap<>();
+  protected void doRemoveAll(final Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException {
+    // we are not expecting failures and these two maps are only used in case of failures. So keep them small
+    Set<K> successes = new HashSet<>(1);
+    Map<K, Exception> failures = new HashMap<>(1);
 
-    final Map<K, ? extends V> entriesToRemove = new HashMap<>();
+    Map<K, ? extends V> entriesToRemove = new HashMap<>(keys.size());
     for (K key: keys) {
-      if (key == null) {
-        throw new NullPointerException();
-      }
       entriesToRemove.put(key, null);
     }
 
-    final AtomicInteger actualRemoveCount = new AtomicInteger();
+    AtomicInteger actualRemoveCount = new AtomicInteger();
 
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       entries -> {
         Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, entriesToRemove, successes, failures);
 
-        Map<K, V> results = new LinkedHashMap<>();
+        int size = CollectionUtil.findBestCollectionSize(entries, 1);
+        Map<K, V> results = new LinkedHashMap<>(size);
 
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           K key = entry.getKey();
@@ -355,34 +343,15 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return results.entrySet();
       };
 
-    try {
-      store.bulkCompute(keys, removalFunction);
-      addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
-      if (failures.isEmpty()) {
-        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-      } else {
-        removeAllObserver.end(RemoveAllOutcome.FAILURE);
-        throw new BulkCacheWritingException(failures, successes);
-      }
-    } catch (StoreAccessException e) {
-      try {
-        // just in case not all writes happened:
-        if (!entriesToRemove.isEmpty()) {
-          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), entriesToRemove, successes, failures);
-        }
-        if (failures.isEmpty()) {
-          resilienceStrategy.removeAllFailure(keys, e);
-        } else {
-          resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
-        }
-      } finally {
-        removeAllObserver.end(RemoveAllOutcome.FAILURE);
-      }
+    store.bulkCompute(keys, removalFunction);
+    addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
+    if (!failures.isEmpty()) {
+      throw new BulkCacheWritingException(failures, successes);
     }
   }
 
   private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, ? extends V> entriesToRemove, Set<K> successes, Map<K, Exception> failures) {
-    final Set<K> unknowns = new HashSet<>();
+    Set<K> unknowns = new HashSet<>();
     Set<K> toDelete = new HashSet<>();
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
       K key = entry.getKey();

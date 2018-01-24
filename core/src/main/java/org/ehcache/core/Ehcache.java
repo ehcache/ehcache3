@@ -136,38 +136,10 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
-    removeAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(keys);
-    if(keys.isEmpty()) {
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-      return;
-    }
-
-    for (K key: keys) {
-      if (key == null) {
-        throw new NullPointerException();
-      }
-    }
-
-
-    try {
-      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
-      store.bulkCompute(keys, removeAllFunction);
-      addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.removeAllFailure(keys, e);
-      } finally {
-        removeAllObserver.end(RemoveAllOutcome.FAILURE);
-      }
-    }
+  protected void doRemoveAll(final Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException {
+    RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
+    store.bulkCompute(keys, removeAllFunction);
+    addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
   }
 
   @Override
