@@ -117,8 +117,9 @@ public class LifeCycleMessageCodec {
         return decodeValidateServerStoreMessage(messageBuffer);
       case PREPARE_FOR_DESTROY:
         return decodePrepareForDestroyMessage();
+      default:
+        throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
     }
-    throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
   }
 
   private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {
