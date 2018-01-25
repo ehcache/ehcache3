@@ -35,14 +35,12 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -149,42 +147,9 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return old == null ? null : old.get();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, oldValue, newValue);
-
-    boolean success = false;
-
-    try {
-      ReplaceStatus status = store.replace(key, oldValue, newValue);
-      switch (status) {
-      case HIT:
-        success = true;
-        replaceObserver.end(ReplaceOutcome.HIT);
-        break;
-      case MISS_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
-        break;
-      case MISS_NOT_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-
-      return success;
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, false); // FIXME: We can't know if there was a match
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
-      }
-    }
+  protected Store.ReplaceStatus doReplace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
+      return store.replace(key, oldValue, newValue);
   }
 
   @Override

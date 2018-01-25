@@ -31,11 +31,9 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
 
 import java.util.Collection;
@@ -54,7 +52,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
@@ -135,7 +132,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   protected boolean doRemoveInternal(final K key) throws StoreAccessException {
     AtomicBoolean modified = new AtomicBoolean();
 
-    BiFunction<K, V, V> remappingFunction = memoize((key1, previousValue) -> {
+    BiFunction<K, V, V> remappingFunction = (key1, previousValue) -> {
       modified.set(previousValue != null);
 
       try {
@@ -144,7 +141,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
       return null;
-    });
+    };
 
     store.compute(key, remappingFunction);
     return modified.get();
@@ -484,15 +481,11 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   }
 
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoadingException, CacheWritingException {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, oldValue, newValue);
+  protected Store.ReplaceStatus doReplace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException, StoreAccessException {
+    AtomicBoolean success = new AtomicBoolean();
+    AtomicBoolean hit = new AtomicBoolean();
 
-    final AtomicBoolean success = new AtomicBoolean();
-    final AtomicBoolean hit = new AtomicBoolean();
-
-    final BiFunction<K, V, V> remappingFunction = memoize((k, inCache) -> {
+    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
       if(inCache == null) {
         return null;
@@ -514,36 +507,16 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return newValue;
       }
       return inCache;
-    });
-    try {
-      store.compute(key, remappingFunction, SUPPLY_FALSE);
-      if (success.get()) {
-        replaceObserver.end(ReplaceOutcome.HIT);
+    };
+
+    store.compute(key, remappingFunction, SUPPLY_FALSE);
+    if (success.get()) {
+      return Store.ReplaceStatus.HIT;
+    } else {
+      if (hit.get()) {
+        return Store.ReplaceStatus.MISS_PRESENT;
       } else {
-        if (hit.get()) {
-          replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
-        } else {
-          replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-        }
-      }
-      return success.get();
-    } catch (StoreAccessException e) {
-      try {
-        try {
-          remappingFunction.apply(key, null);
-        } catch (StorePassThroughException f) {
-          Throwable cause = f.getCause();
-          if(cause instanceof CacheLoadingException) {
-            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheLoadingException) cause);
-          } else if(cause instanceof CacheWritingException) {
-            return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheWritingException)cause);
-          } else {
-            throw new AssertionError();
-          }
-        }
-        return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
+        return Store.ReplaceStatus.MISS_NOT_PRESENT;
       }
     }
   }

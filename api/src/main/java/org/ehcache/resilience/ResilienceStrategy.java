@@ -19,10 +19,6 @@ package org.ehcache.resilience;
 import java.util.Map;
 
 import org.ehcache.Cache;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.spi.loaderwriter.CacheLoadingException;
-import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -143,47 +139,14 @@ public interface ResilienceStrategy<K, V> {
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
-   * <p>
-   * If it is known at the time of calling that the target mapping  is present
-   * in the cache (or the writer if one is present) then {@code knownToBeMatch}
-   * will be {@code true}.
    *
    * @param key the key being replaced
    * @param value the expected value
    * @param newValue the replacement value
    * @param e the triggered failure
-   * @param knownToMatch {@code true} if the value is known to match
    * @return the value to return from the operation
    */
-  boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, boolean knownToMatch);
-
-  /**
-   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param key the key being replaced
-   * @param value the expected value
-   * @param newValue the replacement value
-   * @param e the cache failure
-   * @param f the writer failure
-   * @return the value to return from the operation
-   */
-  boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheWritingException f);
-
-  /**
-   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache load
-   * operation also failed.
-   *
-   * @param key the key being replaced
-   * @param value the expected value
-   * @param newValue the replacement value
-   * @param e the cache failure
-   * @param f the loader failure
-   * @return the value to return from the operation
-   */
-  boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheLoadingException f);
+  boolean replaceFailure(K key, V value, V newValue, StoreAccessException e);
 
   /**
    * Called when a {@link Cache#getAll(java.util.Set)} fails on a cache

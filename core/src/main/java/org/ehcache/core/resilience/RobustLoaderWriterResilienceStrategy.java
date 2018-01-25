@@ -155,21 +155,26 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   }
 
   @Override
-  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, boolean knownToMatch) {
+  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e) {
     cleanup(key, e);
-    return knownToMatch;
-  }
 
-  @Override
-  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
+    V oldValue;
+    try {
+      oldValue = loaderWriter.load(key);
+    } catch(Exception e1) {
+      throw new CacheLoadingException(e1);
+    }
 
-  @Override
-  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
+    if (oldValue != null && oldValue.equals(value)) {
+      try {
+        loaderWriter.write(key, newValue);
+        return true;
+      } catch(Exception e1) {
+        throw new CacheWritingException(e1);
+      }
+    }
+
+    return false;
   }
 
   @SuppressWarnings("unchecked")
