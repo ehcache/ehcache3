@@ -141,32 +141,6 @@ public interface ResilienceStrategy<K, V> {
   V replaceFailure(K key, V value, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param key the key being replaced
-   * @param value the value being replaced
-   * @param e the cache failure
-   * @param f the writer failure
-   * @return the value to return from the operation
-   */
-  V replaceFailure(K key, V value, StoreAccessException e, CacheWritingException f);
-
-  /**
-   * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache load
-   * operation also failed.
-   *
-   * @param key the key being replaced
-   * @param value the value being replaced
-   * @param e the cache failure
-   * @param f the loader failure
-   * @return the value to return from the operation
-   */
-  V replaceFailure(K key, V value, StoreAccessException e, CacheLoadingException f);
-
-  /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object, java.lang.Object)}
    * fails due to an underlying store failure.
    * <p>

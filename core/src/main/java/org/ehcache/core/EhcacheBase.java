@@ -492,6 +492,37 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
+  public V replace(K key, V value) {
+    replaceObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      try {
+        V result = doReplace(key, value);
+        if(result == null) {
+          replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        } else {
+          replaceObserver.end(ReplaceOutcome.HIT);
+        }
+        return result;
+      } catch (StoreAccessException e) {
+        V result = resilienceStrategy.replaceFailure(key, value, e);
+        replaceObserver.end(ReplaceOutcome.FAILURE);
+        return result;
+      }
+    } catch (Exception e) {
+      replaceObserver.end(ReplaceOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract V doReplace(final K key, final V value) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return runtimeConfiguration;
   }

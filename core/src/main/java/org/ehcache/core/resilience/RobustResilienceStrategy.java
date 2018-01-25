@@ -85,18 +85,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   @Override
-  public V replaceFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
-  public V replaceFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
   public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, boolean knownToMatch) {
     cleanup(key, e);
     return knownToMatch;

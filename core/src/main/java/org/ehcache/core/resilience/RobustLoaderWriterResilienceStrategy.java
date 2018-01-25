@@ -25,11 +25,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-
-import static java.util.Collections.emptyMap;
 
 /**
  *
@@ -138,19 +135,23 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @Override
   public V replaceFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    return null;
-  }
 
-  @Override
-  public V replaceFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
+    V oldValue;
+    try {
+      oldValue = loaderWriter.load(key);
+    } catch(Exception e1) {
+      throw new CacheLoadingException(e1);
+    }
 
-  @Override
-  public V replaceFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
+    if (oldValue != null) {
+      try {
+        loaderWriter.write(key, value);
+      } catch(Exception e1) {
+        throw new CacheWritingException(e1);
+      }
+    }
+
+    return oldValue;
   }
 
   @Override

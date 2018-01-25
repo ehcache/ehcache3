@@ -438,16 +438,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V replace(final K key, final V value) throws CacheLoadingException, CacheWritingException {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-    final AtomicReference<V> old = new AtomicReference<>();
-    final BiFunction<K, V, V> remappingFunction = memoize((k, inCache) -> {
+  protected V doReplace(K key, V value) throws CacheLoadingException, CacheWritingException, StoreAccessException {
+    AtomicReference<V> old = new AtomicReference<>();
+    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
       if(inCache == null) {
         return null;
@@ -465,35 +459,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return null;
       }
       return value;
-    });
+    };
 
-    try {
-      store.compute(key, remappingFunction);
-      if (old.get() != null) {
-        replaceObserver.end(ReplaceOutcome.HIT);
-      } else {
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-      }
-      return old.get();
-    } catch (StoreAccessException e) {
-      try {
-        try {
-          remappingFunction.apply(key, null);
-        } catch (StorePassThroughException f) {
-          Throwable cause = f.getCause();
-          if(cause instanceof CacheLoadingException) {
-            return resilienceStrategy.replaceFailure(key, value, e, (CacheLoadingException) cause);
-          } else if(cause instanceof CacheWritingException) {
-            return resilienceStrategy.replaceFailure(key, value, e, (CacheWritingException)cause);
-          } else {
-            throw new AssertionError();
-          }
-        }
-        return resilienceStrategy.replaceFailure(key, value, e);
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
-      }
-    }
+    store.compute(key, remappingFunction);
+    return old.get();
   }
 
   private V loadFromLoaderWriter(K key, V inCache) {
@@ -514,9 +483,6 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     return inCache;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoadingException, CacheWritingException {
     replaceObserver.begin();

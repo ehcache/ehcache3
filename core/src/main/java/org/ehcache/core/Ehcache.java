@@ -143,30 +143,10 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return store.remove(key, value);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V replace(final K key, final V value) {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      ValueHolder<V> old = store.replace(key, value);
-      if (old != null) {
-        replaceObserver.end(ReplaceOutcome.HIT);
-      } else {
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-      }
-      return old == null ? null : old.get();
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.replaceFailure(key, value, e);
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
-      }
-    }
+  protected V doReplace(K key, V value) throws StoreAccessException {
+    ValueHolder<V> old = store.replace(key, value);
+    return old == null ? null : old.get();
   }
 
   /**
