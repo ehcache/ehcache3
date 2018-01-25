@@ -24,12 +24,8 @@ import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
-
-import static java.util.Collections.emptyMap;
 
 /**
  *
@@ -77,21 +73,9 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   @Override
-  public boolean removeFailure(K key, V value, StoreAccessException e, boolean knownToBePresent) {
+  public boolean removeFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    return knownToBePresent;
-  }
-
-  @Override
-  public boolean removeFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
-  public boolean removeFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
-    cleanup(key, e);
-    throw f;
+    return false;
   }
 
   @Override

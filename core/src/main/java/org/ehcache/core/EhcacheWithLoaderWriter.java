@@ -33,9 +33,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.slf4j.Logger;
@@ -70,7 +68,7 @@ import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingExcept
  */
 public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
-  private static final Supplier<Boolean> REPLACE_FALSE = () -> Boolean.FALSE;
+  private static final Supplier<Boolean> SUPPLY_FALSE = () -> Boolean.FALSE;
 
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final boolean useLoaderInAtomics;
@@ -405,17 +403,11 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     return store.computeIfAbsent(key, mappingFunction);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean remove(final K key, final V value) throws CacheWritingException {
-    conditionalRemoveObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-    final AtomicBoolean hit = new AtomicBoolean();
-    final AtomicBoolean removed = new AtomicBoolean();
-    final BiFunction<K, V, V> remappingFunction = memoize((k, inCache) -> {
+  protected Store.RemoveStatus doRemove(K key, V value) throws StoreAccessException {
+    AtomicBoolean hit = new AtomicBoolean();
+    AtomicBoolean removed = new AtomicBoolean();
+    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
       if(inCache == null) {
         return null;
@@ -432,38 +424,18 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return null;
       }
       return inCache;
-    });
-    try {
-      store.compute(key, remappingFunction, REPLACE_FALSE);
-      if (removed.get()) {
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
-      } else {
-        if (hit.get()) {
-          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
-        } else {
-          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
-        }
-      }
-    } catch (StoreAccessException e) {
-      try {
-        try {
-          remappingFunction.apply(key, null);
-        } catch (StorePassThroughException f) {
-          Throwable cause = f.getCause();
-          if(cause instanceof CacheLoadingException) {
-            return resilienceStrategy.removeFailure(key, value, e, (CacheLoadingException) cause);
-          } else if(cause instanceof CacheWritingException) {
-            return resilienceStrategy.removeFailure(key, value, e, (CacheWritingException) cause);
-          } else {
-            throw new AssertionError();
-          }
-        }
-        return resilienceStrategy.removeFailure(key, value, e, removed.get());
-      } finally {
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
-      }
+    };
+
+    store.compute(key, remappingFunction, SUPPLY_FALSE);
+    if (removed.get()) {
+      return Store.RemoveStatus.REMOVED;
     }
-    return removed.get();
+
+    if (hit.get()) {
+      return Store.RemoveStatus.KEY_PRESENT;
+    } else {
+      return Store.RemoveStatus.KEY_MISSING;
+    }
   }
 
   /**
@@ -578,7 +550,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       return inCache;
     });
     try {
-      store.compute(key, remappingFunction, REPLACE_FALSE);
+      store.compute(key, remappingFunction, SUPPLY_FALSE);
       if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {

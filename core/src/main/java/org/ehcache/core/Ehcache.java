@@ -16,10 +16,7 @@
 
 package org.ehcache.core;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,27 +35,17 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.PutStatus;
-import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.slf4j.Logger;
 
 /**
@@ -151,40 +138,9 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     return result;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean remove(final K key, final V value) {
-    conditionalRemoveObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-    boolean removed = false;
-
-    try {
-      RemoveStatus status = store.remove(key, value);
-      switch (status) {
-      case REMOVED:
-        removed = true;
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
-        break;
-      case KEY_MISSING:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
-        break;
-      case KEY_PRESENT:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.removeFailure(key, value, e, false); // FIXME: We can't know if it's removed or not
-      } finally {
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
-      }
-    }
-    return removed;
+  protected Store.RemoveStatus doRemove(K key, V value) throws StoreAccessException {
+    return store.remove(key, value);
   }
 
   /**

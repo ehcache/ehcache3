@@ -119,46 +119,15 @@ public interface ResilienceStrategy<K, V> {
   V putIfAbsentFailure(K key, V value, StoreAccessException e);
 
   /**
-   * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
+   * Called when a {@link Cache#remove(Object, Object)}
    * fails due to an underlying store failure.
-   * <p>
-   * If it is known at the time of calling that the targeted mapping  is present
-   * in the cache (or the writer if one is present) then {@code knownToBePresent}
-   * will be {@code true}.
    *
    * @param key the key being removed
    * @param value the value being removed
    * @param e the triggered failure
-   * @param knownToBePresent {@code true} if the value is known to be present
    * @return the value to return from the operation
    */
-  boolean removeFailure(K key, V value, StoreAccessException e, boolean knownToBePresent);
-
-  /**
-   * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache write
-   * operation also failed.
-   *
-   * @param key the key being removed
-   * @param value the value being removed
-   * @param e the cache failure
-   * @param f the writer failure
-   * @return the value to return from the operation
-   */
-  boolean removeFailure(K key, V value, StoreAccessException e, CacheWritingException f);
-
-  /**
-   * Called when a {@link Cache#remove(java.lang.Object, java.lang.Object)}
-   * fails due to an underlying store failure, and the associated cache load
-   * operation also failed.
-   *
-   * @param key the key being removed
-   * @param value the value being removed
-   * @param e the cache failure
-   * @param f the loader failure
-   * @return the value to return from the operation
-   */
-  boolean removeFailure(K key, V value, StoreAccessException e, CacheLoadingException f);
+  boolean removeFailure(K key, V value, StoreAccessException e);
 
   /**
    * Called when a {@link Cache#replace(java.lang.Object, java.lang.Object)}

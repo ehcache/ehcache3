@@ -454,6 +454,44 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
+  public boolean remove(K key, V value) {
+    conditionalRemoveObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      try {
+        Store.RemoveStatus status = doRemove(key, value);
+        switch (status) {
+          case REMOVED:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
+            return true;
+          case KEY_MISSING:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
+            return false;
+          case KEY_PRESENT:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
+            return false;
+          default:
+            throw new AssertionError("Invalid Status: " + status);
+        }
+      } catch (StoreAccessException e) {
+        boolean removed = resilienceStrategy.removeFailure(key, value, e);
+        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
+        return removed;
+      }
+    } catch (Exception e) {
+      conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Store.RemoveStatus doRemove(final K key, final V value) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return runtimeConfiguration;
   }
