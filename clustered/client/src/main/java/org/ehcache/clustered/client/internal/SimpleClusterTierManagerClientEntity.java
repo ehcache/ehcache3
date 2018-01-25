@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.internal.reconnect.ReconnectHandle;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -24,7 +25,10 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Fail
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
+import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
@@ -32,6 +36,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -40,12 +45,35 @@ import java.util.Set;
  */
 public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerClientEntity {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
+
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
+
+  private volatile Supplier<ReconnectHandle> handleSupplier = null;
 
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
+      @Override
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
+        throw new IllegalStateException("ClusterTierManagerClientEntity is not supposed to get messages from server");
+      }
+
+      @Override
+      public byte[] createExtendedReconnectData() {
+        return new byte[0];
+      }
+
+      @Override
+      public void didDisconnectUnexpectedly() {
+        LOGGER.info("ClusterTierManagerClientEntity received a disconnect event. Starting ReconnectThread ...  ");
+        if (handleSupplier != null) {
+          handleSupplier.get().onReconnect();
+        }
+      }
+    });
   }
 
   @Override
@@ -67,6 +95,11 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
       // TODO handle this
     }
     return null;
+  }
+
+  @Override
+  public void setReconnectHandle(Supplier<ReconnectHandle> handleSupplier) {
+    this.handleSupplier = handleSupplier;
   }
 
   private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)

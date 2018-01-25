@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.client.internal.reconnect;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -43,6 +43,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 public class ConnectionState {
 
@@ -53,16 +54,18 @@ public class ConnectionState {
   private volatile Connection clusterConnection = null;
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
+  private final Supplier<ReconnectHandle> reconnectHandle;
 
   private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
   private final URI clusterUri;
   private final String entityIdentifier;
 
-  public ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier) {
+  public ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier, Supplier<ReconnectHandle> handleSupplier) {
     this.timeouts = timeouts;
     this.clusterUri = clusterUri;
     this.entityIdentifier = entityIdentifier;
+    this.reconnectHandle = handleSupplier;
   }
 
   public Connection getConnection() {
@@ -233,4 +236,5 @@ public class ConnectionState {
       }
     }
   }
+
 }

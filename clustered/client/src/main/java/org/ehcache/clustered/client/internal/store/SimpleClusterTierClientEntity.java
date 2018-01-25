@@ -113,8 +113,9 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   void fireDisconnectionEvent() {
-    connected = false;
     disconnectionListener.onDisconnection();
+    LOGGER.info("ClusterTierClientEntity {} completed disconnection event, caching tiers are invalidated", storeIdentifier);
+    connected = false; // this order matters and reconnect thread checks this state
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {

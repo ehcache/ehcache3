@@ -16,12 +16,14 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.internal.reconnect.ReconnectHandle;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.terracotta.connection.entity.Entity;
 
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 /**
  * ClusterTierManagerClientEntity
@@ -31,5 +33,7 @@ public interface ClusterTierManagerClientEntity extends Entity {
   void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException;
 
   Set<String> prepareForDestroy();
+
+  void setReconnectHandle(Supplier<ReconnectHandle> handleSupplier);
 
 }

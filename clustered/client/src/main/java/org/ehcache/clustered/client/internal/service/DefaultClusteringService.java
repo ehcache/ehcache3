@@ -21,6 +21,8 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.internal.reconnect.ConnectionState;
+import org.ehcache.clustered.client.internal.reconnect.ReconnectHandle;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -49,6 +51,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -60,13 +63,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   static final String CONNECTION_PREFIX = "Ehcache:";
 
+  private volatile ReconnectHandle reconnectHandle = null;
+
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
-  private final Timeouts timeouts;
   private final Properties properties;
-  private final ConnectionState connectionState;
+  private volatile ConnectionState connectionState;
 
   private volatile boolean inMaintenance = false;
 
@@ -75,9 +79,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.timeouts = configuration.getTimeouts();
+    Timeouts timeouts = configuration.getTimeouts();
     this.properties = configuration.getProperties();
-    this.connectionState = new ConnectionState(clusterUri, timeouts, entityIdentifier);
+    this.connectionState = new ConnectionState(clusterUri, timeouts, entityIdentifier, () -> reconnectHandle);
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -263,7 +267,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     ClusterTierClientEntity storeClientEntity =
             connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, configuration.isAutoCreate());
 
-
     ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
       case STRONG:
@@ -295,6 +298,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void releaseServerStoreProxy(ServerStoreProxy storeProxy) {
     connectionState.removeClusterTierClientEntity(storeProxy.getCacheId());
     storeProxy.close();
+  }
+
+  @Override
+  public void reconnectHandle(ReconnectHandle reconnectHandle) {
+    this.reconnectHandle = reconnectHandle;
   }
 
   /**
