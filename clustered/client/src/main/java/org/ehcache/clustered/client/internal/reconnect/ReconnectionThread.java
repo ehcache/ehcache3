@@ -18,17 +18,17 @@ package org.ehcache.clustered.client.internal.reconnect;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ReconnectionThread extends Thread {
 
-  private final AtomicBoolean complete = new AtomicBoolean();
   private final ReconnectHandle reconnectHandle;
   private final Collection<ClusterTierClientEntity> entities;
+  private final Runnable runnable;
 
-  public ReconnectionThread(ReconnectHandle reconnectHandle, Collection<ClusterTierClientEntity> entities) {
+  public ReconnectionThread(ReconnectHandle reconnectHandle, Collection<ClusterTierClientEntity> entities, Runnable runnable) {
     this.reconnectHandle = reconnectHandle;
     this.entities = entities;
+    this.runnable = runnable;
   }
 
   @Override
@@ -36,8 +36,8 @@ public class ReconnectionThread extends Thread {
     boolean interrupted = false;
     while (true) {
       if (entities.stream().noneMatch(ClusterTierClientEntity::isConnected)) {
+        runnable.run();
         reconnectHandle.onReconnect();
-        complete.set(true);
         break;
       } else {
         try {
@@ -50,10 +50,6 @@ public class ReconnectionThread extends Thread {
     if (interrupted) {
       Thread.currentThread().interrupt();
     }
-  }
-
-  public boolean isComplete() {
-    return complete.get();
   }
 
 }

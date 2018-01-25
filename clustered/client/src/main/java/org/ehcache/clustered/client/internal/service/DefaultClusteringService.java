@@ -51,7 +51,6 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -81,7 +80,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     Timeouts timeouts = configuration.getTimeouts();
     this.properties = configuration.getProperties();
-    this.connectionState = new ConnectionState(clusterUri, timeouts, entityIdentifier, () -> reconnectHandle);
+    this.connectionState = new ConnectionState(clusterUri, timeouts, entityIdentifier, () -> reconnectHandle, properties, configuration);
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -117,14 +116,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    connectionState.initClusterConnection(properties);
+    connectionState.initClusterConnection();
     connectionState.createEntityFactory();
-    connectionState.initializeState(configuration);
+    connectionState.initializeState();
   }
 
   @Override
   public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
-    connectionState.initClusterConnection(properties);
+    connectionState.initClusterConnection();
     connectionState.createEntityFactory();
     if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
       connectionState.acquireLeadership();
@@ -220,7 +219,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void destroy(String name) throws CachePersistenceException {
     checkStarted();
 
-    connectionState.destroy(name, configuration);
+    connectionState.destroy(name);
   }
 
   protected boolean isStarted() {
@@ -265,7 +264,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     );
 
     ClusterTierClientEntity storeClientEntity =
-            connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, configuration.isAutoCreate());
+            connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration);
 
     ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
