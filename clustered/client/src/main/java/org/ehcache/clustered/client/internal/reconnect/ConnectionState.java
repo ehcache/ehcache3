@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
@@ -54,7 +55,7 @@ public class ConnectionState {
   private volatile Connection clusterConnection = null;
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
-  private final Supplier<ReconnectHandle> reconnectHandle;
+  private final Supplier<ReconnectHandle> handleSupplier;
 
   private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
@@ -65,7 +66,7 @@ public class ConnectionState {
     this.timeouts = timeouts;
     this.clusterUri = clusterUri;
     this.entityIdentifier = entityIdentifier;
-    this.reconnectHandle = handleSupplier;
+    this.handleSupplier = handleSupplier;
   }
 
   public Connection getConnection() {
@@ -164,6 +165,13 @@ public class ConnectionState {
                   + "'; retrieve operation timed out", e);
         }
       }
+      entity.setReconnectHandle(() -> {
+        ReconnectHandle reconnectHandle = this.handleSupplier.get();
+        if (reconnectHandle != null) {
+          ReconnectionThread reconnectionThread = new ReconnectionThread(reconnectHandle, clusterTierEntities.values());
+          reconnectionThread.start();
+        }
+      });
     } catch (RuntimeException e) {
       entityFactory = null;
       closeConnection();

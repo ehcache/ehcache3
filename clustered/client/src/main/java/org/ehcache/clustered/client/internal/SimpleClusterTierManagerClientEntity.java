@@ -36,7 +36,6 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -50,7 +49,7 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
 
-  private volatile Supplier<ReconnectHandle> handleSupplier = null;
+  private volatile ReconnectHandle reconnectHandle = null;
 
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -69,8 +68,8 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
       @Override
       public void didDisconnectUnexpectedly() {
         LOGGER.info("ClusterTierManagerClientEntity received a disconnect event. Starting ReconnectThread ...  ");
-        if (handleSupplier != null) {
-          handleSupplier.get().onReconnect();
+        if (reconnectHandle != null) {
+          reconnectHandle.onReconnect();
         }
       }
     });
@@ -98,8 +97,8 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
   }
 
   @Override
-  public void setReconnectHandle(Supplier<ReconnectHandle> handleSupplier) {
-    this.handleSupplier = handleSupplier;
+  public void setReconnectHandle(ReconnectHandle reconnectHandle) {
+    this.reconnectHandle = reconnectHandle;
   }
 
   private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)

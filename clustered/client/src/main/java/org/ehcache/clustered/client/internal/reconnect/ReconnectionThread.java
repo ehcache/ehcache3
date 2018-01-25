@@ -15,34 +15,45 @@
  */
 package org.ehcache.clustered.client.internal.reconnect;
 
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReconnectionThread extends Thread {
 
-  private final AtomicBoolean startReconnection = new AtomicBoolean();
   private final AtomicBoolean complete = new AtomicBoolean();
-  private final AtomicInteger clusterTierCount;
+  private final ReconnectHandle reconnectHandle;
+  private final Collection<ClusterTierClientEntity> entities;
 
-  public ReconnectionThread(int clusterTierCount) {
-    this.clusterTierCount = new AtomicInteger(clusterTierCount);
+  public ReconnectionThread(ReconnectHandle reconnectHandle, Collection<ClusterTierClientEntity> entities) {
+    this.reconnectHandle = reconnectHandle;
+    this.entities = entities;
   }
 
   @Override
   public void run() {
+    boolean interrupted = false;
     while (true) {
-      if (!startReconnection.get()) {
-        //Wait for some more time and then check
+      if (entities.stream().noneMatch(ClusterTierClientEntity::isConnected)) {
+        reconnectHandle.onReconnect();
+        complete.set(true);
+        break;
+      } else {
         try {
           Thread.sleep(200);
         } catch (InterruptedException e) {
-          //Handle interuppt
-          complete.set(true);
+          interrupted = true;
         }
-      } else {
-        //startReconnection and finish
       }
     }
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public boolean isComplete() {
+    return complete.get();
   }
 
 }

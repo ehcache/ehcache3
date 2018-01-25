@@ -23,7 +23,6 @@ import org.terracotta.connection.entity.Entity;
 
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 /**
  * ClusterTierManagerClientEntity
@@ -34,6 +33,6 @@ public interface ClusterTierManagerClientEntity extends Entity {
 
   Set<String> prepareForDestroy();
 
-  void setReconnectHandle(Supplier<ReconnectHandle> handleSupplier);
+  void setReconnectHandle(ReconnectHandle reconnectHandle);
 
 }
