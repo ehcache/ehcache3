@@ -16,6 +16,7 @@
 
 package org.ehcache.core.resilience;
 
+import org.ehcache.core.exceptions.ExceptionFactory;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
@@ -50,7 +51,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       return loaderWriter.load(key);
     } catch (Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
   }
 
@@ -66,7 +67,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       loaderWriter.write(key, value);
     } catch (Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
   }
 
@@ -76,7 +77,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       loaderWriter.delete(key);
     } catch(Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
   }
 
@@ -96,12 +97,12 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
         return loaded;
       }
     } catch (Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
     }
     try {
       loaderWriter.write(key, value);
     } catch (Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
     return null;
   }
@@ -114,7 +115,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       loadedValue = loaderWriter.load(key);
     } catch(Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
     }
 
     if (loadedValue == null) {
@@ -127,7 +128,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       loaderWriter.delete(key);
     } catch(Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
     return true;
   }
@@ -140,14 +141,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       oldValue = loaderWriter.load(key);
     } catch(Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
     }
 
     if (oldValue != null) {
       try {
         loaderWriter.write(key, value);
       } catch(Exception e1) {
-        throw new CacheWritingException(e1);
+        throw ExceptionFactory.newCacheWritingException(e1, e);
       }
     }
 
@@ -162,7 +163,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       oldValue = loaderWriter.load(key);
     } catch(Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
     }
 
     if (oldValue != null && oldValue.equals(value)) {
@@ -170,7 +171,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
         loaderWriter.write(key, newValue);
         return true;
       } catch(Exception e1) {
-        throw new CacheWritingException(e1);
+        throw ExceptionFactory.newCacheWritingException(e1, e);
       }
     }
 
@@ -187,7 +188,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     } catch(BulkCacheLoadingException e1) {
       throw e1;
     } catch (Exception e1) {
-      throw new CacheLoadingException(e1);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
     }
   }
 
@@ -200,7 +201,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     } catch(BulkCacheWritingException e1) {
       throw e1;
     } catch (Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
   }
 
@@ -211,7 +212,7 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
     try {
       loaderWriter.deleteAll(entries);
     } catch (Exception e1) {
-      throw new CacheWritingException(e1);
+      throw ExceptionFactory.newCacheWritingException(e1, e);
     }
   }
 
