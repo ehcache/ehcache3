@@ -66,7 +66,7 @@ public class StorePassThroughException extends RuntimeException {
    * @return StoreAccessException to be thrown
    * @throws RuntimeException if {@code re} is a {@code StorePassThroughException} containing a {@code RuntimeException}
    */
-  public static StoreAccessException handleRuntimeException(Exception re) {
+  public static StoreAccessException handleException(Exception re) {
     if(re instanceof StorePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {

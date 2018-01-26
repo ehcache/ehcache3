@@ -83,7 +83,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
+import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
@@ -186,7 +186,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         }
       }
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
     return holder;
   }
@@ -229,7 +229,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       storeProxy.append(extractedKey, payload);
       return PutStatus.PUT;
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -257,7 +257,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         return new ClusteredValueHolder<>(result.getValue());
       }
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -288,7 +288,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         return false;
       }
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -318,7 +318,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         return RemoveStatus.KEY_MISSING;
       }
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -346,7 +346,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         return new ClusteredValueHolder<>(result.getValue());
       }
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -380,7 +380,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         return ReplaceStatus.MISS_NOT_PRESENT;
       }
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -389,7 +389,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       storeProxy.clear();
     } catch (Exception re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
