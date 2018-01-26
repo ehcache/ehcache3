@@ -224,8 +224,8 @@ public class XmlConfigurationTest {
 
     expiry = xmlConfiguration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
     assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
-    assertThat(expiry.getExpiryForAccess(null, null), is(Duration.ofSeconds(42)));
-    assertThat(expiry.getExpiryForUpdate(null, null, null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForAccess(null, () -> null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForUpdate(null, () -> null, null), is(Duration.ofSeconds(42)));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiryPolicy();
     value = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(500));
