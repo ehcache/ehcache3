@@ -44,9 +44,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -130,10 +127,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   }
 
   protected boolean doRemoveInternal(final K key) throws StoreAccessException {
-    AtomicBoolean modified = new AtomicBoolean();
+    boolean[] modified = { false };
 
     BiFunction<K, V, V> remappingFunction = (key1, previousValue) -> {
-      modified.set(previousValue != null);
+      modified[0] = (previousValue != null);
 
       try {
         cacheLoaderWriter.delete(key1);
@@ -144,7 +141,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     };
 
     store.compute(key, remappingFunction);
-    return modified.get();
+    return modified[0];
   }
 
   protected Map<K, V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException {
@@ -220,7 +217,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     // Copy all entries to write into a Map
     Map<K, V> entriesToRemap = CollectionUtil.copyMapButFailOnNull(entries);
 
-    AtomicInteger actualPutCount = new AtomicInteger();
+    int[] actualPutCount = { 0 };
 
     // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
@@ -241,7 +238,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
           if (newValueAlreadyExpired(key, existingValue, newValue)) {
             mutations.put(key, null);
           } else if (successes.contains(key)) {
-            actualPutCount.incrementAndGet();
+            ++actualPutCount[0];
             mutations.put(key, newValue);
 
           } else {
@@ -254,7 +251,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       };
 
     store.bulkCompute(entries.keySet(), computeFunction);
-    addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
+    addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount[0]);
     if (!failures.isEmpty()) {
       throw new BulkCacheWritingException(failures, successes);
     }
@@ -307,7 +304,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       entriesToRemove.put(key, null);
     }
 
-    AtomicInteger actualRemoveCount = new AtomicInteger();
+    int[] actualRemoveCount = { 0 };
 
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       entries -> {
@@ -322,7 +319,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
           if (successes.contains(key)) {
             if (existingValue != null) {
-              actualRemoveCount.incrementAndGet();
+              ++actualRemoveCount[0];
             }
             results.put(key, null);
             entriesToRemove.remove(key);
@@ -339,7 +336,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       };
 
     store.bulkCompute(keys, removalFunction);
-    addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
+    addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount[0]);
     if (!failures.isEmpty()) {
       throw new BulkCacheWritingException(failures, successes);
     }
@@ -402,33 +399,32 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
   @Override
   protected Store.RemoveStatus doRemove(K key, V value) throws StoreAccessException {
-    AtomicBoolean hit = new AtomicBoolean();
-    AtomicBoolean removed = new AtomicBoolean();
+    boolean[] hitRemoved = { false, false }; // index 0 = hit, 1 = removed
     BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
       if(inCache == null) {
         return null;
       }
 
-      hit.set(true);
+      hitRemoved[0] = true;
       if (value.equals(inCache)) {
         try {
           cacheLoaderWriter.delete(k);
         } catch (Exception e) {
           throw new StorePassThroughException(newCacheWritingException(e));
         }
-        removed.set(true);
+        hitRemoved[1] = true;
         return null;
       }
       return inCache;
     };
 
     store.compute(key, remappingFunction, SUPPLY_FALSE);
-    if (removed.get()) {
+    if (hitRemoved[1]) {
       return Store.RemoveStatus.REMOVED;
     }
 
-    if (hit.get()) {
+    if (hitRemoved[0]) {
       return Store.RemoveStatus.KEY_PRESENT;
     } else {
       return Store.RemoveStatus.KEY_MISSING;
@@ -437,7 +433,9 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
   @Override
   protected V doReplace(K key, V value) throws CacheLoadingException, CacheWritingException, StoreAccessException {
-    AtomicReference<V> old = new AtomicReference<>();
+    @SuppressWarnings("unchecked")
+    V[] old = (V[]) new Object[1];
+
     BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
       if(inCache == null) {
@@ -450,7 +448,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
 
-      old.set(inCache);
+      old[0] = inCache;
 
       if (newValueAlreadyExpired(key, inCache, value)) {
         return null;
@@ -459,7 +457,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     };
 
     store.compute(key, remappingFunction);
-    return old.get();
+    return old[0];
   }
 
   private V loadFromLoaderWriter(K key, V inCache) {
@@ -482,8 +480,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
 
   @Override
   protected Store.ReplaceStatus doReplace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException, StoreAccessException {
-    AtomicBoolean success = new AtomicBoolean();
-    AtomicBoolean hit = new AtomicBoolean();
+    boolean[] successHit = { false, false }; // index 0 = success, 1 = hit
 
     BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
       inCache = loadFromLoaderWriter(key, inCache);
@@ -491,7 +488,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         return null;
       }
 
-      hit.set(true);
+      successHit[1] = true;
       if (oldValue.equals(inCache)) {
         try {
           cacheLoaderWriter.write(key, newValue);
@@ -499,7 +496,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
           throw new StorePassThroughException(newCacheWritingException(e));
         }
 
-        success.set(true);
+        successHit[0] = true;
 
         if (newValueAlreadyExpired(key, oldValue, newValue)) {
           return null;
@@ -510,10 +507,10 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
     };
 
     store.compute(key, remappingFunction, SUPPLY_FALSE);
-    if (success.get()) {
+    if (successHit[0]) {
       return Store.ReplaceStatus.HIT;
     } else {
-      if (hit.get()) {
+      if (successHit[1]) {
         return Store.ReplaceStatus.MISS_PRESENT;
       } else {
         return Store.ReplaceStatus.MISS_NOT_PRESENT;
@@ -597,10 +594,12 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       getObserver.begin();
       removeObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<>();
+      @SuppressWarnings("unchecked")
+      V[] existingValue = (V[]) new Object[1];
+
       try {
         store.compute(key, (mappedKey, mappedValue) -> {
-          existingValue.set(mappedValue);
+          existingValue[0] = mappedValue;
 
           try {
             cacheLoaderWriter.delete(mappedKey);
@@ -615,12 +614,13 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         throw new RuntimeException(e);
       }
 
-      V returnValue = existingValue.get();
+      V returnValue = existingValue[0];
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
         getObserver.end(GetOutcome.MISS);
+        removeObserver.end(RemoveOutcome.NOOP);
       }
       return returnValue;
     }
@@ -630,10 +630,12 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
       getObserver.begin();
       putObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<>();
+      @SuppressWarnings("unchecked")
+      V[] existingValue = (V[]) new Object[1];
+
       try {
         store.compute(key, (mappedKey, mappedValue) -> {
-          existingValue.set(mappedValue);
+          existingValue[0] = mappedValue;
 
           try {
             cacheLoaderWriter.write(mappedKey, value);
@@ -653,7 +655,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
         throw new RuntimeException(e);
       }
 
-      V returnValue = existingValue.get();
+      V returnValue = existingValue[0];
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT);
       } else {

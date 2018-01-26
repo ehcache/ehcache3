@@ -54,7 +54,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -291,11 +290,11 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       statusTransitioner.checkAvailable();
       checkNonNull(key, value);
 
-      AtomicBoolean put = new AtomicBoolean(false);
+      boolean[] put = { false };
 
       try {
-        ValueHolder<V> inCache = doPutIfAbsent(key, value, b -> put.set(b));
-        if (put.get()) {
+        ValueHolder<V> inCache = doPutIfAbsent(key, value, b -> put[0] = b);
+        if (put[0]) {
           putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
           return null;
         } else if (inCache == null) {
