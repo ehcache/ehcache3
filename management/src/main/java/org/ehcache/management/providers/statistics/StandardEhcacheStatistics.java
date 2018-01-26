@@ -23,12 +23,8 @@ import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.registry.collect.StatisticRegistry;
-import org.terracotta.statistics.registry.Statistic;
 
-import java.io.Serializable;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
 
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
@@ -41,14 +37,6 @@ public class StandardEhcacheStatistics extends ExposedCacheBinding {
     String cacheName = cacheBinding.getAlias();
     CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
     cacheStatistics.getKnownStatistics().forEach(statisticRegistry::registerStatistic);
-  }
-
-  public <T extends Serializable> Optional<Statistic<T>> queryStatistic(String fullStatisticName) {
-    return statisticRegistry.queryStatistic(fullStatisticName);
-  }
-
-  public Map<String, Statistic<? extends Serializable>> queryStatistics() {
-    return statisticRegistry.queryStatistics();
   }
 
   @Override

@@ -16,6 +16,7 @@
 
 package org.ehcache.core.statistics;
 
+import org.terracotta.statistics.SampledStatistic;
 import org.terracotta.statistics.ValueStatistic;
 
 import java.util.Map;
@@ -130,4 +131,15 @@ public interface CacheStatistics {
    * @return average remove response time
    */
   float getCacheAverageRemoveTime();
+
+  /**
+   * The statistic used to access the latest history of latencies for {@link org.ehcache.Cache#get(Object)}
+   * operations leading to a {@link org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome#HIT}.
+   * <p>
+   * The history and latency aggregation is controlled through the {@link org.ehcache.core.spi.service.StatisticsServiceConfiguration}.
+   *
+   * @return the sampled statistic
+   */
+  SampledStatistic<Long> getCacheGetLatencyHistory();
+
 }
