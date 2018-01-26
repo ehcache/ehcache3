@@ -306,7 +306,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
           return inCache.get();
         }
       } catch (StoreAccessException e) {
-        V newValue = resilienceStrategy.putIfAbsentFailure(key, value, e); // FIXME: We can't know if it's absent or not
+        V newValue = resilienceStrategy.putIfAbsentFailure(key, value, e);
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
         return newValue;
       }
