@@ -37,21 +37,20 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
 
   private final RecoveryStore<K> store;
   private final CacheLoaderWriter<? super K, V> loaderWriter;
-  private final boolean useLoaderInAtomics;
 
-  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics) {
+  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter) {
     this.store = new DefaultRecoveryStore<>(Objects.requireNonNull(store));
     this.loaderWriter = Objects.requireNonNull(loaderWriter);
-    this.useLoaderInAtomics = useLoaderInAtomics;
   }
 
   @Override
   public V getFailure(K key, StoreAccessException e) {
-    cleanup(key, e);
     try {
       return loaderWriter.load(key);
     } catch (Exception e1) {
-      throw ExceptionFactory.newCacheWritingException(e1, e);
+      throw ExceptionFactory.newCacheLoadingException(e1, e);
+    } finally {
+      cleanup(key, e);
     }
   }
 
@@ -63,21 +62,23 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
 
   @Override
   public void putFailure(K key, V value, StoreAccessException e) {
-    cleanup(key, e);
     try {
       loaderWriter.write(key, value);
     } catch (Exception e1) {
       throw ExceptionFactory.newCacheWritingException(e1, e);
+    } finally {
+      cleanup(key, e);
     }
   }
 
   @Override
   public void removeFailure(K key, StoreAccessException e) {
-    cleanup(key, e);
     try {
       loaderWriter.delete(key);
     } catch(Exception e1) {
       throw ExceptionFactory.newCacheWritingException(e1, e);
+    } finally {
+      cleanup(key, e);
     }
   }
 
@@ -89,7 +90,6 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @Override
   public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    // FIXME: This is not atomic
     // FIXME: Should I care about useLoaderInAtomics?
     try {
       V loaded = loaderWriter.load(key);
@@ -211,6 +211,8 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
 
     try {
       loaderWriter.deleteAll(entries);
+    } catch(BulkCacheWritingException e1) {
+      throw e1;
     } catch (Exception e1) {
       throw ExceptionFactory.newCacheWritingException(e1, e);
     }

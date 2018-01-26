@@ -92,7 +92,7 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
   EhcacheWithLoaderWriter(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
             CacheLoaderWriter<? super K, V> cacheLoaderWriter,
             CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter, useLoaderInAtomics), eventDispatcher, logger, statusTransitioner);
+    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter), eventDispatcher, logger, statusTransitioner);
 
     this.cacheLoaderWriter = Objects.requireNonNull(cacheLoaderWriter, "CacheLoaderWriter cannot be null");
     this.useLoaderInAtomics = useLoaderInAtomics;

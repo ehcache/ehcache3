@@ -42,7 +42,7 @@ public class BulkCacheLoadingException extends CacheLoadingException {
    * @param failures the map of keys to failure encountered while loading
    * @param successes the map of keys successfully loaded and their associated value
    */
-  public BulkCacheLoadingException(final Map<?, Exception> failures, final Map<?, ?> successes) {
+  public BulkCacheLoadingException(Map<?, Exception> failures, Map<?, ?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableMap(successes);
   }
@@ -60,7 +60,7 @@ public class BulkCacheLoadingException extends CacheLoadingException {
    * @param failures the map of keys to failure encountered while loading
    * @param successes the map of keys successfully loaded and their associated value
    */
-  public BulkCacheLoadingException(final String message, final Map<Object, Exception> failures, final Map<Object, Object> successes) {
+  public BulkCacheLoadingException(String message, final Map<Object, Exception> failures, Map<Object, Object> successes) {
     super(message);
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableMap(successes);

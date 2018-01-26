@@ -69,7 +69,7 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   @Override
   public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
-    return null; // Should it be 'value'?
+    return null;
   }
 
   @Override
