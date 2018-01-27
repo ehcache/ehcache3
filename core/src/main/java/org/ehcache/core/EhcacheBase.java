@@ -139,7 +139,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         getObserver.end(GetOutcome.FAILURE);
         return value;
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       getObserver.end(GetOutcome.FAILURE);
       throw e;
     }
@@ -169,7 +169,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         getObserver.end(GetOutcome.FAILURE);
         return value;
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       getObserver.end(GetOutcome.FAILURE);
       throw e;
     }
@@ -201,7 +201,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         resilienceStrategy.putFailure(key, value, e);
         putObserver.end(PutOutcome.FAILURE);
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       putObserver.end(PutOutcome.FAILURE);
       throw e;
     }
@@ -251,7 +251,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       }
 
       return removed;
-    } catch(Exception e) {
+    } catch (Throwable e) {
       removeObserver.end(RemoveOutcome.FAILURE);
       throw e;
     }
@@ -274,7 +274,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         resilienceStrategy.clearFailure(e);
         clearObserver.end(ClearOutcome.FAILURE);
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       clearObserver.end(ClearOutcome.FAILURE);
       throw e;
     }
@@ -309,7 +309,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
         return newValue;
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       throw e;
     }
@@ -353,7 +353,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         getAllObserver.end(GetAllOutcome.FAILURE);
         return result;
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       getAllObserver.end(GetAllOutcome.FAILURE);
       throw e;
     }
@@ -421,7 +421,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         resilienceStrategy.removeAllFailure(keys, e);
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
-    } catch(Exception e) {
+    } catch (Throwable e) {
       removeAllObserver.end(RemoveAllOutcome.FAILURE);
       throw e;
     }
@@ -479,7 +479,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
         return removed;
       }
-    } catch (Exception e) {
+    } catch (Throwable e) {
       conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
       throw e;
     }
@@ -510,7 +510,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         replaceObserver.end(ReplaceOutcome.FAILURE);
         return result;
       }
-    } catch (Exception e) {
+    } catch (Throwable e) {
       replaceObserver.end(ReplaceOutcome.FAILURE);
       throw e;
     }
@@ -548,7 +548,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         replaceObserver.end(ReplaceOutcome.FAILURE);
         return success;
       }
-    } catch (Exception e) {
+    } catch (Throwable e) {
       replaceObserver.end(ReplaceOutcome.FAILURE);
       throw e;
     }
