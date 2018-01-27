@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.service;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.reconnect.ReconnectHandle;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
@@ -61,6 +62,8 @@ public interface ClusteringService extends PersistableResourceService {
    * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
    */
   void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
+
+  void reconnectHandle(ReconnectHandle reconnectHandle);
 
   /**
    * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}

@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.internal.reconnect.ReconnectHandle;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.terracotta.connection.entity.Entity;
@@ -31,5 +32,7 @@ public interface ClusterTierManagerClientEntity extends Entity {
   void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException;
 
   Set<String> prepareForDestroy();
+
+  void setReconnectHandle(ReconnectHandle reconnectHandle);
 
 }
