@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -28,6 +30,7 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Arrays;
 
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -38,7 +41,7 @@ public class RobustResilienceStrategyTest {
   public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
-  private Store<Integer, Long> store;
+  private RecoveryStore<Integer> store;
 
   @InjectMocks
   private RobustResilienceStrategy<Integer, Long> strategy;
@@ -53,75 +56,81 @@ public class RobustResilienceStrategyTest {
   @Test
   public void getFailure() throws StoreAccessException {
     assertThat(strategy.getFailure(1, accessException)).isNull();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void containsKeyFailure() throws StoreAccessException {
     assertThat(strategy.containsKeyFailure(1, accessException)).isFalse();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void putFailure() throws StoreAccessException {
     strategy.putFailure(1, 1L, accessException);
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void removeFailure() throws StoreAccessException {
     assertThat(strategy.removeFailure(1, 1L, accessException)).isFalse();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void clearFailure() throws StoreAccessException {
     strategy.clearFailure(accessException);
-    verify(store).clear();
+    verify(store).obliterate();
   }
 
   @Test
   public void putIfAbsentFailure() throws StoreAccessException {
     assertThat(strategy.putIfAbsentFailure(1, 1L, accessException)).isNull();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void removeFailure1() throws StoreAccessException {
     assertThat(strategy.removeFailure(1, 1L, accessException)).isFalse();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void replaceFailure() throws StoreAccessException {
     assertThat(strategy.replaceFailure(1, 1L, accessException)).isNull();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void replaceFailure1() throws StoreAccessException {
     assertThat(strategy.replaceFailure(1, 1L, 2L, accessException)).isFalse();
-    verify(store).remove(1);
+    verify(store).obliterate(1);
   }
 
   @Test
   public void getAllFailure() throws StoreAccessException {
-    assertThat(strategy.getAllFailure(Arrays.asList(1, 2), accessException)).containsExactly(entry(1, null), entry(2, null));
-    verify(store).remove(1);
-    verify(store).remove(2);
+    assertThat(strategy.getAllFailure(asList(1, 2), accessException)).containsExactly(entry(1, null), entry(2, null));
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
   }
 
   @Test
   public void putAllFailure() throws StoreAccessException {
     strategy.putAllFailure(CollectionUtil.map(1, 2L, 2, 2L), accessException);
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
   }
 
   @Test
   public void removeAllFailure() throws StoreAccessException {
-    strategy.removeAllFailure(Arrays.asList(1, 2), accessException);
-    verify(store).remove(1);
-    verify(store).remove(2);
+    strategy.removeAllFailure(asList(1, 2), accessException);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
   }
 }

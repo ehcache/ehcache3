@@ -21,6 +21,7 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +104,8 @@ public class EhcacheBulkMethodsTest {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
     when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new Ehcache<>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
+    ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
+    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
   }
 
   static <K, V> Map.Entry<K, V> entry(final K key, final V value) {

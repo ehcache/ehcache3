@@ -17,4 +17,4 @@
 /**
  * {@link org.ehcache.resilience.ResilienceStrategy} API of a {@link org.ehcache.Cache Cache}.
  */
-package org.ehcache.resilience;
+package org.ehcache.spi.resilience;

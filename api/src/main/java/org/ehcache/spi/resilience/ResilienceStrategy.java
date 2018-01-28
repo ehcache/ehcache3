@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.resilience;
+package org.ehcache.spi.resilience;
 
 import java.util.Map;
 

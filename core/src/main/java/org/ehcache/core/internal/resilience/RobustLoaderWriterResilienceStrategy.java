@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import org.ehcache.core.exceptions.ExceptionFactory;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 import java.util.Map;
 import java.util.Objects;
@@ -40,8 +40,8 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
 
   private final CacheLoaderWriter<? super K, V> loaderWriter;
 
-  public RobustLoaderWriterResilienceStrategy(Store<K, V> store, CacheLoaderWriter<? super K, V> loaderWriter) {
-    super(new DefaultRecoveryStore<>(Objects.requireNonNull(store)));
+  public RobustLoaderWriterResilienceStrategy(RecoveryStore<K> store, CacheLoaderWriter<? super K, V> loaderWriter) {
+      super(store);
     this.loaderWriter = Objects.requireNonNull(loaderWriter);
   }
 

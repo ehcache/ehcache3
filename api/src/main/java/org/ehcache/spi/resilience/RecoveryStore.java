@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.resilience;
+package org.ehcache.spi.resilience;
 
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 /**
- * A recovery store is used during entry cleanup done by the {@link org.ehcache.resilience.ResilienceStrategy}. It's called
+ * A recovery store is used during entry cleanup done by the {@link ResilienceStrategy}. It's called
  * when a {@link org.ehcache.core.spi.store.Store} failed on an entry. Implementations will in general want to get rid
  * of this entry which is what the recovery store is used for.
  * <p>
  * Note that the methods on this call with tend to fail since the store already failed once and caused the resilience
  * strategy to be called.
+ *
+ * @param <K> store key type
  */
 public interface RecoveryStore<K> {
 

@@ -21,10 +21,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.internal.util.CollectionUtil;
-import org.ehcache.core.resilience.RobustLoaderWriterResilienceStrategy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.core.spi.store.Store;
@@ -77,22 +77,22 @@ public class EhcacheWithLoaderWriter<K, V> extends EhcacheBase<K, V> {
    * @param logger the logger
    */
   public EhcacheWithLoaderWriter(CacheConfiguration<K, V> configuration, Store<K, V> store,
-      final CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+                                 ResilienceStrategy<K, V> resilienceStrategy, CacheLoaderWriter<? super K, V> cacheLoaderWriter,
       CacheEventDispatcher<K, V> eventDispatcher,
       Logger logger) {
-    this(configuration, store, cacheLoaderWriter, eventDispatcher, true, logger);
+    this(configuration, store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, true, logger);
   }
 
   EhcacheWithLoaderWriter(CacheConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
-          CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-          CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<>(runtimeConfiguration), store, cacheLoaderWriter, eventDispatcher, useLoaderInAtomics, logger, new StatusTransitioner(logger));
+                          ResilienceStrategy<K, V> resilienceStrategy, CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+                          CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger) {
+    this(new EhcacheRuntimeConfiguration<>(runtimeConfiguration), store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, useLoaderInAtomics, logger, new StatusTransitioner(logger));
   }
 
   EhcacheWithLoaderWriter(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
-            CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-            CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, new RobustLoaderWriterResilienceStrategy<>(store, cacheLoaderWriter), eventDispatcher, logger, statusTransitioner);
+                          ResilienceStrategy<K, V> resilienceStrategy, CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+                          CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
+    super(runtimeConfiguration, store, resilienceStrategy, eventDispatcher, logger, statusTransitioner);
 
     this.cacheLoaderWriter = Objects.requireNonNull(cacheLoaderWriter, "CacheLoaderWriter cannot be null");
     this.useLoaderInAtomics = useLoaderInAtomics;

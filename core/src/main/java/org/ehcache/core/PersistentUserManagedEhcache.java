@@ -31,6 +31,7 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,13 +64,13 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * @param eventDispatcher the event dispatcher
    * @param id an id for this cache
    */
-  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, DiskResourceService diskPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
+  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy, DiskResourceService diskPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
     if (cacheLoaderWriter == null) {
-      this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, eventDispatcher, logger, statusTransitioner);
+      this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, statusTransitioner);
     } else {
-      this.cache = new EhcacheWithLoaderWriter<>(new EhcacheRuntimeConfiguration<>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
+      this.cache = new EhcacheWithLoaderWriter<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
     }
     this.diskPersistenceService = diskPersistenceService;
     this.id = id;
