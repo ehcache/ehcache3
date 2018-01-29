@@ -16,16 +16,13 @@
 
 package org.ehcache.core.resilience;
 
+import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.resilience.StoreAccessException;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import org.ehcache.core.internal.util.CollectionUtil;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.RethrowingStoreAccessException;
-import org.ehcache.resilience.StoreAccessException;
-import org.ehcache.spi.loaderwriter.CacheLoadingException;
-import org.ehcache.spi.loaderwriter.CacheWritingException;
 
 /**
  *
@@ -113,7 +110,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   private void cleanup(StoreAccessException from) {
-    filterException(from);
     try {
       store.obliterate();
     } catch (StoreAccessException e) {
@@ -124,7 +120,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   private void cleanup(Iterable<? extends K> keys, StoreAccessException from) {
-    filterException(from);
     try {
       store.obliterate(keys);
     } catch (StoreAccessException e) {
@@ -135,7 +130,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   }
 
   private void cleanup(K key, StoreAccessException from) {
-    filterException(from);
     try {
       store.obliterate(key);
     } catch (StoreAccessException e) {
@@ -143,13 +137,6 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
       return;
     }
     recovered(key, from);
-  }
-
-  @Deprecated
-  void filterException(StoreAccessException cae) throws RuntimeException {
-    if (cae instanceof RethrowingStoreAccessException) {
-      throw ((RethrowingStoreAccessException) cae).getCause();
-    }
   }
 
 }

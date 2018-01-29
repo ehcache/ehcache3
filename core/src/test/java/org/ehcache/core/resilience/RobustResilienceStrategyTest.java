@@ -17,7 +17,6 @@ package org.ehcache.core.resilience;
 
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
 import org.junit.After;
 import org.junit.Rule;
@@ -124,19 +123,5 @@ public class RobustResilienceStrategyTest {
     strategy.removeAllFailure(Arrays.asList(1, 2), accessException);
     verify(store).remove(1);
     verify(store).remove(2);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void filterException_SAE() {
-    // Nothing happens
-    strategy.filterException(accessException);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void filterException_RSAE() {
-    assertThatExceptionOfType(RuntimeException.class)
-      .isThrownBy(() -> strategy.filterException(new RethrowingStoreAccessException(new RuntimeException())));
   }
 }

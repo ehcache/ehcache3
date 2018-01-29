@@ -18,7 +18,6 @@ package org.ehcache.core.resilience;
 import org.assertj.core.data.MapEntry;
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.RethrowingStoreAccessException;
 import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
@@ -26,11 +25,9 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -42,10 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.booleanThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -515,20 +509,6 @@ public class RobustLoaderWriterResilienceStrategyTest {
     verify(store).remove(1);
     verify(store).remove(2);
     verify(loaderWriter).deleteAll(entryList);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void filterException_SAE() {
-    // Nothing happens
-    strategy.filterException(accessException);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void filterException_RSAE() {
-    assertThatExceptionOfType(RuntimeException.class)
-      .isThrownBy(() -> strategy.filterException(new RethrowingStoreAccessException(new RuntimeException())));
   }
 
   private ArgumentMatcher<Iterable<? extends Map.Entry<? extends Integer, ? extends Long>>> containsAllMatcher(List<MapEntry<Integer, Long>> entryList) {
