@@ -60,7 +60,7 @@ public interface ClusteringService extends PersistableResourceService {
    *
    * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
    */
-  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
+  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy, boolean isReconnect);
 
   /**
    * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}
