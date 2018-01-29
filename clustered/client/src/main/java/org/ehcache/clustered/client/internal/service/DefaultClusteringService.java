@@ -48,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
-import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.exception.EntityAlreadyExistsException;
@@ -132,6 +131,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void start(final ServiceProvider<Service> serviceProvider) {
     initClusterConnection();
     createEntityFactory();
+    initializeState();
+  }
+
+  private void initializeState() {
     try {
       if (configuration.isAutoCreate()) {
         entity = autoCreateEntity();
@@ -435,6 +438,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         LOGGER.warn("Error closing cluster connection: " + e);
       }
     }
+  }
+
+  private void handleConnectionClosedException() {
+    entityFactory = null;
+    inMaintenance = false;
+
+    clusterTierEntities.clear();
+    entity = null;
+    initClusterConnection();
+    createEntityFactory();
+    initializeState();
   }
 
   /**
