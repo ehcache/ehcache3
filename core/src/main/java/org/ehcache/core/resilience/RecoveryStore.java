@@ -19,15 +19,36 @@ package org.ehcache.core.resilience;
 import org.ehcache.resilience.StoreAccessException;
 
 /**
- *
- * @author Chris Dennis
+ * A recovery store is used during entry cleanup done by the {@link org.ehcache.resilience.ResilienceStrategy}. It's called
+ * when a {@link org.ehcache.core.spi.store.Store} failed on an entry. Implementations will in general want to get rid
+ * of this entry which is what the recovery store is used for.
+ * <p>
+ * Note that the methods on this call with tend to fail since the store already failed once and caused the resilience
+ * strategy to be called.
  */
 public interface RecoveryStore<K> {
 
+  /**
+   * Obliterate all keys in a store.
+   *
+   * @throws StoreAccessException in case of store failure
+   */
   void obliterate() throws StoreAccessException;
 
+  /**
+   * Obliterate a given key.
+   *
+   * @param key the key to obliterate
+   * @throws StoreAccessException in case of store failure
+   */
   void obliterate(K key) throws StoreAccessException;
 
+  /**
+   * Obliterate a list of keys.
+   *
+   * @param keys keys to obliterate
+   * @throws StoreAccessException in case of store failure
+   */
   default void obliterate(Iterable<? extends K> keys) throws StoreAccessException {
     for (K key : keys) {
       obliterate(key);

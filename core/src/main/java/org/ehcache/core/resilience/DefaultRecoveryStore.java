@@ -4,7 +4,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.resilience.StoreAccessException;
 
 /**
- * @author Henri Tremblay
+ * Default implementation of the {@link RecoveryStore} as used by the {@link RobustResilienceStrategy} and
+ * {@link RobustLoaderWriterResilienceStrategy}. It simply remove the required keys from the store.
  */
 public class DefaultRecoveryStore<K> implements RecoveryStore<K> {
 
