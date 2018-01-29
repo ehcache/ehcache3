@@ -50,6 +50,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.Entity;
+import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.lease.connection.LeasedConnectionFactory;
@@ -387,8 +388,15 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     ClusterTierClientEntity storeClientEntity;
     try {
-      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
-        clientStoreConfiguration, configuration.isAutoCreate());
+      while (true) {
+        try {
+          storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+                  clientStoreConfiguration, configuration.isAutoCreate());
+          break;
+        } catch (ConnectionClosedException cce) {
+          handleConnectionClosedException();
+        }
+      }
       clusterTierEntities.put(cacheId, storeClientEntity);
     } catch (EntityNotFoundException e) {
       throw new CachePersistenceException("Cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "' does not exist.", e);
@@ -423,9 +431,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public void releaseServerStoreProxy(ServerStoreProxy storeProxy) {
+  public void releaseServerStoreProxy(ServerStoreProxy storeProxy, boolean isReconnect) {
     clusterTierEntities.remove(storeProxy.getCacheId());
-    storeProxy.close();
+    if (!isReconnect) {
+      storeProxy.close();
+    }
   }
 
   private void closeConnection() {

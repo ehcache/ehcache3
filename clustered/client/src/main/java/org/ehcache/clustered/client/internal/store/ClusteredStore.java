@@ -667,7 +667,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
           throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
         }
         ClusteredStore clusteredStore = (ClusteredStore) resource;
-        this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
+        this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
         StatisticsManager.nodeFor(clusteredStore).clean();
         tierOperationStatistics.remove(clusteredStore);
       } finally {
@@ -755,7 +755,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
             // this guy should wait till disconnect event processing is complete.
             String cacheId = clusteredStore.storeProxy.getCacheId();
             LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
-            clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
+            clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
             initStore(clusteredStore);
             LOGGER.info("Cache {} got reconnected to cluster", cacheId);
           } finally {
