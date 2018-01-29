@@ -132,20 +132,23 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public V putIfAbsentFailure(K key, V value, StoreAccessException e) {
-    cleanup(key, e);
     // FIXME: Should I care about useLoaderInAtomics?
     try {
-      V loaded = loaderWriter.load(key);
-      if(loaded != null) {
-        return loaded;
+      try {
+        V loaded = loaderWriter.load(key);
+        if (loaded != null) {
+          return loaded;
+        }
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheLoadingException(e1, e);
       }
-    } catch (Exception e1) {
-      throw ExceptionFactory.newCacheLoadingException(e1, e);
-    }
-    try {
-      loaderWriter.write(key, value);
-    } catch (Exception e1) {
-      throw ExceptionFactory.newCacheWritingException(e1, e);
+      try {
+        loaderWriter.write(key, value);
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheWritingException(e1, e);
+      }
+    } finally {
+      cleanup(key, e);
     }
     return null;
   }
@@ -161,28 +164,31 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public boolean removeFailure(K key, V value, StoreAccessException e) {
-    cleanup(key, e);
-    V loadedValue;
-
     try {
-      loadedValue = loaderWriter.load(key);
-    } catch(Exception e1) {
-      throw ExceptionFactory.newCacheLoadingException(e1, e);
-    }
+      V loadedValue;
 
-    if (loadedValue == null) {
-      return false;
-    }
-    if(!loadedValue.equals(value)) {
-      return false;
-    }
+      try {
+        loadedValue = loaderWriter.load(key);
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheLoadingException(e1, e);
+      }
 
-    try {
-      loaderWriter.delete(key);
-    } catch(Exception e1) {
-      throw ExceptionFactory.newCacheWritingException(e1, e);
+      if (loadedValue == null) {
+        return false;
+      }
+      if (!loadedValue.equals(value)) {
+        return false;
+      }
+
+      try {
+        loaderWriter.delete(key);
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheWritingException(e1, e);
+      }
+      return true;
+    } finally {
+      cleanup(key, e);
     }
-    return true;
   }
 
   /**
@@ -196,24 +202,26 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public V replaceFailure(K key, V value, StoreAccessException e) {
-    cleanup(key, e);
-
-    V oldValue;
     try {
-      oldValue = loaderWriter.load(key);
-    } catch(Exception e1) {
-      throw ExceptionFactory.newCacheLoadingException(e1, e);
-    }
-
-    if (oldValue != null) {
+      V oldValue;
       try {
-        loaderWriter.write(key, value);
-      } catch(Exception e1) {
-        throw ExceptionFactory.newCacheWritingException(e1, e);
+        oldValue = loaderWriter.load(key);
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheLoadingException(e1, e);
       }
+
+      if (oldValue != null) {
+        try {
+          loaderWriter.write(key, value);
+        } catch (Exception e1) {
+          throw ExceptionFactory.newCacheWritingException(e1, e);
+        }
+      }
+      return oldValue;
+    } finally {
+      cleanup(key, e);
     }
 
-    return oldValue;
   }
 
   /**
@@ -228,25 +236,27 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e) {
-    cleanup(key, e);
-
-    V oldValue;
     try {
-      oldValue = loaderWriter.load(key);
-    } catch(Exception e1) {
-      throw ExceptionFactory.newCacheLoadingException(e1, e);
-    }
-
-    if (oldValue != null && oldValue.equals(value)) {
+      V oldValue;
       try {
-        loaderWriter.write(key, newValue);
-        return true;
-      } catch(Exception e1) {
-        throw ExceptionFactory.newCacheWritingException(e1, e);
+        oldValue = loaderWriter.load(key);
+      } catch (Exception e1) {
+        throw ExceptionFactory.newCacheLoadingException(e1, e);
       }
-    }
 
-    return false;
+      if (oldValue != null && oldValue.equals(value)) {
+        try {
+          loaderWriter.write(key, newValue);
+          return true;
+        } catch (Exception e1) {
+          throw ExceptionFactory.newCacheWritingException(e1, e);
+        }
+      }
+
+      return false;
+    } finally {
+      cleanup(key, e);
+    }
   }
 
   /**
@@ -260,14 +270,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
   @SuppressWarnings("unchecked")
   @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
-    cleanup(keys, e);
-
     try {
       return loaderWriter.loadAll((Iterable) keys); // FIXME: bad typing that we should fix
     } catch(BulkCacheLoadingException e1) {
       throw e1;
     } catch (Exception e1) {
       throw ExceptionFactory.newCacheLoadingException(e1, e);
+    } finally {
+      cleanup(keys, e);
     }
   }
 
@@ -279,14 +289,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e) {
-    cleanup(entries.keySet(), e);
-
     try {
       loaderWriter.writeAll(entries.entrySet()); // FIXME: bad typing that we should fix
     } catch(BulkCacheWritingException e1) {
       throw e1;
     } catch (Exception e1) {
       throw ExceptionFactory.newCacheWritingException(e1, e);
+    } finally {
+      cleanup(entries.keySet(), e);
     }
   }
 
@@ -298,14 +308,14 @@ public class RobustLoaderWriterResilienceStrategy<K, V> extends AbstractResilien
    */
   @Override
   public void removeAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
-    cleanup(keys, e);
-
     try {
       loaderWriter.deleteAll(keys);
     } catch(BulkCacheWritingException e1) {
       throw e1;
     } catch (Exception e1) {
       throw ExceptionFactory.newCacheWritingException(e1, e);
+    } finally {
+      cleanup(keys, e);
     }
   }
 
