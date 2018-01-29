@@ -46,6 +46,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
@@ -120,11 +121,7 @@ public class ConnectionClosedTest {
 
     connection.close();
 
-    try {
-      cache.get(1L);
-    } catch (Exception e) {
-      assertThat(e.getCause().getCause(), instanceOf(ConnectionClosedException.class));
-    }
+    assertThat(cache.get(1L), nullValue());
 
   }
 
