@@ -18,38 +18,43 @@ package org.ehcache.spi.resilience;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A {@link Service} that creates {@link ResilienceStrategy} instances.
  * <p>
- * A {@code CacheManager} will use the {@link #createResilienceStrategy(String, RecoveryStore)} and
- * {@link #createResilienceStrategy(String, RecoveryStore, CacheLoaderWriter)} methods to create
+ * A {@code CacheManager} will use the {@link #createResilienceStrategy(String, CacheConfiguration, RecoveryStore)} and
+ * {@link #createResilienceStrategy(String, CacheConfiguration, RecoveryStore, CacheLoaderWriter)} methods to create
  * {@code ResilienceStrategy} instances for each {@code Cache} it manages.
  */
 public interface ResilienceStrategyProvider extends Service {
 
   /**
-   * Creates a {@code ResilienceStrategy} for the {@link org.ehcache.Cache Cache} with the given alias using the given
-   * {@link RecoveryStore}.
+   * Creates a {@code ResilienceStrategy} for the {@link org.ehcache.Cache Cache} with the given alias and configuration
+   * using the given {@link RecoveryStore}.
    *
    * @param alias the {@code Cache} alias in the {@code CacheManager}
+   * @param configuration the configuration for the associated cache
    * @param recoveryStore the associated recovery store
    * @param <K> the stores key type
    * @param <V> the stores value type
    * @return the {@code ResilienceStrategy} to be used by the {@code Cache}
    */
-  <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, RecoveryStore<K> recoveryStore);
+  <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, CacheConfiguration<K, V> configuration,
+                                                           RecoveryStore<K> recoveryStore);
 
   /**
-   * Creates a {@code ResilienceStrategy} for the {@link org.ehcache.Cache Cache} with the given alias using the given
-   * {@link RecoveryStore} and {@link CacheLoaderWriter}
+   * Creates a {@code ResilienceStrategy} for the {@link org.ehcache.Cache Cache} with the given alias and configuration
+   * using the given {@link RecoveryStore} and {@link CacheLoaderWriter}
    *
    * @param alias the {@code Cache} alias in the {@code CacheManager}
+   * @param configuration the configuration for the associated cache
    * @param recoveryStore the associated recovery store
    * @param loaderWriter the associated loader-writer
    * @param <K> the stores key type
    * @param <V> the stores value type
    * @return the {@code ResilienceStrategy} to be used by the {@code Cache}
    */
-  <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter);
+  <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, CacheConfiguration<K, V> configuration,
+                                                           RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter);
 }

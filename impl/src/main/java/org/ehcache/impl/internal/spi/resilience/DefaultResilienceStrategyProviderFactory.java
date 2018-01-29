@@ -17,23 +17,27 @@ package org.ehcache.impl.internal.spi.resilience;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 public class DefaultResilienceStrategyProviderFactory implements ServiceFactory<ResilienceStrategyProvider> {
   @Override
   public ResilienceStrategyProvider create(ServiceCreationConfiguration<ResilienceStrategyProvider> configuration) {
-    if (configuration != null) {
-      throw new IllegalArgumentException("Expected a null configuration but got " + configuration
+    if (configuration == null) {
+      return new DefaultResilienceStrategyProvider();
+    } else if (configuration instanceof DefaultResilienceStrategyProviderConfiguration) {
+      return new DefaultResilienceStrategyProvider((DefaultResilienceStrategyProviderConfiguration) configuration);
+    } else {
+      throw new IllegalArgumentException("Expected a configuration of type DefaultResilienceStrategyProviderConfiguration (or none) but got " + configuration
         .getClass()
-        .getSimpleName());
+        .getName());
     }
-    return new DefaultResilienceStrategyProvider();
   }
 
   @Override
   public Class<ResilienceStrategyProvider> getServiceType() {
     return ResilienceStrategyProvider.class;
   }
+
 }

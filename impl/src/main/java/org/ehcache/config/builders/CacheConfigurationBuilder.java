@@ -31,20 +31,24 @@ import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
+import static java.util.Objects.requireNonNull;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
@@ -337,16 +341,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added loaderwriter configuration
    */
   public CacheConfigurationBuilder<K, V> withLoaderWriter(CacheLoaderWriter<K, V> loaderWriter) {
-    if (loaderWriter == null) {
-      throw new NullPointerException("Null loaderWriter");
-    }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultCacheLoaderWriterConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
-    if (existingServiceConfiguration != null) {
-      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
-    }
-    otherBuilder.serviceConfigurations.add(new DefaultCacheLoaderWriterConfiguration(loaderWriter));
-    return otherBuilder;
+    return addOrReplaceConfiguration(new DefaultCacheLoaderWriterConfiguration(requireNonNull(loaderWriter, "Null loaderWriter")));
   }
 
   /**
@@ -360,16 +355,15 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added loaderwriter configuration
    */
   public CacheConfigurationBuilder<K, V> withLoaderWriter(Class<CacheLoaderWriter<K, V>> loaderWriterClass, Object... arguments) {
-    if (loaderWriterClass == null) {
-      throw new NullPointerException("Null loaderWriterClass");
-    }
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultCacheLoaderWriterConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
-    if (existingServiceConfiguration != null) {
-      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
-    }
-    otherBuilder.serviceConfigurations.add(new DefaultCacheLoaderWriterConfiguration(loaderWriterClass, arguments));
-    return otherBuilder;
+    return addOrReplaceConfiguration(new DefaultCacheLoaderWriterConfiguration(requireNonNull(loaderWriterClass, "Null loaderWriterClass"), arguments));
+  }
+
+  public CacheConfigurationBuilder<K, V> withResilienceStrategy(ResilienceStrategy<K, V> resilienceStrategy) {
+    return addOrReplaceConfiguration(new DefaultResilienceStrategyConfiguration(requireNonNull(resilienceStrategy, "Null resilienceStrategy")));
+  }
+
+  public CacheConfigurationBuilder<K, V> withResilienceStrategy(Class<ResilienceStrategy<K, V>> resilienceStrategyClass, Object... arguments) {
+    return addOrReplaceConfiguration(new DefaultResilienceStrategyConfiguration(requireNonNull(resilienceStrategyClass, "Null resilienceStrategyClass"), arguments));
   }
 
   /**
@@ -570,14 +564,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added configuration
    */
   public CacheConfigurationBuilder<K, V> withDispatcherConcurrency(int dispatcherConcurrency) {
-    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(dispatcherConcurrency);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultEventSourceConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultEventSourceConfiguration.class);
-    if (existingServiceConfiguration != null) {
-      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
-    }
-    otherBuilder.serviceConfigurations.add(configuration);
-    return otherBuilder;
+    return addOrReplaceConfiguration(new DefaultEventSourceConfiguration(dispatcherConcurrency));
   }
 
   /**
@@ -588,14 +575,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added configuration
    */
   public CacheConfigurationBuilder<K, V> withEventListenersThreadPool(String threadPoolAlias) {
-    DefaultCacheEventDispatcherConfiguration configuration = new DefaultCacheEventDispatcherConfiguration(threadPoolAlias);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultCacheEventDispatcherConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheEventDispatcherConfiguration.class);
-    if (existingServiceConfiguration != null) {
-      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
-    }
-    otherBuilder.serviceConfigurations.add(configuration);
-    return otherBuilder;
+    return addOrReplaceConfiguration(new DefaultCacheEventDispatcherConfiguration(threadPoolAlias));
   }
 
   /**
@@ -607,14 +587,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added configuration
    */
   public CacheConfigurationBuilder<K, V> withDiskStoreThreadPool(String threadPoolAlias, int concurrency) {
-    OffHeapDiskStoreConfiguration configuration = new OffHeapDiskStoreConfiguration(threadPoolAlias, concurrency);
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    OffHeapDiskStoreConfiguration existingServiceConfiguration = getExistingServiceConfiguration(OffHeapDiskStoreConfiguration.class);
-    if (existingServiceConfiguration != null) {
-      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
-    }
-    otherBuilder.serviceConfigurations.add(configuration);
-    return otherBuilder;
+    return addOrReplaceConfiguration(new OffHeapDiskStoreConfiguration(threadPoolAlias, concurrency));
   }
 
   /**
@@ -627,15 +600,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added / updated configuration
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectGraph(long size) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultSizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
-    if (configuration == null) {
-      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size));
-    } else {
-      otherBuilder.serviceConfigurations.remove(configuration);
-      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(configuration.getMaxObjectSize(), configuration.getUnit(), size));
-    }
-    return otherBuilder;
+    return mapServiceConfiguration(DefaultSizeOfEngineConfiguration.class, existing -> existing
+      .map(e -> new DefaultSizeOfEngineConfiguration(e.getMaxObjectSize(), e.getUnit(), size))
+      .orElse(new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size)));
   }
 
   /**
@@ -649,15 +616,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added / updated configuration
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
-    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
-    DefaultSizeOfEngineConfiguration configuration = getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
-    if (configuration == null) {
-      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE));
-    } else {
-      otherBuilder.serviceConfigurations.remove(configuration);
-      otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, configuration.getMaxObjectGraphSize()));
-    }
-    return otherBuilder;
+    return mapServiceConfiguration(DefaultSizeOfEngineConfiguration.class, existing -> existing
+      .map(e -> new DefaultSizeOfEngineConfiguration(size, unit, e.getMaxObjectGraphSize()))
+      .orElse(new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE)));
   }
 
   @Override
@@ -666,5 +627,23 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       classLoader, expiry, resourcePools,
       serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
 
+  }
+
+  private <T extends ServiceConfiguration<?>> CacheConfigurationBuilder<K,V> addOrReplaceConfiguration(T configuration) {
+    return addOrReplaceConfiguration((Class<T>) configuration.getClass(), configuration);
+  }
+
+  private <T extends ServiceConfiguration<?>> CacheConfigurationBuilder<K,V> addOrReplaceConfiguration(Class<T> configurationType, T configuration) {
+    return mapServiceConfiguration(configurationType, e -> configuration);
+  }
+
+  private <T extends ServiceConfiguration<?>> CacheConfigurationBuilder<K,V> mapServiceConfiguration(Class<T> configurationType, Function<Optional<T>, T> mapper) {
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
+    T existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(configurationType);
+    if (existingServiceConfiguration != null) {
+      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
+    }
+    otherBuilder.serviceConfigurations.add(mapper.apply(Optional.ofNullable(existingServiceConfiguration)));
+    return otherBuilder;
   }
 }

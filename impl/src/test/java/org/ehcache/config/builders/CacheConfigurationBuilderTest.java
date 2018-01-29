@@ -19,24 +19,31 @@ package org.ehcache.config.builders;
 import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.AbstractResilienceStrategy;
+import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.hamcrest.collection.IsArrayContainingInOrder;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
+import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
@@ -291,5 +298,39 @@ public class CacheConfigurationBuilderTest {
     assertThat(copy.getEvictionAdvisor(), IsSame.<EvictionAdvisor<?, ?>>sameInstance(eviction));
     assertThat(copy.getExpiryPolicy(), IsSame.<ExpiryPolicy<?, ?>>sameInstance(expiry));
     assertThat(copy.getServiceConfigurations(), contains(IsSame.<ServiceConfiguration<?>>sameInstance(service)));
+  }
+
+  @Test
+  public void testResilienceStrategyInstance() throws Exception {
+    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
+
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
+      .withResilienceStrategy(resilienceStrategy)
+      .build();
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = ServiceUtils.findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    Object instance = resilienceStrategyConfiguration.getInstance();
+    assertThat(instance, sameInstance(resilienceStrategy));
+  }
+
+
+  @Test
+  public void testResilienceStrategyClass() throws Exception {
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
+      .withResilienceStrategy((Class) CustomResilience.class, "Hello World")
+      .build();
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = ServiceUtils.findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getInstance(), nullValue());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(CustomResilience.class));
+    assertThat(resilienceStrategyConfiguration.getArguments(), arrayContaining("Hello World"));
+
+  }
+
+  static class CustomResilience<K, V> extends RobustResilienceStrategy<K, V> {
+
+    public CustomResilience(RecoveryStore<K> store, String blah) {
+      super(store);
+    }
   }
 }

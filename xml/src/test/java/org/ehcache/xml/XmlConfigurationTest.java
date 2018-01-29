@@ -32,6 +32,7 @@ import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
@@ -691,6 +692,26 @@ public class XmlConfigurationTest {
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
+  }
+
+  @Test
+  public void testResilienceStrategy() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("ni");
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(NiResilience.class));
+  }
+
+  @Test
+  public void testResilienceStrategyFromTemplate() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("shrubbery");
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(ShrubberyResilience.class));
   }
 
   @Test

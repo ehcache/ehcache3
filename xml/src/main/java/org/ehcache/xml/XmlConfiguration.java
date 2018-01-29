@@ -42,6 +42,7 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
@@ -50,6 +51,7 @@ import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -319,8 +321,12 @@ public class XmlConfiguration implements Configuration {
                   .queueSize(writeBehind.maxQueueSize()));
         }
       }
+      if (cacheDefinition.resilienceStrategy() != null) {
+        Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(cacheDefinition.resilienceStrategy(), cacheClassLoader);
+        builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
+      }
       builder = handleListenersConfig(cacheDefinition.listenersConfig(), cacheClassLoader, builder);
-      final CacheConfiguration<?, ?> config = builder.build();
+      CacheConfiguration<?, ?> config = builder.build();
       cacheConfigurations.put(alias, config);
     }
 
@@ -548,6 +554,11 @@ public class XmlConfiguration implements Configuration {
                 .concurrencyLevel(writeBehind.concurrency())
                 .queueSize(writeBehind.maxQueueSize()));
       }
+    }
+    String resilienceStrategy = cacheTemplate.resilienceStrategy();
+    if (resilienceStrategy != null) {
+      final Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(resilienceStrategy, defaultClassLoader);
+      builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
     }
     builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {

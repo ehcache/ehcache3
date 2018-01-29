@@ -15,8 +15,12 @@
  */
 package org.ehcache.impl.internal.spi.resilience;
 
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
+import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
+import org.ehcache.impl.internal.classes.ClassInstanceProvider;
+import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -24,24 +28,96 @@ import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+
 public class DefaultResilienceStrategyProvider implements ResilienceStrategyProvider {
-  @Override
-  public <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, RecoveryStore<K> recoveryStore) {
-    return new RobustResilienceStrategy<>(recoveryStore);
+
+  private final ComponentProvider regularStrategies;
+  private final ComponentProvider loaderWriterStrategies;
+
+  protected DefaultResilienceStrategyProvider() {
+    this(new DefaultResilienceStrategyProviderConfiguration());
+  }
+
+  protected DefaultResilienceStrategyProvider(DefaultResilienceStrategyProviderConfiguration configuration) {
+    this.regularStrategies = new ComponentProvider(configuration.getDefaultConfiguration(), configuration);
+    this.loaderWriterStrategies = new ComponentProvider(configuration.getDefaultLoaderWriterConfiguration(), configuration);
   }
 
   @Override
-  public <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter) {
-    return new RobustLoaderWriterResilienceStrategy<>(recoveryStore, loaderWriter);
+  public <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, CacheConfiguration<K, V> configuration,
+                                                                  RecoveryStore<K> recoveryStore) {
+    DefaultResilienceStrategyConfiguration config = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, configuration.getServiceConfigurations());
+    return regularStrategies.create(alias, config, recoveryStore);
+  }
+
+  @Override
+  public <K, V> ResilienceStrategy<K, V> createResilienceStrategy(String alias, CacheConfiguration<K, V> configuration,
+                                                                  RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter) {
+    DefaultResilienceStrategyConfiguration config = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, configuration.getServiceConfigurations());
+    return loaderWriterStrategies.create(alias, config, recoveryStore, loaderWriter);
   }
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
-    //no-op
+    regularStrategies.start(serviceProvider);
+    try {
+      loaderWriterStrategies.start(serviceProvider);
+    } catch (Throwable t) {
+      try {
+        regularStrategies.stop();
+      } catch (Throwable u) {
+        t.addSuppressed(u);
+      }
+      throw t;
+    }
   }
 
   @Override
   public void stop() {
-    //no-op
+    try {
+      regularStrategies.stop();
+    } finally {
+      loaderWriterStrategies.stop();
+    }
   }
+
+  static class ComponentProvider extends ClassInstanceProvider<String, ResilienceStrategy<?, ?>> {
+
+    private DefaultResilienceStrategyConfiguration defaultConfiguration;
+
+    protected ComponentProvider(DefaultResilienceStrategyConfiguration dflt, ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> factoryConfig) {
+      super(factoryConfig, DefaultResilienceStrategyConfiguration.class);
+      this.defaultConfiguration = dflt;
+    }
+
+
+    public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config,
+                                                  RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter) {
+      if (config == null) {
+        DefaultResilienceStrategyConfiguration preconfigured = (DefaultResilienceStrategyConfiguration) getPreconfigured(alias);
+        if (preconfigured == null) {
+          return (ResilienceStrategy<K, V>) newInstance(alias, defaultConfiguration.bind(recoveryStore, loaderWriter));
+        } else {
+          return (ResilienceStrategy<K, V>) newInstance(alias, preconfigured.bind(recoveryStore, loaderWriter));
+        }
+      } else {
+        return (ResilienceStrategy<K, V>) newInstance(alias, config.bind(recoveryStore, loaderWriter));
+      }
+    }
+
+    public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config, RecoveryStore<K> recoveryStore) {
+      if (config == null) {
+        DefaultResilienceStrategyConfiguration preconfigured = (DefaultResilienceStrategyConfiguration) getPreconfigured(alias);
+        if (preconfigured == null) {
+          return (ResilienceStrategy<K, V>) newInstance(alias, defaultConfiguration.bind(recoveryStore));
+        } else {
+          return (ResilienceStrategy<K, V>) newInstance(alias, preconfigured.bind(recoveryStore));
+        }
+      } else {
+        return (ResilienceStrategy<K, V>) newInstance(alias, config.bind(recoveryStore));
+      }
+    }
+  }
+
 }

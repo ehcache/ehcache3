@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;

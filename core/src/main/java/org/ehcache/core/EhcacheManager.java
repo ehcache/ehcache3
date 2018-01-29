@@ -77,6 +77,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
@@ -362,9 +363,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final ResilienceStrategyProvider resilienceProvider = serviceLocator.getService(ResilienceStrategyProvider.class);
     final ResilienceStrategy<K, V> resilienceStrategy;
     if (decorator == null) {
-      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, new DefaultRecoveryStore<>(store));
+      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
     } else {
-      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, new DefaultRecoveryStore<>(store), decorator);
+      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), decorator);
     }
     final InternalCache<K, V> cache;
     if (decorator == null) {
@@ -492,7 +493,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = ServiceUtils.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+    StoreEventSourceConfiguration eventSourceConfiguration = findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {
