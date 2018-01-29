@@ -43,6 +43,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -69,17 +70,15 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
 
   private ReconnectListener reconnectListener = reconnectMessage -> {
     // No op
   };
-  private DisconnectionListener disconnectionListener = () -> {
-    // No op
-  };
+
   private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
   private String storeIdentifier;
   private volatile boolean connected = true;
-
 
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -102,6 +101,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
       @Override
       public void didDisconnectUnexpectedly() {
+        LOGGER.info("Cluster tier for cache {} disconnected", storeIdentifier);
         fireDisconnectionEvent();
       }
     });
@@ -114,7 +114,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   void fireDisconnectionEvent() {
     connected = false;
-    disconnectionListener.onDisconnection();
+    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
@@ -134,7 +134,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public void close() {
     endpoint.close();
     reconnectListener = null;
-    disconnectionListener = null;
+    disconnectionListeners.clear();
   }
 
   @Override
@@ -148,8 +148,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setDisconnectionListener(DisconnectionListener disconnectionListener) {
-    this.disconnectionListener = disconnectionListener;
+  public void addDisconnectionListener(DisconnectionListener disconnectionListener) {
+    this.disconnectionListeners.add(disconnectionListener);
   }
 
   @Override

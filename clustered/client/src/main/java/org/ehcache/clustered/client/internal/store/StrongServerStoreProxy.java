@@ -51,7 +51,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     delegate.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
 
     entity.setReconnectListener(this::reconnectListener);
-    entity.setDisconnectionListener(this::disconnectionListener);
+    entity.addDisconnectionListener(this::disconnectionListener);
   }
 
   private void disconnectionListener() {
