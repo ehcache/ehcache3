@@ -13,21 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
-
-import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
- * The payload exception thrown by the cache when an {@link XAStore} has issues retrieving the transaction context.
- *
- * @author Ludovic Orban
+ * {@link org.ehcache.resilience.ResilienceStrategy} API of a {@link org.ehcache.Cache Cache}.
  */
-public class XACacheException extends RuntimeException {
-  public XACacheException(String message) {
-    super(message);
-  }
-
-  public XACacheException(String message, Throwable cause) {
-    super(message, cause);
-  }
-}
+package org.ehcache.resilience;
