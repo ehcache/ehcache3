@@ -65,13 +65,17 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   InternalChain newChain(ByteBuffer element) {
-    return new PrimordialChain(element);
+    return new GenesisLink(element);
+  }
+
+  InternalChain newChain(Chain chain) {
+    return new GenesisLinks(chain);
   }
 
   @Override
   public Long writeMapping(K key, InternalChain value, int hash, int metadata) {
-    if (value instanceof PrimordialChain) {
-      return createAttachedChain(key, hash, (PrimordialChain) value);
+    if (value instanceof GenesisChain) {
+      return createAttachedChain(key, hash, (GenesisChain) value);
     } else {
       throw new AssertionError("only detached internal chains should be initially written");
     }
@@ -201,32 +205,64 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   }
 
-  private static class PrimordialChain implements InternalChain {
-
-    private final ByteBuffer element;
-
-    public PrimordialChain(ByteBuffer element) {
-      this.element = element;
-    }
-
+  /**
+   * Represents mode of formation of a chain before the storage engine writes the chain mapping
+   * to the underlying map against the key.
+   */
+  private static abstract class GenesisChain implements InternalChain {
     @Override
     public Chain detach() {
-      throw new AssertionError("primordial chains cannot be detached");
+      throw new AssertionError("Chain not in storage yet. Cannot be detached");
     }
 
     @Override
     public boolean append(ByteBuffer element) {
-      throw new AssertionError("primordial chains cannot be appended");
+      throw new AssertionError("Chain not in storage yet. Cannot be appended");
     }
 
     @Override
     public boolean replace(Chain expected, Chain replacement) {
-      throw new AssertionError("primordial chains cannot be mutated");
+      throw new AssertionError("Chain not in storage yet. Cannot be mutated");
     }
 
     @Override
     public void close() {
       //no-op
+    }
+
+    protected abstract Iterator<Element> iterator();
+  }
+
+  /**
+   * Represents a simple genesis chain that contains a single link
+   */
+  private static class GenesisLink extends GenesisChain {
+    private final Element element;
+
+    public GenesisLink(ByteBuffer buffer) {
+      element = () -> buffer;
+    }
+
+    @Override
+    protected Iterator<Element> iterator() {
+      return Collections.singleton(element).iterator();
+    }
+  }
+
+  /**
+   * Represents a more complex genesis chain that contains multiple links represented itself
+   * as a {@link Chain}
+   */
+  private static class GenesisLinks extends GenesisChain {
+    private final Chain chain;
+
+    public GenesisLinks(Chain chain) {
+      this.chain = chain;
+    }
+
+    @Override
+    protected Iterator<Element> iterator() {
+      return chain.iterator();
     }
   }
 
@@ -343,7 +379,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       } while (expectedIt.hasNext());
 
       int hash = readKeyHash(chain);
-      Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement);
+      Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement.iterator());
       if (newChainAddress == null) {
         return false;
       } else {
@@ -446,10 +482,9 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element.duplicate());
   }
 
-  private Long createAttachedChain(K key, int hash, PrimordialChain value) {
+  private Long createAttachedChain(K key, int hash, GenesisChain value) {
     ByteBuffer keyBuffer = keyPortability.encode(key);
-    ByteBuffer elemBuffer = value.element;
-    return createAttachedChain(keyBuffer, hash, elemBuffer);
+    return createAttachedChain(keyBuffer, hash, value.iterator());
   }
 
   private Long createAttachedChain(ByteBuffer keyBuffer, int hash, ByteBuffer elemBuffer) {
@@ -468,19 +503,20 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     return chain;
   }
 
-  private Long createAttachedChain(ByteBuffer readKeyBuffer, int hash, Chain from) {
-    Iterator<Element> iterator = from.iterator();
+  private Long createAttachedChain(ByteBuffer readKeyBuffer, int hash, Iterator<Element> iterator) {
     Long address = createAttachedChain(readKeyBuffer, hash, iterator.next().getPayload());
     if (address == null) {
       return null;
     }
 
-    try (AttachedInternalChain chain = new AttachedInternalChain(address)) {
-      while (iterator.hasNext()) {
-        if (!chain.append(iterator.next().getPayload())) {
-          chain.free();
-          return null;
-        }
+    if (iterator.hasNext()) {
+      try (AttachedInternalChain chain = new AttachedInternalChain(address)) {
+        do {
+          if (!chain.append(iterator.next().getPayload())) {
+            chain.free();
+            return null;
+          }
+        } while (iterator.hasNext());
       }
     }
     return address;
