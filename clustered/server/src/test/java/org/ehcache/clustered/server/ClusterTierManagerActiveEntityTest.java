@@ -46,7 +46,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -231,7 +230,6 @@ public class ClusterTierManagerActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    UUID client2Id = UUID.randomUUID();
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 

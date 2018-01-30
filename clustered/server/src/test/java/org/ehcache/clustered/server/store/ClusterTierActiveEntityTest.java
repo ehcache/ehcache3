@@ -72,7 +72,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -292,9 +291,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
     assertSuccess(
         activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
@@ -396,9 +392,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
     assertSuccess(
         activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
@@ -449,9 +442,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
     assertSuccess(
         activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
@@ -491,9 +481,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
-
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
 
     // attach to the store
     assertSuccess(
