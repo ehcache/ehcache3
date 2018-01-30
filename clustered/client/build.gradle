@@ -33,6 +33,7 @@ dependencies {
   testCompile "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
   testCompile "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
   testCompile "org.terracotta.internal:common:$terracottaCoreVersion"
+  testCompile "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
 }
 
 test {
