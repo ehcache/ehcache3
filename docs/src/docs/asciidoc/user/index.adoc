@@ -46,6 +46,7 @@ Each topic below corresponds to a menu item at the left.
 
 |link:migration-guide{outfilesuffix}[Migration Guide]|Ehcache2 to Ehcache3 Migration Guide
 |link:expiry{outfilesuffix}[Expiry]|Data freshness and expiration
+|link:resilience{outfilesuffix}[Resilience]|Cache resilience in case of failures
 |link:thread-pools{outfilesuffix}[Thread Pools]|Using and controlling threads in Ehcache 3
 |link:serializers-copiers{outfilesuffix}[Serializers and Copiers]|Understanding and configuring serializers and copiers
 |link:xa{outfilesuffix}[Transactions Support]|Using Ehcache with a JTA transaction manager

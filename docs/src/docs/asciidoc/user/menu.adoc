@@ -17,6 +17,7 @@ General topics::
 Advanced topics::
 - link:./migration-guide{outfilesuffix}[Migration Guide]
 - link:./expiry{outfilesuffix}[Expiry]
+- link:./resilience{outfilesuffix}[Resilience]
 - link:./thread-pools{outfilesuffix}[Thread Pools]
 - link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
 - link:./xa{outfilesuffix}[Transactions support]
