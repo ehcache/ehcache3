@@ -28,7 +28,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -95,7 +95,7 @@ import java.util.function.Supplier;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
-import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
+import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticType.COUNTER;
 import static org.terracotta.statistics.StatisticType.GAUGE;
@@ -290,7 +290,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
       return mapping;
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -307,7 +307,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
       return mapping;
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -370,7 +370,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       putObserver.end(StoreOperationOutcomes.PutOutcome.FAILURE);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -408,7 +408,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -457,7 +457,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
 
     return returnValue.get();
@@ -510,7 +510,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return removeStatus;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
 
   }
@@ -553,7 +553,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
 
     return returnValue.get();
@@ -613,7 +613,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return replaceStatus;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -694,7 +694,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -782,7 +782,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       invalidateObserver.end(outcome.get());
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -810,7 +810,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       silentInvalidateObserver.end(outcome.get());
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -1124,7 +1124,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return computeResult;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -1182,7 +1182,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return computeResult;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 

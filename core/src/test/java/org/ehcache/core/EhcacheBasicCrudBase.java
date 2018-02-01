@@ -26,8 +26,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
+import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -220,14 +220,12 @@ public abstract class EhcacheBasicCrudBase {
   protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
     assert ehcache != null;
     try {
-      final Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
+      Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
       resilienceStrategyField.setAccessible(true);
       @SuppressWarnings("unchecked")
       ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);
-      if (resilienceStrategy != null) {
-        resilienceStrategy = spy(resilienceStrategy);
-        resilienceStrategyField.set(ehcache, resilienceStrategy);
-      }
+      resilienceStrategy = spy(resilienceStrategy);
+      resilienceStrategyField.set(ehcache, resilienceStrategy);
       return resilienceStrategy;
     } catch (Exception e) {
       throw new AssertionError(String.format("Unable to wrap ResilienceStrategy in Ehcache instance: %s", e));
@@ -280,10 +278,8 @@ public abstract class EhcacheBasicCrudBase {
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
     protected Map<String, String> getEntryMap() {
-      final Map<String, String> result = new HashMap<>();
-      for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().get());
-      }
+      Map<String, String> result = new HashMap<>(entries.size());
+      entries.forEach((k, v) -> result.put(k, v.get()));
       return Collections.unmodifiableMap(result);
     }
 

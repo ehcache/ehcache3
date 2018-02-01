@@ -21,7 +21,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;

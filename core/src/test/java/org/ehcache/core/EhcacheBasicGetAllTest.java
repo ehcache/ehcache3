@@ -19,7 +19,7 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -298,9 +298,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   private void validateStatsNoneof(Ehcache<String, String> cache) {
     validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
-    if (!(cache instanceof Ehcache)) {
-      validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-    }
   }
 
   /**

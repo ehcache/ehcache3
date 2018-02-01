@@ -19,7 +19,7 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
@@ -33,6 +33,7 @@ import java.util.EnumSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -180,7 +181,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
   /**
@@ -226,8 +227,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
@@ -254,8 +255,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
@@ -288,9 +289,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
+    ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
-    ordered.verify(this.spiedResilienceStrategy)
-        .putFailure(eq("key"), eq("value"), any(StoreAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
@@ -383,9 +383,13 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
     } catch (CacheWritingException e) {
       // Expected
     }
+
+    // Key and old value should still be in place
+    assertThat(ehcache.get("key"), equalTo("oldValue"));
+
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
   /**
@@ -432,8 +436,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
@@ -460,8 +464,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
-    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
@@ -494,9 +498,8 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction());
+    ordered.verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
-    ordered.verify(this.spiedResilienceStrategy)
-        .putFailure(eq("key"), eq("value"), any(StoreAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 

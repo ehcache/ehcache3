@@ -136,16 +136,6 @@ public interface CacheOperationOutcomes {
   }
 
   /**
-   * The cache loading outcomes.
-   */
-  enum CacheLoadingOutcome implements CacheOperationOutcomes {
-    /** success. */
-    SUCCESS,
-    /** failure */
-    FAILURE
-  }
-
-  /**
    * The putIfAbsent outcomes.
    */
   enum PutIfAbsentOutcome implements CacheOperationOutcomes {

@@ -47,4 +47,30 @@ public final class ExceptionFactory {
   public static CacheLoadingException newCacheLoadingException(Exception e) {
     return new CacheLoadingException(e);
   }
+
+  /**
+   * Creates a new {@code CacheWritingException} with the provided exception as cause and a suppressed one.
+   *
+   * @param e the cause
+   * @param suppressed the suppressed exception to add to the new exception
+   * @return a cache writing exception
+   */
+  public static CacheWritingException newCacheWritingException(Exception e, Exception suppressed) {
+    CacheWritingException ne = new CacheWritingException(e);
+    ne.addSuppressed(suppressed);
+    return ne;
+  }
+
+  /**
+   * Creates a new {@code CacheLoadingException} with the provided exception as cause and a suppressed one.
+   *
+   * @param e the cause
+   * @param suppressed the suppressed exception to add to the new exception
+   * @return a cache loading exception
+   */
+  public static CacheLoadingException newCacheLoadingException(Exception e, Exception suppressed) {
+    CacheLoadingException ne = new CacheLoadingException(e);
+    ne.addSuppressed(e);
+    return ne;
+  }
 }

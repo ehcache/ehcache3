@@ -21,7 +21,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;

@@ -19,13 +19,9 @@ import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
-import org.ehcache.core.internal.resilience.RecoveryCache;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
@@ -38,7 +34,10 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
@@ -47,6 +46,7 @@ import org.terracotta.statistics.observer.OperationObserver;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -55,6 +55,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
@@ -94,17 +95,13 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * @param eventDispatcher the event dispatcher
    * @param logger the logger
    */
-  EhcacheBase(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+  EhcacheBase(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
           CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
 
-    if (store instanceof RecoveryCache) {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(castToRecoveryCache(store));
-    } else {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(recoveryCache(store));
-    }
+    this.resilienceStrategy = resilienceStrategy;
 
     this.runtimeConfiguration = runtimeConfiguration;
     runtimeConfiguration.addCacheConfigurationListener(eventDispatcher.getConfigurationChangeListeners());
@@ -116,57 +113,101 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private RecoveryCache<K> castToRecoveryCache(Store<K, V> store) {
-    return (RecoveryCache<K>) store;
-  }
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public V get(K key) {
+    getObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
 
-  private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
-    return new RecoveryCache<K>() {
+      try {
+        Store.ValueHolder<V> valueHolder = doGet(key);
 
-      @Override
-      public void obliterate() throws StoreAccessException {
-        store.clear();
-      }
-
-      @Override
-      public void obliterate(K key) throws StoreAccessException {
-        store.remove(key);
-      }
-
-      @Override
-      public void obliterate(Iterable<? extends K> keys) throws StoreAccessException {
-        for (K key : keys) {
-          obliterate(key);
+        // Check for expiry first
+        if (valueHolder == null) {
+          getObserver.end(GetOutcome.MISS);
+          return null;
+        } else {
+          getObserver.end(GetOutcome.HIT);
+          return valueHolder.get();
         }
+      } catch (StoreAccessException e) {
+        V value = resilienceStrategy.getFailure(key, e);
+        getObserver.end(GetOutcome.FAILURE);
+        return value;
       }
-    };
+    } catch (Throwable e) {
+      getObserver.end(GetOutcome.FAILURE);
+      throw e;
+    }
   }
+
+  protected abstract Store.ValueHolder<V> doGet(K key) throws StoreAccessException;
 
   protected V getNoLoader(K key) {
     getObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
     try {
-      final Store.ValueHolder<V> valueHolder = store.get(key);
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
 
-      // Check for expiry first
-      if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS);
-        return null;
-      } else {
-        getObserver.end(GetOutcome.HIT);
-        return valueHolder.get();
-      }
-    } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.getFailure(key, e);
-      } finally {
+        Store.ValueHolder<V> valueHolder = store.get(key);
+
+        // Check for expiry first
+        if (valueHolder == null) {
+          getObserver.end(GetOutcome.MISS);
+          return null;
+        } else {
+          getObserver.end(GetOutcome.HIT);
+          return valueHolder.get();
+        }
+      } catch (StoreAccessException e) {
+        V value = resilienceStrategy.getFailure(key, e);
         getObserver.end(GetOutcome.FAILURE);
+        return value;
       }
+    } catch (Throwable e) {
+      getObserver.end(GetOutcome.FAILURE);
+      throw e;
     }
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void put(K key, V value) {
+    putObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      try {
+        Store.PutStatus status = doPut(key, value);
+        switch (status) {
+          case PUT:
+            putObserver.end(PutOutcome.PUT);
+            break;
+          case NOOP:
+            putObserver.end(PutOutcome.NOOP);
+            break;
+          default:
+            throw new AssertionError("Invalid Status.");
+        }
+      } catch (StoreAccessException e) {
+        resilienceStrategy.putFailure(key, value, e);
+        putObserver.end(PutOutcome.FAILURE);
+      }
+    } catch (Throwable e) {
+      putObserver.end(PutOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Store.PutStatus doPut(K key, V value) throws StoreAccessException;
 
   /**
    * {@inheritDoc}
@@ -190,7 +231,33 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     removeInternal(key); // ignore return value;
   }
 
-  protected abstract boolean removeInternal(final K key);
+  protected boolean removeInternal(final K key) {
+    removeObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key);
+
+      boolean removed = false;
+      try {
+        removed = doRemoveInternal(key);
+        if (removed) {
+          removeObserver.end(RemoveOutcome.SUCCESS);
+        } else {
+          removeObserver.end(RemoveOutcome.NOOP);
+        }
+      } catch (StoreAccessException e) {
+        resilienceStrategy.removeFailure(key, e);
+        removeObserver.end(RemoveOutcome.FAILURE);
+      }
+
+      return removed;
+    } catch (Throwable e) {
+      removeObserver.end(RemoveOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract boolean doRemoveInternal(final K key) throws StoreAccessException;
 
   /**
    * {@inheritDoc}
@@ -198,15 +265,57 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public void clear() {
     clearObserver.begin();
-    statusTransitioner.checkAvailable();
     try {
-      store.clear();
-      clearObserver.end(ClearOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
+      statusTransitioner.checkAvailable();
+      try {
+        store.clear();
+        clearObserver.end(ClearOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.clearFailure(e);
+        clearObserver.end(ClearOutcome.FAILURE);
+      }
+    } catch (Throwable e) {
       clearObserver.end(ClearOutcome.FAILURE);
-      resilienceStrategy.clearFailure(e);
+      throw e;
     }
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public V putIfAbsent(final K key, final V value) {
+    putIfAbsentObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      boolean[] put = { false };
+
+      try {
+        ValueHolder<V> inCache = doPutIfAbsent(key, value, b -> put[0] = b);
+        if (put[0]) {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+          return null;
+        } else if (inCache == null) {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+          return null;
+        } else {
+          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
+          return inCache.get();
+        }
+      } catch (StoreAccessException e) {
+        V newValue = resilienceStrategy.putIfAbsentFailure(key, value, e);
+        putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
+        return newValue;
+      }
+    } catch (Throwable e) {
+      putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract ValueHolder<V> doPutIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException;
 
   /**
    * {@inheritDoc}
@@ -225,12 +334,100 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     return getAllInternal(keys, true);
   }
 
-  protected abstract Map<K,V> getAllInternal(Set<? extends K> keys, boolean b);
+  protected Map<K,V> getAllInternal(Set<? extends K> keys, boolean includeNulls) {
+    getAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNullContent(keys);
+      if (keys.isEmpty()) {
+        getAllObserver.end(GetAllOutcome.SUCCESS);
+        return Collections.emptyMap();
+      }
 
+      try {
+        Map<K, V> result = doGetAllInternal(keys, includeNulls);
+        getAllObserver.end(GetAllOutcome.SUCCESS);
+        return result;
+      } catch (StoreAccessException e) {
+        Map<K, V> result = resilienceStrategy.getAllFailure(keys, e);
+        getAllObserver.end(GetAllOutcome.FAILURE);
+        return result;
+      }
+    } catch (Throwable e) {
+      getAllObserver.end(GetAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Map<K,V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
+    putAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(entries);
+      if(entries.isEmpty()) {
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+        return;
+      }
+
+      try {
+        doPutAll(entries);
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.putAllFailure(entries, e);
+        putAllObserver.end(PutAllOutcome.FAILURE);
+      }
+    } catch (Exception e) {
+      putAllObserver.end(PutAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract void doPutAll(Map<? extends K, ? extends V> entries) throws StoreAccessException, BulkCacheWritingException;
 
   protected boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
     return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiryPolicy(), key, oldValue, newValue);
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void removeAll(Set<? extends K> keys) throws BulkCacheWritingException {
+    removeAllObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(keys);
+      if (keys.isEmpty()) {
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+        return;
+      }
+
+      for (K key : keys) {
+        if (key == null) {
+          throw new NullPointerException();
+        }
+      }
+
+      try {
+        doRemoveAll(keys);
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      } catch (StoreAccessException e) {
+        resilienceStrategy.removeAllFailure(keys, e);
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
+      }
+    } catch (Throwable e) {
+      removeAllObserver.end(RemoveAllOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract void doRemoveAll(Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException;
 
   protected static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
     if (newValue == null) {
@@ -251,6 +448,113 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
     return Duration.ZERO.equals(duration);
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean remove(K key, V value) {
+    conditionalRemoveObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      try {
+        Store.RemoveStatus status = doRemove(key, value);
+        switch (status) {
+          case REMOVED:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
+            return true;
+          case KEY_MISSING:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
+            return false;
+          case KEY_PRESENT:
+            conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
+            return false;
+          default:
+            throw new AssertionError("Invalid Status: " + status);
+        }
+      } catch (StoreAccessException e) {
+        boolean removed = resilienceStrategy.removeFailure(key, value, e);
+        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
+        return removed;
+      }
+    } catch (Throwable e) {
+      conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Store.RemoveStatus doRemove(final K key, final V value) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public V replace(K key, V value) {
+    replaceObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, value);
+
+      try {
+        V result = doReplace(key, value);
+        if(result == null) {
+          replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        } else {
+          replaceObserver.end(ReplaceOutcome.HIT);
+        }
+        return result;
+      } catch (StoreAccessException e) {
+        V result = resilienceStrategy.replaceFailure(key, value, e);
+        replaceObserver.end(ReplaceOutcome.FAILURE);
+        return result;
+      }
+    } catch (Throwable e) {
+      replaceObserver.end(ReplaceOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract V doReplace(final K key, final V value) throws StoreAccessException;
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean replace(final K key, final V oldValue, final V newValue) {
+    replaceObserver.begin();
+    try {
+      statusTransitioner.checkAvailable();
+      checkNonNull(key, oldValue, newValue);
+
+      try {
+        Store.ReplaceStatus status = doReplace(key, oldValue, newValue);
+        switch (status) {
+          case HIT:
+            replaceObserver.end(ReplaceOutcome.HIT);
+            return true;
+          case MISS_PRESENT:
+            replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+            return false;
+          case MISS_NOT_PRESENT:
+            replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+            return false;
+          default:
+            throw new AssertionError("Invalid Status:" + status);
+        }
+      } catch (StoreAccessException e) {
+        boolean success = resilienceStrategy.replaceFailure(key, oldValue, newValue, e);
+        replaceObserver.end(ReplaceOutcome.FAILURE);
+        return success;
+      }
+    } catch (Throwable e) {
+      replaceObserver.end(ReplaceOutcome.FAILURE);
+      throw e;
+    }
+  }
+
+  protected abstract Store.ReplaceStatus doReplace(K key, V oldValue, V newValue) throws StoreAccessException;
 
   /**
    * {@inheritDoc}

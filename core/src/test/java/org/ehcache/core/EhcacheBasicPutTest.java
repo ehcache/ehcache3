@@ -21,7 +21,7 @@ import java.util.EnumSet;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
@@ -159,6 +160,37 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verify(this.store).put(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
+  }
+
+  /**
+   * Tests the effect of a {@link Ehcache#put(Object, Object)} for
+   * <ul>
+   *   <li>key present in {@code Store}</li>
+   *   <li>{@code Store.put} throws a {@code RuntimeException}</li>
+   * </ul>
+   */
+  @Test
+  public void testPutThrowsExceptionShouldKeepTheValueInPlace() throws Exception {
+    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    this.store = spy(fakeStore);
+    doThrow(new RuntimeException("failed")).when(this.store).put(eq("key"), eq("value"));
+
+    Ehcache<String, String> ehcache = this.getEhcache();
+
+    try {
+      ehcache.put("key", "value");
+      fail();
+    } catch(RuntimeException e) {
+      // expected
+      assertThat(e.getMessage(), equalTo("failed"));
+    }
+
+    // Key and old value should still be in place
+    assertThat(ehcache.get("key"), equalTo("oldValue"));
+
+    verify(this.store).put(eq("key"), eq("value"));
+    verifyNoMoreInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 

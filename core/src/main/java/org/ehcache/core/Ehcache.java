@@ -16,38 +16,32 @@
 
 package org.ehcache.core;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.PutStatus;
-import org.ehcache.core.spi.store.Store.RemoveStatus;
-import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
@@ -76,83 +70,28 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
-    super(runtimeConfiguration, store, eventDispatcher, logger, statusTransitioner);
+    super(runtimeConfiguration, store, new RobustResilienceStrategy<>(store), eventDispatcher, logger, statusTransitioner);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public V get(final K key) {
-    return getNoLoader(key);
+  protected Store.ValueHolder<V> doGet(K key) throws StoreAccessException {
+    return store.get(key);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void put(final K key, final V value) {
-    putObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      PutStatus status = store.put(key, value);
-      switch (status) {
-      case PUT:
-        putObserver.end(PutOutcome.PUT);
-        break;
-      case NOOP:
-        putObserver.end(PutOutcome.NOOP);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.putFailure(key, value, e);
-      } finally {
-        putObserver.end(PutOutcome.FAILURE);
-      }
-    }
+  protected Store.PutStatus doPut(K key, V value) throws StoreAccessException {
+    return store.put(key, value);
   }
 
-  protected boolean removeInternal(final K key) {
-    removeObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key);
-
-    boolean removed = false;
-    try {
-      removed = store.remove(key);
-      if (removed) {
-        removeObserver.end(RemoveOutcome.SUCCESS);
-      } else {
-        removeObserver.end(RemoveOutcome.NOOP);
-      }
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.removeFailure(key, e);
-      } finally {
-        removeObserver.end(RemoveOutcome.FAILURE);
-      }
-    }
-
-    return removed;
+  protected boolean doRemoveInternal(final K key) throws StoreAccessException {
+    return store.remove(key);
   }
 
-  protected Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
-    getAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNullContent(keys);
-    if(keys.isEmpty()) {
-      getAllObserver.end(GetAllOutcome.SUCCESS);
-      return Collections.emptyMap();
-    }
-
-    Map<K, V> result = new HashMap<>();
-    try {
+  protected Map<K, V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException {
       Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<>());
+      Map<K, V> result = new HashMap<>(computedMap.size());
 
       int hits = 0;
       int keyCount = 0;
@@ -168,215 +107,49 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
       addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
-      getAllObserver.end(GetAllOutcome.SUCCESS);
       return result;
-    } catch (StoreAccessException e) {
-      try {
-         return resilienceStrategy.getAllFailure(keys, e);
-      } finally {
-        getAllObserver.end(GetAllOutcome.FAILURE);
-      }
-    }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
-    putAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(entries);
-    if(entries.isEmpty()) {
-      putAllObserver.end(PutAllOutcome.SUCCESS);
-      return;
-    }
-
+  public void doPutAll(final Map<? extends K, ? extends V> entries) throws StoreAccessException {
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
-      // If a key/value is null, throw NPE, nothing gets mutated
-      if (entry.getKey() == null || entry.getValue() == null) {
-        throw new NullPointerException();
-      }
-      entriesToRemap.put(entry.getKey(), entry.getValue());
-    }
+    Map<K, V> entriesToRemap = CollectionUtil.copyMapButFailOnNull(entries);
 
-    try {
-      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
-      store.bulkCompute(entries.keySet(), putAllFunction);
-      addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
-      addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
-      putAllObserver.end(PutAllOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.putAllFailure(entries, e);
-      } finally {
-        putAllObserver.end(PutAllOutcome.FAILURE);
-      }
-    }
+    PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
+    store.bulkCompute(entries.keySet(), putAllFunction);
+    addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
+    addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
-    removeAllObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(keys);
-    if(keys.isEmpty()) {
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-      return;
-    }
-
-    for (K key: keys) {
-      if (key == null) {
-        throw new NullPointerException();
-      }
-    }
-
-
-    try {
-      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
-      store.bulkCompute(keys, removeAllFunction);
-      addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-    } catch (StoreAccessException e) {
-      try {
-        resilienceStrategy.removeAllFailure(keys, e);
-      } finally {
-        removeAllObserver.end(RemoveAllOutcome.FAILURE);
-      }
-    }
+  protected void doRemoveAll(final Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException {
+    RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
+    store.bulkCompute(keys, removeAllFunction);
+    addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V putIfAbsent(final K key, final V value) {
-    putIfAbsentObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      ValueHolder<V> inCache = store.putIfAbsent(key, value);
-      boolean absent = (inCache == null);
-      if (absent) {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
-        return null;
-      } else {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-        return inCache.get();
-      }
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, null, e, false); // FIXME: We can't know if it's absent or not
-      } finally {
-        putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
-      }
+  public ValueHolder<V> doPutIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
+    ValueHolder<V> result = store.putIfAbsent(key, value);
+    if(result == null) {
+      put.accept(true);
     }
+    return result;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean remove(final K key, final V value) {
-    conditionalRemoveObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-    boolean removed = false;
-
-    try {
-      RemoveStatus status = store.remove(key, value);
-      switch (status) {
-      case REMOVED:
-        removed = true;
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
-        break;
-      case KEY_MISSING:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
-        break;
-      case KEY_PRESENT:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.removeFailure(key, value, e, false); // FIXME: We can't know if it's removed or not
-      } finally {
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
-      }
-    }
-    return removed;
+  protected Store.RemoveStatus doRemove(K key, V value) throws StoreAccessException {
+    return store.remove(key, value);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V replace(final K key, final V value) {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
-
-    try {
-      ValueHolder<V> old = store.replace(key, value);
-      if (old != null) {
-        replaceObserver.end(ReplaceOutcome.HIT);
-      } else {
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-      }
-      return old == null ? null : old.get();
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.replaceFailure(key, value, e);
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
-      }
-    }
+  protected V doReplace(K key, V value) throws StoreAccessException {
+    ValueHolder<V> old = store.replace(key, value);
+    return old == null ? null : old.get();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
-    replaceObserver.begin();
-    statusTransitioner.checkAvailable();
-    checkNonNull(key, oldValue, newValue);
-
-    boolean success = false;
-
-    try {
-      ReplaceStatus status = store.replace(key, oldValue, newValue);
-      switch (status) {
-      case HIT:
-        success = true;
-        replaceObserver.end(ReplaceOutcome.HIT);
-        break;
-      case MISS_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
-        break;
-      case MISS_NOT_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
-      }
-
-      return success;
-    } catch (StoreAccessException e) {
-      try {
-        return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, false); // FIXME: We can't know if there was a match
-      } finally {
-        replaceObserver.end(ReplaceOutcome.FAILURE);
-      }
-    }
+  protected Store.ReplaceStatus doReplace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
+      return store.replace(key, oldValue, newValue);
   }
 
   @Override
@@ -587,14 +360,15 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends K> keys) {
-      Map<K, V> computeResult = new LinkedHashMap<>();
+      int size = CollectionUtil.findBestCollectionSize(keys, 1); // in our current implementation, we have one entry all the time
 
-      // put all the entries to get ordering correct
+      List<Map.Entry<K, V>> computeResult = new ArrayList<>(size);
+
       for (K key : keys) {
-        computeResult.put(key, null);
+        computeResult.add(CollectionUtil.entry(key, null));
       }
 
-      return computeResult.entrySet();
+      return computeResult;
     }
   }
 

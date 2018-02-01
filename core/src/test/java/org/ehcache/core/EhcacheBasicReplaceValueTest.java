@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -46,7 +46,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceValueNullNullNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace(null, null, null);
@@ -58,7 +58,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceKeyNullNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace("key", null, null);
@@ -70,7 +70,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceKeyValueNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace("key", "oldValue", null);
@@ -82,7 +82,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceKeyNullValue() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace("key", null, "newValue");
@@ -94,7 +94,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceNullValueNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace(null, "oldValue", null);
@@ -106,7 +106,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceNullValueValue() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace(null, "oldValue", "newValue");
@@ -118,7 +118,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceNullNullValue() {
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     try {
       ehcache.replace(null, null, "newValue");
@@ -137,10 +137,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    FakeStore fakeStore = new FakeStore(Collections.emptyMap());
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
@@ -157,10 +157,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueUnequalStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
+    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
@@ -177,10 +177,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueEqualStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
@@ -198,16 +198,15 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    FakeStore fakeStore = new FakeStore(Collections.emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class), eq(false));
+    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -220,16 +219,15 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueUnequalStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
+    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class), eq(false));
+    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -242,16 +240,15 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceValueEqualStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
 
-    final Ehcache<String, String> ehcache = this.getEhcache();
+    Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verify(this.spiedResilienceStrategy)
-        .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class), eq(false));
+    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -261,7 +258,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceValueTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));

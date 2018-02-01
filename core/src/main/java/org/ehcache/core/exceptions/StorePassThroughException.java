@@ -16,7 +16,7 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 
 /**
  * A generic wrapper runtime exception that will not be caught and
@@ -66,7 +66,7 @@ public class StorePassThroughException extends RuntimeException {
    * @return StoreAccessException to be thrown
    * @throws RuntimeException if {@code re} is a {@code StorePassThroughException} containing a {@code RuntimeException}
    */
-  public static StoreAccessException handleRuntimeException(RuntimeException re) {
+  public static StoreAccessException handleException(Exception re) {
     if(re instanceof StorePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {

@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.CacheIterationException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;

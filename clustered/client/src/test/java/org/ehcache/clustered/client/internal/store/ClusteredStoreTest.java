@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.assertj.core.api.ThrowableAssert;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -31,8 +32,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.store.StoreAccessTimeoutException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.store.HashUtils;
@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.ehcache.clustered.client.internal.store.ClusteredStore.DEFAULT_CHAIN_COMPACTION_THRESHOLD;
 import static org.ehcache.clustered.client.internal.store.ClusteredStore.CHAIN_COMPACTION_THRESHOLD_PROP;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
@@ -114,6 +115,12 @@ public class ClusteredStoreTest {
     UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
+  private void assertTimeoutOccurred(ThrowableAssert.ThrowingCallable throwingCallable) {
+    assertThatExceptionOfType(StoreAccessException.class)
+      .isThrownBy(throwingCallable)
+      .withCauseInstanceOf(TimeoutException.class);
+  }
+
   @Test
   public void testPut() throws Exception {
     assertThat(store.put(1L, "one"), is(Store.PutStatus.PUT));
@@ -123,7 +130,7 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.PutOutcome.PUT, 3);
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testPutTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -131,7 +138,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     doThrow(TimeoutException.class).when(proxy).append(anyLong(), isNull());
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.put(1L, "one");
+
+    assertTimeoutOccurred(() -> store.put(1L, "one"));
   }
 
   @Test
@@ -248,20 +256,24 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.of(StoreOperationOutcomes.RemoveOutcome.MISS, StoreOperationOutcomes.RemoveOutcome.REMOVED));
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testRemoveThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
     @SuppressWarnings("unchecked")
     EternalChainResolver<Long, String> chainResolver = mock(EternalChainResolver.class);
     ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
-    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
-    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    RuntimeException theException = new RuntimeException();
+    when(serverStoreProxy.getAndAppend(anyLong(), any())).thenThrow(theException);
+    TestTimeSource testTimeSource = new TestTimeSource();
+
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, chainResolver, serverStoreProxy, testTimeSource);
-    store.remove(1L);
+    assertThatExceptionOfType(StoreAccessException.class)
+      .isThrownBy(() -> store.remove(1L))
+      .withCause(theException);
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testRemoveTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -269,7 +281,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.remove(1L);
+
+    assertTimeoutOccurred(() -> store.remove(1L));
   }
 
   @Test
@@ -303,7 +316,7 @@ public class ClusteredStoreTest {
     store.clear();
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   public void testClearTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
     @SuppressWarnings("unchecked")
@@ -311,7 +324,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     doThrow(TimeoutException.class).when(proxy).clear();
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.clear();
+
+    assertTimeoutOccurred(() -> store.clear());
   }
 
   @Test
@@ -335,7 +349,7 @@ public class ClusteredStoreTest {
     store.putIfAbsent(1L, "one");
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testPutIfAbsentTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -343,7 +357,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.putIfAbsent(1L, "one");
+
+    assertTimeoutOccurred(() -> store.putIfAbsent(1L, "one"));
   }
 
   @Test
@@ -371,7 +386,7 @@ public class ClusteredStoreTest {
     store.remove(1L, "one");
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testConditionalRemoveTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -379,7 +394,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.remove(1L, "one");
+
+    assertTimeoutOccurred(() -> store.remove(1L, "one"));
   }
 
   @Test
@@ -404,7 +420,7 @@ public class ClusteredStoreTest {
     store.replace(1L, "one");
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testReplaceTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -412,7 +428,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.replace(1L, "one");
+
+    assertTimeoutOccurred(() -> store.replace(1L, "one"));
   }
 
   @Test
@@ -441,7 +458,7 @@ public class ClusteredStoreTest {
     store.replace(1L, "one", "another one");
   }
 
-  @Test(expected = StoreAccessTimeoutException.class)
+  @Test
   @SuppressWarnings("unchecked")
   public void testConditionalReplaceTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
@@ -449,7 +466,8 @@ public class ClusteredStoreTest {
     TimeSource timeSource = mock(TimeSource.class);
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(codec, null, proxy, timeSource);
-    store.replace(1L, "one", "another one");
+
+    assertTimeoutOccurred(() -> store.replace(1L, "one", "another one"));
   }
 
   @Test

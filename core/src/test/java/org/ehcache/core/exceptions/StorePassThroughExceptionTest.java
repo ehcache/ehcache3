@@ -15,7 +15,7 @@
  */
 package org.ehcache.core.exceptions;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.*;
@@ -29,24 +29,24 @@ public class StorePassThroughExceptionTest {
   }
 
   @Test
-  public void handleRuntimeException_runtimeWrappedInStoreAccessException() {
+  public void handleException_runtimeWrappedInStoreAccessException() {
     RuntimeException re = new RuntimeException();
-    StoreAccessException sae = StorePassThroughException.handleRuntimeException(re);
+    StoreAccessException sae = StorePassThroughException.handleException(re);
     assertThat(sae.getCause()).isSameAs(re);
   }
 
   @Test
-  public void handleRuntimeException_storePassThroughExceptionUnwrappedIfRuntime() {
+  public void handleException_storePassThroughExceptionUnwrappedIfRuntime() {
     RuntimeException re = new RuntimeException();
     assertThatExceptionOfType(RuntimeException.class)
-      .isThrownBy(() -> StorePassThroughException.handleRuntimeException(new StorePassThroughException(re)))
+      .isThrownBy(() -> StorePassThroughException.handleException(new StorePassThroughException(re)))
       .isSameAs(re);
   }
 
   @Test
-  public void handleRuntimeException_storePassThroughExceptionCauseWrapped() {
+  public void handleException_storePassThroughExceptionCauseWrapped() {
     Exception e = new Exception();
-    StoreAccessException sae = StorePassThroughException.handleRuntimeException(new StorePassThroughException(e));
+    StoreAccessException sae = StorePassThroughException.handleException(new StorePassThroughException(e));
     assertThat(sae.getCause()).isSameAs(e);
   }
 }

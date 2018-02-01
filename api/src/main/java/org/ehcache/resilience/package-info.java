@@ -14,19 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.resilience;
-
-import org.ehcache.core.spi.store.StoreAccessException;
-
 /**
- *
- * @author Chris Dennis
+ * {@link org.ehcache.resilience.ResilienceStrategy} API of a {@link org.ehcache.Cache Cache}.
  */
-public interface RecoveryCache<K> {
-
-  void obliterate() throws StoreAccessException;
-
-  void obliterate(K key) throws StoreAccessException;
-
-  void obliterate(Iterable<? extends K> keys) throws StoreAccessException;
-}
+package org.ehcache.resilience;

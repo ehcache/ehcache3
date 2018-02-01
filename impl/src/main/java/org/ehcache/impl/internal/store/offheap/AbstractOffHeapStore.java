@@ -35,7 +35,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -57,7 +57,7 @@ import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
-import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
+import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticsManager.tags;
 import static org.terracotta.statistics.StatisticType.GAUGE;
@@ -205,7 +205,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return result;
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -334,7 +334,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return removed.get();
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -380,7 +380,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
 
   }
@@ -475,7 +475,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       backingMap().clear();
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -763,7 +763,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
     return mappedValue;
   }
@@ -832,7 +832,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS);
       }
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -909,7 +909,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       return result;
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -941,7 +941,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       return computeResult;
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
   }
 
@@ -958,12 +958,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         throw new StoreAccessException("The element with key '" + key + "' is too large to be stored"
                                        + " in this offheap store.", e);
       } catch (RuntimeException e) {
-        throw handleRuntimeException(e);
+        throw handleException(e);
       } finally {
         evictionAdvisor().setSwitchedOn(true);
       }
     } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
+      throw handleException(re);
     }
     return computeResult;
   }
