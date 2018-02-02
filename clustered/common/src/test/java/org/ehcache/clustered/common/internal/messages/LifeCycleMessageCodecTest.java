@@ -24,13 +24,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * LifeCycleMessageCodecTest

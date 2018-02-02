@@ -24,7 +24,6 @@ import org.junit.Test;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;

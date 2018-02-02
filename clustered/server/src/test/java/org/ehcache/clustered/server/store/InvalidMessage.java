@@ -17,7 +17,5 @@ package org.ehcache.clustered.server.store;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
-import java.util.UUID;
-
 public class InvalidMessage extends EhcacheEntityMessage {
 }
