@@ -17,6 +17,8 @@ package org.ehcache.core.resilience;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheIterationException;
+import org.ehcache.core.internal.util.Pacer;
+import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.resilience.StoreAccessException;
 import org.slf4j.Logger;
@@ -32,6 +34,11 @@ public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStra
   private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
   private final RecoveryStore<K> store;
+
+  /**
+   * Used to prevent logging the same error continuously. Instead, we will log in error every 30 seconds.
+   */
+  private final Pacer pacer = new Pacer(SystemTimeSource.INSTANCE, 30_000);
 
   /**
    * Unique constructor. It takes a {@link RecoveryStore} that will be used for cleanup operations.
@@ -136,7 +143,7 @@ public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStra
    * @param cleanup all the exceptions that occurred during cleanup
    */
   protected void inconsistent(K key, StoreAccessException because, StoreAccessException... cleanup) {
-    LOGGER.error("Ehcache key {} in possible inconsistent state due to ", key, because);
+    pacedErrorLog("Ehcache key {} in possible inconsistent state", key, because);
   }
 
   /**
@@ -147,7 +154,7 @@ public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStra
    * @param cleanup all the exceptions that occurred during cleanup
    */
   protected void inconsistent(Iterable<? extends K> keys, StoreAccessException because, StoreAccessException... cleanup) {
-    LOGGER.error("Ehcache keys {} in possible inconsistent state due to ", keys, because);
+    pacedErrorLog("Ehcache keys {} in possible inconsistent state", keys, because);
   }
 
   /**
@@ -158,6 +165,28 @@ public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStra
    * @param cleanup all the exceptions that occurred during cleanup
    */
   protected void inconsistent(StoreAccessException because, StoreAccessException... cleanup) {
-    LOGGER.error("Ehcache in possible inconsistent state due to ", because);
+    pacedErrorLog("Ehcache in possible inconsistent state", because);
   }
+
+  /**
+   * Log messages in error at worst every 30 seconds. Log everything at debug level.
+   *
+   * @param message message to log
+   * @param e exception to log
+   */
+  protected void pacedErrorLog(String message, StoreAccessException e) {
+    pacer.pacedCall(() -> LOGGER.error(message + " - Similar messages will be suppressed for 30 seconds", e), () -> LOGGER.debug(message, e));
+  }
+
+  /**
+   * Log messages in error at worst every 30 seconds. Log everything at debug level.
+   *
+   * @param message message to log
+   * @param arg1 first log param
+   * @param arg2 second log param
+   */
+  protected void pacedErrorLog(String message, Object arg1, Object arg2) {
+    pacer.pacedCall(() -> LOGGER.error(message + " - Similar messages will be suppressed for 30 seconds", arg1, arg2), () -> LOGGER.debug(message, arg1, arg2));
+  }
+
 }
