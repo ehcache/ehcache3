@@ -109,7 +109,7 @@ public class ClusterStateRepositoryReplicationTest {
 
     ClusterStateRepository stateRepository = new ClusterStateRepository(spaceIdentifier, "test", clientEntity);
 
-    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
+    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class, c -> true, null);
     testHolder.putIfAbsent("One", "One");
     testHolder.putIfAbsent("Two", "Two");
 
@@ -154,7 +154,7 @@ public class ClusterStateRepositoryReplicationTest {
       }
     }, "test", clientEntity);
 
-    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class);
+    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class, c -> true, null);
     testMap.putIfAbsent(new TestVal("One"), new TestVal("One"));
     testMap.putIfAbsent(new TestVal("Two"), new TestVal("Two"));
 

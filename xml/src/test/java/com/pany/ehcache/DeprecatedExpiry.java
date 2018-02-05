@@ -16,8 +16,6 @@
 
 package com.pany.ehcache;
 
-import org.ehcache.ValueSupplier;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,17 +24,17 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("deprecation")
 public class DeprecatedExpiry implements org.ehcache.expiry.Expiry<Object, Object> {
   @Override
-  public org.ehcache.expiry.Duration getExpiryForCreation(final Object key, final Object value) {
+  public org.ehcache.expiry.Duration getExpiryForCreation(Object key, Object value) {
     return org.ehcache.expiry.Duration.of(42, TimeUnit.SECONDS);
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForAccess(final Object key, final ValueSupplier<? extends Object> value) {
+  public org.ehcache.expiry.Duration getExpiryForAccess(Object key, org.ehcache.ValueSupplier<? extends Object> value) {
     return org.ehcache.expiry.Duration.of(42, TimeUnit.SECONDS);
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
+  public org.ehcache.expiry.Duration getExpiryForUpdate(Object key, org.ehcache.ValueSupplier<? extends Object> oldValue, Object newValue) {
     return org.ehcache.expiry.Duration.of(42, TimeUnit.SECONDS);
   }
 }

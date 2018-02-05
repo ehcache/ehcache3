@@ -17,9 +17,10 @@ package org.ehcache.clustered.lock.server;
 
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
+import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.PassiveServerEntity;
 
-class VoltronReadWriteLockPassiveEntity implements PassiveServerEntity<LockOperation, LockTransition> {
+final class VoltronReadWriteLockPassiveEntity implements PassiveServerEntity<LockOperation, LockTransition> {
 
   static final VoltronReadWriteLockPassiveEntity INSTANCE = new VoltronReadWriteLockPassiveEntity();
 
@@ -28,7 +29,7 @@ class VoltronReadWriteLockPassiveEntity implements PassiveServerEntity<LockOpera
   }
 
   @Override
-  public void invoke(LockOperation message) {
+  public void invokePassive(InvokeContext context, LockOperation message) {
     throw new AssertionError("Unexpected message at passive " + message);
   }
 
