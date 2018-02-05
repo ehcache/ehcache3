@@ -22,6 +22,7 @@ package org.ehcache.config;
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
  */
+@FunctionalInterface
 public interface EvictionAdvisor<K, V> {
 
   /**
