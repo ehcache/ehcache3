@@ -28,3 +28,7 @@ dependencies {
 jar {
   from "$rootDir/NOTICE"
 }
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs = ['-Xlint:unchecked,deprecation']
+}

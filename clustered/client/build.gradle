@@ -41,7 +41,3 @@ test {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
 }
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
