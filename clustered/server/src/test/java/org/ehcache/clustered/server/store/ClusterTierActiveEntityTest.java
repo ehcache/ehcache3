@@ -72,6 +72,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -864,34 +866,51 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testDataSyncToPassiveCustomBatchSize() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-
-    TestInvokeContext context = new TestInvokeContext();
-    activeEntity.connected(context.getClientDescriptor());
-
-
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
-
-    ByteBuffer payload = ByteBuffer.allocate(512);
-    // Put keys that maps to the same concurrency key
-    ServerStoreOpMessage.AppendMessage testMessage = new ServerStoreOpMessage.AppendMessage(1L, payload);
-    activeEntity.invokeActive(context, testMessage);
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload));
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload));
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(33L, payload));
-
     System.setProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP, "512");
-    ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
-    int concurrencyKey = concurrencyStrategy.concurrencyKey(testMessage);
     try {
-      @SuppressWarnings("unchecked")
-      PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-      activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
-
-      verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+        verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      });
     } finally {
       System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP);
+    }
+  }
+
+  @Test
+  public void testDataSyncToPassiveCustomGets() throws Exception {
+    System.setProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP, "2");
+    try {
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+        verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      });
+    } finally {
+      System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP);
+    }
+  }
+
+  @Test
+  public void testDataSyncToPassiveException() throws Exception {
+    System.setProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP, "1");
+    try {
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.destroy();
+        try {
+          activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+          fail("Destroyed entity not expected to sync");
+        } catch (RuntimeException e) {
+          assertThat(e.getCause(), instanceOf(ExecutionException.class));
+        }
+      });
+    } finally {
+      System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP);
     }
   }
 
@@ -994,6 +1013,28 @@ public class ClusterTierActiveEntityTest {
 
     EhcacheEntityResponse actual = activeEntity.invokeActive(context, message); // this invoke should be rejected due to duplicate message id
     assertThat(actual, sameInstance(expected));
+  }
+
+  private void prepareAndRunActiveEntityForPassiveSync(BiConsumer<ClusterTierActiveEntity, Integer> testConsumer) throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+
+    ByteBuffer payload = ByteBuffer.allocate(512);
+    // Put keys that maps to the same concurrency key
+    ServerStoreOpMessage.AppendMessage testMessage = new ServerStoreOpMessage.AppendMessage(1L, payload);
+    activeEntity.invokeActive(context, testMessage);
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(33L, payload));
+
+    ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
+    int concurrencyKey = concurrencyStrategy.concurrencyKey(testMessage);
+    testConsumer.accept(activeEntity, concurrencyKey);
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
