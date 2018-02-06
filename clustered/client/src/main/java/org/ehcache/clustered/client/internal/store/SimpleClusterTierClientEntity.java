@@ -181,10 +181,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     this.storeIdentifier = storeIdentifier;
   }
 
-  void setConnected(boolean connected) {
-    this.connected = connected;
-  }
-
   @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
     return invokeAndWaitForRetired(message, track);
