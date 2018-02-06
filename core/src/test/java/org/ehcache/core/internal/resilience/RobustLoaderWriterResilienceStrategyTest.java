@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import org.assertj.core.data.MapEntry;
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -53,7 +55,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
-  private Store<Integer, Long> store;
+  private RecoveryStore<Integer> store;
 
   @Mock
   private CacheLoaderWriter<Integer, Long> loaderWriter;
@@ -82,7 +84,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.getFailure(1, accessException)).isEqualTo(1L);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -94,7 +96,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -102,7 +104,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void containsKeyFailure() throws Exception {
     assertThat(strategy.containsKeyFailure(1, accessException)).isFalse();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verifyZeroInteractions(loaderWriter);
   }
 
@@ -110,7 +112,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void putFailure() throws Exception {
     strategy.putFailure(1, 1L, accessException);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).write(1, 1L);
   }
 
@@ -122,7 +124,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).write(1, 1L);
   }
 
@@ -130,7 +132,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void removeFailure() throws Exception {
     strategy.removeFailure(1, accessException);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).delete(1);
   }
 
@@ -142,7 +144,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).delete(1);
   }
 
@@ -150,7 +152,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void clearFailure() throws Exception {
     strategy.clearFailure(accessException);
 
-    verify(store).clear();
+    verify(store).obliterate();
   }
 
   @Test
@@ -159,7 +161,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.putIfAbsentFailure(1, 2L, accessException)).isEqualTo(1);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -169,7 +171,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.putIfAbsentFailure(1, 1L, accessException)).isNull();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 1L);
   }
@@ -182,7 +184,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -195,7 +197,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 1L);
   }
@@ -204,7 +206,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void removeFailure1_notFound() throws Exception {
     assertThat(strategy.removeFailure(1, 1L, accessException)).isFalse();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -214,7 +216,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.removeFailure(1, 1L, accessException)).isFalse();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -224,7 +226,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.removeFailure(1, 1L, accessException)).isTrue();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).delete(1);
   }
@@ -237,7 +239,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -250,7 +252,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).delete(1);
   }
@@ -259,7 +261,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void replaceFailure_notFound() throws Exception {
     assertThat(strategy.replaceFailure(1, 1L, accessException)).isNull();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -269,7 +271,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.replaceFailure(1, 1L, accessException)).isEqualTo(2L);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 1L);
   }
@@ -282,7 +284,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -295,7 +297,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 1L);
   }
@@ -304,7 +306,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   public void replaceFailure1_notFound() throws Exception {
     assertThat(strategy.replaceFailure(1, 1L, 2L, accessException)).isFalse();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -314,7 +316,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.replaceFailure(1, 1L, 2L, accessException)).isFalse();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -324,7 +326,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.replaceFailure(1, 1L, 2L, accessException)).isTrue();
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 2L);
   }
@@ -337,7 +339,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
   }
 
@@ -350,7 +352,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
+    verify(store).obliterate(1);
     verify(loaderWriter).load(1);
     verify(loaderWriter).write(1, 2L);
   }
@@ -364,8 +366,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.getAllFailure(keys, accessException)).isEqualTo(entries);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).loadAll(keys);
   }
 
@@ -378,8 +382,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.getAllFailure(keys, accessException)).isEqualTo(entries);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).loadAll(keys);
   }
 
@@ -392,8 +398,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     assertThat(strategy.getAllFailure(keys, accessException)).isEqualTo(entries);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).loadAll(keys);
   }
 
@@ -407,8 +415,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheLoadingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).loadAll(keys);
   }
 
@@ -421,8 +431,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
     assertThatThrownBy(() -> strategy.getAllFailure(keys, accessException))
       .isSameAs(bulkLoadingException);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).loadAll(keys);
   }
 
@@ -435,8 +447,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     strategy.putAllFailure(entryMap, accessException);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
   }
 
@@ -451,8 +465,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
   }
 
@@ -466,8 +482,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
     assertThatThrownBy(() -> strategy.putAllFailure(entryMap, accessException))
       .isSameAs(bulkWritingException);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
   }
 
@@ -477,8 +495,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
 
     strategy.removeAllFailure(entryList, accessException);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).deleteAll(entryList);
   }
 
@@ -492,8 +512,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
       .isExactlyInstanceOf(CacheWritingException.class)
       .hasCause(exception);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).deleteAll(entryList);
   }
 
@@ -506,8 +528,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
     assertThatThrownBy(() -> strategy.removeAllFailure(entryList, accessException))
       .isSameAs(bulkWritingException);
 
-    verify(store).remove(1);
-    verify(store).remove(2);
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
+    verify(store).obliterate(captor.capture());
+    assertThat(captor.getValue()).contains(1, 2);
     verify(loaderWriter).deleteAll(entryList);
   }
 

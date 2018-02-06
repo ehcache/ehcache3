@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +42,8 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
    *
    * @param store store used as a storage system for the cache using this resiliency strategy.
    */
-  public RobustResilienceStrategy(Store<K, V> store) {
-    super(new DefaultRecoveryStore<>(Objects.requireNonNull(store)));
+  public RobustResilienceStrategy(RecoveryStore<K> store) {
+    super(store);
   }
 
   /**

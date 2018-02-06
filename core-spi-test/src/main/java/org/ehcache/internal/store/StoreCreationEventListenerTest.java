@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;

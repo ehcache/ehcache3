@@ -22,13 +22,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ehcache.Status;
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -106,7 +108,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verify(this.cacheLoaderWriter, never()).deleteAll(eq(Collections.<String>emptySet()));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -142,7 +144,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -176,11 +178,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -216,12 +218,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -267,7 +269,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -308,12 +310,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -354,12 +356,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
 
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -408,7 +410,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -451,11 +453,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -497,11 +499,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -545,7 +547,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -585,12 +587,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -629,12 +631,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(),
         getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -671,7 +673,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -705,12 +707,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -744,12 +746,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -796,7 +798,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -837,12 +839,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -883,12 +885,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -937,7 +939,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -980,11 +982,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1026,11 +1028,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1074,7 +1076,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1114,12 +1116,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1158,12 +1160,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1200,7 +1202,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -1234,12 +1236,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -1273,12 +1275,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
 
@@ -1325,7 +1327,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1366,12 +1368,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -1412,12 +1414,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
@@ -1467,7 +1469,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, expectedSuccesses)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1510,12 +1512,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1557,12 +1559,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -1607,7 +1609,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
     verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1647,12 +1649,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
 
@@ -1692,12 +1694,12 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
       // Expected
     }
 
-    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.store, this.cacheLoaderWriter, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1))
         .bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
 
@@ -1707,11 +1709,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+    this.resilienceStrategy = spy(new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(this.store), cacheLoaderWriter));
+    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 

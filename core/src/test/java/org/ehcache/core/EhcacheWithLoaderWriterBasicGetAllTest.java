@@ -22,12 +22,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ehcache.Status;
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -114,7 +117,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(actual, equalTo(expected));
 
     verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.emptySet()), getAnyIterableFunction());
-    verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).getAllFailure(eq(Collections.emptySet()), any(StoreAccessException.class));
     verify(this.loaderWriter, never()).loadAll(eq(Collections.emptySet()));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
@@ -155,7 +158,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -194,7 +197,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -233,7 +236,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -270,10 +273,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -313,10 +316,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -356,10 +359,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -396,10 +399,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -437,10 +440,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -479,10 +482,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -517,7 +520,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -550,10 +553,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -586,10 +589,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_A));
 
@@ -630,7 +633,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -667,10 +670,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -707,10 +710,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -750,7 +753,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B, KEY_SET_C)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -785,10 +788,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -823,10 +826,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -863,7 +866,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B, KEY_SET_C)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -898,10 +901,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -936,10 +939,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_C));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -976,7 +979,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -1011,10 +1014,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1049,10 +1052,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1097,7 +1100,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_C));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1136,7 +1139,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_C));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1175,7 +1178,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(union(KEY_SET_C, KEY_SET_D)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1213,10 +1216,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1257,10 +1260,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(fetchKeys));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1301,10 +1304,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(union(KEY_SET_A, KEY_SET_C)));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1343,10 +1346,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1385,10 +1388,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(fetchKeys));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1427,10 +1430,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1468,7 +1471,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(KEY_SET_C));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -1503,10 +1506,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getNullEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1540,10 +1543,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
     assertThat(actual, equalTo(union(getNullEntryMap(KEY_SET_C), getEntryMap(KEY_SET_A))));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1585,7 +1588,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     // ResilienceStrategy invoked: no assertion for Store content
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1625,7 +1628,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     // ResilienceStrategy invoked: no assertion for Store content
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1662,10 +1665,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1706,10 +1709,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(fetchKeys));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1746,10 +1749,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1786,7 +1789,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -1821,10 +1824,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A, KEY_SET_D), getEntryMap(KEY_SET_C));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1858,10 +1861,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
     assertThat(actual, equalTo(union(getNullEntryMap(KEY_SET_D), getEntryMap(KEY_SET_A, KEY_SET_C))));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -1904,7 +1907,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1944,7 +1947,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -1982,10 +1985,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2027,10 +2030,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(union(KEY_SET_A, KEY_SET_C)));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2068,10 +2071,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2110,7 +2113,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(union(KEY_SET_D, KEY_SET_F)));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
@@ -2149,7 +2152,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_D)));
     verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(copyWithout(fetchKeys, KEY_SET_A)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2184,10 +2187,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2222,10 +2225,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2262,7 +2265,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2300,10 +2303,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2345,10 +2348,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2390,10 +2393,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2431,12 +2434,12 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
     assertThat(this.getLoadAllArgs(), equalTo(Collections.emptySet()));
 
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
@@ -2473,10 +2476,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(fetchKeys));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2515,10 +2518,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2554,7 +2557,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2589,10 +2592,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getNullEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2628,7 +2631,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2665,10 +2668,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2709,10 +2712,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(fetchKeys));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2749,10 +2752,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2788,7 +2791,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2823,10 +2826,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = union(getNullEntryMap(KEY_SET_A), getEntryMap(KEY_SET_B));
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
@@ -2860,10 +2863,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(KEY_SET_A, KEY_SET_B);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(fetchKeys);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
@@ -2899,7 +2902,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -2936,10 +2939,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -2982,10 +2985,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -3022,10 +3025,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       // Expected
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -3065,10 +3068,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
       assertThat(e.getFailures().keySet(), Matchers.equalTo(KEY_SET_A));
     }
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -3105,7 +3108,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
     verify(this.loaderWriter, never()).loadAll(getAnyStringSet());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -3141,10 +3144,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -3180,10 +3183,10 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
     final Map<String, String> expected = getEntryMap(fetchKeys);
     assertThat(actual, equalTo(expected));
 
-    InOrder ordered = inOrder(this.loaderWriter, this.spiedResilienceStrategy);
+    InOrder ordered = inOrder(this.loaderWriter, this.resilienceStrategy);
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    ordered.verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    ordered.verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
     ordered.verify(this.loaderWriter, atLeast(1)).loadAll(this.loadAllCaptor.capture());
     assertThat(this.getLoadAllArgs(), equalTo(fetchKeys));
 
@@ -3193,11 +3196,11 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+    this.resilienceStrategy = spy(new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(this.store), cacheLoaderWriter));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 

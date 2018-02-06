@@ -24,7 +24,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.SystemTimeSource;

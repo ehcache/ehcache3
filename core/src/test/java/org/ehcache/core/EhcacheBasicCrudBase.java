@@ -26,9 +26,9 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.resilience.StoreAccessException;
-import org.ehcache.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -80,15 +80,8 @@ public abstract class EhcacheBasicCrudBase {
   protected Store<String, String> store;
   @Mock
   protected CacheEventDispatcher<String, String> cacheEventDispatcher;
-
-  /**
-   * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
-   * {@link ResilienceStrategy ResilienceStrategy} used in the
-   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
-   *
-   * @see #setResilienceStrategySpy(InternalCache)
-   */
-  protected ResilienceStrategy<String, String> spiedResilienceStrategy;
+  @Mock
+  protected ResilienceStrategy<String, String> resilienceStrategy;
 
   @Before
   public void initMocks() {
@@ -205,31 +198,6 @@ public abstract class EhcacheBasicCrudBase {
   @SuppressWarnings("unchecked")
   protected static Supplier<Boolean> getBooleanSupplier() {
     return any(Supplier.class);    // unchecked
-  }
-
-  /**
-   * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link InternalCache Ehcache} instance provided with a
-   * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
-   * {@code ResilienceStrategy} instance.
-   *
-   * @param ehcache the {@code InternalCache} instance to alter
-   *
-   * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
-   */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
-    assert ehcache != null;
-    try {
-      Field resilienceStrategyField = EhcacheBase.class.getDeclaredField("resilienceStrategy");
-      resilienceStrategyField.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);
-      resilienceStrategy = spy(resilienceStrategy);
-      resilienceStrategyField.set(ehcache, resilienceStrategy);
-      return resilienceStrategy;
-    } catch (Exception e) {
-      throw new AssertionError(String.format("Unable to wrap ResilienceStrategy in Ehcache instance: %s", e));
-    }
   }
 
   /**

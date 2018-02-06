@@ -17,7 +17,7 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 import java.util.Iterator;
 

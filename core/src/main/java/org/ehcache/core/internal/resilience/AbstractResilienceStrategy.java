@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheIterationException;
 import org.ehcache.core.internal.util.Pacer;
 import org.ehcache.core.spi.time.SystemTimeSource;
-import org.ehcache.resilience.ResilienceStrategy;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * for cleanup in case or error. It then notifies if the cache was able to recover from the error or is now in an
  * inconsistent state. By default, the notification is to log the error.
  */
-public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStrategy<K, V>{
+public abstract class AbstractResilienceStrategy<K, V> implements ResilienceStrategy<K, V> {
 
   private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.resilience;
+package org.ehcache.spi.resilience;
 
 /**
  * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache}.

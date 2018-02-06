@@ -22,6 +22,7 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,9 +53,10 @@ public class CacheConfigurationChangeListenerTest {
   public void setUp() throws Exception {
     this.store = mock(Store.class);
     this.eventNotifier = mock(CacheEventDispatcher.class);
+    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
-    this.cache = new EhcacheWithLoaderWriter<>(config, store, loaderWriter, eventNotifier,
+    this.cache = new EhcacheWithLoaderWriter<>(config, store, resilienceStrategy, loaderWriter, eventNotifier,
       LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();

@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.xml;
 
-/**
- * {@link org.ehcache.resilience.ResilienceStrategy} API of a {@link org.ehcache.Cache Cache}.
- */
-package org.ehcache.resilience;
+public class NiResilience {
+}

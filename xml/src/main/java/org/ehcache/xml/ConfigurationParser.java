@@ -378,6 +378,18 @@ class ConfigurationParser {
           }
 
           @Override
+          public String resilienceStrategy() {
+            String resilienceClass = null;
+            for (BaseCacheType source : sources) {
+              resilienceClass = source.getResilience();
+              if (resilienceClass != null) {
+                return resilienceClass;
+              }
+            }
+            return resilienceClass;
+          }
+
+          @Override
           public ListenersConfig listenersConfig() {
             ListenersType base = null;
             ArrayList<ListenersType> additionals = new ArrayList<>();
@@ -538,6 +550,11 @@ class ConfigurationParser {
           public String loaderWriter() {
             final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
             return loaderWriter != null ? loaderWriter.getClazz() : null;
+          }
+
+          @Override
+          public String resilienceStrategy() {
+            return cacheTemplate.getResilience();
           }
 
           @Override
@@ -706,6 +723,8 @@ class ConfigurationParser {
 
     String loaderWriter();
 
+    String resilienceStrategy();
+
     ListenersConfig listenersConfig();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
@@ -804,6 +823,9 @@ class ConfigurationParser {
     MemoryUnit getUnit();
   }
 
+  interface ResilienceStrategy {
+
+  }
   private static class XmlListenersConfig implements ListenersConfig {
 
     final int dispatcherConcurrency;

@@ -37,6 +37,7 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
@@ -49,6 +50,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -74,6 +77,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
@@ -130,6 +134,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       .with(WriteBehindProvider.class)
       .with(CacheEventDispatcherFactory.class)
       .with(CacheEventListenerProvider.class)
+      .with(ResilienceStrategyProvider.class)
       .with(services);
     if (!builder.contains(CacheManagerProviderService.class)) {
       builder = builder.with(new DefaultCacheManagerProviderService(this));
@@ -355,11 +360,18 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     });
     evtService.setStoreEventSource(store.getStoreEventSource());
 
+    final ResilienceStrategyProvider resilienceProvider = serviceLocator.getService(ResilienceStrategyProvider.class);
+    final ResilienceStrategy<K, V> resilienceStrategy;
+    if (decorator == null) {
+      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
+    } else {
+      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), decorator);
+    }
     final InternalCache<K, V> cache;
     if (decorator == null) {
-      cache = new Ehcache<>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+      cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
     } else {
-      cache = new EhcacheWithLoaderWriter<>(config, store, decorator, evtService,
+      cache = new EhcacheWithLoaderWriter<>(config, store, resilienceStrategy, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
     }
 
@@ -481,7 +493,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = ServiceUtils.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+    StoreEventSourceConfiguration eventSourceConfiguration = findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {

@@ -20,11 +20,13 @@ import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -163,7 +165,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
@@ -183,7 +185,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
   }
@@ -203,7 +205,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
@@ -225,7 +227,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -246,7 +248,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -268,7 +270,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -290,7 +292,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
@@ -313,7 +315,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
@@ -336,7 +338,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -362,7 +364,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -388,7 +390,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -414,7 +416,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -437,7 +439,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is("unequalValue"));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
@@ -460,7 +462,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
@@ -483,7 +485,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -509,7 +511,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -535,7 +537,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -561,7 +563,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
@@ -584,7 +586,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertThat(ehcache.replace("key", "oldValue", "newValue"), is(true));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is("newValue"));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -607,7 +609,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
@@ -630,7 +632,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -656,7 +658,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -681,7 +683,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -706,7 +708,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -735,7 +737,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
       // expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -758,7 +760,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
   }
 
@@ -786,7 +788,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -816,7 +818,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
       // expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -846,7 +848,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
       // expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy)
+    verify(this.resilienceStrategy)
         .replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
@@ -877,7 +879,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
       // Expected
     }
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("oldValue"), eq("newValue"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -896,7 +898,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
     ehcache.replace("key", "old-value", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanSupplier());
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), nullValue());
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
@@ -918,11 +920,11 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
   private EhcacheWithLoaderWriter<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, ExpiryPolicy<? super String, ? super String> expiry) {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
       expiry, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+    this.resilienceStrategy = spy(new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(this.store), cacheLoaderWriter));
+    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(config, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicReplaceValueTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

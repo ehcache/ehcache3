@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.resilience.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -95,7 +95,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
@@ -115,7 +115,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
@@ -135,7 +135,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }
@@ -157,7 +157,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -178,7 +178,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -199,7 +199,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).removeFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -209,11 +209,10 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveValueTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

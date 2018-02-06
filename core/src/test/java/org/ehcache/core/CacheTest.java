@@ -18,9 +18,9 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.resilience.StoreAccessException;
 import org.ehcache.StateTransitionException;
 import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
