@@ -21,7 +21,3 @@ dependencies {
   provided "org.terracotta:entity-common-api:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
 }
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}

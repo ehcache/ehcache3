@@ -24,6 +24,7 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
@@ -49,11 +50,17 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   }
 
   @Override
-  public LockTransition invoke(ClientDescriptor client, LockOperation message) {
+  public LockTransition invokeActive(ActiveInvokeContext<LockTransition> context, LockOperation message) {
+    ClientDescriptor clientDescriptor = context.getClientDescriptor();
+    return invokeActive(clientDescriptor, message);
+  }
+
+  private LockTransition invokeActive(ClientDescriptor clientDescriptor, LockOperation message) {
     switch (message.getOperation()) {
-      case TRY_ACQUIRE: return tryAcquire(client, message.getHoldType());
-      case ACQUIRE: return acquire(client, message.getHoldType());
-      case RELEASE: return release(client, message.getHoldType());
+      case TRY_ACQUIRE:
+        return tryAcquire(clientDescriptor, message.getHoldType());
+      case ACQUIRE: return acquire(clientDescriptor, message.getHoldType());
+      case RELEASE: return release(clientDescriptor, message.getHoldType());
       default: throw new AssertionError();
     }
   }
@@ -104,7 +111,8 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
         releaseListeners.add(clientDescriptor);
       } else {
         try {
-          if (!invoke(clientDescriptor, LockMessaging.codec().decodeMessage(bytes)).isAcquired()) {
+          LockOperation message = LockMessaging.codec().decodeMessage(bytes);
+          if (!invokeActive(clientDescriptor, message).isAcquired()) {
             throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
           }
         } catch (MessageCodecException ex) {

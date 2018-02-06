@@ -78,7 +78,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   @Override
   public void init(final StateRepository stateRepository) {
-    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
+    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class, c -> true, null);
     loadMappingsInWriteContext(readLookup.entrySet());
   }
 

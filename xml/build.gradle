@@ -35,3 +35,8 @@ xjcGenerate {
   targetPackage = 'org.ehcache.xml.model'
   extension = true
 }
+
+tasks.withType(JavaCompile) {
+  // We can't check for unchecked errors because of XJC that produces them
+  options.compilerArgs = ['-Werror', '-Xlint:deprecation']
+}

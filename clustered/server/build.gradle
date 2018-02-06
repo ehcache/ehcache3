@@ -32,7 +32,3 @@ dependencies {
   provided "org.terracotta:standard-cluster-services:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
 }
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}

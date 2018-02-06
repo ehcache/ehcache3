@@ -73,7 +73,3 @@ test {
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
