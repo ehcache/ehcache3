@@ -65,7 +65,7 @@ public class LeaseTest extends ClusteredTests {
                   + "</config>\n"
                   + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
                   + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>1</lease:lease-length>"
+                  + "<lease:lease-length unit='seconds'>20</lease:lease-length>"
                   + "</lease:connection-leasing>"
                   + "</service>";
 
@@ -130,7 +130,7 @@ public class LeaseTest extends ClusteredTests {
 
     setDelay(0L);
 
-    assertThat(cache.get(1L), is(nullValue()));
+    assertThat(cache.get(1L), equalTo("The one"));
     assertThat(cache.get(2L), is(nullValue()));
     assertThat(cache.get(3L), is(nullValue()));
 

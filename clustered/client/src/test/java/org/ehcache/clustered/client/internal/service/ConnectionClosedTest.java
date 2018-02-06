@@ -22,18 +22,12 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionPropertyNames;
-import org.terracotta.exception.ConnectionClosedException;
 
 import java.net.URI;
 import java.time.Duration;
@@ -44,36 +38,19 @@ import static org.ehcache.clustered.client.config.builders.ClusteredResourcePool
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-@RunWith(Parameterized.class)
 public class ConnectionClosedTest {
 
   private static final URI CLUSTER_URI = URI.create("terracotta://connection.com:9540/timeout");
-
-  @Parameters
-  public static ResourcePoolsBuilder[] data() {
-    return new ResourcePoolsBuilder[]{
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)),
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
-                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))
-    };
-  }
-
-  @Parameter
-  public ResourcePoolsBuilder resourcePoolsBuilder;
 
   @Before
   public void definePassthroughServer() throws Exception {
     UnitTestConnectionService.add(CLUSTER_URI,
             new UnitTestConnectionService.PassthroughServerBuilder()
                     .resource("primary-server-resource", 64, MemoryUnit.MB)
-                    .resource("secondary-server-resource", 64, MemoryUnit.MB)
                     .build());
   }
 
@@ -88,6 +65,9 @@ public class ConnectionClosedTest {
 
   @Test
   public void testCacheOperationThrowsAfterConnectionClosed() throws Exception {
+
+    ResourcePoolsBuilder resourcePoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB));
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
@@ -121,7 +101,7 @@ public class ConnectionClosedTest {
 
     connection.close();
 
-    assertThat(cache.get(1L), nullValue());
+    assertThat(cache.get(1L), is("value"));
 
   }
 

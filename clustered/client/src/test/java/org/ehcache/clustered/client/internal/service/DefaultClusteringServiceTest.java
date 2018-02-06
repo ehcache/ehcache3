@@ -807,7 +807,7 @@ public class DefaultClusteringServiceTest {
     ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
     assertThat(clusterTierActiveEntity.getConnectedClients().size(), is(1));
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
 
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
@@ -815,7 +815,7 @@ public class DefaultClusteringServiceTest {
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
     try {
-      creationService.releaseServerStoreProxy(serverStoreProxy);
+      creationService.releaseServerStoreProxy(serverStoreProxy, false);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Endpoint closed"));
@@ -1120,7 +1120,7 @@ public class DefaultClusteringServiceTest {
     ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
     assertThat(clusterTierActiveEntity.getConnectedClients(), not(empty()));
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
 
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
@@ -1128,7 +1128,7 @@ public class DefaultClusteringServiceTest {
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
     try {
-      creationService.releaseServerStoreProxy(serverStoreProxy);
+      creationService.releaseServerStoreProxy(serverStoreProxy, false);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Endpoint closed"));
@@ -1178,7 +1178,7 @@ public class DefaultClusteringServiceTest {
       assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
@@ -1231,7 +1231,7 @@ public class DefaultClusteringServiceTest {
       assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
