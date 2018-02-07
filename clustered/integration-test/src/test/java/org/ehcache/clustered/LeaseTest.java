@@ -65,7 +65,7 @@ public class LeaseTest extends ClusteredTests {
                   + "</config>\n"
                   + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
                   + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>20</lease:lease-length>"
+                  + "<lease:lease-length unit='seconds'>1</lease:lease-length>"
                   + "</lease:connection-leasing>"
                   + "</service>";
 

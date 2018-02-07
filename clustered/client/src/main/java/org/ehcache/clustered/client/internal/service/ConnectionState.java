@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionPropertyNames;
+import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.lease.connection.LeasedConnectionFactory;
@@ -43,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
-public class ConnectionState {
+class ConnectionState {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionState.class);
 
@@ -52,7 +53,6 @@ public class ConnectionState {
   private volatile Connection clusterConnection = null;
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
-//  private final Supplier<ReconnectHandle> handleSupplier;
 
   private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
@@ -61,12 +61,11 @@ public class ConnectionState {
   private final Properties connectionProperties;
   private final ClusteringServiceConfiguration serviceConfiguration;
 
-  public ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier,
+  ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier,
                          Properties connectionProperties, ClusteringServiceConfiguration serviceConfiguration) {
     this.timeouts = timeouts;
     this.clusterUri = clusterUri;
     this.entityIdentifier = entityIdentifier;
-//    this.handleSupplier = handleSupplier;
     this.connectionProperties = connectionProperties;
     this.serviceConfiguration = serviceConfiguration;
   }
@@ -87,12 +86,18 @@ public class ConnectionState {
                                                                ServerStoreConfiguration clientStoreConfiguration)
           throws CachePersistenceException {
     ClusterTierClientEntity storeClientEntity;
-    try {
-      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
-              clientStoreConfiguration, serviceConfiguration.isAutoCreate());
-      clusterTierEntities.put(cacheId, storeClientEntity);
-    } catch (EntityNotFoundException e) {
-      throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
+    while (true) {
+      try {
+        storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+                clientStoreConfiguration, serviceConfiguration.isAutoCreate());
+        clusterTierEntities.put(cacheId, storeClientEntity);
+        break;
+      } catch (EntityNotFoundException e) {
+        throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
+      } catch (ConnectionClosedException | IllegalStateException e) {
+        LOGGER.info("Disconnected to the server", e);
+        handleConnectionClosedException();
+      }
     }
     return storeClientEntity;
   }
@@ -128,7 +133,7 @@ public class ConnectionState {
     }
   }
 
-  public void silentDestroy() {
+  private void silentDestroy() {
     LOGGER.debug("Found a broken ClusterTierManager - trying to clean it up");
     try {
       // Random sleep to enable racing clients to have a window to do the cleanup
@@ -167,18 +172,6 @@ public class ConnectionState {
                   + "'; retrieve operation timed out", e);
         }
       }
-//      entity.setReconnectHandle(() -> {
-//        ReconnectHandle reconnectHandle = this.handleSupplier.get();
-//        if (reconnectHandle != null) {
-//          ReconnectionThread reconnectionThread = new ReconnectionThread(reconnectHandle, clusterTierEntities.values(),
-//                  () -> {
-//                    initClusterConnection();
-//                    createEntityFactory();
-//                    initializeState();
-//                  });
-//          reconnectionThread.start();
-//        }
-//      });
     } catch (RuntimeException e) {
       entityFactory = null;
       closeConnection();
@@ -249,6 +242,18 @@ public class ConnectionState {
         throw new RuntimeException("Could not connect to the cluster tier manager '" + entityIdentifier
                 + "'; retrieve operation timed out", e);
       }
+    }
+  }
+
+  private void handleConnectionClosedException() {
+    try {
+      destroyState();
+      initClusterConnection();
+      createEntityFactory();
+      initializeState();
+    } catch (ConnectionClosedException | IllegalStateException e) {
+      LOGGER.info("Disconnected to the server", e);
+      handleConnectionClosedException();
     }
   }
 

@@ -707,6 +707,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
                 reconnectLock.unlock();
               }
             };
+            //TODO : use the default threadpool
             CompletableFuture.runAsync(reconnectTask);
           });
           clusteredStore.storeProxy = reconnectingServerStoreProxy;

@@ -17,10 +17,8 @@ package org.ehcache.clustered.client.internal.store;
 
 public class ReconnectInProgressException extends RuntimeException {
 
-  private static final String STRING = "Connection lost to server. Client it trying to reconnect to server";
-
   public ReconnectInProgressException() {
-    super(STRING);
+    super("Connection lost to server. Client is trying to reconnect to server");
   }
 
 }
