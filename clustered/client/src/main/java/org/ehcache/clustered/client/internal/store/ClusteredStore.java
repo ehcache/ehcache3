@@ -698,7 +698,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
               try {
                 //TODO: handle race between disconnect event and connection closed exception being thrown
                 // this guy should wait till disconnect event processing is complete.
-                String cacheId = clusteredStore.storeProxy.getCacheId();
+                String cacheId = cacheIdentifier.getId();
                 LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
                 clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
                 initStore(clusteredStore);

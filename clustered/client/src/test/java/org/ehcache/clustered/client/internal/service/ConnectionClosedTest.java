@@ -33,6 +33,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -101,9 +103,22 @@ public class ConnectionClosedTest {
 
     connection.close();
 
-    assertThat(cache.get(1L), is("value"));
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      while (true) {
+        try {
+          Thread.sleep(200);
+        } catch (InterruptedException e) {
+          //
+        }
+        String result;
+        if ((result = cache.get(1L)) != null) {
+          return result;
+        }
+      }
+    });
+
+    assertThat(future.get(5, TimeUnit.SECONDS), is("value"));
 
   }
-
 
 }

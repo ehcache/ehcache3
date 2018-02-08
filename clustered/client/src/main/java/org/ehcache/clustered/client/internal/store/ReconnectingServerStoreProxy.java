@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
-  private final ServerStoreProxy swap = new SwappableProxy();
+  private final ServerStoreProxy swap;
   private final ServerStoreProxy delegate;
   private final AtomicReference<ServerStoreProxy> delegateRef;
   private final Runnable onReconnect;
@@ -33,6 +33,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     this.delegate = serverStoreProxy;
     this.delegateRef = new AtomicReference<>(serverStoreProxy);
     this.onReconnect = onReconnect;
+    this.swap = new SwappableProxy(serverStoreProxy.getCacheId());
   }
 
   @Override
@@ -109,9 +110,15 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   private static class SwappableProxy implements ServerStoreProxy {
 
+    private final String cacheId;
+
+    SwappableProxy(String cacheId) {
+      this.cacheId = cacheId;
+    }
+
     @Override
     public String getCacheId() {
-      throw new ReconnectInProgressException();
+      return this.cacheId;
     }
 
     @Override

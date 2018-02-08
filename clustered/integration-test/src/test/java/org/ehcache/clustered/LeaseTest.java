@@ -43,6 +43,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -65,7 +67,7 @@ public class LeaseTest extends ClusteredTests {
                   + "</config>\n"
                   + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
                   + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>1</lease:lease-length>"
+                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
                   + "</lease:connection-leasing>"
                   + "</service>";
 
@@ -124,15 +126,32 @@ public class LeaseTest extends ClusteredTests {
     assertThat(cache.get(2L), equalTo("The two"));
     assertThat(cache.get(3L), equalTo("The three"));
 
-    setDelay(2000);
-    Thread.sleep(2000);
+    setDelay(6000);
+    Thread.sleep(6000);
     // We will now have lost the lease
 
     setDelay(0L);
 
-    assertThat(cache.get(1L), equalTo("The one"));
-    assertThat(cache.get(2L), is(nullValue()));
-    assertThat(cache.get(3L), is(nullValue()));
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      while (true) {
+        try {
+          Thread.sleep(200);
+        } catch (InterruptedException e) {
+          //
+        }
+        String result = cache.get(1L);
+        System.out.println("Result " + result);
+        if (result != null) {
+          return result;
+        }
+      }
+    });
+
+    assertThat(future.get(50, TimeUnit.SECONDS), is("The one"));
+
+    assertThat(cache.get(2L), equalTo("The two"));
+    assertThat(cache.get(3L), equalTo("The three"));
+
 
   }
 
