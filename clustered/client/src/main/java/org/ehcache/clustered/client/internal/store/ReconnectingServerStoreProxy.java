@@ -33,7 +33,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     this.delegate = serverStoreProxy;
     this.delegateRef = new AtomicReference<>(serverStoreProxy);
     this.onReconnect = onReconnect;
-    this.swap = new SwappableProxy(serverStoreProxy.getCacheId());
+    this.swap = new ReconnectInProgressProxy(serverStoreProxy.getCacheId());
   }
 
   @Override
@@ -108,11 +108,11 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     }
   }
 
-  private static class SwappableProxy implements ServerStoreProxy {
+  private static class ReconnectInProgressProxy implements ServerStoreProxy {
 
     private final String cacheId;
 
-    SwappableProxy(String cacheId) {
+    ReconnectInProgressProxy(String cacheId) {
       this.cacheId = cacheId;
     }
 

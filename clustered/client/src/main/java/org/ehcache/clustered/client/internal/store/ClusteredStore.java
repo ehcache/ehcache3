@@ -43,6 +43,7 @@ import org.ehcache.core.Ehcache;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -65,7 +66,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -546,8 +547,9 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
+    private volatile ExecutionService executionService;
 
-    private final Lock reconnectLock = new ReentrantLock();
+    private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final Map<ClusteredStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
@@ -573,7 +575,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
-      reconnectLock.lock();
+      connectLock.lock();
       try {
         DefaultCacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, serviceConfigs);
         if (loaderWriterConfiguration != null) {
@@ -624,13 +626,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
         return store;
       } finally {
-        reconnectLock.unlock();
+        connectLock.unlock();
       }
     }
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
-      reconnectLock.lock();
+      connectLock.lock();
       try {
         if (createdStores.remove(resource) == null) {
           throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
@@ -640,13 +642,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         StatisticsManager.nodeFor(clusteredStore).clean();
         tierOperationStatistics.remove(clusteredStore);
       } finally {
-        reconnectLock.unlock();
+        connectLock.unlock();
       }
     }
 
     @Override
     public void initStore(final Store<?, ?> resource) {
-      reconnectLock.lock();
+      connectLock.lock();
       try {
         StoreConfig storeConfig = createdStores.get(resource);
         if (storeConfig == null) {
@@ -694,7 +696,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
                   });
           ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
             Runnable reconnectTask = () -> {
-              reconnectLock.lock();
+              connectLock.lock();
               try {
                 //TODO: handle race between disconnect event and connection closed exception being thrown
                 // this guy should wait till disconnect event processing is complete.
@@ -704,11 +706,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
                 initStore(clusteredStore);
                 LOGGER.info("Cache {} got reconnected to cluster", cacheId);
               } finally {
-                reconnectLock.unlock();
+                connectLock.unlock();
               }
             };
-            //TODO : use the default threadpool
-            CompletableFuture.runAsync(reconnectTask);
+            CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
           });
           clusteredStore.storeProxy = reconnectingServerStoreProxy;
         } catch (CachePersistenceException e) {
@@ -737,7 +738,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         }
 
       } finally {
-        reconnectLock.unlock();
+        connectLock.unlock();
       }
     }
 
@@ -761,23 +762,24 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     @Override
     public void start(final ServiceProvider<Service> serviceProvider) {
-      reconnectLock.lock();
+      connectLock.lock();
       try {
         this.serviceProvider = serviceProvider;
         this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
+        this.executionService = this.serviceProvider.getService(ExecutionService.class);
       } finally {
-        reconnectLock.unlock();
+        connectLock.unlock();
       }
     }
 
     @Override
     public void stop() {
-      reconnectLock.lock();
+      connectLock.lock();
       try {
         this.serviceProvider = null;
         createdStores.clear();
       } finally {
-        reconnectLock.unlock();
+        connectLock.unlock();
       }
     }
 
