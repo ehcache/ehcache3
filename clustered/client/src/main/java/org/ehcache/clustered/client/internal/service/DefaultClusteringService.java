@@ -44,7 +44,9 @@ import org.terracotta.connection.entity.Entity;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
@@ -64,6 +66,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final ConnectionState connectionState;
+
+  private final Set<String> reconnectSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
   private volatile boolean inMaintenance = false;
 
@@ -254,7 +258,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         configuredConsistency
     );
 
-    ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration);
+    ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 
     ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
@@ -288,6 +292,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     connectionState.removeClusterTierClientEntity(storeProxy.getCacheId());
     if (!isReconnect) {
       storeProxy.close();
+    } else {
+      reconnectSet.add(storeProxy.getCacheId());
     }
   }
 

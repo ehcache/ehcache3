@@ -24,16 +24,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
-  private final ServerStoreProxy swap;
-  private final ServerStoreProxy delegate;
   private final AtomicReference<ServerStoreProxy> delegateRef;
   private final Runnable onReconnect;
 
   public ReconnectingServerStoreProxy(ServerStoreProxy serverStoreProxy, Runnable onReconnect) {
-    this.delegate = serverStoreProxy;
     this.delegateRef = new AtomicReference<>(serverStoreProxy);
     this.onReconnect = onReconnect;
-    this.swap = new ReconnectInProgressProxy(serverStoreProxy.getCacheId());
   }
 
   @Override
@@ -48,64 +44,65 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public Chain get(long key) throws TimeoutException {
-    try {
-      return proxy().get(key);
-    } catch (ServerStoreProxyException sspe) {
-      handleException(sspe);
-    }
-    return null;
+    return onStoreProxy(serverStoreProxy -> serverStoreProxy.get(key));
   }
 
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
-    try {
-      proxy().append(key, payLoad);
-    } catch (ServerStoreProxyException sspe) {
-      handleException(sspe);
-    }
+    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+      serverStoreProxy.append(key, payLoad);
+      return null;
+    });
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
-    try {
-      return proxy().getAndAppend(key, payLoad);
-    } catch (ServerStoreProxyException sspe) {
-      handleException(sspe);
-    }
-    return null;
+    return onStoreProxy(serverStoreProxy -> serverStoreProxy.getAndAppend(key, payLoad));
   }
 
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     try {
-      proxy().replaceAtHead(key, expect, update);
-    } catch (ServerStoreProxyException sspe) {
-      handleException(sspe);
+      onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>)serverStoreProxy -> {
+        serverStoreProxy.replaceAtHead(key, expect, update);
+        return null;
+      });
+    } catch (TimeoutException e) {
+      throw new RuntimeException(e);
     }
   }
 
   @Override
   public void clear() throws TimeoutException {
-    try {
-      proxy().clear();
-    } catch (ServerStoreProxyException sspe) {
-      handleException(sspe);
-    }
+    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+      serverStoreProxy.clear();
+      return null;
+    });
   }
 
   private ServerStoreProxy proxy() {
     return delegateRef.get();
   }
 
-  private void handleException(ServerStoreProxyException sspe) {
-    if (sspe.getCause() instanceof ConnectionClosedException) {
-      if (delegateRef.compareAndSet(delegate, swap)) {
-        onReconnect.run();
+  private <T> T onStoreProxy(TimeoutExceptionFunction<ServerStoreProxy, T> function) throws TimeoutException {
+    ServerStoreProxy storeProxy = proxy();
+    try {
+      return function.apply(storeProxy);
+    } catch (ServerStoreProxyException sspe) {
+      if (sspe.getCause() instanceof ConnectionClosedException) {
+        if (delegateRef.compareAndSet(storeProxy, new ReconnectInProgressProxy(storeProxy.getCacheId()))) {
+          onReconnect.run();
+        }
+        return onStoreProxy(function);
+      } else {
+        throw sspe;
       }
-      throw new ReconnectInProgressException();
-    } else {
-      throw sspe;
     }
+  }
+
+  @FunctionalInterface
+  private interface TimeoutExceptionFunction<U, V> {
+    V apply(U u) throws TimeoutException;
   }
 
   private static class ReconnectInProgressProxy implements ServerStoreProxy {
