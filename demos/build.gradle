@@ -1,26 +1,19 @@
 plugins {
-  id 'org.akhikhl.gretty' version '1.4.0'
+  id 'org.akhikhl.gretty' version '2.0.0' apply false
 }
 
 subprojects {
-  configurations.all {
-    resolutionStrategy {
-      // It seems jetty has some internal conflict and so those need to be forced
-      force 'org.ow2.asm:asm:5.0.3', 'org.ow2.asm:asm-commons:5.0.3', 'org.glassfish:javax.el:3.0.1-b08'
-    }
-  }
-
   apply plugin: 'war'
   apply plugin: 'org.akhikhl.gretty'
 
   gretty {
-    port = 8080
+    httpPort = 8080
     contextPath = '/'
     servletContainer = 'jetty9'
   }
 
   dependencies {
-    compile 'javax.servlet:servlet-api:2.5', project(':impl')
-    runtime 'ch.qos.logback:logback-classic:1.2.3', 'com.h2database:h2:1.4.192'
+    compile 'javax.servlet:javax.servlet-api:3.1.0', project(':impl')
+    runtime 'ch.qos.logback:logback-classic:1.2.3', 'com.h2database:h2:1.4.196'
   }
 }
