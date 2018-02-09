@@ -1,0 +1,33 @@
+= API Module
+
+:toc:
+
+== API Module
+
+Contains all the interfaces, as well as exceptions, an Ehcache user would use explicitly. As a rule of thumb, you rarely want any actual code in this module. And when adding an interface, it should be a care one to the library, either from a user perspective, or from a SPI one.
+
+=== `CacheManager` and its `Cache` instances
+
+The `CacheManager` not only acts as a repository of `Cache` instances, but it also lifecycles them. The `CacheManager` is also responsible for lifecycling `Service` instances. These `Service` instances are provided by the `CacheManager` for its `Cache` instances to use. The `Cache` and `Service` instances can look up any `Service` by it's type by querying the `ServiceLocator`.
+
+`CacheManager` and `Cache` are two of the most important interfaces into Ehcache. They get supplemented by other interfaces such as `Expiry`, `CacheEvent` and other satellite types.
+
+=== Configuration types
+
+In order to create a `CacheManager`, you need to have a `CacheConfiguration` for each and every `Cache` instance you want to use. You also may need to configure some additional `Service` instances one or some of your `Cache` need (see below).
+
+A `CacheConfiguration` is read-only and as such immutable. The new `RuntimeCacheConfiguration` type exposes additional mutative methods on parameters that are tunable at runtime (i.e. once a `Cache` is in `Status.AVAILABLE`).
+
+=== SPI types
+
+In
+
+==== User-facing SPIs
+
+==== Generic `Service` instances and their `ServiceConfiguration`
+
+==== The `ServiceLocator`
+
+Every `CacheManager` has its own `ServiceLocator` instance. The `ServiceLocator` acts as a repository of concrete `Service` which can then be looked up by type. The `Service` instances it knows about are the ones provided to it at `CacheManager` construction time. `Service` instances can be injected directly, but will more generally be declared for use by providing a matching `ServiceConfiguration` to the `CacheManagerBuilder`. Not all `Service` are necessarily required to be user facing (through one of their `ServiceConfiguration` for instance). If a requested `Service` can't be found, it'll be looked up using Java's `ServiceLoader` facility from the classpath.
+
+The `ServiceLoader` fallback for `Service` lookups can be used by the end-user, but is expected to be used mainly by _anyone_ building an *Ehcache Distribution* (i.e. a so-called _überjar_ created by some mean from all the different modules that composes it). The idea is to only couple different `Service` to the minimal and the strictly required level.

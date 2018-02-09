@@ -1,0 +1,23 @@
+= Implementation Module
+
+:toc:
+
+== Implementation Module
+
+=== Configuration
+
++Configuration+ and +CacheConfiguration+ aren't used to create +CacheManager+ and +Cache+ instances, respectively. Instead they are used to reflect the configuration currently in use by a given +CacheManager+ or +Cache+.
+
+To instantiate new +CacheManager+ or +Cache+, you should use +CacheManagerBuilder+ or +CacheBuilder+ instances instead.
+
+==== Builders
+
+==== Mutability of 'configuration' instance
+
+=== Internals
+
+==== Store
+
+==== Tiering
+
+==== Serialization

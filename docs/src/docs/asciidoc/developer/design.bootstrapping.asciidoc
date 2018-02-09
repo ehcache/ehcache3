@@ -1,0 +1,11 @@
+= Bootstrapping design doc
+
+:toc:
+
+== Configuration
+
+=== Extending the config
+
+== Services
+
+The +CacheManager+ will create a +org.ehcache.spi.ServiceProvider+. The +ServiceProvider+ will use Java's +java.util.ServiceLoader+ to find all +ServiceFactory+ on the classpath. 
