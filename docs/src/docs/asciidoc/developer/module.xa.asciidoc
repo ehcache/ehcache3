@@ -1,0 +1,60 @@
+= Transactions module
+
+:toc:
+
+== High level design
+
+Transaction support works through wrapping the `Store` that backs the `Cache` and storing a specific datastructure, a `SoftLock`, wrapping the cache values themselves.
+
+NOTE: No cache interactions are allowed outside of a transaction context.
+
+=== Operations under a transaction
+
+In the context of a transaction, cache operations are translated to `Commands` and stored in a transaction specific context.
+
+These commands cause `Store` mutations at specific stages in the lifecycle of the transaction.
+
+==== Prepare
+
+During the _prepare_ phase, all commands have their values, new and old if available, transformed into `SoftLock` instances.
+These are saved in the `Store`.
+A `SoftLock` from the prepare phase will carry the following information:
+
+* Transaction information allowing to identify which transaction created it,
+* The new mapping value to install - can be `null` to indicate removal,
+* The old mapping value when relevant.
+Such `SoftLock` are considered _in doubt_.
+
+==== Commit
+
+During the _commit_ phase, _in doubt_ `SoftLock` will be retrieved from the `Store`.
+That will be the case for all keys that were touched by the transaction.
+As long as the retrieved `SoftLock` is linked to this transaction context, they will be replaced in the underlying `Store` with a `SoftLock` instance:
+
+* Holding the value for the mapping, identified as the _old_ value,
+* disconnected from any transaction context.
+
+===== Commit in 1 phase
+
+In that case, we go directly from the command to the disconnected `SoftLock` but the principle remains the same.
+
+==== Rollback
+
+In case of _rollback_, _in doubt_ `SoftLock` will be retrieved from the `Store`.
+That will be the case for all keys that were touched by the transaction.
+As long as the retrieved `SoftLock` is linked to this transaction context, they will be replaced in the underlying `Store` with a `SoftLock` instance:
+
+* Holding the _old_ value,
+* disconnected from any transaction context.
+
+===== Rollback before prepare
+
+Commands are simply dropped from the transaction context.
+
+== Interactions with other Ehcache features
+
+=== Eviction advisor
+
+By default the `XAStore` uses the `EvictionAdvisor` mechanism to protect all _in doubt_ `SoftLock`.
+
+Integration with user provided `EvictionAdvisor` is limited to `SoftLock` that are not in doubt and which by definition only contain an _old_ value, which will be the value passed to the `adviseAgainstEviction(K key, V value)` method.

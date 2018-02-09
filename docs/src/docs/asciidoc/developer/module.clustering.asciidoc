@@ -1,0 +1,69 @@
+= Terracotta's Clustering Module
+
+:toc:
+
+== Voltron
+
+What's Voltron?
+What services does it provide?
+Remoting?
+Provider of resources to `Entity` instances?
+Versioning?
+How is _persistence_ addressed?
+_Replication_?
+_HA_?
+
+=== Voltron Storage Spec
+
+ . Voltron provides `StorageService` service for as storage service for entities.
+ . The Storage service provided is sandboxed which will be used by the Entities to get `StorageChunk` s.
+   The allocation done for a particular Entity is scoped in a way, so that no other Entity
+   uses it or interferes with it.
+ . These chunks are fixed size resource(offheap, disk etc) allocations.
+ . To create a `StorageChunk` from storage service, one needs to provide the size of the chunk,
+   an identifier and the server pool id.
+ . The `StorageChunk`'s lifecycle is managed by the Entity'. It can create/destroy the chunks as per the need.
+ . An Entity can request for any number of `StorageChunk` s, limited only by the size of
+   the server side pool.
+ . Voltron internally sandboxes each individual chunk. (entityId:poolId:chunkId ->
+   provided `StorageChunk`)
+ . The `StorageChunk` provides apis to create, destroy and get `KeyValueStorage` s. It can request
+   for any number of `KeyValueStorage` s from the provided `StorageChunk`.
+ . The storage limit of `KeyValueStorage` is defined by the capacity of the `StorageChunk` it
+   it belongs to.
+
+=== Client Communication Service
+ . Client Communication service enables the entities to interact with the client.
+ . If an Entity needs to send messages to the client, the client communication service can be
+   invoked to send  messages.
+ . The Client Communication Service is a different channel than the regular Endpoint which
+   clients use to send payload to the server.
+ . The point is that Client Communication service should not be misunderstood with the Endpoint
+   as it is not related to send acknowledgements back to the client.
+ . All the client -> server communications which happen through Endpoint channel are totally
+   different from the server -> client communications that happens through Client Communicator Service.
+ . Some of the use cases where this service can be used is sending invalidations about stale data,
+   requesting information from client, etc.
+
+=== Server-side entity
+
+ . Actual providers of functionality;
+ . Responsible for:
+ .. Maintaining their state?
+ .. Acquiring releasing of resources?
+ .. ... ?
+
+=== Client-side entity
+
+ . (Stateful)? Proxies to the server-side entities
+ . Rejoin?
+ . Reconnect?
+ . ... ?
+
+== Ehcache's clustering model
+
+=== Operations sequence diagrams
+
+==== putIfAbsent
+
+image::https://github.com/ehcache/ehcache3/blob/master/docs/images/design/clustered/putIfAbsentUml.png[putIfAbsent sequence]
