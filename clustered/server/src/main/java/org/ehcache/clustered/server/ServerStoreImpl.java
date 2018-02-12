@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
@@ -39,7 +40,7 @@ public class ServerStoreImpl implements ServerSideServerStore {
   public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, ResourcePageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, mapper);
+    this.store = new OffHeapServerStore(pageSource, mapper, storeConfiguration.getPoolAllocation() instanceof PoolAllocation.SharedPoolAllocation);
   }
 
   public void setEvictionListener(ServerStoreEvictionListener listener) {
