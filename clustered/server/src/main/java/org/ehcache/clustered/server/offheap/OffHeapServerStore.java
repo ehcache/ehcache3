@@ -49,12 +49,13 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
-  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper) {
+  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper, boolean isShared) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());
-    long maxSize = getMaxSize(source.getPool().getSize());
+    int minPageSize = KILOBYTES.toBytes(4);
+    int maxPageSize = isShared ? minPageSize : (int) KILOBYTES.toBytes(getMaxSize(source.getPool().getSize()));
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, minPageSize, maxPageSize, isShared));
     }
   }
 
