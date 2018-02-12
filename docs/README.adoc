@@ -22,7 +22,7 @@ In the second launch the live reload.
 
   ./gradlew -t :docs:livereload
 
-The local port will be printed on the console. The usual URL is link:http:localhost:35729/user[http:localhost:35729/user].
+The local port will be printed on the console. The usual URL is link:http://localhost:35729[http://localhost:35729].
 
 == Add a section
 

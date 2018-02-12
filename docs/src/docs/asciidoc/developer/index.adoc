@@ -1,4 +1,5 @@
 = Ehcache 3 Developer Documentation
+
 == Code layout
 
 The core code of Ehcache is split in to three modules:

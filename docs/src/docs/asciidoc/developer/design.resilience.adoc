@@ -87,7 +87,7 @@ Three different types of timeouts have been defined.
 * Write: Operations modifying data on the server
 * Connection: Establishing the connection with the server
 
-By default, all are set to 5 seconds.
+By default, all operation timeouts are set to 5 seconds. The default connection timeout is 150 seconds.
 
 Note that there is no lifecyle timeout. It doesn't feel useful. For a cache creation, not being able to create the cache
 means you can't do anything anyway. For destruction, well... we rarely destroy. The leasing will take care of the timeout.
