@@ -16,19 +16,42 @@
 
 apply plugin: EhDeploy
 
+configurations {
+  unsafeDependencies
+}
+
+sourceSets {
+  unsafe {
+    java {
+      srcDir 'src/unsafe/java'
+      compileClasspath = configurations.unsafeDependencies
+    }
+  }
+}
+
 dependencies {
+  implementation files(sourceSets.unsafe.output.classesDirs) {
+    builtBy compileUnsafeJava
+  }
   compile project(':api'), project(':core')
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm:6.0', 'org.ow2.asm:asm-commons:6.0'
+  unsafeDependencies project(':api')
+}
+
+compileUnsafeJava {
+  options.compilerArgs = ['-Xlint:unchecked,deprecation']
 }
 
 jar {
   from "$rootDir/NOTICE"
+  from sourceSets.unsafe.output.classesDirs
+
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs = ['-Xlint:unchecked,deprecation']
+sourceJar {
+  from sourceSets.unsafe.allSource
 }
