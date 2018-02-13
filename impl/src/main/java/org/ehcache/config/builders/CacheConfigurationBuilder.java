@@ -22,7 +22,6 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -32,7 +31,6 @@ import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
-import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -43,9 +41,10 @@ import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
@@ -371,7 +370,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @param arguments optional constructor arguments
    * @return a new builder with the added resilience strategy configuration
    */
-  public CacheConfigurationBuilder<K, V> withResilienceStrategy(Class<ResilienceStrategy<K, V>> resilienceStrategyClass, Object... arguments) {
+  public CacheConfigurationBuilder<K, V> withResilienceStrategy(Class<? extends ResilienceStrategy> resilienceStrategyClass, Object... arguments) {
     return addOrReplaceConfiguration(new DefaultResilienceStrategyConfiguration(requireNonNull(resilienceStrategyClass, "Null resilienceStrategyClass"), arguments));
   }
 
@@ -383,7 +382,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added key copier
    */
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
-    return withKeyCopier(SerializingCopier.<K>asCopierClass());
+    return withKeyCopier(SerializingCopier.asCopierClass());
   }
 
   /**
@@ -394,7 +393,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @return a new builder with the added value copier
    */
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
-    return withValueCopier(SerializingCopier.<V>asCopierClass());
+    return withValueCopier(SerializingCopier.asCopierClass());
   }
 
   /**
@@ -597,6 +596,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     }
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends ServiceConfiguration<?>> CacheConfigurationBuilder<K,V> addOrReplaceConfiguration(T configuration) {
     return addOrReplaceConfiguration((Class<T>) configuration.getClass(), configuration);
   }
