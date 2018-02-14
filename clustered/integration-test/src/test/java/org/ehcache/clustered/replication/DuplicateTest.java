@@ -27,7 +27,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.EhcacheBase;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.After;
@@ -37,7 +36,6 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
@@ -91,12 +89,12 @@ public class DuplicateTest extends ClusteredTests {
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 128, MemoryUnit.MB)))
+        .withResilienceStrategy(failingResilienceStrategy())
         .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
     cacheManager =  builder.build(true);
 
     Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
-    switchResilienceStrategy(cache);
 
     int numEntries = 3000;
     AtomicInteger currentEntry = new AtomicInteger();
@@ -131,18 +129,27 @@ public class DuplicateTest extends ClusteredTests {
 
   }
 
-  private void switchResilienceStrategy(Cache<?,?> cache) throws Exception {
-    Field field = EhcacheBase.class.getDeclaredField("resilienceStrategy");
-    field.setAccessible(true);
-    ResilienceStrategy<?, ?> newResilienceStrategy = (ResilienceStrategy<?, ?>)
-      Proxy.newProxyInstance(cache.getClass().getClassLoader(),
+  @SuppressWarnings("unchecked")
+  private ResilienceStrategy<Integer, String> failingResilienceStrategy() throws Exception {
+    return (ResilienceStrategy<Integer, String>)
+      Proxy.newProxyInstance(getClass().getClassLoader(),
         new Class<?>[] { ResilienceStrategy.class},
         (proxy, method, args) -> {
-          fail("Failure on " + method.getName(), findStoreAccessException(args)); // 1 is always the exception
-          return null;
-        });
+          if(method.getName().endsWith("Failure")) {
+            fail("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
+            return null;
+          }
 
-    field.set(cache, newResilienceStrategy);
+          switch(method.getName()) {
+            case "hashCode":
+              return 0;
+            case "equals":
+              return proxy == args[0];
+            default:
+              fail("Unexpected method call: " + method.getName());
+              return null;
+          }
+        });
   }
 
   private StoreAccessException findStoreAccessException(Object[] objects) {
