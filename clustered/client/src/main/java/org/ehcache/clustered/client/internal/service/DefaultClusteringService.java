@@ -115,14 +115,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     connectionState.initClusterConnection();
-    connectionState.createEntityFactory();
     connectionState.initializeState();
   }
 
   @Override
   public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     connectionState.initClusterConnection();
-    connectionState.createEntityFactory();
     if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
       connectionState.acquireLeadership();
     }

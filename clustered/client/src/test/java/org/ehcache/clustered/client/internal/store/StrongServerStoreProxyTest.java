@@ -322,7 +322,6 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
   }
 
-  @Ignore // for now
   @Test
   public void testAppendInvalidationUnblockedByDisconnection() throws Exception {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", true);
@@ -354,7 +353,6 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
   }
 
-  @Ignore // for now
   @Test
   public void testClearInvalidationUnblockedByDisconnection() throws Exception {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testClearInvalidationUnblockedByDisconnection", true);

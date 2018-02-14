@@ -113,8 +113,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   void fireDisconnectionEvent() {
-    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
     connected = false;
+    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
