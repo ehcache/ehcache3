@@ -1,0 +1,182 @@
+= Resilience
+
+:toc:
+
+== Configuration
+
+This is a summary of all the possible configurations. It's useful to you if you already have read the rest of the document
+and want to see the configuration summarized in one place. If you haven't read the rest of the document yet, you won't
+understand a thing.
+
+Read timeout::
+  How long to wait on a read to the cluster. Applies to `get`, `getAll` and `containsKey`
+Write timeout::
+  How long to wait on a write operation on the cluster. Applies to everything else
+Connection timeout::
+  How long to wait when first establishing the connection to the server
+Lease time::
+  Duration of a lease between a client and a server as given by the server
+Resilience strategy::
+  Interface implementation telling how to answer when a given cache method fails due to a failing tier
+Loader-writer resilience strategy::
+  A resilience strategy that is aware of the loader-writer and so can take advantage of it in case of failure
+Ledger queue length::
+  How many mutative elements we keep on the client when waiting for the server to come back
+Caching tier behavior in case of failure::
+  How should the caching tier behave when the authoritative tier is gone (clear, server when possible, process updates locally)
+Caching tier behavior in case of lease expiration and reconnect::
+  How should the caching tier behave when the lease expires or when reconnecting to the authoritative tier (clear, reconcile, keep)
+
+== What can go wrong
+
+* Server fails to get an answer erratically because of network or something
+* Server fails to send messages to the client erratically
+* Server goes down
+* Server failover
+* Loader-writer backend fails
+
+== Strong vs Eventual
+
+Strong means: If the client asks for a value that was updated by some other server, it will always get the
+latest value.
+
+In particular, it means that as soon as an update from the server might be missed, we need to clear
+the caching tier. It also means that if we fail to set a value to the authoritative tier, we can't use
+the cache anymore. On this key at least.
+
+Eventual means the correct value will eventually be there. So if we lose contact with the server, it is possible to keep
+using a possibly stale cache entry. This means that a client with eventual consistency shouldn't need to clear its cache
+at all. However, it means two things:
+
+* We need to be able to update the caching tier in that case
+* We need to get updates from the server when the situation resumes
+
+=== Being too eventual
+
+We can argue that if a client stays disconnected for too long, it means the caching tier content is now too obsolete. There
+are two ways to handle that:
+
+* Expiration should take care of it. So entries should have an expiration set to their expected time validity.
+* We configure "too long" which will clear the cache
+
+== Clustering
+
+When using a distributed cache, your Ehcache client will connect to a remote Terracotta server (or multiple in case
+of stripping) which act as the authoritative tier.
+
+This server data can be replicated to other servers called mirrors. How your client will handle being cut from
+the cluster is defined in `ClusteringServiceConfiguration`.
+
+=== Lease
+
+A client has a lease with the server. And there's a heartbeat making sure nobody died. So if the client gets no heartbeat
+from the server, it will decide that it is now on its own. When the heartbeat comes back, it will resume operation.
+
+From the other side, it also means that the server won't accept any write operation without getting an acknowledgment from
+the client. So, until the lease expires, the client is guaranteed to stay consistent with the server, even if the server
+is lost.
+
+=== Timeouts
+
+If a client doesn't receive an answer in the configured time, it will timeout. This can happen for different reasons
+including a network cut, a long full GC or a server down.
+
+Three different types of timeouts have been defined.
+
+* Read: Operations reading data from the server
+* Write: Operations modifying data on the server
+* Connection: Establishing the connection with the server
+
+By default, all operation timeouts are set to 5 seconds. The default connection timeout is 150 seconds.
+
+Note that there is no lifecyle timeout. It doesn't feel useful. For a cache creation, not being able to create the cache
+means you can't do anything anyway. For destruction, well... we rarely destroy. The leasing will take care of the timeout.
+
+Internally, while waiting for the timeout, the client might decide to retry, sleep between retries or do whatever it feels
+useful to provide an answer.
+
+=== In case of failure
+
+A store can fail in two ways.
+
+First, it failed by itself. In that case, it will launch a `StoreAccessException` that will be caught by the resilience strategy.
+
+Second, something underneath failed. For instance, a call to a loader-writer failed. In that case, the original exception
+is wrapped in a `StorePassThroughException`. This will let it pass right thought the store and be unwrapped and thrown
+by the cache to the caller.
+
+=== After a failure
+
+We will now consider a server with no mirror.
+
+A failure can just be a hiccup. If that's the case, the call will timeout and resilience strategy will take care of the rest.
+
+If we lost connection, the client won't be able to renew the lease. It will go in resilience mode. It means
+
+* clearing the caching tier
+* answering everything with the resilience strategy
+* try to renew the lease in background
+
+**Unimplemented yet:**
+Instead of clearing the caching tiers, more flexible strategies can be implemented. Here is a beginning of discussion.
+
+It is important to notice that the client won't fallback to the resilience strategy when the caching tier answers.
+It also means that the caching tier might not receive updates from the server and become out of sync.
+
+This is independent of the consistency configured and configurable. You can pick the following strategies:
+
+* Rely on tier forever, so even if the server is officially lost
+* Rely on tier on hiccups. The server will keep the caching tier until it declares the server lost for good
+* Don't rely on tier.
+
+When the lease is renewed, a reconciliation could occur with the server to sync the caching tier.
+
+=== Active and mirror setup
+
+**Note:** Actual behavior to be tested
+
+It works the same as with a single server. Except that during a failover, the client will behaves. like if the underlying
+server is having hiccups. Or is down if the failover takes too long (longer than the lease).
+
+The new active server will notify the client when ready.
+
+=== Reconnection
+
+When a server goes down and back again. On the same URL. The client will silently reconnect to it.
+
+== Loader writer
+
+A failing loader-writer throws exception to caller. A given implementation could implement it's own resilience strategy.
+
+Also, a resilience strategy can use the loader-write to answer. This is what the default Ehcache resilience strategy does
+in presence of a loader-writer.
+
+=== Write behind
+
+The loader-writer should make sure, the write behind case is covered is using it.
+
+== Interruptions
+
+**Note:** To be tested
+
+When waiting on a call to a store, an interruption should allow to get out. It will then probably rely on the resilience
+strategy (I'm not sure about that) or throw an exception right away.
+
+== Resilience Strategy
+
+The default resilience strategy (`RobustResilienceStrategy`) will behaves like a store that expires everything it receives
+right away.
+
+* Return null on a read
+* Write nothing
+* Remove the failing key from all tiers
+
+In presence of a loader-writer, we use the `RobustLoaderWriterResilienceStrategy`. It behaves like if there was no
+cache at all.
+
+* Load the value from the backend on a read
+* Write the value to the backend on a write
+* Remove the failing key from all tiers
+
+
+We could imagine providing more built-in strategies.
