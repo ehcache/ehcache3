@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
@@ -126,24 +127,30 @@ public class LeaseTest extends ClusteredTests {
 
     setDelay(0L, proxies);
 
+    AtomicBoolean timedout = new AtomicBoolean(false);
+
     CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-      while (true) {
+      while (!timedout.get()) {
         try {
           Thread.sleep(200);
         } catch (InterruptedException e) {
-          //
+          throw new AssertionError(e);
         }
         String result = cache.get(1L);
         if (result != null) {
           return result;
         }
       }
+      return null;
     });
 
-    assertThat(future.get(50, TimeUnit.SECONDS), is("The one"));
+    assertThat(future.get(5, TimeUnit.SECONDS), is("The one"));
+
+    timedout.set(true);
 
     assertThat(cache.get(2L), equalTo("The two"));
     assertThat(cache.get(3L), equalTo("The three"));
+
   }
 
 }

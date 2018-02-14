@@ -26,9 +26,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class TCPProxyUtil {
+public final class TCPProxyUtil {
 
   private static final String STRIPE_SEPARATOR = ",";
+
+  private TCPProxyUtil() {
+
+  }
 
   public static URI getProxyURI(URI connectionURI, List<TCPProxy> proxies) throws Exception {
 
@@ -73,11 +77,10 @@ public class TCPProxyUtil {
 
   private static URI createURI(List<Integer> proxyPorts) {
 
-    Optional<String> reduce = proxyPorts.stream()
+    String uri = proxyPorts.stream()
             .map(port -> "localhost:" + port)
-            .reduce((x1, x2) -> x1 + STRIPE_SEPARATOR + x2);
+            .collect(Collectors.joining(",", "terracotta://", ""));
 
-    String uri = "terracotta://" + reduce.get();
     return URI.create(uri);
   }
 
