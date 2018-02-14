@@ -278,16 +278,32 @@ public class ClusterTierManagerClientEntityFactory {
         }
       }
     } else {
-      try {
-        InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-        entity.setStoreIdentifier(storeIdentifier);
-        entity.setTimeouts(entityTimeouts);
-        return entity;
-      } catch (EntityNotFoundException e) {
-        throw e;
-      } catch (EntityException e) {
-        throw new AssertionError(e);
-      }
+      return fetchClusterTierClientEntity(storeIdentifier, entityRef);
+    }
+  }
+
+  public ClusterTierClientEntity getClusterTierClientEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException {
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    try {
+      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
+    } catch (EntityNotProvidedException e) {
+      throw new AssertionError(e);
+    }
+
+    return fetchClusterTierClientEntity(storeIdentifier, entityRef);
+  }
+
+  private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,
+                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef) throws EntityNotFoundException {
+    try {
+      InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
+      entity.setStoreIdentifier(storeIdentifier);
+      entity.setTimeouts(entityTimeouts);
+      return entity;
+    } catch (EntityNotFoundException e) {
+      throw e;
+    } catch (EntityException e) {
+      throw new AssertionError(e);
     }
   }
 

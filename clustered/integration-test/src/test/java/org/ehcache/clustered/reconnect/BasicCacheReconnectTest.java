@@ -13,47 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered;
+package org.ehcache.clustered.reconnect;
 
 import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.net.URI;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-@RunWith(Parameterized.class)
-public class LeaseTest extends ClusteredTests {
-
+public class BasicCacheReconnectTest {
   private static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
                   + "<ohr:offheap-resources>"
@@ -70,87 +65,64 @@ public class LeaseTest extends ClusteredTests {
   public static Cluster CLUSTER =
           newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
-  private final List<TCPProxy> proxies = new ArrayList<>();
-
   @BeforeClass
   public static void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
   }
 
-  @After
-  public void after() {
-    proxies.forEach(TCPProxy::stop);
-  }
-
-  @Parameterized.Parameters
-  public static ResourcePoolsBuilder[] data() {
-    return new ResourcePoolsBuilder[]{
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)),
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
-                    .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))
-    };
-  }
-
-  @Parameterized.Parameter
-  public ResourcePoolsBuilder resourcePoolsBuilder;
+  private final List<TCPProxy> proxies = new ArrayList<>();
 
   @Test
-  public void leaseExpiry() throws Exception {
+  public void cacheOpsDuringReconnection() throws Exception {
+
     URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .timeouts(TimeoutsBuilder.timeouts()
-                            .connection(Duration.ofSeconds(20)))
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            resourcePoolsBuilder).build();
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+            .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
+            .build();
 
     Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
-    cache.put(1L, "The one");
-    cache.put(2L, "The two");
-    cache.put(3L, "The three");
-    assertThat(cache.get(1L), equalTo("The one"));
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
+
+    CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
+            ThreadLocalRandom.current()
+            .longs()
+            .forEach(value ->
+                    cache.put(value, Long.toString(value))));
 
     setDelay(6000, proxies);
     Thread.sleep(6000);
-    // We will now have lost the lease
 
     setDelay(0L, proxies);
 
-    AtomicBoolean timedout = new AtomicBoolean(false);
+    try {
+      future.get(5000, TimeUnit.MILLISECONDS);
+      fail();
+    } catch (ExecutionException e) {
+      assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+    }
 
-    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-      while (!timedout.get()) {
+    CompletableFuture<Void> getSucceededFuture = CompletableFuture.runAsync(() -> {
+      while (true) {
         try {
-          Thread.sleep(200);
-        } catch (InterruptedException e) {
-          throw new AssertionError(e);
-        }
-        String result = cache.get(1L);
-        if (result != null) {
-          return result;
+          cache.get(1L);
+          break;
+        } catch (RuntimeException e) {
+
         }
       }
-      return null;
     });
 
-    assertThat(future.get(5, TimeUnit.SECONDS), is("The one"));
-
-    timedout.set(true);
-
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
+    getSucceededFuture.get(5000, TimeUnit.MILLISECONDS);
 
   }
-
 }
