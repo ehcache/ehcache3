@@ -48,7 +48,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -194,16 +193,28 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
 
       if (nmsService != null) {
-        Context ehcacheClient = readTopology().getClient(ehcacheClientIdentifier).get().getContext().with("cacheManagerName", "my-super-cache-manager");
-        nmsService.stopStatisticCollector(ehcacheClient).waitForReturn();
+        readTopology().getClient(ehcacheClientIdentifier)
+          .ifPresent(client -> {
+            try {
+              nmsService.stopStatisticCollector(client.getContext().with("cacheManagerName", "my-super-cache-manager")).waitForReturn();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          });
       }
 
       cacheManager.close();
     }
 
     if (nmsService != null) {
-      Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
-      nmsService.stopStatisticCollector(context);
+      readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier)
+        .ifPresent(client -> {
+          try {
+            nmsService.stopStatisticCollector(client.getContext());
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
 
       managementConnection.close();
     }
