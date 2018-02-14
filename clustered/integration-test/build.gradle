@@ -26,6 +26,7 @@ dependencies {
   testCompileOnly project(':xml')
   testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
+  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   testCompile project(':management')
   testCompile "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"

@@ -34,6 +34,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -86,6 +87,8 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 // =============================================================================================
 @RunWith(ConcurrentTestRunner.class)
 public class TerminatedServerTest extends ClusteredTests {
+
+  private static final int CLIENT_MAX_PENDING_REQUESTS = 5;
 
   /**
    * Determines the level of test concurrency.  The number of allowed concurrent tests
@@ -141,6 +144,9 @@ public class TerminatedServerTest extends ClusteredTests {
     overrideProperty(oldProperties, TCPropertiesConsts.L1_SHUTDOWN_THREADGROUP_GRACETIME, "1000");
     overrideProperty(oldProperties, TCPropertiesConsts.TC_TRANSPORT_HANDSHAKE_TIMEOUT, "1000");
 
+    // Used only by testTerminationFreezesTheClient to be able to fill the inflight queue
+    overrideProperty(oldProperties, TCPropertiesConsts.CLIENT_MAX_PENDING_REQUESTS, Integer.toString(CLIENT_MAX_PENDING_REQUESTS));
+
     OLD_PROPERTIES = oldProperties;
   }
 
@@ -149,7 +155,11 @@ public class TerminatedServerTest extends ClusteredTests {
     if (OLD_PROPERTIES != null) {
       TCProperties tcProperties = TCPropertiesImpl.getProperties();
       for (Map.Entry<String, String> entry : OLD_PROPERTIES.entrySet()) {
-        tcProperties.setProperty(entry.getKey(), entry.getValue());
+        try {
+          tcProperties.setProperty(entry.getKey(), entry.getValue());
+        } catch(NullPointerException e) {
+          // Little workaround of a bug in terracotta-core. It is currently impossible to unset a property
+        }
       }
     }
   }
@@ -585,9 +595,58 @@ public class TerminatedServerTest extends ClusteredTests {
       }.run();
   }
 
+  /**
+   * If the server goes down, the client should not freeze on a server call. It should timeout and answer using
+   * the resilience strategy. Whatever the number of calls is done afterwards.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void testTerminationFreezesTheClient() throws Exception {
+    Duration readOperationTimeout = Duration.ofMillis(100);
+
+    try(PersistentCacheManager cacheManager =
+          CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
+              .timeouts(TimeoutsBuilder.timeouts()
+                .read(readOperationTimeout))
+              .autoCreate()
+              .defaultServerResource("primary-server-resource"))
+            .withCache("simple-cache",
+              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))))
+            .build(true)) {
+
+      Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+      cache.put(1L, "un");
+
+      cluster.getClusterControl().terminateAllServers();
+
+      // Fill the inflight queue and check that we wait no longer than the read timeout
+      for (int i = 0; i < CLIENT_MAX_PENDING_REQUESTS; i++) {
+        cache.get(1L);
+      }
+
+      // The resilience strategy will pick it up and not exception is thrown
+      new TimeLimitedTask<Void>(readOperationTimeout.toMillis() * 2, TimeUnit.MILLISECONDS) { // I multiply by 2 to let some room after the expected timeout
+        @Override
+        Void runTask() {
+          cache.get(1L); // the call that could block
+          return null;
+        }
+      }.run();
+
+      // FIXME: It freezes on the close() called by the try-with-resources if we never restart the server.
+      cluster.getClusterControl().startOneServer();
+    } catch(StateTransitionException e) {
+      // FIXME: swallow for now because we wait for #2203 to cleanly reconnect
+    }
+  }
+
   private static void overrideProperty(Map<String, String> oldProperties, String propertyName, String propertyValue) {
     TCProperties tcProperties = TCPropertiesImpl.getProperties();
-    oldProperties.put(propertyName, tcProperties.getProperty(propertyName));
+    oldProperties.put(propertyName, tcProperties.getProperty(propertyName, true));
     tcProperties.setProperty(propertyName, propertyValue);
   }
 
