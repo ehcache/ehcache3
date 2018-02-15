@@ -1,0 +1,59 @@
+@startuml
+
+title Passive Replication Proposal Two ('The Clifford')
+
+participant "Client" as C
+participant "Active Server" as AS
+participant "Passive Server" as PS
+
+[o->C: putIfAbsent(k, v)
+activate C
+C->AS: getAndAppend(putIfAbsent(k, v))
+activate AS
+C<--AS: chain
+deactivate AS
+
+AS->>AS
+note right: triggers async passive replication
+activate AS
+C->C: resolve
+AS->PS: replicateDelta(putIfAbsent(k, v))
+activate PS
+AS<--PS
+deactivate PS
+opt delta replication failure
+AS->PS: replicateChain(active-state)
+activate PS
+AS<--PS
+deactivate PS
+note over AS, PS
+Servers now forced back in sync
+end note
+end
+C<-AS
+
+deactivate AS
+
+[<--C
+deactivate C
+
+==== Client Operation Complete ====
+
+C->>AS: replace(k.hash, chain, resolved)
+activate AS
+AS->PS: replicateDelta(...)
+activate PS
+AS<--PS
+deactivate PS
+opt delta replication failure
+AS->PS: replicateChain(active-state)
+activate PS
+AS<--PS
+deactivate PS
+note over AS, PS
+Servers now forced back in sync
+end note
+end
+deactivate AS
+
+@enduml
