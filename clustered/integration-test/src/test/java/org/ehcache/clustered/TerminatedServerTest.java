@@ -159,11 +159,7 @@ public class TerminatedServerTest extends ClusteredTests {
     if (OLD_PROPERTIES != null) {
       TCProperties tcProperties = TCPropertiesImpl.getProperties();
       for (Map.Entry<String, String> entry : OLD_PROPERTIES.entrySet()) {
-        try {
-          tcProperties.setProperty(entry.getKey(), entry.getValue());
-        } catch(NullPointerException e) {
-          // Little workaround of a bug in terracotta-core. It is currently impossible to unset a property
-        }
+        tcProperties.setProperty(entry.getKey(), entry.getValue());
       }
     }
   }
