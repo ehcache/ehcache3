@@ -88,7 +88,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
-                                              .withServiceFragment(RESOURCE_CONFIG).build();
+    .withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void beforeClass() throws Exception {

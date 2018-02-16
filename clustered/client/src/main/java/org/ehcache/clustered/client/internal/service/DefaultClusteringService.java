@@ -44,11 +44,12 @@ import org.terracotta.connection.entity.Entity;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
@@ -67,7 +68,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final ConnectionState connectionState;
 
-  private final Set<String> reconnectSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private final Set<String> reconnectSet = ConcurrentHashMap.newKeySet();
+  private final Collection<Runnable> connectionRecoveryListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean inMaintenance = false;
 
@@ -79,6 +81,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     Properties properties = configuration.getProperties();
     this.connectionState = new ConnectionState(clusterUri, configuration.getTimeouts(),
             entityIdentifier, properties, configuration);
+    this.connectionState.setConnectionRecoveryListener(() -> connectionRecoveryListeners.forEach(Runnable::run));
+  }
+
+  @Override
+  public void addConnectionRecoveryListener(Runnable runnable) {
+    connectionRecoveryListeners.add(runnable);
+  }
+
+  @Override
+  public void removeConnectionRecoveryListener(Runnable runnable) {
+    connectionRecoveryListeners.remove(runnable);
   }
 
   private static URI extractClusterUri(URI uri) {
