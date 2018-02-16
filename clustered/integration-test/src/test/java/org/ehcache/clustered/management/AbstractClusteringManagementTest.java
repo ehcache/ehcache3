@@ -28,6 +28,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
+import org.terracotta.connection.ConnectionException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.management.entity.nms.NmsConfig;
 import org.terracotta.management.entity.nms.client.DefaultNmsService;
 import org.terracotta.management.entity.nms.client.NmsEntity;
@@ -97,11 +99,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
 
     // simulate a TMS client
-    managementConnection = CLUSTER.newConnection();
-    NmsEntityFactory entityFactory = new NmsEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
-    NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
-    nmsService = new DefaultNmsService(tmsAgentEntity);
-    nmsService.setOperationTimeout(5, TimeUnit.SECONDS);
+    createNmsService(CLUSTER);
 
     cacheManager = newCacheManagerBuilder()
       // cluster config
@@ -155,6 +153,12 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "SERVER_ENTITY_UNFETCHED"
     );
 
+    initIdentifiers();
+
+    sendManagementCallOnEntityToCollectStats();
+  }
+
+  public static void initIdentifiers() throws Exception {
     do {
       tmsServerEntityIdentifier = readTopology()
         .activeServerEntityStream()
@@ -184,12 +188,14 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         .findFirst()
         .orElse(null);
     } while (clusterTierManagerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
-
-    sendManagementCallOnEntityToCollectStats();
   }
 
   @AfterClass
   public static void afterClass() throws Exception {
+    tearDownCacheManagerAndStatsCollector();
+  }
+
+  public static void tearDownCacheManagerAndStatsCollector() throws Exception {
     if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
 
       if (nmsService != null) {
@@ -231,11 +237,21 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     }
   }
 
-  protected static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
+  public static void createNmsService(Cluster cluster) throws ConnectionException, EntityConfigurationException {
+    managementConnection = cluster.newConnection();
+
+    NmsEntityFactory entityFactory = new NmsEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
+    NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
+
+    nmsService = new DefaultNmsService(tmsAgentEntity);
+    nmsService.setOperationTimeout(5, TimeUnit.SECONDS);
+  }
+
+  public static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
     return nmsService.readTopology();
   }
 
-  protected static void sendManagementCallOnClientToCollectStats() throws Exception {
+  public static void sendManagementCallOnClientToCollectStats() throws Exception {
     org.terracotta.management.model.cluster.Cluster topology = readTopology();
     Client manageableClient = topology.getClient(ehcacheClientIdentifier).filter(AbstractManageableNode::isManageable).get();
     Context cmContext = manageableClient.getContext()
@@ -243,7 +259,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     nmsService.startStatisticCollector(cmContext, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
-  protected static List<ContextualStatistics> waitForNextStats() throws Exception {
+  public static List<ContextualStatistics> waitForNextStats() throws Exception {
     // uses the monitoring to get the content of the stat buffer when some stats are collected
     return nmsService.waitForMessage(message -> message.getType().equals("STATISTICS"))
       .stream()
@@ -271,14 +287,14 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     return stringToNormalize.replace("\r\n", "\n").replace("\r", "\n");
   }
 
-  private static void sendManagementCallOnEntityToCollectStats() throws Exception {
+  public static void sendManagementCallOnEntityToCollectStats() throws Exception {
     org.terracotta.management.model.cluster.Cluster topology = readTopology();
     ServerEntity manageableEntity = topology.getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).filter(AbstractManageableNode::isManageable).get();
     Context context = manageableEntity.getContext();
     nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
-  protected static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
+  public static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     List<ContextualNotification> missingOnes = new ArrayList<>();
 
