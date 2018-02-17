@@ -62,6 +62,8 @@ class ConnectionState {
   private final Properties connectionProperties;
   private final ClusteringServiceConfiguration serviceConfiguration;
 
+  private Runnable connectionRecoveryListener = () -> {};
+
   ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier,
                          Properties connectionProperties, ClusteringServiceConfiguration serviceConfiguration) {
     this.timeouts = timeouts;
@@ -69,6 +71,10 @@ class ConnectionState {
     this.entityIdentifier = entityIdentifier;
     this.connectionProperties = connectionProperties;
     this.serviceConfiguration = serviceConfiguration;
+  }
+
+  public void setConnectionRecoveryListener(Runnable connectionRecoveryListener) {
+    this.connectionRecoveryListener = connectionRecoveryListener;
   }
 
   public Connection getConnection() {
@@ -266,6 +272,7 @@ class ConnectionState {
       destroyState();
       initClusterConnection();
       retrieveEntity();
+      connectionRecoveryListener.run();
     } catch (ConnectionClosedException | ConnectionShutdownException e) {
       LOGGER.info("Disconnected to the server", e);
       handleConnectionClosedException();
