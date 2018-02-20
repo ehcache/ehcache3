@@ -82,24 +82,19 @@ public class Management implements Closeable {
     getManagementRegistry().addManagementProvider(new ClusterTierManagerSettingsManagementProvider());
   }
 
-  public void reload() {
+  public void entityCreated() {
     if (managementRegistry != null) {
-      managementRegistry.entityPromotionCompleted();
+      LOGGER.trace("entityCreated()");
+      managementRegistry.entityCreated();
       init();
     }
   }
 
-  // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
-  public void init() {
+  public void entityPromotionCompleted() {
     if (managementRegistry != null) {
-      LOGGER.trace("init()");
-
-      CompletableFuture.allOf(
-        managementRegistry.register(generateClusterTierManagerBinding()),
-        // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
-        // this object is ignored from the stats and descriptors
-        managementRegistry.register(PoolBinding.ALL_SHARED)
-      ).thenRun(managementRegistry::refresh);
+      LOGGER.trace("entityPromotionCompleted()");
+      managementRegistry.entityPromotionCompleted();
+      init();
     }
   }
 
@@ -116,6 +111,16 @@ public class Management implements Closeable {
           managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
         });
     }
+  }
+
+  // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
+  private void init() {
+    CompletableFuture.allOf(
+      managementRegistry.register(generateClusterTierManagerBinding()),
+      // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
+      // this object is ignored from the stats and descriptors
+      managementRegistry.register(PoolBinding.ALL_SHARED)
+    ).thenRun(managementRegistry::refresh);
   }
 
 }

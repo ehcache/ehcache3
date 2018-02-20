@@ -128,7 +128,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void createNew() {
-    management.init();
+    management.entityCreated();
     management.sharedPoolsConfigured();
   }
 
@@ -138,7 +138,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);
 
-    management.reload();
+    management.entityPromotionCompleted();
     management.sharedPoolsConfigured();
   }
 

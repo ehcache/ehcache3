@@ -111,7 +111,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration, false);
-    management.init();
+    management.entityCreated();
   }
 
   private boolean isEventual() {

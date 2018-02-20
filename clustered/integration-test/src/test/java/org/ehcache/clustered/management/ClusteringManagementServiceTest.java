@@ -269,13 +269,21 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
-    ContextContainer contextContainer = readTopology().getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getContextContainer();
+    Cluster cluster = readTopology();
+    ContextContainer contextContainer = cluster.getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getContextContainer();
     assertThat(contextContainer.getSubContexts()).hasSize(4);
 
     TreeSet<String> cNames = contextContainer.getSubContexts().stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
-    waitForAllNotifications("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+    if (cluster.serverStream().count() == 2) {
+      waitForAllNotifications(
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED",
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED"); // passive server
+    } else {
+      waitForAllNotifications(
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+    }
   }
 
   @Test

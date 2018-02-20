@@ -202,7 +202,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   public void createNew() throws ConfigurationException {
     ServerSideServerStore store = stateService.createStore(storeIdentifier, configuration, true);
     store.setEvictionListener(this::invalidateHashAfterEviction);
-    management.init();
+    management.entityCreated();
   }
 
   List<InvalidationTuple> getInflightInvalidations() {
@@ -218,7 +218,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
     stateService.loadStore(storeIdentifier, configuration).setEvictionListener(this::invalidateHashAfterEviction);
     reconnectComplete.set(false);
-    management.reload();
+    management.entityPromotionCompleted();
   }
 
   private void invalidateHashAfterEviction(long key) {
