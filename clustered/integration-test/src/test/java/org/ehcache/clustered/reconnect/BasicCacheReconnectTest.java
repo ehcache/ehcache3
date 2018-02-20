@@ -18,6 +18,7 @@ package org.ehcache.clustered.reconnect;
 import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
@@ -48,7 +49,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicCacheReconnectTest {
+public class BasicCacheReconnectTest extends ClusteredTests {
   private static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
                   + "<ohr:offheap-resources>"
