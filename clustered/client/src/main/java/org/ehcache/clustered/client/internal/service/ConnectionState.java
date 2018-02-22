@@ -125,6 +125,7 @@ class ConnectionState {
       clusterConnection = LeasedConnectionFactory.connect(clusterUri, connectionProperties);
       entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
     } catch (ConnectionException ex) {
+      LOGGER.error("Creation connection failed due to {}", ex);
       throw new RuntimeException(ex);
     }
   }
