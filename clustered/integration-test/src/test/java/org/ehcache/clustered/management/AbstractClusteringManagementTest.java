@@ -15,17 +15,21 @@
  */
 package org.ehcache.clustered.management;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.util.BeforeAll;
+import org.ehcache.clustered.util.BeforeAllRule;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
@@ -41,13 +45,9 @@ import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.cluster.ServerEntity;
 import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.testing.rules.Cluster;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,9 +55,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import static java.lang.Thread.sleep;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -88,19 +88,50 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
   protected static Connection managementConnection;
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
-    .withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
+  static {
     mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+  }
 
+  @ClassRule
+  public static Cluster CLUSTER = newCluster(2)
+    .in(new File("build/cluster"))
+    .withServiceFragment(RESOURCE_CONFIG)
+    .build();
+
+  @Rule
+  public final RuleChain rules = RuleChain.emptyRuleChain()
+    .around(Timeout.seconds(90))
+    .around(new BeforeAllRule(this));
+
+  @BeforeAll
+  public void beforeAllTests() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     // simulate a TMS client
-    createNmsService(CLUSTER);
+    createNmsService();
 
+    initCM();
+
+    initIdentifiers();
+
+    sendManagementCallOnEntityToCollectStats();
+  }
+
+  @Before
+  public void init() {
+    if (nmsService != null) {
+      // this call clear the CURRENT arrived messages, but be aware that some other messages can arrive just after the drain
+      nmsService.readMessages();
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws Exception {
+    tearDownCacheManagerAndStatsCollector();
+  }
+
+  protected void initCM() throws InterruptedException {
     cacheManager = newCacheManagerBuilder()
       // cluster config
       .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
@@ -150,15 +181,23 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
       "SERVER_ENTITY_DESTROYED",
       "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
-      "SERVER_ENTITY_UNFETCHED"
+      "SERVER_ENTITY_UNFETCHED",
+      "EHCACHE_RESOURCE_POOLS_CONFIGURED",
+
+      "SERVER_ENTITY_DESTROYED",
+      "SERVER_ENTITY_CREATED",
+      "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
+      "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
+      "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED"
+
     );
-
-    initIdentifiers();
-
-    sendManagementCallOnEntityToCollectStats();
   }
 
   public static void initIdentifiers() throws Exception {
+    tmsServerEntityIdentifier = null;
+    ehcacheClientIdentifier = null;
+    clusterTierManagerEntityIdentifier = null;
+
     do {
       tmsServerEntityIdentifier = readTopology()
         .activeServerEntityStream()
@@ -167,6 +206,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         .map(ServerEntity::getServerEntityIdentifier)
         .findFirst()
         .orElse(null);
+      sleep(500);
     } while (tmsServerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
 
     do {
@@ -177,6 +217,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         .findFirst()
         .map(Client::getClientIdentifier)
         .orElse(null);
+      sleep(500);
     } while (ehcacheClientIdentifier == null && !Thread.currentThread().isInterrupted());
 
     do {
@@ -187,12 +228,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         .map(ServerEntity::getServerEntityIdentifier)
         .findFirst()
         .orElse(null);
+      sleep(500);
     } while (clusterTierManagerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
-  }
-
-  @AfterClass
-  public static void afterClass() throws Exception {
-    tearDownCacheManagerAndStatsCollector();
   }
 
   public static void tearDownCacheManagerAndStatsCollector() throws Exception {
@@ -226,15 +263,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     }
   }
 
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(60);
-
-  @Before
-  public void init() throws Exception {
-    if (nmsService != null) {
-      // this call clear the CURRENT arrived messages, but be aware that some other messages can arrive just after the drain
-      nmsService.readMessages();
-    }
+  public static void createNmsService() throws ConnectionException, EntityConfigurationException {
+    createNmsService(CLUSTER);
   }
 
   public static void createNmsService(Cluster cluster) throws ConnectionException, EntityConfigurationException {
@@ -248,7 +278,9 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   public static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
-    return nmsService.readTopology();
+    org.terracotta.management.model.cluster.Cluster cluster = nmsService.readTopology();
+    //System.out.println(mapper.writeValueAsString(cluster.toMap()));
+    return cluster;
   }
 
   public static void sendManagementCallOnClientToCollectStats() throws Exception {
@@ -265,15 +297,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       .stream()
       .filter(message -> message.getType().equals("STATISTICS"))
       .flatMap(message -> message.unwrap(ContextualStatistics.class).stream())
-      .collect(Collectors.toList());
-  }
-
-  protected static List<String> notificationTypes(List<Message> messages) {
-    return messages
-      .stream()
-      .filter(message -> "NOTIFICATION".equals(message.getType()))
-      .flatMap(message -> message.unwrap(ContextualNotification.class).stream())
-      .map(ContextualNotification::getType)
       .collect(Collectors.toList());
   }
 
@@ -294,7 +317,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
-  public static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
+  public static void waitForAllNotifications(String... notificationTypes) throws InterruptedException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     List<ContextualNotification> missingOnes = new ArrayList<>();
 
