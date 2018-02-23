@@ -67,12 +67,12 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
   }
 
   @Override
-  public Map<String, Statistic<? extends Serializable>> collectStatistics(Context context, Collection<String> statisticNames) {
+  public Map<String, Statistic<? extends Serializable>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     StandardEhcacheStatistics exposedObject = (StandardEhcacheStatistics) findExposedObject(context);
     if (exposedObject == null) {
       return Collections.emptyMap();
     }
-    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames);
+    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames, since);
 
   }
 
