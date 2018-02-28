@@ -155,7 +155,10 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
       LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
 
     // when Ehcache reconnects, we resend to the server the management states
-    clusteringService.addConnectionRecoveryListener(nmsAgentService::sendStates);
+    clusteringService.addConnectionRecoveryListener(() -> {
+      nmsAgentService.flushEntity();
+      nmsAgentService.sendStates();
+    });
 
     return nmsAgentService;
   }
