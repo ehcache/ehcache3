@@ -21,6 +21,7 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
@@ -70,10 +71,13 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     scheduledExecutorService = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getCollectorExecutorAlias());
 
+    TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
       scheduledExecutorService,
-      collector::onStatistics);
+      collector::onStatistics,
+      timeSource::getTimeMillis);
 
     cacheManager.registerListener(this);
   }
