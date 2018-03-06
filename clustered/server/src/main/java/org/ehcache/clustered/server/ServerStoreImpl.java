@@ -18,6 +18,7 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -36,6 +37,13 @@ public class ServerStoreImpl implements ServerSideServerStore {
   private final ServerStoreConfiguration storeConfiguration;
   private final ResourcePageSource pageSource;
   private final OffHeapServerStore store;
+
+  public ServerStoreImpl(ServerStoreConfiguration configuration, ResourcePageSource source, KeySegmentMapper mapper,
+                         List<OffHeapChainMap<Long>> recoveredMaps) {
+    this.storeConfiguration = configuration;
+    this.pageSource = source;
+    this.store = new OffHeapServerStore(recoveredMaps, mapper);
+  }
 
   public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, ResourcePageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;

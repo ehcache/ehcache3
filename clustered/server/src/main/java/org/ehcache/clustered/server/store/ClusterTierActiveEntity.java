@@ -51,6 +51,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
@@ -271,13 +272,15 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-        EhcacheMessageType messageType = operationMessage.getMessageType();
-        if (isStoreOperationMessage(messageType)) {
-          return invokeServerStoreOperation(context, (ServerStoreOpMessage) message);
-        } else if (isLifecycleMessage(messageType)) {
-          return invokeLifeCycleOperation(context, (LifecycleMessage) message);
-        } else if (isStateRepoOperationMessage(messageType)) {
-          return invokeStateRepositoryOperation((StateRepositoryOpMessage) message);
+        try (EhcacheStateContext ignored = stateService.beginProcessing(operationMessage, storeIdentifier)) {
+          EhcacheMessageType messageType = operationMessage.getMessageType();
+          if (isStoreOperationMessage(messageType)) {
+            return invokeServerStoreOperation(context, (ServerStoreOpMessage) message);
+          } else if (isLifecycleMessage(messageType)) {
+            return invokeLifeCycleOperation(context, (LifecycleMessage) message);
+          } else if (isStateRepoOperationMessage(messageType)) {
+            return invokeStateRepositoryOperation((StateRepositoryOpMessage) message);
+          }
         }
       }
       throw new AssertionError("Unsupported message : " + message.getClass());

@@ -41,6 +41,11 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   private final List<OffHeapChainMap<Long>> segments;
   private final KeySegmentMapper mapper;
 
+  public OffHeapServerStore(List<OffHeapChainMap<Long>> segments, KeySegmentMapper mapper) {
+    this.mapper = mapper;
+    this.segments = segments;
+  }
+
   OffHeapServerStore(PageSource source, KeySegmentMapper mapper) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());

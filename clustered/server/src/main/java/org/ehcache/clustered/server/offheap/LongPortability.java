@@ -18,9 +18,9 @@ package org.ehcache.clustered.server.offheap;
 import java.nio.ByteBuffer;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
-class LongPortability implements Portability<Long> {
+public class LongPortability implements Portability<Long> {
 
-  static final Portability<Long> INSTANCE = new LongPortability();
+  public static final Portability<Long> INSTANCE = new LongPortability();
 
   private LongPortability() {}
 
