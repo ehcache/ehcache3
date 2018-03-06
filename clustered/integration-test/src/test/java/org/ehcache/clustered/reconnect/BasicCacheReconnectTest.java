@@ -123,7 +123,7 @@ public class BasicCacheReconnectTest extends ClusteredTests {
       }
     });
 
-    getSucceededFuture.get(5000, TimeUnit.MILLISECONDS);
+    getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
 
   }
 }
