@@ -38,7 +38,7 @@ public class MockConnectionService implements ConnectionService {
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
     if (mockConnection == null) {
-      throw new IllegalStateException("Set mock connection first");
+      throw new ConnectionException(new IllegalStateException("Set mock connection first"));
     }
     return mockConnection;
   }

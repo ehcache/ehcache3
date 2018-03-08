@@ -44,6 +44,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class ConnectionState {
 
@@ -55,6 +56,7 @@ class ConnectionState {
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
 
+  private final AtomicInteger reconnectCounter = new AtomicInteger();
   private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
   private final URI clusterUri;
@@ -70,6 +72,8 @@ class ConnectionState {
     this.clusterUri = clusterUri;
     this.entityIdentifier = entityIdentifier;
     this.connectionProperties = connectionProperties;
+    connectionProperties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
+    connectionProperties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
     this.serviceConfiguration = serviceConfiguration;
   }
 
@@ -120,14 +124,28 @@ class ConnectionState {
 
   public void initClusterConnection() {
     try {
-      connectionProperties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
-      connectionProperties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
-      clusterConnection = LeasedConnectionFactory.connect(clusterUri, connectionProperties);
-      entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
+      connect();
     } catch (ConnectionException ex) {
-      LOGGER.error("Creation connection failed due to {}", ex);
+      LOGGER.error("Initial connection failed due to", ex);
       throw new RuntimeException(ex);
     }
+  }
+
+  private void reconnect() {
+    while (true) {
+      try {
+        connect();
+        LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
+        break;
+      } catch (ConnectionException e) {
+        LOGGER.error("Re-connection to server failed, trying again", e);
+      }
+    }
+  }
+
+  private void connect() throws ConnectionException {
+    clusterConnection = LeasedConnectionFactory.connect(clusterUri, connectionProperties);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
   }
 
   public void closeConnection() {
@@ -246,7 +264,7 @@ class ConnectionState {
         //ignore - entity already exists - try to retrieve
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected to the server", e);
-        initClusterConnection();
+        reconnect();
         continue;
       }
 
@@ -262,7 +280,7 @@ class ConnectionState {
                 + "'; retrieve operation timed out", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected to the server", e);
-        initClusterConnection();
+        reconnect();
       }
     }
 
@@ -271,13 +289,18 @@ class ConnectionState {
   private void handleConnectionClosedException() {
     try {
       destroyState();
-      initClusterConnection();
+      reconnect();
       retrieveEntity();
       connectionRecoveryListener.run();
     } catch (ConnectionClosedException | ConnectionShutdownException e) {
       LOGGER.info("Disconnected to the server", e);
       handleConnectionClosedException();
     }
+  }
+
+  //Only for test
+  int getReconnectCount() {
+    return reconnectCounter.get();
   }
 
 }
