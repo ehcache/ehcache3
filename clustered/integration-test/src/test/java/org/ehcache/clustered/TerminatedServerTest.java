@@ -241,14 +241,8 @@ public class TerminatedServerTest extends ClusteredTests {
 
     cluster.getClusterControl().terminateAllServers();
 
-    assertExceptionOccurred(StateTransitionException.class,
-      new TimeLimitedTask<Void>(10, TimeUnit.SECONDS) {
-        @Override
-        Void runTask() {
-          cacheManager.close();
-          return null;
-        }
-      });
+    cacheManager.close();
+
   }
 
   @Test
@@ -355,14 +349,7 @@ public class TerminatedServerTest extends ClusteredTests {
 
     cluster.getClusterControl().terminateAllServers();
 
-    assertExceptionOccurred(StateTransitionException.class,
-      new TimeLimitedTask<Void>(10, TimeUnit.SECONDS) {
-        @Override
-        Void runTask() throws Exception {
-          cacheManager.removeCache("simple-cache");
-          return null;
-        }
-      });
+    cacheManager.removeCache("simple-cache");
   }
 
   @Test

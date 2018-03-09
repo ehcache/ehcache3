@@ -16,13 +16,18 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.exception.ConnectionClosedException;
+import org.terracotta.exception.ConnectionShutdownException;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ReconnectingServerStoreProxy implements ServerStoreProxy {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReconnectingServerStoreProxy.class);
 
   private final AtomicReference<ServerStoreProxy> delegateRef;
   private final Runnable onReconnect;
@@ -39,7 +44,11 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void close() {
-    proxy().close();
+    try {
+      proxy().close();
+    } catch (ConnectionClosedException | ConnectionShutdownException e) {
+      LOGGER.debug("Store was already closed, since connection was closed");
+    }
   }
 
   @Override
