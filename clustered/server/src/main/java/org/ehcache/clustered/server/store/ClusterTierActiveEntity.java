@@ -120,7 +120,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
   private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 2 * 1024 * 1024;
   static final String SYNC_DATA_GETS_PROP = "ehcache.sync.data.gets.threshold";
-  private static final int DEFAULT_SYNC_DATA_GETS_THRESHOLD = 16 * 1024;
+
+  // threshold for max number of chains per data sync message.
+  // typically hits this threshold first before data size threshold for caches having small sized values.
+  private static final int DEFAULT_SYNC_DATA_GETS_THRESHOLD = 8 * 1024;
 
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.server.chain.compaction.threshold";
   private static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 8;
