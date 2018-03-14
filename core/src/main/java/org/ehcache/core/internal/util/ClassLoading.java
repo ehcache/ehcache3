@@ -36,7 +36,7 @@ public class ClassLoading {
   }
 
   public static <T> ServiceLoader<T> libraryServiceLoaderFor(Class<T> serviceType) {
-    return ServiceLoader.load(serviceType, ClassLoading.class.getClassLoader());
+    return ServiceLoader.load(serviceType, getDefaultClassLoader());
   }
 
   private static class DefaultClassLoader extends ClassLoader {
