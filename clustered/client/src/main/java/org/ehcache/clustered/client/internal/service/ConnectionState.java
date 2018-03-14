@@ -154,7 +154,7 @@ class ConnectionState {
     if(conn != null) {
       try {
         conn.close();
-      } catch (IOException e) {
+      } catch (IOException | ConnectionShutdownException e) {
         LOGGER.warn("Error closing cluster connection: " + e);
       }
     }
@@ -220,37 +220,49 @@ class ConnectionState {
   public void destroyAll() throws CachePersistenceException {
     LOGGER.info("destroyAll called for cluster tiers on {}", clusterUri);
 
-    try {
-      entityFactory.destroy(entityIdentifier);
-    } catch (EntityBusyException e) {
-      throw new CachePersistenceException("Can not delete cluster tiers on " + clusterUri, e);
+    while (true) {
+      try {
+        entityFactory.destroy(entityIdentifier);
+        break;
+      } catch (EntityBusyException e) {
+        throw new CachePersistenceException("Cannot delete cluster tiers on " + clusterUri, e);
+      } catch (ConnectionClosedException | ConnectionShutdownException e) {
+        handleConnectionClosedException();
+      }
     }
   }
 
   public void destroy(String name) throws CachePersistenceException {
     // will happen when in maintenance mode
-    if(entity == null) {
-      try {
-        entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
-      } catch (EntityNotFoundException e) {
-        // No entity on the server, so no need to destroy anything
-      } catch (TimeoutException e) {
-        throw new CachePersistenceException("Could not connect to the cluster tier manager '" + entityIdentifier
-                + "'; retrieve operation timed out", e);
-      } catch (DestroyInProgressException e) {
-        silentDestroy();
-        // Nothing left to do
-        return;
+    while (true) {
+      if (entity == null) {
+        try {
+          entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
+        } catch (EntityNotFoundException e) {
+          // No entity on the server, so no need to destroy anything
+        } catch (TimeoutException e) {
+          throw new CachePersistenceException("Could not connect to the cluster tier manager '" + entityIdentifier
+                  + "'; retrieve operation timed out", e);
+        } catch (DestroyInProgressException e) {
+          silentDestroy();
+          // Nothing left to do
+          return;
+        } catch (ConnectionClosedException | ConnectionShutdownException e) {
+          reconnect();
+        }
       }
-    }
 
-    try {
-      if (entity != null) {
-        entityFactory.destroyClusteredStoreEntity(entityIdentifier, name);
+      try {
+        if (entity != null) {
+          entityFactory.destroyClusteredStoreEntity(entityIdentifier, name);
+          break;
+        }
+      } catch (EntityNotFoundException e) {
+        // Ignore - does not exist, nothing to destroy
+        LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
+      } catch (ConnectionClosedException | ConnectionShutdownException e) {
+        handleConnectionClosedException();
       }
-    } catch (EntityNotFoundException e) {
-      // Ignore - does not exist, nothing to destroy
-      LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
     }
   }
 
