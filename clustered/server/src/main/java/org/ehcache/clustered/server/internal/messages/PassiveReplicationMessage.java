@@ -51,7 +51,9 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     private Chain dropLastElement(Chain chain) {
       List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
         .collect(Collectors.toList());
-      elements.remove(elements.size() -1); // remove last
+      if (!elements.isEmpty()) {
+        elements.remove(elements.size() - 1); // remove last
+      }
       return Util.getChain(elements);
     }
 
