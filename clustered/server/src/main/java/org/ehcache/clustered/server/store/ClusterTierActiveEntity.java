@@ -650,6 +650,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         final Chain chain;
         try {
           chain = store.get(key);
+          if (chain.isEmpty()) {
+            // evicted just continue with next
+            remainingKeys--;
+            continue;
+          }
           numKeyGets++;
         } catch (TimeoutException e) {
           throw new AssertionError("Server side store is not expected to throw timeout exception");

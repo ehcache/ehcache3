@@ -192,7 +192,9 @@ public class OffHeapChainMap<K> implements MapInternals {
           current.close();
         }
       } else {
-        heads.put(key, chainStorage.newChain(chain));
+        if (!chain.isEmpty()) {
+          heads.put(key, chainStorage.newChain(chain));
+        }
       }
     } finally {
       lock.unlock();
