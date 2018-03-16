@@ -27,7 +27,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  */
 public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> implements ServiceCreationConfiguration<ResilienceStrategyProvider> {
 
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_RESILIENCE = RobustResilienceStrategy.class;
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_LOADER_WRITER_RESILIENCE = RobustLoaderWriterResilienceStrategy.class;
 
   private DefaultResilienceStrategyConfiguration defaultRegularConfiguration;

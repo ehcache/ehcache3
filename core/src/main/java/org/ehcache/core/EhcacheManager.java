@@ -119,7 +119,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   private void validateServicesConfigs() {
-    HashSet<Class> classes = new HashSet<>();
+    Set<Class<?>> classes = new HashSet<>();
     for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
       if (!classes.add(service.getServiceType())) {
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
@@ -301,8 +301,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                         final Class<K> keyType, final Class<V> valueType) {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<>();
-    for (ServiceConfiguration serviceConfig : adjustedServiceConfigs) {
+    List<ServiceConfiguration<?>> unknownServiceConfigs = new ArrayList<>();
+    for (ServiceConfiguration<?> serviceConfig : adjustedServiceConfigs) {
       if (!serviceLocator.knowsServiceFor(serviceConfig)) {
         unknownServiceConfigs.add(serviceConfig);
       }
@@ -351,7 +351,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     final CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<K, V> evtService =
-        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]));
+        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?>[adjustedServiceConfigs.size()]));
     lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
@@ -454,7 +454,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
+    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?>[serviceConfigs.size()]);
     if (serialization != null) {
       try {
         final Serializer<K> keySer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigArray);

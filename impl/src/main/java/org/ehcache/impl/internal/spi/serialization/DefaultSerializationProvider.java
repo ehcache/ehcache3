@@ -212,7 +212,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     DefaultSerializerConfiguration<T> result = null;
 
     Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
-    for (DefaultSerializerConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+    for (DefaultSerializerConfiguration<T> serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);

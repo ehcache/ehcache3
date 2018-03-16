@@ -17,6 +17,7 @@
 package org.ehcache.integration;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -118,10 +119,12 @@ public class OverSizeMappingTest {
       if (this == obj) {
         return true;
       }
-      if (obj instanceof ObjectSizeGreaterThanN && this.arr.length == ((ObjectSizeGreaterThanN)obj).arr.length ) {
-        return true;
-      }
-      return false;
+      return obj instanceof ObjectSizeGreaterThanN && this.arr.length == ((ObjectSizeGreaterThanN)obj).arr.length;
+    }
+
+    @Override
+    public int hashCode() {
+      return arr.length;
     }
   }
 }

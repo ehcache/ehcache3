@@ -129,8 +129,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
-        @SuppressWarnings("unchecked")
-        final Copier<String> defaultCopier = new IdentityCopier();
+
+        final Copier<String> defaultCopier = new IdentityCopier<>();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
         final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
@@ -292,7 +292,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -353,7 +353,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     } else {
       offheapSize = MemoryUnit.KB.convert(capacityConstraint, MemoryUnit.MB) / 2;
     }
-    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).offheap(offheapSize, MemoryUnit.KB).disk((Long) capacityConstraint, MemoryUnit.MB).build();
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).offheap(offheapSize, MemoryUnit.KB).disk(capacityConstraint, MemoryUnit.MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {

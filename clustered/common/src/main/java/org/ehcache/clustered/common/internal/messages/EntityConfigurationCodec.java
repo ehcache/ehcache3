@@ -60,7 +60,7 @@ public class EntityConfigurationCodec {
   }
 
   public byte[] encode(ClusterTierEntityConfiguration configuration) {
-    StructEncoder encoder = clusteredStoreConfigurationStruct.encoder();
+    StructEncoder<Void> encoder = clusteredStoreConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getManagerIdentifier())
       .string(SERVER_STORE_NAME_FIELD, configuration.getStoreIdentifier());
     configCodec.encodeServerStoreConfiguration(encoder, configuration.getConfiguration());
@@ -68,7 +68,7 @@ public class EntityConfigurationCodec {
   }
 
   public ClusterTierEntityConfiguration decodeClusteredStoreConfiguration(byte[] configuration) {
-    StructDecoder decoder = clusteredStoreConfigurationStruct.decoder(wrap(configuration));
+    StructDecoder<Void> decoder = clusteredStoreConfigurationStruct.decoder(wrap(configuration));
     String managerIdentifier = decoder.string(IDENTIFIER);
     if (managerIdentifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");
@@ -78,14 +78,14 @@ public class EntityConfigurationCodec {
     return new ClusterTierEntityConfiguration(managerIdentifier, storeIdentifier, serverStoreConfiguration);
   }
   public byte[] encode(ClusterTierManagerConfiguration configuration) {
-    StructEncoder encoder = tierManagerConfigurationStruct.encoder();
+    StructEncoder<Void> encoder = tierManagerConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getIdentifier());
     configCodec.encodeServerSideConfiguration(encoder, configuration.getConfiguration());
     return encoder.encode().array();
   }
 
   public ClusterTierManagerConfiguration decodeClusterTierManagerConfiguration(byte[] payload) {
-    StructDecoder decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
+    StructDecoder<Void> decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
     String identifier = decoder.string(IDENTIFIER);
     if (identifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");

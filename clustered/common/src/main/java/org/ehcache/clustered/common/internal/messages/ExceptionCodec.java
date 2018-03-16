@@ -91,10 +91,10 @@ final class ExceptionCodec {
       element.end();
     }
     arrayDecoder.end();
-    Class clazz = null;
+    Class<? extends ClusterException> clazz = null;
     ClusterException exception;
     try {
-      clazz = Class.forName(exceptionClassName);
+      clazz = Class.forName(exceptionClassName).asSubclass(ClusterException.class);
     } catch (ClassNotFoundException e) {
       LOGGER.error("Exception type not found", e);
     }
@@ -107,12 +107,12 @@ final class ExceptionCodec {
   }
 
   @SuppressWarnings("unchecked")
-  private static ClusterException getClusterException(String message, Class clazz) {
+  private static ClusterException getClusterException(String message, Class<? extends ClusterException> clazz) {
     ClusterException exception = null;
     if (clazz != null) {
       try {
-        Constructor declaredConstructor = clazz.getDeclaredConstructor(String.class);
-        exception = (ClusterException)declaredConstructor.newInstance(message);
+        Constructor<? extends ClusterException> declaredConstructor = clazz.getDeclaredConstructor(String.class);
+        exception = declaredConstructor.newInstance(message);
       } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
         LOGGER.error("Failed to instantiate exception object.", e);
       }

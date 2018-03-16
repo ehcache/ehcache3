@@ -191,7 +191,7 @@ final class StatsUtils {
 
     int i = 0;
     for (TreeNode treeNode : statResult) {
-      Set tags = (Set) treeNode.getContext().attributes().get("tags");
+      Set<?> tags = (Set<?>) treeNode.getContext().attributes().get("tags");
       if (tags.size() != 1) {
         throw new RuntimeException("We expect tiers to have only one tag");
       }

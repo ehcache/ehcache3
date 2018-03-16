@@ -64,7 +64,7 @@ import static org.mockito.Mockito.when;
  */
 public abstract class AbstractWriteBehindTestBase {
 
-  protected abstract CacheManagerBuilder managerBuilder();
+  protected abstract CacheManagerBuilder<CacheManager> managerBuilder();
 
   protected abstract CacheConfigurationBuilder<String, String> configurationBuilder();
 

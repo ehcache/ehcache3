@@ -448,7 +448,7 @@ public class UnitTestConnectionService implements ConnectionService {
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class[] { Connection.class },
+        new Class<?>[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
   }
 

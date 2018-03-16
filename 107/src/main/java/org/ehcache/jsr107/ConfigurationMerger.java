@@ -188,8 +188,8 @@ class ConfigurationMerger {
   }
 
   @SuppressWarnings("unchecked")
-  private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class keyType, Class valueType ) {
-    Set<Class> immutableTypes = new HashSet<>();
+  private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class<K> keyType, Class<V> valueType ) {
+    Set<Class<?>> immutableTypes = new HashSet<>();
     immutableTypes.add(String.class);
     immutableTypes.add(Long.class);
     immutableTypes.add(Float.class);

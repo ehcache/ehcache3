@@ -26,7 +26,7 @@ public final class JavaExec {
   private JavaExec() {
   }
 
-  public static CompletableFuture<Integer> exec(Class klass, String ... args) throws IOException, InterruptedException {
+  public static CompletableFuture<Integer> exec(Class<?> klass, String ... args) throws IOException, InterruptedException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + separator + "bin" + separator + "java";
     String classpath = System.getProperty("java.class.path");

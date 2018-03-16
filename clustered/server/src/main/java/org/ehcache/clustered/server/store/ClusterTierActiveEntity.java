@@ -192,7 +192,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     ClusterTierDump.dump(dump, managerIdentifier, storeIdentifier, configuration);
     Set<ClientDescriptor> clients = new HashSet<>(getConnectedClients());
 
-    List<Map> allClients = new ArrayList<>(clients.size());
+    List<Map<String, String>> allClients = new ArrayList<>(clients.size());
     for (ClientDescriptor entry : clients) {
       Map<String,String> clientMap = new HashMap<>(1);
       clientMap.put("clientDescriptor", entry.toString());

@@ -37,7 +37,7 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultResilienceStrategy(resilienceStrategy);
@@ -49,7 +49,7 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultLoaderWriterInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultLoaderWriterResilienceStrategy(resilienceStrategy);
