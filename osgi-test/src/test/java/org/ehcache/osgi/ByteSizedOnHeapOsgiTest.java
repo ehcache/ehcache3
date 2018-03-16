@@ -44,10 +44,11 @@ public class ByteSizedOnHeapOsgiTest {
 
   @Configuration
   public Option[] config() {
+    String slf4jVersion = VersionUtil.version("ehcache.osgi.slf4j.version", "slf4jVersion");
     return options(
-        mavenBundle("org.slf4j", "slf4j-api", System.getProperty("ehcache.osgi.slf4j.version")),
-        mavenBundle("org.slf4j", "slf4j-simple", System.getProperty("ehcache.osgi.slf4j.version")).noStart(),
-        bundle("file:" + System.getProperty("ehcache.osgi.jar")),
+        mavenBundle("org.slf4j", "slf4j-api", slf4jVersion),
+        mavenBundle("org.slf4j", "slf4j-simple", slf4jVersion).noStart(),
+        bundle("file:" + VersionUtil.ehcacheOsgiJar()),
         junitBundles()
     );
   }
