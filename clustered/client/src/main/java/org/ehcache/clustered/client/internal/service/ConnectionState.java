@@ -110,7 +110,7 @@ class ConnectionState {
       } catch (EntityNotFoundException e) {
         throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        LOGGER.info("Disconnected to the server", e);
+        LOGGER.info("Disconnected from the server", e);
         handleConnectionClosedException();
       }
     }
@@ -240,13 +240,14 @@ class ConnectionState {
           entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
         } catch (EntityNotFoundException e) {
           // No entity on the server, so no need to destroy anything
+          break;
         } catch (TimeoutException e) {
           throw new CachePersistenceException("Could not connect to the cluster tier manager '" + entityIdentifier
                   + "'; retrieve operation timed out", e);
         } catch (DestroyInProgressException e) {
           silentDestroy();
           // Nothing left to do
-          return;
+          break;
         } catch (ConnectionClosedException | ConnectionShutdownException e) {
           reconnect();
         }
@@ -260,6 +261,7 @@ class ConnectionState {
       } catch (EntityNotFoundException e) {
         // Ignore - does not exist, nothing to destroy
         LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
+        break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         handleConnectionClosedException();
       }
@@ -275,7 +277,7 @@ class ConnectionState {
       } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        LOGGER.info("Disconnected to the server", e);
+        LOGGER.info("Disconnected from the server", e);
         reconnect();
         continue;
       }
@@ -291,7 +293,7 @@ class ConnectionState {
         throw new RuntimeException("Could not connect to the cluster tier manager '" + entityIdentifier
                 + "'; retrieve operation timed out", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        LOGGER.info("Disconnected to the server", e);
+        LOGGER.info("Disconnected from the server", e);
         reconnect();
       }
     }
@@ -299,14 +301,16 @@ class ConnectionState {
   }
 
   private void handleConnectionClosedException() {
-    try {
-      destroyState();
-      reconnect();
-      retrieveEntity();
-      connectionRecoveryListener.run();
-    } catch (ConnectionClosedException | ConnectionShutdownException e) {
-      LOGGER.info("Disconnected to the server", e);
-      handleConnectionClosedException();
+    while (true) {
+      try {
+        destroyState();
+        reconnect();
+        retrieveEntity();
+        connectionRecoveryListener.run();
+        break;
+      } catch (ConnectionClosedException | ConnectionShutdownException e) {
+        LOGGER.info("Disconnected from the server", e);
+      }
     }
   }
 

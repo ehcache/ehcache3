@@ -135,6 +135,16 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
+  public void testDestroyNonExistentCache() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+
+    String nonExistent = "this-is-not-the-cache-you-are-looking-for";
+    assertThat(persistentCacheManager.getCache(nonExistent, Long.class, String.class), nullValue());
+    persistentCacheManager.destroyCache(nonExistent);
+    persistentCacheManager.close();
+  }
+
+  @Test
   public void testDestroyCacheWhenMultipleClientsConnected() {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
@@ -181,6 +191,23 @@ public class ClusteredCacheDestroyTest {
     assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
   }
 
+  @Test
+  public void testDestroyNonExistentCacheWithCacheManagerStopped() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
+
+  @Test
+  public void testDestroyCacheOnNonExistentCacheManager() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroy();
+
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
   @Test
   public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
