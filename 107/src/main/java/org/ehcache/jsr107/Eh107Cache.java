@@ -28,6 +28,7 @@ import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
+import org.ehcache.spi.service.Service;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -73,8 +74,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager.getURI(), config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(),
-      cacheManager.getEhCacheManager().getServiceProvider().getService(StatisticsService.class));
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(), getStatisticsService(cacheManager));
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {
@@ -82,6 +82,10 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     this.jsr107Cache = ehCache.createJsr107Cache();
+  }
+
+  private StatisticsService getStatisticsService(Eh107CacheManager cacheManager) {
+    return cacheManager.getEhCacheManager().getServiceProvider().getService(StatisticsService.class);
   }
 
   @Override

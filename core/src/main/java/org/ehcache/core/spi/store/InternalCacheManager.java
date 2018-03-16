@@ -19,10 +19,15 @@ package org.ehcache.core.spi.store;
 
 import org.ehcache.CacheManager;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
 
 /**
  * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
  * methods used internally by service implementations.
+ * <p>
+ * In rare cases it can be used by Ehcache power users to access things that are now exposed by the standard API. <b>Use it
+ * at your own risk.</b>
  */
 public interface InternalCacheManager extends CacheManager {
 
@@ -39,4 +44,12 @@ public interface InternalCacheManager extends CacheManager {
    * @param listener the listener to de-register
    */
   void deregisterListener(CacheManagerListener listener);
+
+  /**
+   * Returns the {@link ServiceProvider} referencing all the services of this {@code CacheManager}. All these services
+   * are tightly to Ehcache operations. You should be <b>really</b> cautious when using them to prevent disrupting Ehcache.
+   *
+   * @return the service provider used by this cache manager
+   */
+  ServiceProvider<Service> getServiceProvider();
 }

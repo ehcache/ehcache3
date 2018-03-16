@@ -18,6 +18,7 @@ package org.ehcache.jsr107;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
@@ -56,14 +57,14 @@ class Eh107CacheManager implements CacheManager {
 
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<>();
-  private final Eh107InternalCacheManager ehCacheManager;
+  private final InternalCacheManager ehCacheManager;
   private final EhcacheCachingProvider cachingProvider;
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
   private final ConfigurationMerger configurationMerger;
 
-  Eh107CacheManager(EhcacheCachingProvider cachingProvider, Eh107InternalCacheManager ehCacheManager, Properties props,
+  Eh107CacheManager(EhcacheCachingProvider cachingProvider, InternalCacheManager ehCacheManager, Properties props,
                     ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
@@ -75,7 +76,7 @@ class Eh107CacheManager implements CacheManager {
     refreshAllCaches();
   }
 
-  Eh107InternalCacheManager getEhCacheManager() {
+  InternalCacheManager getEhCacheManager() {
     return ehCacheManager;
   }
 

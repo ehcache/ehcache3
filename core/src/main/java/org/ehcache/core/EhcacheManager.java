@@ -562,6 +562,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
+  @Override
+  public ServiceProvider<Service> getServiceProvider() {
+    return serviceLocator;
+  }
+
   /**
    * {@inheritDoc}
    */

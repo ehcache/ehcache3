@@ -16,9 +16,11 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
@@ -147,7 +149,7 @@ public class EhcacheCachingProvider implements CachingProvider {
       services.add(new DefaultJsr107SerializationProvider());
     }
 
-    Eh107InternalCacheManager ehcacheManager = new Eh107InternalCacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
+    InternalCacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
     ehcacheManager.init();
 
     return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
