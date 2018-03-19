@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.core.exceptions.StorePassThroughException;
@@ -65,7 +66,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
+             InternalCache<K, V> ehCache, StatisticsService statisticsService, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
@@ -73,8 +74,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager.getURI(), config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(),
-      cacheManager.getEhCacheManager().getServiceProvider().getService(StatisticsService.class));
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(), statisticsService);
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {

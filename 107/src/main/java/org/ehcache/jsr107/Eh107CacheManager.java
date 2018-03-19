@@ -18,8 +18,10 @@ package org.ehcache.jsr107;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.jsr107.internal.WrappedCacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -56,27 +58,25 @@ class Eh107CacheManager implements CacheManager {
 
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<>();
-  private final Eh107InternalCacheManager ehCacheManager;
+  private final org.ehcache.CacheManager ehCacheManager;
   private final EhcacheCachingProvider cachingProvider;
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
   private final ConfigurationMerger configurationMerger;
+  private final StatisticsService statisticsService;
 
-  Eh107CacheManager(EhcacheCachingProvider cachingProvider, Eh107InternalCacheManager ehCacheManager, Properties props,
-                    ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
+  Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Jsr107Service jsr107Service,
+                    Properties props, ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
     this.configurationMerger = configurationMerger;
+    this.statisticsService = jsr107Service.getStatistics();
 
     refreshAllCaches();
-  }
-
-  Eh107InternalCacheManager getEhCacheManager() {
-    return ehCacheManager;
   }
 
   private void refreshAllCaches() {
@@ -121,7 +121,7 @@ class Eh107CacheManager implements CacheManager {
     configurationMerger.setUpManagementAndStats(cache, config);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<>(cache.getRuntimeConfiguration().getExpiryPolicy());
     CacheResources<K, V> resources = new CacheResources<>(alias, wrapCacheLoaderWriter(cacheLoaderWriter), expiry);
-    return new Eh107Cache<>(alias, config, resources, cache, this);
+    return new Eh107Cache<>(alias, config, resources, cache, statisticsService, this);
   }
 
   private <K, V> Jsr107CacheLoaderWriter<K, V> wrapCacheLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter) {
@@ -212,7 +212,7 @@ class Eh107CacheManager implements CacheManager {
             cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<>(cacheName, new Eh107CompleteConfiguration<>(configHolder.jsr107Configuration, ehCache
-          .getRuntimeConfiguration()), cacheResources, ehCache, this);
+          .getRuntimeConfiguration()), cacheResources, ehCache, statisticsService, this);
 
         caches.put(cacheName, cache);
 
