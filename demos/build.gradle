@@ -1,10 +1,14 @@
 plugins {
-  id 'org.akhikhl.gretty' version '2.0.0' apply false
+  id 'org.gretty' version '2.1.0' apply false
 }
 
 subprojects {
   apply plugin: 'war'
-  apply plugin: 'org.akhikhl.gretty'
+  apply plugin: 'org.gretty'
+
+  repositories {
+    jcenter()
+  }
 
   gretty {
     httpPort = 8080
