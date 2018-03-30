@@ -39,6 +39,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collection;
 
+import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
@@ -237,7 +238,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
     }
   }
@@ -256,7 +257,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
       verify((Closeable) loader).close();
     }

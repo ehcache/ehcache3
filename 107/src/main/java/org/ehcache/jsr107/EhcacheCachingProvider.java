@@ -38,9 +38,12 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
+
+import static org.ehcache.jsr107.CloseUtil.chain;
 
 /**
  * {@link CachingProvider} implementation for Ehcache.
@@ -220,17 +223,16 @@ public class EhcacheCachingProvider implements CachingProvider {
       throw new NullPointerException();
     }
 
-    MultiCacheException closeException = new MultiCacheException();
     synchronized (cacheManagers) {
       final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.remove(classLoader);
       if (map != null) {
-        for (Eh107CacheManager cacheManager : map.values()) {
-          cacheManager.closeInternal(closeException);
+        try {
+          chain(map.values().stream().map(cm -> cm::closeInternal));
+        } catch (Throwable t) {
+          throw new CacheException(t);
         }
       }
     }
-
-    closeException.throwIfNotEmpty();
   }
 
   /**
@@ -242,17 +244,15 @@ public class EhcacheCachingProvider implements CachingProvider {
       throw new NullPointerException();
     }
 
-    MultiCacheException closeException = new MultiCacheException();
     synchronized (cacheManagers) {
       final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(classLoader);
       if (map != null) {
         final Eh107CacheManager cacheManager = map.remove(uri);
         if (cacheManager != null) {
-          cacheManager.closeInternal(closeException);
+          cacheManager.closeInternal();
         }
       }
     }
-    closeException.throwIfNotEmpty();
   }
 
   /**
@@ -274,16 +274,12 @@ public class EhcacheCachingProvider implements CachingProvider {
     throw new IllegalArgumentException("Unknown OptionalFeature: " + optionalFeature.name());
   }
 
-  void close(Eh107CacheManager cacheManager, MultiCacheException closeException) {
-    try {
-      synchronized (cacheManagers) {
-        final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(cacheManager.getClassLoader());
-        if (map != null && map.remove(cacheManager.getURI()) != null) {
-          cacheManager.closeInternal(closeException);
-        }
+  void close(Eh107CacheManager cacheManager) {
+    synchronized (cacheManagers) {
+      final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(cacheManager.getClassLoader());
+      if (map != null && map.remove(cacheManager.getURI()) != null) {
+        cacheManager.closeInternal();
       }
-    } catch (Throwable t) {
-      closeException.addThrowable(t);
     }
   }
 
