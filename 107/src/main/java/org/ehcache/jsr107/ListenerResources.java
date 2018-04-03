@@ -51,7 +51,7 @@ class ListenerResources<K, V> implements Closeable {
       if (filterFactory != null) {
         filter = listenerConfig.getCacheEntryEventFilterFactory().create();
       } else {
-        filter = (CacheEntryEventFilter<? super K, ? super V>) NullCacheEntryEventFilter.INSTANCE;
+        filter = event -> true;
       }
     } catch (Throwable t) {
       throw closeAllAfter(new CacheException(t), listener);
