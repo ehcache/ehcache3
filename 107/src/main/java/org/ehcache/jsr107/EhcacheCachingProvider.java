@@ -22,7 +22,6 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;

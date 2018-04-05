@@ -24,7 +24,6 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;

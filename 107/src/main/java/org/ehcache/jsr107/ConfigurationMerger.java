@@ -27,7 +27,6 @@ import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.xml.XmlConfiguration;
