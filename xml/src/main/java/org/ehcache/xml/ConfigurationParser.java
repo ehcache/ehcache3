@@ -88,6 +88,7 @@ import java.util.Stack;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
