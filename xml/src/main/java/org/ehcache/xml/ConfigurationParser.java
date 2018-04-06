@@ -24,18 +24,17 @@ import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
+import org.ehcache.xml.model.CacheLoaderWriterType.WriteBehind;
 import org.ehcache.xml.model.CacheTemplateType;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
 import org.ehcache.xml.model.Disk;
 import org.ehcache.xml.model.DiskStoreSettingsType;
-import org.ehcache.xml.model.EventFiringType;
-import org.ehcache.xml.model.EventOrderingType;
-import org.ehcache.xml.model.EventType;
 import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.ListenersType;
+import org.ehcache.xml.model.ListenersType.Listener;
 import org.ehcache.xml.model.MemoryType;
 import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
@@ -85,10 +84,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
@@ -442,26 +439,22 @@ class ConfigurationParser {
           public WriteBehind writeBehind() {
             for (BaseCacheType source : sources) {
               final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
-              final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind() : null;
+              final WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind() : null;
               if (writebehind != null) {
-                return new XmlWriteBehind(writebehind);
+                return writebehind;
               }
             }
             return null;
           }
 
           @Override
-          public DiskStoreSettings diskStoreSettings() {
+          public DiskStoreSettingsType diskStoreSettings() {
             DiskStoreSettingsType value = null;
             for (BaseCacheType source : sources) {
               value = source.getDiskStoreSettings();
               if (value != null) break;
             }
-            if (value != null) {
-              return new XmlDiskStoreSettings(value);
-            } else {
-              return null;
-            }
+            return value;
           }
 
           @Override
@@ -585,14 +578,13 @@ class ConfigurationParser {
           @Override
           public WriteBehind writeBehind() {
             final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
-            final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind(): null;
-            return writebehind != null ? new XmlWriteBehind(writebehind) : null;
+            final WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind(): null;
+            return writebehind;
           }
 
           @Override
-          public DiskStoreSettings diskStoreSettings() {
-            final DiskStoreSettingsType diskStoreSettings = cacheTemplate.getDiskStoreSettings();
-            return diskStoreSettings == null ? null : new XmlDiskStoreSettings(diskStoreSettings);
+          public DiskStoreSettingsType diskStoreSettings() {
+            return cacheTemplate.getDiskStoreSettings();
           }
 
           @Override
@@ -734,7 +726,7 @@ class ConfigurationParser {
 
     WriteBehind writeBehind();
 
-    DiskStoreSettings diskStoreSettings();
+    DiskStoreSettingsType diskStoreSettings();
 
     SizeOfEngineLimits heapStoreSettings();
 
@@ -755,18 +747,6 @@ class ConfigurationParser {
     Iterable<Listener> listeners();
   }
 
-  interface Listener {
-
-    String className();
-
-    EventFiringType eventFiring();
-
-    EventOrderingType eventOrdering();
-
-    List<EventType> fireOn();
-
-  }
-
   interface Expiry {
 
     boolean isUserDef();
@@ -783,38 +763,6 @@ class ConfigurationParser {
 
   }
 
-  interface WriteBehind {
-
-    int maxQueueSize();
-
-    int concurrency();
-
-    String threadPool();
-
-    Batching batching();
-  }
-
-  interface Batching {
-
-    boolean isCoalesced();
-
-    int batchSize();
-
-    long maxDelay();
-
-    TimeUnit maxDelayUnit();
-  }
-
-  interface DiskStoreSettings {
-
-    int writerConcurrency();
-
-    String threadPool();
-
-    int diskSegments();
-  }
-
-
   interface SizeOfEngineLimits {
 
     long getMaxObjectGraphSize();
@@ -824,9 +772,6 @@ class ConfigurationParser {
     MemoryUnit getUnit();
   }
 
-  interface ResilienceStrategy {
-
-  }
   private static class XmlListenersConfig implements ListenersConfig {
 
     final int dispatcherConcurrency;
@@ -837,46 +782,17 @@ class ConfigurationParser {
       this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
       String threadPool = type.getDispatcherThreadPool();
       Set<Listener> listenerSet = new HashSet<>();
-      final List<ListenersType.Listener> xmlListeners = type.getListener();
-      extractListeners(listenerSet, xmlListeners);
+      listenerSet.addAll(type.getListener());
 
       for (ListenersType other : others) {
         if (threadPool == null && other.getDispatcherThreadPool() != null) {
           threadPool = other.getDispatcherThreadPool();
         }
-        extractListeners(listenerSet, other.getListener());
+        listenerSet.addAll(other.getListener());
       }
 
       this.threadPool = threadPool;
       this.listeners = !listenerSet.isEmpty() ? listenerSet : null;
-    }
-
-    private void extractListeners(Set<Listener> listenerSet, List<ListenersType.Listener> xmlListeners) {
-      if(xmlListeners != null) {
-        for(final ListenersType.Listener listener : xmlListeners) {
-          listenerSet.add(new Listener() {
-            @Override
-            public String className() {
-              return listener.getClazz();
-            }
-
-            @Override
-            public EventFiringType eventFiring() {
-              return listener.getEventFiringMode();
-            }
-
-            @Override
-            public EventOrderingType eventOrdering() {
-              return listener.getEventOrderingMode();
-            }
-
-            @Override
-            public List<EventType> fireOn() {
-              return listener.getEventsToFireOn();
-            }
-          });
-        }
-      }
     }
 
     @Override
@@ -987,96 +903,5 @@ class ConfigurationParser {
         return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
       }
     }
-
   }
-
-  private static class XmlWriteBehind implements WriteBehind {
-
-    private final CacheLoaderWriterType.WriteBehind writebehind;
-
-    private XmlWriteBehind(CacheLoaderWriterType.WriteBehind writebehind) {
-      this.writebehind = writebehind;
-    }
-
-    @Override
-    public int maxQueueSize() {
-      return this.writebehind.getSize().intValue();
-    }
-
-    @Override
-    public int concurrency() {
-      return this.writebehind.getConcurrency().intValue() ;
-    }
-
-    @Override
-    public String threadPool() {
-      return this.writebehind.getThreadPool();
-    }
-
-    @Override
-    public Batching batching() {
-      CacheLoaderWriterType.WriteBehind.Batching batching = writebehind.getBatching();
-      if (batching == null) {
-        return null;
-      } else {
-        return new XmlBatching(batching);
-      }
-    }
-
-  }
-
-  private static class XmlBatching implements Batching {
-
-    private final CacheLoaderWriterType.WriteBehind.Batching batching;
-
-    private XmlBatching(CacheLoaderWriterType.WriteBehind.Batching batching) {
-      this.batching = batching;
-    }
-
-    @Override
-    public boolean isCoalesced() {
-      return this.batching.isCoalesce();
-    }
-
-    @Override
-    public int batchSize() {
-      return this.batching.getBatchSize().intValue();
-    }
-
-    @Override
-    public long maxDelay() {
-      return this.batching.getMaxWriteDelay().getValue().longValue();
-    }
-
-    @Override
-    public TimeUnit maxDelayUnit() {
-      return XmlModel.convertToJUCTimeUnit(this.batching.getMaxWriteDelay().getUnit());
-    }
-
-  }
-
-  private static class XmlDiskStoreSettings implements DiskStoreSettings {
-
-    private final DiskStoreSettingsType diskStoreSettings;
-
-    private XmlDiskStoreSettings(DiskStoreSettingsType diskStoreSettings) {
-      this.diskStoreSettings = diskStoreSettings;
-    }
-
-    @Override
-    public int writerConcurrency() {
-      return this.diskStoreSettings.getWriterConcurrency().intValue();
-    }
-
-    @Override
-    public String threadPool() {
-      return this.diskStoreSettings.getThreadPool();
-    }
-
-    @Override
-    public int diskSegments() {
-      return this.diskStoreSettings.getDiskSegments().intValue();
-    }
-  }
-
 }

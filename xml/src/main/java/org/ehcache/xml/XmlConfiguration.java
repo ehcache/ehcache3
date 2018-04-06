@@ -56,11 +56,13 @@ import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.xml.ConfigurationParser.Batching;
-import org.ehcache.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.ehcache.xml.model.CacheLoaderWriterType.WriteBehind;
+import org.ehcache.xml.model.CacheLoaderWriterType.WriteBehind.Batching;
 import org.ehcache.xml.model.CopierType;
+import org.ehcache.xml.model.DiskStoreSettingsType;
 import org.ehcache.xml.model.EventType;
+import org.ehcache.xml.model.ListenersType.Listener;
 import org.ehcache.xml.model.SerializerType;
 import org.ehcache.xml.model.ServiceType;
 import org.ehcache.xml.model.ThreadPoolReferenceType;
@@ -73,10 +75,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -84,13 +84,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.xml.XmlModel.convertToJUCTimeUnit;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
@@ -291,9 +289,9 @@ public class XmlConfiguration implements Configuration {
       if (parsedExpiry != null) {
         cacheBuilder = cacheBuilder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
       }
-      final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
+      final DiskStoreSettingsType parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
       if (parsedDiskStoreSettings != null) {
-        cacheBuilder = cacheBuilder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency(), parsedDiskStoreSettings.diskSegments()));
+        cacheBuilder = cacheBuilder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.getThreadPool(), parsedDiskStoreSettings.getWriterConcurrency().intValue(), parsedDiskStoreSettings.getDiskSegments().intValue()));
       }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         cacheBuilder = cacheBuilder.add(serviceConfig);
@@ -304,20 +302,23 @@ public class XmlConfiguration implements Configuration {
         if(cacheDefinition.writeBehind() != null) {
           WriteBehind writeBehind = cacheDefinition.writeBehind();
           WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
-          if (writeBehind.batching() == null) {
+          if (writeBehind.getBatching() == null) {
             writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
           } else {
-            Batching batching = writeBehind.batching();
+            Batching batching = writeBehind.getBatching();
             writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder
-                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
-            if (batching.isCoalesced()) {
+                    .newBatchedWriteBehindConfiguration(
+                      batching.getMaxWriteDelay().getValue().longValue(),
+                      convertToJUCTimeUnit(batching.getMaxWriteDelay().getUnit()),
+                      batching.getBatchSize().intValue());
+            if (batching.isCoalesce()) {
               writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
             }
           }
           cacheBuilder = cacheBuilder.add(writeBehindConfigurationBuilder
-                  .useThreadPool(writeBehind.threadPool())
-                  .concurrencyLevel(writeBehind.concurrency())
-                  .queueSize(writeBehind.maxQueueSize()));
+                  .useThreadPool(writeBehind.getThreadPool())
+                  .concurrencyLevel(writeBehind.getConcurrency().intValue())
+                  .queueSize(writeBehind.getSize().intValue()));
         }
       }
       if (cacheDefinition.resilienceStrategy() != null) {
@@ -537,18 +538,21 @@ public class XmlConfiguration implements Configuration {
       if(cacheTemplate.writeBehind() != null) {
         WriteBehind writeBehind = cacheTemplate.writeBehind();
         WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
-        if (writeBehind.batching() == null) {
+        if (writeBehind.getBatching() == null) {
           writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
         } else {
-          Batching batching = writeBehind.batching();
-          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
-          if (batching.isCoalesced()) {
+          Batching batching = writeBehind.getBatching();
+          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(
+            batching.getMaxWriteDelay().getValue().longValue(),
+            convertToJUCTimeUnit(batching.getMaxWriteDelay().getUnit()),
+            batching.getBatchSize().intValue());
+          if (batching.isCoalesce()) {
             writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
           }
         }
         builder = builder.add(writeBehindConfigurationBuilder
-                .concurrencyLevel(writeBehind.concurrency())
-                .queueSize(writeBehind.maxQueueSize()));
+                .concurrencyLevel(writeBehind.getConcurrency().intValue())
+                .queueSize(writeBehind.getSize().intValue()));
       }
     }
     String resilienceStrategy = cacheTemplate.resilienceStrategy();
@@ -569,10 +573,10 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultCacheEventDispatcherConfiguration(listenersConfig.threadPool()));
       }
       if (listenersConfig.listeners() != null) {
-        for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+        for (Listener listener : listenersConfig.listeners()) {
           @SuppressWarnings("unchecked")
-          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
-          final List<EventType> eventListToFireOn = listener.fireOn();
+          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.getClazz(), defaultClassLoader);
+          final List<EventType> eventListToFireOn = listener.getEventsToFireOn();
           Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<>();
           for (EventType events : eventListToFireOn) {
             switch (events) {
@@ -597,8 +601,8 @@ public class XmlConfiguration implements Configuration {
           }
           CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
               .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
-              .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
-              .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
+              .firingMode(EventFiring.valueOf(listener.getEventFiringMode().value()))
+              .eventOrdering(EventOrdering.valueOf(listener.getEventOrderingMode().value()));
           builder = builder.add(listenerBuilder);
         }
       }
