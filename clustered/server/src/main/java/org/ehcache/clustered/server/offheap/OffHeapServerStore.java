@@ -119,9 +119,14 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
 
   public void put(long key, Chain chain) {
     try {
-      segmentFor(key).put(key, chain);
-    } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));
+      try {
+        segmentFor(key).put(key, chain);
+      } catch (OversizeMappingException e) {
+        handleOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));
+      }
+    } catch (Throwable t) {
+      segmentFor(key).remove(key);
+      throw t;
     }
   }
 
