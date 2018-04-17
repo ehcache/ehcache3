@@ -37,6 +37,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
@@ -163,8 +164,8 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
     if (message instanceof EhcacheOperationMessage) {
       EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-      EhcacheMessageType messageType = operationMessage.getMessageType();
-      try {
+      try (EhcacheStateContext ignored = stateService.beginProcessing(operationMessage, storeIdentifier)) {
+        EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isStoreOperationMessage(messageType)) {
           invokeServerStoreOperation((ServerStoreOpMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {

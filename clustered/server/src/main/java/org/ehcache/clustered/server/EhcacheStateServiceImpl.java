@@ -25,7 +25,9 @@ import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressExcepti
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -488,6 +490,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
                                "Existing: defaultResource: " + getDefaultServerResource() + "\n" +
                                "\tsharedPools: " + sharedResourcePools);
     }
+  }
+
+  @Override
+  public EhcacheStateContext beginProcessing(EhcacheOperationMessage message, String name) {
+    return () -> {};
   }
 
   public boolean isConfigured() {

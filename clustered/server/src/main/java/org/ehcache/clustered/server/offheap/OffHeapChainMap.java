@@ -35,6 +35,7 @@ import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffH
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
+import org.terracotta.offheapstore.util.Factory;
 
 public class OffHeapChainMap<K> implements MapInternals {
 
@@ -43,11 +44,11 @@ public class OffHeapChainMap<K> implements MapInternals {
   }
 
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
-  private final OffHeapChainStorageEngine<K> chainStorage;
+  private final ChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;
 
-  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
-    this.chainStorage = new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
+  private OffHeapChainMap(PageSource source, ChainStorageEngine<K> storageEngine) {
+    this.chainStorage = storageEngine;
     EvictionListener<K, InternalChain> listener = callable -> {
       try {
         Map.Entry<K, InternalChain> entry = callable.call();
@@ -68,6 +69,14 @@ public class OffHeapChainMap<K> implements MapInternals {
     this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(listener, source, chainStorage);
   }
 
+  public OffHeapChainMap(PageSource source, Factory<? extends ChainStorageEngine<K>> storageEngineFactory) {
+    this(source, storageEngineFactory.newInstance());
+  }
+
+  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
+    this(source, new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving));
+  }
+
   //For tests
   OffHeapChainMap(ReadWriteLockedOffHeapClockCache<K, InternalChain> heads, OffHeapChainStorageEngine<K> chainStorage) {
     this.chainStorage = chainStorage;
@@ -76,6 +85,10 @@ public class OffHeapChainMap<K> implements MapInternals {
 
   void setEvictionListener(ChainMapEvictionListener<K> listener) {
     evictionListener = listener;
+  }
+
+  public ChainStorageEngine<K> getStorageEngine() {
+    return chainStorage;
   }
 
   public Chain get(K key) {
@@ -346,11 +359,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     return heads.getDataSize();
   }
 
-  boolean shrink() {
+  public boolean shrink() {
     return heads.shrink();
   }
 
-  Lock writeLock() {
+  public Lock writeLock() {
     return heads.writeLock();
   }
 

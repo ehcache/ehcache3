@@ -15,19 +15,12 @@
  */
 package org.ehcache.clustered.server.offheap;
 
-import java.io.Closeable;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.terracotta.offheapstore.storage.StorageEngine;
+
 import java.nio.ByteBuffer;
 
-import org.ehcache.clustered.common.internal.store.Chain;
-
-public interface InternalChain extends Closeable {
-
-  Chain detach();
-
-  boolean append(ByteBuffer element);
-
-  boolean replace(Chain expected, Chain replacement);
-
-  @Override
-  void close();
+public interface ChainStorageEngine<K> extends StorageEngine<K, InternalChain> {
+  InternalChain newChain(ByteBuffer element);
+  InternalChain newChain(Chain chain);
 }

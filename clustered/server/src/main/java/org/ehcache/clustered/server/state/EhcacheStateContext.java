@@ -13,21 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server.offheap;
+package org.ehcache.clustered.server.state;
 
-import java.io.Closeable;
-import java.nio.ByteBuffer;
+import com.tc.classloader.CommonComponent;
 
-import org.ehcache.clustered.common.internal.store.Chain;
-
-public interface InternalChain extends Closeable {
-
-  Chain detach();
-
-  boolean append(ByteBuffer element);
-
-  boolean replace(Chain expected, Chain replacement);
-
-  @Override
+/**
+ * Marker interface to pass context between begin and end message processing.
+ */
+@CommonComponent
+@FunctionalInterface
+public interface EhcacheStateContext extends AutoCloseable {
   void close();
 }
