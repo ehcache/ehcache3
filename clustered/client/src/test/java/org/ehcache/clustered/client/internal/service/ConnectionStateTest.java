@@ -72,7 +72,7 @@ public class ConnectionStateTest {
   @Test
   public void testInitializeStateAfterConnectionCloses() throws Exception {
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
 
     closeConnection();
@@ -92,7 +92,7 @@ public class ConnectionStateTest {
   @Test
   public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
     connectionState.initializeState();
 
