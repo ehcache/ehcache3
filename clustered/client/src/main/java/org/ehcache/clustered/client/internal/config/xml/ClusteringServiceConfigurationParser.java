@@ -39,10 +39,13 @@ import org.w3c.dom.NodeList;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -107,6 +110,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
       ServerSideConfig serverConfig = null;
       URI connectionUri = null;
+      List<InetSocketAddress> serverAddresses = new ArrayList<>();
+      String cacheManagerName = null;
       Duration getTimeout = null, putTimeout = null, connectionTimeout = null;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
@@ -118,13 +123,51 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
                * <connection> is a required element in the XSD
                */
               final Attr urlAttribute = ((Element) item).getAttributeNode("url");
-              final String urlValue = urlAttribute.getValue();
-              try {
-                connectionUri = new URI(urlValue);
-              } catch (URISyntaxException e) {
-                throw new XmlConfigurationException(
-                  String.format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
-                    urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
+              final Attr serversAttribute = ((Element) item).getAttributeNode("servers");
+              final Attr cacheManagerAttribute = ((Element) item).getAttributeNode("cacheManager");
+              if (urlAttribute != null && serversAttribute != null) {
+                throw new XmlConfigurationException("Either of 'url' or 'servers' must be specified, not both");
+              } else if (urlAttribute == null && serversAttribute == null) {
+                throw new XmlConfigurationException("Either 'url' or 'servers' must be specified");
+              } else if (urlAttribute != null) {
+                if (cacheManagerAttribute != null) {
+                  throw new XmlConfigurationException("'cacheManager' attribute can only be used with 'servers' attribute");
+                }
+                final String urlValue = urlAttribute.getValue();
+                try {
+                  connectionUri = new URI(urlValue);
+                } catch (URISyntaxException e) {
+                  throw new XmlConfigurationException(
+                    String.format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
+                      urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
+                }
+              } else {
+                if (cacheManagerAttribute == null) {
+                  throw new XmlConfigurationException("'cacheManager' attribute needs to be specified with 'servers' attribute");
+                }
+                cacheManagerName = cacheManagerAttribute.getValue();
+                final String serversValue = serversAttribute.getValue();
+                String[] servers = serversValue.split(" ");
+                for (String server : servers) {
+                  int colonIndex = server.lastIndexOf(":");
+                  String host;
+                  int port;
+                  if (colonIndex == -1 || (server.charAt(0) == '[' && server.charAt(server.length() - 1) == ']')) {
+                    //Port not specified
+                    host = server;
+                    port = 0;
+                  } else {
+                    host = server.substring(0, colonIndex);
+                    String portString = server.substring(colonIndex + 1);
+                    try {
+                      port = Integer.parseInt(portString);
+                    } catch (NumberFormatException nfe) {
+                      throw new XmlConfigurationException(nfe);
+                    }
+                  }
+                  InetSocketAddress address = InetSocketAddress.createUnresolved(host, port);
+                  serverAddresses.add(address);
+                }
               }
 
               break;
@@ -166,7 +209,11 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       try {
         Timeouts timeouts = getTimeouts(getTimeout, putTimeout, connectionTimeout);
         if (serverConfig == null) {
-          return new ClusteringServiceConfiguration(connectionUri, timeouts);
+          if (connectionUri != null) {
+            return new ClusteringServiceConfiguration(connectionUri, timeouts);
+          } else {
+            return new ClusteringServiceConfiguration(serverAddresses, cacheManagerName, timeouts);
+          }
         }
 
         ServerSideConfiguration serverSideConfiguration;
@@ -176,7 +223,11 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
           serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
         }
 
-        return new ClusteringServiceConfiguration(connectionUri, timeouts, serverConfig.autoCreate, serverSideConfiguration);
+        if (connectionUri != null) {
+          return new ClusteringServiceConfiguration(connectionUri, timeouts, serverConfig.autoCreate, serverSideConfiguration);
+        } else {
+          return new ClusteringServiceConfiguration(serverAddresses, cacheManagerName, timeouts, serverConfig.autoCreate, serverSideConfiguration);
+        }
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
       }

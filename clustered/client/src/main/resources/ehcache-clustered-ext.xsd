@@ -82,12 +82,21 @@
   </xs:complexType>
 
   <xs:complexType name="connection-spec">
-    <xs:attribute name="url" type="tc:connectionUrl" use="required">
+    <xs:attribute name="url" type="tc:connectionUrl">
       <xs:annotation>
         <xs:documentation xml:lang="en">
           Identifies a single cluster member by URL.
         </xs:documentation>
       </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="servers" type="tc:servers">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          Identifies servers in the cluster.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="cacheManager" type="xs:string">
     </xs:attribute>
   </xs:complexType>
 
@@ -95,6 +104,10 @@
     <xs:restriction base="xs:anyURI">
       <xs:pattern value="\w+://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(,([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?)*(/[^\?#]*)?(\?[^#]*)?(#.*)?"/>
     </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="servers">
+    <xs:list itemType="xs:string"/>
   </xs:simpleType>
 
   <xs:complexType name="server-side-config-spec">
