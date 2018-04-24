@@ -72,7 +72,7 @@ public class DefaultCacheStatisticsTest {
     CacheLoaderWriter<Long, String> loaderWriter = new CacheLoaderWriter<Long, String>() {
       @Override
       public String load(Long key) throws Exception {
-        sleep(latency.get()); // latency simulation
+        minimumSleep(latency.get()); // latency simulation
         return sor.get(key);
       }
 
@@ -232,7 +232,7 @@ public class DefaultCacheStatisticsTest {
     assertThat(history).hasSize(1);
     assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
 
-    sleep(300); // next window
+    minimumSleep(300); // next window
 
     latency.set(50);
     cache.get(3L);
@@ -245,7 +245,7 @@ public class DefaultCacheStatisticsTest {
     assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
     assertThat(history.get(1).getSample()).isGreaterThanOrEqualTo(nanos(150L));
 
-    sleep(300); // next window, first sample it discarded since history size is 2
+    minimumSleep(300); // next window, first sample it discarded since history size is 2
 
     latency.set(200);
     cache.get(5L);
@@ -262,5 +262,31 @@ public class DefaultCacheStatisticsTest {
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
     return assertThat((Number) cacheStatistics.getKnownStatistics().get(key).value());
+  }
+
+  // Java does not provide a guarantee that Thread.sleep will actually sleep long enough
+  // In fact, on Windows, it does not sleep for long enough.
+  // This method keeps sleeping until the full time has passed.
+  private void minimumSleep(long millis) {
+    long start = System.nanoTime();
+    long nanos = NANOSECONDS.convert(millis, MILLISECONDS);
+
+    while (true) {
+      long now = System.nanoTime();
+      long elapsed = now - start;
+      long nanosLeft = nanos - elapsed;
+
+      if (nanosLeft <= 0) {
+        break;
+      }
+
+      long millisLeft = MILLISECONDS.convert(nanosLeft, NANOSECONDS);
+      try {
+        Thread.sleep(millisLeft);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+    }
   }
 }
