@@ -17,26 +17,13 @@ package org.ehcache.core.spi.service;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 public interface StatisticsServiceConfiguration extends ServiceCreationConfiguration<StatisticsService> {
 
   /**
-   * Aggregation is done by keeping the maximum value that has been seen.
-   * A low value (i.e. 500ms) is better.
-   *
-   * @return The interval used to aggregate the latencies of Ehcache operations to create one latency sample.
+   * @return the default histogram window size
    */
-  long getLatencyHistoryWindowInterval();
-
-  /**
-   * @return the unit for the latency history interval
-   */
-  TimeUnit getLatencyHistoryWindowUnit();
-
-  /**
-   * @return the maximum number of maximum latency samples to keep.
-   */
-  int getLatencyHistorySize();
+  Duration getDefaultHistogramWindow();
 
 }
