@@ -32,6 +32,7 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.statistics.Sample;
 import org.terracotta.statistics.SampledStatistic;
@@ -211,6 +212,7 @@ public class DefaultCacheStatisticsTest {
   }
 
   @Test
+  @Ignore("Until https://github.com/ehcache/ehcache3/issues/2366 is resolved")
   public void getCacheGetLatencyHistory() throws Exception {
     sor.put(1L, "a");
     sor.put(2L, "b");
