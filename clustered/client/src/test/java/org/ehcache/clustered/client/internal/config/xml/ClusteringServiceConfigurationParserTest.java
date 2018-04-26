@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
@@ -41,10 +42,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -52,7 +56,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
-import static org.ehcache.xml.XmlModel.convertToJavaTemporalUnit;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -60,7 +63,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Basic tests for {@link ClusteringServiceConfigurationParser}.
@@ -299,6 +303,125 @@ public class ClusteringServiceConfigurationParserTest {
       assertThat(e.getMessage(), containsString("Error parsing XML configuration "));
       assertThat(e.getCause().getMessage(), containsString("'' is not a valid value for 'integer'"));
     }
+  }
+
+  @Test(expected = XmlConfigurationException.class)
+  public void testUrlAndServers() throws Exception {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\" />",
+        "      <tc:cluster-connection cluster-tier-manager=\"cM\">",
+        "        <tc:server host=\"blah\" port=\"1234\" />",
+        "      </tc:cluster-connection>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    new XmlConfiguration(makeConfig(config));
+  }
+
+  @Test(expected = XmlConfigurationException.class)
+  public void testServersOnly() throws Exception {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:cluster-connection>",
+        "        <tc:server host=\"blah\" port=\"1234\" />",
+        "      </tc:cluster-connection>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    new XmlConfiguration(makeConfig(config));
+  }
+
+  @Test
+  public void testServersWithClusterTierManager() throws Exception {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:cluster-connection cluster-tier-manager=\"cM\">",
+        "        <tc:server host=\"server-1\" port=\"9510\" />",
+        "        <tc:server host=\"server-2\" port=\"9540\" />",
+        "      </tc:cluster-connection>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    final Configuration configuration = new XmlConfiguration(makeConfig(config));
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    ClusteringServiceConfiguration clusteringServiceConfiguration =
+      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+    ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
+    Iterable<InetSocketAddress> servers = connectionSource.getServers();
+
+    InetSocketAddress firstServer = InetSocketAddress.createUnresolved("server-1", 9510);
+    InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 9540);
+    List<InetSocketAddress> expectedServers = Arrays.asList(firstServer, secondServer);
+
+    assertThat(connectionSource.getClusterTierManager(), is("cM"));
+    assertThat(servers, is(expectedServers));
+  }
+
+  @Test
+  public void testServersWithClusterTierManagerAndOptionalPorts() throws Exception {
+    final String[] config = new String[]
+    {
+      "<ehcache:config",
+      "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+      "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+      "",
+      "  <ehcache:service>",
+      "    <tc:cluster>",
+      "      <tc:cluster-connection cluster-tier-manager=\"cM\">",
+      "        <tc:server host=\"100.100.100.100\" port=\"9510\" />",
+      "        <tc:server host=\"server-2\" />",
+      "        <tc:server host=\"[::1]\" />",
+      "        <tc:server host=\"[fe80::1453:846e:7be4:15fe]\" port=\"9710\" />",
+      "      </tc:cluster-connection>",
+      "    </tc:cluster>",
+      "  </ehcache:service>",
+      "",
+      "</ehcache:config>"
+    };
+
+    final Configuration configuration = new XmlConfiguration(makeConfig(config));
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    ClusteringServiceConfiguration clusteringServiceConfiguration =
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+    ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
+    Iterable<InetSocketAddress> servers = connectionSource.getServers();
+
+    InetSocketAddress firstServer = InetSocketAddress.createUnresolved("100.100.100.100", 9510);
+    InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 0);
+    InetSocketAddress thirdServer = InetSocketAddress.createUnresolved("[::1]", 0);
+    InetSocketAddress fourthServer = InetSocketAddress.createUnresolved("[fe80::1453:846e:7be4:15fe]", 9710);
+    List<InetSocketAddress> expectedServers = Arrays.asList(firstServer, secondServer, thirdServer, fourthServer);
+
+    assertThat(connectionSource.getClusterTierManager(), is("cM"));
+    assertThat(servers, is(expectedServers));
   }
 
   /**

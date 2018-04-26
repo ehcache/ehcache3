@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -401,6 +402,11 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   @Override
+  public boolean handlesConnectionType(String s) {
+    throw new UnsupportedOperationException("Operation not supported. Use handlesURI(URI) instead.");
+  }
+
+  @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
 
     if (PASSTHROUGH.equals(uri.getScheme())) {
@@ -444,6 +450,11 @@ public class UnitTestConnectionService implements ConnectionService {
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
         new Class[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
+  }
+
+  @Override
+  public Connection connect(Iterable<InetSocketAddress> iterable, Properties properties) {
+    throw new UnsupportedOperationException("Operation not supported. Use connect(URI, Properties) instead");
   }
 
   /**
