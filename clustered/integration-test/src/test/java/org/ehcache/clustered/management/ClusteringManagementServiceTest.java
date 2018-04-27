@@ -208,14 +208,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("alias")).isEqualTo("resource-pool-b");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("primary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(16 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(8 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     settings = (Settings) descriptors.get(1);
     assertThat(settings.get("alias")).isEqualTo("resource-pool-a");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("secondary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(10 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     // Dedicated PoolSettings
