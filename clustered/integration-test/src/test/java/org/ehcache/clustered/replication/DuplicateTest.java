@@ -88,7 +88,7 @@ public class DuplicateTest extends ClusteredTests {
         .defaultServerResource("primary-server-resource"))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 128, MemoryUnit.MB)))
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
         .withResilienceStrategy(failingResilienceStrategy())
         .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 

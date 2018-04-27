@@ -96,11 +96,11 @@ public class ClusteredConcurrencyTest {
         CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
           .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
             .defaultServerResource("primary-server-resource")
-            .resourcePool("resource-pool-a", 32, MemoryUnit.MB)
-            .resourcePool("resource-pool-b", 32, MemoryUnit.MB, "secondary-server-resource"))
+            .resourcePool("resource-pool-a", 8, MemoryUnit.MB)
+            .resourcePool("resource-pool-b", 8, MemoryUnit.MB, "secondary-server-resource"))
           .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
             .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
 
         latch.countDown();

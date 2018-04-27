@@ -60,15 +60,15 @@ public class ClusteredCacheDestroyTest {
           .with(cluster(CLUSTER_URI).autoCreate())
           .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
   public void definePassthroughServer() throws Exception {
     UnitTestConnectionService.add(CLUSTER_URI,
         new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("primary-server-resource", 64, MemoryUnit.MB)
-            .resource("secondary-server-resource", 64, MemoryUnit.MB)
+            .resource("primary-server-resource", 16, MemoryUnit.MB)
+            .resource("secondary-server-resource", 16, MemoryUnit.MB)
             .build());
   }
 
@@ -97,7 +97,7 @@ public class ClusteredCacheDestroyTest {
 
     CacheConfigurationBuilder<Long, String> configBuilder = newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 34, MemoryUnit.MB)));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)));
 
     try {
       Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);

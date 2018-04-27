@@ -33,7 +33,7 @@
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <tc:clustered-dedicated from="primary-server-resource" unit="MB">16</tc:clustered-dedicated>
+      <tc:clustered-dedicated from="primary-server-resource" unit="MB">8</tc:clustered-dedicated>
     </ehcache:resources>
   </ehcache:cache>
 

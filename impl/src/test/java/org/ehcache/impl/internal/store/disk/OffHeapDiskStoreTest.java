@@ -355,7 +355,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
       .build(true)) {
       final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
-        heap(1000).offheap(20, MB).disk(30, MB))
+        heap(1000).offheap(10, MB).disk(20, MB))
         .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
           @Override
           public CacheValue load(Long key) {

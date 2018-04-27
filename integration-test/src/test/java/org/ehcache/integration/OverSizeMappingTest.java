@@ -59,7 +59,7 @@ public class OverSizeMappingTest {
     CacheConfiguration<String, ObjectSizeGreaterThanN> objectGraphSize = CacheConfigurationBuilder
         .newCacheConfigurationBuilder(String.class, ObjectSizeGreaterThanN.class,
             newResourcePoolsBuilder()
-                .heap(100, MemoryUnit.KB).offheap(100, MemoryUnit.MB).build())
+                .heap(100, MemoryUnit.KB).offheap(10, MemoryUnit.MB).build())
         .build();
 
     Cache<String, ObjectSizeGreaterThanN> objectGraphSizeCache = cacheManager.createCache("objectGraphSize",
