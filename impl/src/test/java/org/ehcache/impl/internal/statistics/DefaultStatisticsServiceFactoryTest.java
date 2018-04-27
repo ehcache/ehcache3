@@ -19,7 +19,7 @@ import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.service.StatisticsServiceConfiguration;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,19 +34,14 @@ public class DefaultStatisticsServiceFactoryTest {
   public void createNoConfig() {
     StatisticsServiceConfiguration configuration = new DefaultStatisticsServiceConfiguration();
     StatisticsService statisticsService = factory.create(null);
-    assertThat(statisticsService.getConfiguration().getLatencyHistorySize()).isEqualTo(configuration.getLatencyHistorySize());
-    assertThat(statisticsService.getConfiguration().getLatencyHistoryWindowInterval()).isEqualTo(configuration.getLatencyHistoryWindowInterval());
-    assertThat(statisticsService.getConfiguration().getLatencyHistoryWindowUnit()).isEqualTo(configuration.getLatencyHistoryWindowUnit());
+    assertThat(statisticsService.getConfiguration().getDefaultHistogramWindow()).isEqualTo(configuration.getDefaultHistogramWindow());
   }
 
   @Test
   public void createWithConfig() {
     StatisticsService statisticsService = factory.create(new DefaultStatisticsServiceConfiguration()
-      .withLatencyHistorySize(1)
-      .withLatencyHistoryWindow(1, TimeUnit.SECONDS));
-    assertThat(statisticsService.getConfiguration().getLatencyHistorySize()).isEqualTo(1);
-    assertThat(statisticsService.getConfiguration().getLatencyHistoryWindowInterval()).isEqualTo(1L);
-    assertThat(statisticsService.getConfiguration().getLatencyHistoryWindowUnit()).isEqualTo(TimeUnit.SECONDS);
+      .withDefaultHistogramWindow(Duration.ofHours(1)));
+    assertThat(statisticsService.getConfiguration().getDefaultHistogramWindow()).isEqualTo(Duration.ofHours(1));
   }
 
   @Test(expected = IllegalArgumentException.class)

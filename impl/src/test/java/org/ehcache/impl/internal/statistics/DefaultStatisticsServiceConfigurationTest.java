@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.statistics;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.junit.Test;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -30,31 +30,13 @@ public class DefaultStatisticsServiceConfigurationTest {
   DefaultStatisticsServiceConfiguration configuration = new DefaultStatisticsServiceConfiguration();
 
   @Test
-  public void getLatencyHistoryWindowInterval() {
-    assertThat(configuration.getLatencyHistoryWindowInterval()).isEqualTo(500L);
+  public void getDefaultHistogramWindow() {
+    assertThat(configuration.getDefaultHistogramWindow()).isEqualTo(Duration.ofMinutes(1));
   }
-
-  @Test
-  public void getLatencyHistoryWindowUnit() {
-    assertThat(configuration.getLatencyHistoryWindowUnit()).isEqualTo(MILLISECONDS);
-  }
-
-  @Test
-  public void getLatencyHistorySize() {
-    assertThat(configuration.getLatencyHistorySize()).isEqualTo(7200);
-  }
-
   @Test
   public void withLatencyHistoryWindow() {
-    configuration.withLatencyHistoryWindow(1, SECONDS);
-    assertThat(configuration.getLatencyHistoryWindowInterval()).isEqualTo(1L);
-    assertThat(configuration.getLatencyHistoryWindowUnit()).isEqualTo(SECONDS);
-  }
-
-  @Test
-  public void withLatencyHistorySize() {
-    configuration.withLatencyHistorySize(60);
-    assertThat(configuration.getLatencyHistorySize()).isEqualTo(60);
+    configuration.withDefaultHistogramWindow(Duration.ofHours(1));
+    assertThat(configuration.getDefaultHistogramWindow()).isEqualTo(Duration.ofHours(1));
   }
 
   @Test

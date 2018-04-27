@@ -16,8 +16,9 @@
 
 package org.ehcache.core.statistics;
 
-import org.terracotta.statistics.SampledStatistic;
+import org.ehcache.Cache;
 import org.terracotta.statistics.ValueStatistic;
+import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
 
 import java.util.Map;
 
@@ -133,13 +134,38 @@ public interface CacheStatistics {
   float getCacheAverageRemoveTime();
 
   /**
-   * The statistic used to access the latest history of latencies for {@link org.ehcache.Cache#get(Object)}
-   * operations leading to a {@link org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome#HIT}.
-   * <p>
-   * The history and latency aggregation is controlled through the {@link org.ehcache.core.spi.service.StatisticsServiceConfiguration}.
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a HIT.
    *
-   * @return the sampled statistic
+   * @return the histogram statistic
    */
-  SampledStatistic<Long> getCacheGetLatencyHistory();
+  LatencyHistogramStatistic getCacheGetHitLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a MISS.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheGetMissLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#put(Object, Object)} operations when the outcome is a PUT.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCachePutLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#remove(Object)} operations when the outcome is a SUCCESS.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheRemoveLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link Cache#clear()} operations when the outcome is a SUCCESS.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheClearLatencies();
 
 }

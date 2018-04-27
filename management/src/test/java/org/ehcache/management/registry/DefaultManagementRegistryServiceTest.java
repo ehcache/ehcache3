@@ -445,6 +445,25 @@ public class DefaultManagementRegistryServiceTest {
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemovalCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:EvictionCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetLatency", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#100", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#50", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#95", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#99", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#100", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#50", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#95", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#99", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetMissLatency#100", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetMissLatency#50", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetMissLatency#95", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetMissLatency#99", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutLatency#100", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutLatency#50", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutLatency#95", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutLatency#99", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemoveLatency#100", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemoveLatency#50", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemoveLatency#95", "GAUGE"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemoveLatency#99", "GAUGE"));
   }
 }

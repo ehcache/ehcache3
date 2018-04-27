@@ -32,10 +32,8 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.terracotta.statistics.Sample;
-import org.terracotta.statistics.SampledStatistic;
+import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,8 +41,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
-import static java.lang.Thread.sleep;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,11 +77,13 @@ public class DefaultCacheStatisticsTest {
 
       @Override
       public void write(Long key, String value) {
+        minimumSleep(latency.get()); // latency simulation
         sor.put(key, value);
       }
 
       @Override
       public void delete(Long key) {
+        minimumSleep(latency.get()); // latency simulation
         sor.remove(key);
       }
     };
@@ -103,8 +103,7 @@ public class DefaultCacheStatisticsTest {
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
 
     cacheStatistics = new DefaultCacheStatistics(cache, new DefaultStatisticsServiceConfiguration()
-      .withLatencyHistorySize(2)
-      .withLatencyHistoryWindow(400, MILLISECONDS), timeSource);
+      .withDefaultHistogramWindow(Duration.ofMillis(400)), timeSource);
   }
 
   @After
@@ -116,11 +115,40 @@ public class DefaultCacheStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys("Cache:HitCount", "Cache:MissCount",
-      "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
-      "OnHeap:ExpirationCount", "Cache:ExpirationCount", "OnHeap:HitCount", "OnHeap:MissCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount",
-      "OnHeap:MappingCount", "Cache:GetLatency");
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(
+      "Cache:ClearLatency#100",
+      "Cache:ClearLatency#50",
+      "Cache:ClearLatency#95",
+      "Cache:ClearLatency#99",
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:GetHitLatency#100",
+      "Cache:GetHitLatency#50",
+      "Cache:GetHitLatency#95",
+      "Cache:GetHitLatency#99",
+      "Cache:GetMissLatency#100",
+      "Cache:GetMissLatency#50",
+      "Cache:GetMissLatency#95",
+      "Cache:GetMissLatency#99",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:PutLatency#100",
+      "Cache:PutLatency#50",
+      "Cache:PutLatency#95",
+      "Cache:PutLatency#99",
+      "Cache:RemovalCount",
+      "Cache:RemoveLatency#100",
+      "Cache:RemoveLatency#50",
+      "Cache:RemoveLatency#95",
+      "Cache:RemoveLatency#99",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount");
   }
 
   @Test
@@ -212,50 +240,116 @@ public class DefaultCacheStatisticsTest {
   }
 
   @Test
-  @Ignore("Until https://github.com/ehcache/ehcache3/issues/2366 is resolved")
-  public void getCacheGetLatencyHistory() throws Exception {
+  public void getCacheGetHitMissLatencies() {
+
+    Consumer<LatencyHistogramStatistic> verifier = histogram -> {
+      assertThat(histogram.count()).isEqualTo(0L);
+
+      latency.set(100);
+      cache.get(1L);
+
+      latency.set(50);
+      cache.get(2L);
+
+      assertThat(histogram.count()).isEqualTo(2L);
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
+
+      minimumSleep(300); // next window
+
+      latency.set(50);
+      cache.get(3L);
+
+      latency.set(150);
+      cache.get(4L);
+
+      assertThat(histogram.count()).isEqualTo(2L);
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
+    };
+
+    verifier.accept(cacheStatistics.getCacheGetMissLatencies());
+
     sor.put(1L, "a");
     sor.put(2L, "b");
     sor.put(3L, "c");
     sor.put(4L, "d");
     sor.put(5L, "e");
 
-    SampledStatistic<Long> latencyHistory = cacheStatistics.getCacheGetLatencyHistory();
-    List<Sample<Long>> history = latencyHistory.history();
-    assertThat(history).isEmpty();
+    verifier.accept(cacheStatistics.getCacheGetHitLatencies());
+  }
+
+  @Test
+  public void getCachePutLatencies() {
+    LatencyHistogramStatistic histogram = cacheStatistics.getCachePutLatencies();
+
+    assertThat(histogram.count()).isEqualTo(0L);
 
     latency.set(100);
-    cache.get(1L);
+    cache.put(1L, "");
 
     latency.set(50);
-    cache.get(2L);
+    cache.put(2L, "");
 
-    history = latencyHistory.history();
-    assertThat(history).hasSize(1);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
+    assertThat(histogram.count()).isEqualTo(2L);
+    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
 
     minimumSleep(300); // next window
 
     latency.set(50);
-    cache.get(3L);
+    cache.put(3L, "");
 
     latency.set(150);
-    cache.get(4L);
+    cache.put(4L, "");
 
-    history = latencyHistory.history();
-    assertThat(history).hasSize(2);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
-    assertThat(history.get(1).getSample()).isGreaterThanOrEqualTo(nanos(150L));
+    assertThat(histogram.count()).isEqualTo(2L);
+    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
+  }
 
-    minimumSleep(300); // next window, first sample it discarded since history size is 2
+  @Test
+  public void getCacheRemoveLatencies() {
+    LatencyHistogramStatistic histogram = cacheStatistics.getCacheRemoveLatencies();
 
-    latency.set(200);
-    cache.get(5L);
+    cache.put(1L, "");
+    cache.put(2L, "");
+    cache.put(3L, "");
+    cache.put(4L, "");
 
-    history = latencyHistory.history();
-    assertThat(history).hasSize(2);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(150L));
-    assertThat(history.get(1).getSample()).isGreaterThanOrEqualTo(nanos(200L));
+    assertThat(histogram.count()).isEqualTo(0L);
+
+    latency.set(100);
+    cache.remove(1L);
+
+    latency.set(50);
+    cache.remove(2L);
+
+    assertThat(histogram.count()).isEqualTo(2L);
+    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
+
+    minimumSleep(300); // next window
+
+    latency.set(50);
+    cache.remove(3L);
+
+    latency.set(150);
+    cache.remove(4L);
+
+    assertThat(histogram.count()).isEqualTo(2L);
+    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
+  }
+
+  @Test
+  public void getCacheClearLatencies() {
+    LatencyHistogramStatistic histogram = cacheStatistics.getCacheClearLatencies();
+
+    cache.put(3L, "");
+    cache.put(4L, "");
+
+    assertThat(histogram.count()).isEqualTo(0L);
+    assertThat(histogram.maximum()).isNull();
+
+    cache.clear();
+
+    assertThat(histogram.count()).isEqualTo(1L);
+    assertThat(histogram.maximum()).isNotNull();
   }
 
   private long nanos(long millis) {

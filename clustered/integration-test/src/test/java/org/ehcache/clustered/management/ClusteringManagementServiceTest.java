@@ -93,7 +93,26 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Cache:RemovalCount", "COUNTER"),
     new StatisticDescriptor("Cache:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"),
-    new StatisticDescriptor("Cache:GetLatency", "GAUGE")
+    new StatisticDescriptor("Cache:ClearLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:ClearLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:ClearLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:ClearLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#99", "GAUGE")
   );
   private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = Arrays.asList(
     new StatisticDescriptor("Pool:AllocatedSize", "GAUGE")
