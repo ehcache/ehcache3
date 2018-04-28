@@ -60,6 +60,14 @@ public class ClusteringServiceConfiguration
     this(clusterUri, Timeouts.DEFAULT);
   }
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
   public ClusteringServiceConfiguration(Iterable<InetSocketAddress> servers, String clusterTierManager) {
     this(servers, clusterTierManager, Timeouts.DEFAULT);
   }
@@ -77,6 +85,15 @@ public class ClusteringServiceConfiguration
     this(clusterUri, timeouts, null);
   }
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
   public ClusteringServiceConfiguration(Iterable<InetSocketAddress> servers, String clusterTierManager, Timeouts timeouts) {
     this(servers, clusterTierManager, timeouts, null);
   }
@@ -108,6 +125,16 @@ public class ClusteringServiceConfiguration
     this(clusterUri, timeouts, DEFAULT_AUTOCREATE, serverConfig);
   }
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param serverConfig the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
   public ClusteringServiceConfiguration(Iterable<InetSocketAddress> servers, String clusterTierManager, Timeouts timeouts,
                                         ServerSideConfiguration serverConfig) {
     this(servers, clusterTierManager, timeouts, DEFAULT_AUTOCREATE, serverConfig);
@@ -127,6 +154,16 @@ public class ClusteringServiceConfiguration
     this(clusterUri, Timeouts.DEFAULT, autoCreate, serverConfig);
   }
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverConfig the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
   public ClusteringServiceConfiguration(Iterable<InetSocketAddress> servers, String clusterTierManager, boolean autoCreate,
                                         ServerSideConfiguration serverConfig) {
     this(servers, clusterTierManager, Timeouts.DEFAULT, autoCreate, serverConfig);
@@ -147,6 +184,17 @@ public class ClusteringServiceConfiguration
     this(clusterUri, timeouts, autoCreate, serverConfig, new Properties());
   }
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverConfig the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
   public ClusteringServiceConfiguration(Iterable<InetSocketAddress> servers, String clusterTierManager, Timeouts timeouts,
                                         boolean autoCreate, ServerSideConfiguration serverConfig) {
     this(servers, clusterTierManager, timeouts, autoCreate, serverConfig, new Properties());
@@ -171,11 +219,12 @@ public class ClusteringServiceConfiguration
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
-   * @param servers the non-{@code null} Iterable<InetSocketAddress> identifying the servers in the cluster
-   * @param clusterTierManager the non-{@code null} clusterTierManager identifying the cache manager
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
    * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
    * @param autoCreate {@code true} if server components should be auto created
-   * @param serverConfig  the server side entity configuration required
+   * @param serverConfig the server side entity configuration required
+   * @param properties the non-{@code null} connection Properties
    *
    * @throws NullPointerException if {@code servers} is {@code null}
    */
@@ -184,7 +233,19 @@ public class ClusteringServiceConfiguration
     this(new ConnectionSource.ServerList(servers, clusterTierManager), timeouts, autoCreate, serverConfig, properties);
   }
 
-  public ClusteringServiceConfiguration(ConnectionSource connectionSource, Timeouts timeouts, boolean autoCreate, ServerSideConfiguration serverSideConfiguration, Properties properties) {
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param connectionSource the non-{@code null} {@code ConnectionSource} identifying the source of connection to servers in the cluster
+   * @param timeouts the {@link Timeouts} specifying the time limit for clustered cache operations
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverSideConfiguration the server side entity configuration required
+   * @param properties the non-{@code null} connection Properties
+   *
+   * @throws NullPointerException if {@code servers} is {@code null}
+   */
+  public ClusteringServiceConfiguration(ConnectionSource connectionSource, Timeouts timeouts, boolean autoCreate,
+                                        ServerSideConfiguration serverSideConfiguration, Properties properties) {
     this.connectionSource = connectionSource;
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverSideConfiguration;
