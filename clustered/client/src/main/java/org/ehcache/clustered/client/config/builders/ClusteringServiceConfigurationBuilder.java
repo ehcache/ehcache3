@@ -52,6 +52,14 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
     return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
   }
 
+  /**
+   * Creates a new builder connecting to the given cluster.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   *
+   * @return a clustering service configuration builder
+   */
   public static ClusteringServiceConfigurationBuilder cluster(Iterable<InetSocketAddress> servers, String clusterTierManager) {
     return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
   }
