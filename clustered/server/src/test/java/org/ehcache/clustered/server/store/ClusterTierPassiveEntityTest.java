@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.common.internal.store.Util;
@@ -42,8 +43,10 @@ import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -164,6 +167,39 @@ public class ClusterTierPassiveEntityTest {
 
     // Should be added as well, different message id
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
+  }
+
+  @Test
+  public void testOversizeReplaceAtHeadMessage() throws Exception {
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
+    TestInvokeContext context = new TestInvokeContext();
+
+    int key = 2;
+
+    Chain chain = Util.getChain(true, createPayload(1L));
+    PassiveReplicationMessage message = new PassiveReplicationMessage.ChainReplicationMessage(key, chain, 2L, 1L, 3L);
+    passiveEntity.invokePassive(context, message);
+
+    Chain oversizeChain = Util.getChain(true, createPayload(2L, 1024 * 1024));
+    ServerStoreOpMessage.ReplaceAtHeadMessage oversizeMsg = new ServerStoreOpMessage.ReplaceAtHeadMessage(key, chain, oversizeChain);
+    passiveEntity.invokePassive(context, oversizeMsg);
+    // Should be evicted, the value is oversize.
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
+  }
+
+  @Test
+  public void testOversizeChainReplicationMessage() throws Exception {
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
+    TestInvokeContext context = new TestInvokeContext();
+
+    long key = 2L;
+    Chain oversizeChain = Util.getChain(true, createPayload(key, 1024 * 1024));
+    PassiveReplicationMessage oversizeMsg = new PassiveReplicationMessage.ChainReplicationMessage(key, oversizeChain, 2L, 1L, (long) 3);
+    passiveEntity.invokePassive(context, oversizeMsg);
+    // Should be cleared, the value is oversize.
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
   }
 
   /**

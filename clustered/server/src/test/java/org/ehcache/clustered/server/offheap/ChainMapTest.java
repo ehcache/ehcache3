@@ -392,6 +392,37 @@ public class ChainMapTest {
 
   }
 
+  @Test
+  public void testRemoveMissingKey() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+  }
+
+  @Test
+  public void testRemoveSingleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("bar", buffer(2));
+    assertThat(map.get("foo"), contains(element(1)));
+    assertThat(map.get("bar"), contains(element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+    assertThat(map.get("bar"), contains(element(2)));
+  }
+
+  @Test
+  public void testRemoveDoubleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("foo", buffer(2));
+    assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+  }
+
   private static ByteBuffer buffer(int i) {
     ByteBuffer buffer = ByteBuffer.allocate(i);
     while (buffer.hasRemaining()) {
