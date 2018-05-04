@@ -204,26 +204,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher) {
-    if (keyCopier == null) {
-      throw new NullPointerException("keyCopier must not be null");
-    }
-    if (valueCopier == null) {
-      throw new NullPointerException("valueCopier must not be null");
-    }
+    Objects.requireNonNull(keyCopier, "keyCopier must not be null");
+
+    this.valueCopier = Objects.requireNonNull(valueCopier, "valueCopier must not be null");
+    this.timeSource = Objects.requireNonNull(timeSource, "timeSource must not be null");
+    this.sizeOfEngine = Objects.requireNonNull(sizeOfEngine, "sizeOfEngine must not be null");
+
     SizedResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
-    if (timeSource == null) {
-      throw new NullPointerException("timeSource must not be null");
-    }
-    if (sizeOfEngine == null) {
-      throw new NullPointerException("sizeOfEngine must not be null");
-    }
-    this.sizeOfEngine = sizeOfEngine;
+
     this.byteSized = !(this.sizeOfEngine instanceof NoopSizeOfEngine);
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
-    this.timeSource = timeSource;
+
     if (config.getEvictionAdvisor() == null) {
       this.evictionAdvisor = noAdvice();
     } else {
@@ -232,8 +226,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
-    this.valueCopier = valueCopier;
     this.storeEventDispatcher = eventDispatcher;
+
     if (keyCopier instanceof IdentityCopier) {
       this.map = new SimpleBackend<>(byteSized);
     } else {
