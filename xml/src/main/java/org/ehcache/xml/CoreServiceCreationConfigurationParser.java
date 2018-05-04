@@ -22,6 +22,6 @@ import org.ehcache.xml.model.ConfigType;
 
 public interface CoreServiceCreationConfigurationParser {
 
-  ConfigurationBuilder parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, ConfigurationBuilder builder);
+  ConfigurationBuilder parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, ConfigurationBuilder builder) throws ClassNotFoundException;
 
 }

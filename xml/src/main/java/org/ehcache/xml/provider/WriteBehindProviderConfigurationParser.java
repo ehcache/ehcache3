@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.provider;
 
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
+import org.ehcache.xml.model.ConfigType;
+import org.ehcache.xml.model.ThreadPoolReferenceType;
 
-public interface CoreServiceConfigurationParser {
+public class WriteBehindProviderConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolReferenceType> {
 
-  <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException;
+  public WriteBehindProviderConfigurationParser() {
+    super(ConfigType::getWriteBehind, config -> new WriteBehindProviderConfiguration(config.getThreadPool()));
+  }
 }

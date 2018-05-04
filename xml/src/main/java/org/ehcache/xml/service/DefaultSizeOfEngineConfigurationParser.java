@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.service;
 
-import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.SizeOfEngineLimits;
 
-public interface CoreServiceConfigurationParser {
+public class DefaultSizeOfEngineConfigurationParser extends SimpleCoreServiceConfigurationParser<SizeOfEngineLimits> {
 
-  <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException;
+  public DefaultSizeOfEngineConfigurationParser() {
+    super(CacheTemplate::heapStoreSettings, config -> new DefaultSizeOfEngineConfiguration(config.getMaxObjectSize(), config.getUnit(), config.getMaxObjectGraphSize()));
+  }
 }

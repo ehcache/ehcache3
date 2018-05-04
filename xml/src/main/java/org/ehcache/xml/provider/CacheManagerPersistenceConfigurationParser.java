@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.provider;
 
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.xml.model.ConfigType;
+import org.ehcache.xml.model.PersistenceType;
 
-public interface CoreServiceConfigurationParser {
+import java.io.File;
 
-  <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException;
+public class CacheManagerPersistenceConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<PersistenceType> {
+
+  public CacheManagerPersistenceConfigurationParser() {
+    super(ConfigType::getPersistence, config -> new CacheManagerPersistenceConfiguration(new File(config.getDirectory())));
+  }
 }

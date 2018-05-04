@@ -16,37 +16,13 @@
 
 package org.ehcache.xml;
 
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
-import org.ehcache.xml.model.CacheLoaderWriterType;
-import org.ehcache.xml.model.CacheLoaderWriterType.WriteBehind;
+import org.ehcache.xml.model.CacheDefinition;
+import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheTemplateType;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.ConfigType;
-import org.ehcache.xml.model.CopierType;
-import org.ehcache.xml.model.Disk;
-import org.ehcache.xml.model.DiskStoreSettingsType;
-import org.ehcache.xml.model.ExpiryType;
-import org.ehcache.xml.model.Heap;
-import org.ehcache.xml.model.ListenersType;
-import org.ehcache.xml.model.ListenersType.Listener;
-import org.ehcache.xml.model.MemoryType;
-import org.ehcache.xml.model.ObjectFactory;
-import org.ehcache.xml.model.Offheap;
-import org.ehcache.xml.model.PersistableMemoryType;
-import org.ehcache.xml.model.PersistenceType;
-import org.ehcache.xml.model.ResourceType;
-import org.ehcache.xml.model.ResourcesType;
-import org.ehcache.xml.model.SerializerType;
-import org.ehcache.xml.model.ServiceType;
-import org.ehcache.xml.model.SizeofType;
-import org.ehcache.xml.model.TimeType;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.w3c.dom.Element;
@@ -70,33 +46,23 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.ehcache.xml.model.ThreadPoolReferenceType;
-import org.ehcache.xml.model.ThreadPoolsType;
-
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-
 /**
  * Provides support for parsing a cache configuration expressed in XML.
  */
-class ConfigurationParser {
+public class ConfigurationParser {
 
   private static final Pattern SYSPROP = Pattern.compile("\\$\\{([^}]+)\\}");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
@@ -107,7 +73,7 @@ class ConfigurationParser {
   }
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
-  private static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
+  public static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
   private static final String CORE_SCHEMA_ROOT_ELEMENT = "config";
   private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = ConfigType.class.getPackage().getName();
 
@@ -175,6 +141,10 @@ class ConfigurationParser {
     this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
   }
 
+  public ConfigType getConfigRoot() {
+    return this.config;
+  }
+
   private void substituteSystemProperties(final Element dom) {
     final Properties properties = System.getProperties();
     Stack<NodeList> nodeLists = new Stack<>();
@@ -205,44 +175,6 @@ class ConfigurationParser {
       }
     }
   }
-
-  public Iterable<ServiceType> getServiceElements() {
-    return config.getService();
-  }
-
-  public SerializerType getDefaultSerializers() {
-    return config.getDefaultSerializers();
-  }
-
-  public CopierType getDefaultCopiers() {
-    return config.getDefaultCopiers();
-  }
-
-  public PersistenceType getPersistence() {
-    return config.getPersistence();
-  }
-
-  public ThreadPoolReferenceType getEventDispatch() {
-    return config.getEventDispatch();
-  }
-
-  public ThreadPoolReferenceType getWriteBehind() {
-    return config.getWriteBehind();
-  }
-
-  public ThreadPoolReferenceType getDiskStore() {
-    return config.getDiskStore();
-  }
-
-  public ThreadPoolsType getThreadPools() {
-    return config.getThreadPools();
-  }
-
-  public SizeOfEngineLimits getHeapStore() {
-    SizeofType type = config.getHeapStore();
-    return type == null ? null : new XmlSizeOfEngineLimits(type);
-  }
-
   public Iterable<CacheDefinition> getCacheElements() {
     List<CacheDefinition> cacheCfgs = new ArrayList<>();
     final List<BaseCacheType> cacheOrCacheTemplate = config.getCacheOrCacheTemplate();
@@ -260,213 +192,7 @@ class ConfigurationParser {
           sources[0] = cacheType;
         }
 
-        cacheCfgs.add(new CacheDefinition() {
-          @Override
-          public String id() {
-            return cacheType.getAlias();
-          }
-
-          @Override
-          public String keyType() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getKeyType() != null ? source.getKeyType().getValue() : null;
-              if (value != null) break;
-            }
-            if (value == null) {
-              for (BaseCacheType source : sources) {
-                value = JaxbHelper.findDefaultValue(source, "keyType");
-                if (value != null) break;
-              }
-            }
-            return value;
-          }
-
-          @Override
-          public String keySerializer() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getKeyType() != null ? source.getKeyType().getSerializer() : null;
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public String keyCopier() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getKeyType() != null ? source.getKeyType().getCopier() : null;
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public String valueType() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getValueType() != null ? source.getValueType().getValue() : null;
-              if (value != null) break;
-            }
-            if (value == null) {
-              for (BaseCacheType source : sources) {
-                value = JaxbHelper.findDefaultValue(source, "valueType");
-                if (value != null) break;
-              }
-            }
-            return value;
-          }
-
-          @Override
-          public String valueSerializer() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getValueType() != null ? source.getValueType().getSerializer() : null;
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public String valueCopier() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getValueType() != null ? source.getValueType().getCopier() : null;
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public String evictionAdvisor() {
-            String value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getEvictionAdvisor();
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public Expiry expiry() {
-            ExpiryType value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getExpiry();
-              if (value != null) break;
-            }
-            if (value != null) {
-              return new XmlExpiry(value);
-            } else {
-              return null;
-            }
-          }
-
-          @Override
-          public String loaderWriter() {
-            String configClass = null;
-            for (BaseCacheType source : sources) {
-              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
-              if (loaderWriter != null) {
-                configClass = loaderWriter.getClazz();
-                break;
-              }
-            }
-            return configClass;
-          }
-
-          @Override
-          public String resilienceStrategy() {
-            String resilienceClass = null;
-            for (BaseCacheType source : sources) {
-              resilienceClass = source.getResilience();
-              if (resilienceClass != null) {
-                return resilienceClass;
-              }
-            }
-            return resilienceClass;
-          }
-
-          @Override
-          public ListenersConfig listenersConfig() {
-            ListenersType base = null;
-            ArrayList<ListenersType> additionals = new ArrayList<>();
-            for (BaseCacheType source : sources) {
-              if (source.getListeners() != null) {
-                if (base == null) {
-                  base = source.getListeners();
-                } else {
-                  additionals.add(source.getListeners());
-                }
-              }
-            }
-            return base != null ? new XmlListenersConfig(base, additionals.toArray(new ListenersType[0])) : null;
-          }
-
-
-          @Override
-          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
-              new HashMap<>();
-            for (BaseCacheType source : sources) {
-              for (Element child : source.getServiceConfiguration()) {
-                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
-                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
-                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
-                }
-              }
-            }
-            return configsMap.values();
-          }
-
-          @Override
-          public Collection<ResourcePool> resourcePools() {
-            for (BaseCacheType source : sources) {
-              Heap heapResource = source.getHeap();
-              if (heapResource != null) {
-                return singleton(parseResource(heapResource));
-              } else {
-                ResourcesType resources = source.getResources();
-                if (resources != null) {
-                  return parseResources(resources);
-                }
-              }
-            }
-            return emptySet();
-          }
-
-          @Override
-          public WriteBehind writeBehind() {
-            for (BaseCacheType source : sources) {
-              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
-              final WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind() : null;
-              if (writebehind != null) {
-                return writebehind;
-              }
-            }
-            return null;
-          }
-
-          @Override
-          public DiskStoreSettingsType diskStoreSettings() {
-            DiskStoreSettingsType value = null;
-            for (BaseCacheType source : sources) {
-              value = source.getDiskStoreSettings();
-              if (value != null) break;
-            }
-            return value;
-          }
-
-          @Override
-          public SizeOfEngineLimits heapStoreSettings() {
-            SizeofType sizeofType = null;
-            for (BaseCacheType source : sources) {
-              sizeofType = source.getHeapStoreSettings();
-              if (sizeofType != null) break;
-            }
-            return sizeofType != null ? new XmlSizeOfEngineLimits(sizeofType) : null;
-          }
-        });
+        cacheCfgs.add(new CacheDefinition(cacheType.getAlias(), cacheXmlParsers, resourceXmlParsers, unmarshaller, sources));
       }
     }
 
@@ -479,176 +205,10 @@ class ConfigurationParser {
     for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
       if (baseCacheType instanceof CacheTemplateType) {
         final CacheTemplateType cacheTemplate = (CacheTemplateType)baseCacheType;
-        templates.put(cacheTemplate.getName(), new CacheTemplate() {
-
-          @Override
-          public String keyType() {
-            String keyType = cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getValue() : null;
-            if (keyType == null) {
-              keyType = JaxbHelper.findDefaultValue(cacheTemplate, "keyType");
-            }
-            return keyType;
-          }
-
-          @Override
-          public String keySerializer() {
-            return cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getSerializer() : null;
-          }
-
-          @Override
-          public String keyCopier() {
-            return cacheTemplate.getKeyType() != null ? cacheTemplate.getKeyType().getCopier() : null;
-          }
-
-          @Override
-          public String valueType() {
-            String valueType = cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getValue() : null;
-            if (valueType == null) {
-              valueType = JaxbHelper.findDefaultValue(cacheTemplate, "valueType");
-            }
-            return valueType;
-          }
-
-          @Override
-          public String valueSerializer() {
-            return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getSerializer() : null;
-          }
-
-          @Override
-          public String valueCopier() {
-            return cacheTemplate.getValueType() != null ? cacheTemplate.getValueType().getCopier() : null;
-          }
-
-          @Override
-          public String evictionAdvisor() {
-            return cacheTemplate.getEvictionAdvisor();
-          }
-
-          @Override
-          public Expiry expiry() {
-            ExpiryType cacheTemplateExpiry = cacheTemplate.getExpiry();
-            if (cacheTemplateExpiry != null) {
-              return new XmlExpiry(cacheTemplateExpiry);
-            } else {
-              return null;
-            }
-          }
-
-          @Override
-          public ListenersConfig listenersConfig() {
-            final ListenersType integration = cacheTemplate.getListeners();
-            return integration != null ? new XmlListenersConfig(integration) : null;
-          }
-
-          @Override
-          public String loaderWriter() {
-            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
-            return loaderWriter != null ? loaderWriter.getClazz() : null;
-          }
-
-          @Override
-          public String resilienceStrategy() {
-            return cacheTemplate.getResilience();
-          }
-
-          @Override
-          public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<>();
-            for (Element child : cacheTemplate.getServiceConfiguration()) {
-              configs.add(parseCacheExtension(child));
-            }
-            return configs;
-          }
-
-          @Override
-          public Collection<ResourcePool> resourcePools() {
-            Heap heapResource = cacheTemplate.getHeap();
-            if (heapResource != null) {
-              return singleton(parseResource(heapResource));
-            } else {
-              ResourcesType resources = cacheTemplate.getResources();
-              if (resources != null) {
-                return parseResources(resources);
-              }
-            }
-
-            return emptySet();
-          }
-
-          @Override
-          public WriteBehind writeBehind() {
-            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
-            final WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind(): null;
-            return writebehind;
-          }
-
-          @Override
-          public DiskStoreSettingsType diskStoreSettings() {
-            return cacheTemplate.getDiskStoreSettings();
-          }
-
-          @Override
-          public SizeOfEngineLimits heapStoreSettings() {
-            SizeofType type = cacheTemplate.getHeapStoreSettings();
-            return type == null ? null : new XmlSizeOfEngineLimits(type);
-          }
-        });
+        templates.put(cacheTemplate.getName(), new CacheTemplate.Impl(cacheXmlParsers, resourceXmlParsers, unmarshaller, cacheTemplate));
       }
     }
     return Collections.unmodifiableMap(templates);
-  }
-
-  private Collection<ResourcePool> parseResources(ResourcesType resources) {
-    Collection<ResourcePool> resourcePools = new ArrayList<>();
-    for (Element resource : resources.getResource()) {
-      resourcePools.add(parseResource(resource));
-    }
-    return resourcePools;
-  }
-
-  private ResourcePool parseResource(Heap resource) {
-    ResourceType heapResource = resource.getValue();
-    return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.HEAP,
-      heapResource.getValue().longValue(), parseUnit(heapResource), false);
-  }
-
-  private ResourcePool parseResource(Element element) {
-    if (!CORE_SCHEMA_NAMESPACE.equals(element.getNamespaceURI())) {
-      return parseResourceExtension(element);
-    }
-    try {
-      Object resource = unmarshaller.unmarshal(element);
-      if (resource instanceof Heap) {
-        ResourceType heapResource = ((Heap) resource).getValue();
-        return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.HEAP,
-          heapResource.getValue().longValue(), parseUnit(heapResource), false);
-      } else if (resource instanceof Offheap) {
-        MemoryType offheapResource = ((Offheap) resource).getValue();
-        return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.OFFHEAP,
-          offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
-      } else if (resource instanceof Disk) {
-        PersistableMemoryType diskResource = ((Disk) resource).getValue();
-        return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.DISK,
-          diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
-      } else {
-        // Someone updated the core resources without updating *this* code ...
-        throw new AssertionError("Unrecognized resource: " + element + " / " + resource.getClass().getName());
-      }
-    } catch (JAXBException e) {
-      throw new IllegalArgumentException("Can't find parser for resource: " + element, e);
-    }
-  }
-
-  private static ResourceUnit parseUnit(ResourceType resourceType) {
-    if (resourceType.getUnit().value().equalsIgnoreCase("entries")) {
-      return EntryUnit.ENTRIES;
-    } else {
-      return MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
-    }
-  }
-
-  private static MemoryUnit parseMemory(MemoryType memoryType) {
-    return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
   ServiceCreationConfiguration<?> parseExtension(final Element element) {
@@ -658,24 +218,6 @@ class ConfigurationParser {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
     return cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element);
-  }
-
-  ServiceConfiguration<?> parseCacheExtension(final Element element) {
-    URI namespace = URI.create(element.getNamespaceURI());
-    final CacheServiceConfigurationParser<?> xmlConfigurationParser = cacheXmlParsers.get(namespace);
-    if(xmlConfigurationParser == null) {
-      throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
-    }
-    return xmlConfigurationParser.parseServiceConfiguration(element);
-  }
-
-  ResourcePool parseResourceExtension(final Element element) {
-    URI namespace = URI.create(element.getNamespaceURI());
-    final CacheResourceConfigurationParser xmlConfigurationParser = resourceXmlParsers.get(namespace);
-    if (xmlConfigurationParser == null) {
-      throw new XmlConfigurationException("Can't find parser for namespace: " + namespace);
-    }
-    return xmlConfigurationParser.parseResourceConfiguration(element);
   }
 
   static class FatalErrorHandler implements ErrorHandler {
@@ -696,212 +238,4 @@ class ConfigurationParser {
     }
   }
 
-  interface CacheTemplate {
-
-    String keyType();
-
-    String keySerializer();
-
-    String keyCopier();
-
-    String valueType();
-
-    String valueSerializer();
-
-    String valueCopier();
-
-    String evictionAdvisor();
-
-    Expiry expiry();
-
-    String loaderWriter();
-
-    String resilienceStrategy();
-
-    ListenersConfig listenersConfig();
-
-    Iterable<ServiceConfiguration<?>> serviceConfigs();
-
-    Collection<ResourcePool> resourcePools();
-
-    WriteBehind writeBehind();
-
-    DiskStoreSettingsType diskStoreSettings();
-
-    SizeOfEngineLimits heapStoreSettings();
-
-  }
-
-  interface CacheDefinition extends CacheTemplate {
-
-    String id();
-
-  }
-
-  interface ListenersConfig {
-
-    int dispatcherConcurrency();
-
-    String threadPool();
-
-    Iterable<Listener> listeners();
-  }
-
-  interface Expiry {
-
-    boolean isUserDef();
-
-    boolean isTTI();
-
-    boolean isTTL();
-
-    String type();
-
-    long value();
-
-    TemporalUnit unit();
-
-  }
-
-  interface SizeOfEngineLimits {
-
-    long getMaxObjectGraphSize();
-
-    long getMaxObjectSize();
-
-    MemoryUnit getUnit();
-  }
-
-  private static class XmlListenersConfig implements ListenersConfig {
-
-    final int dispatcherConcurrency;
-    final String threadPool;
-    final Iterable<Listener> listeners;
-
-    private XmlListenersConfig(final ListenersType type, final ListenersType... others) {
-      this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
-      String threadPool = type.getDispatcherThreadPool();
-      Set<Listener> listenerSet = new HashSet<>();
-      listenerSet.addAll(type.getListener());
-
-      for (ListenersType other : others) {
-        if (threadPool == null && other.getDispatcherThreadPool() != null) {
-          threadPool = other.getDispatcherThreadPool();
-        }
-        listenerSet.addAll(other.getListener());
-      }
-
-      this.threadPool = threadPool;
-      this.listeners = !listenerSet.isEmpty() ? listenerSet : null;
-    }
-
-    @Override
-    public int dispatcherConcurrency() {
-      return dispatcherConcurrency;
-    }
-
-    @Override
-    public String threadPool() {
-      return threadPool;
-    }
-
-    @Override
-    public Iterable<Listener> listeners() {
-      return listeners;
-    }
-
-  }
-
-  private static class XmlExpiry implements Expiry {
-
-    final ExpiryType type;
-
-    private XmlExpiry(final ExpiryType type) {
-      this.type = type;
-    }
-
-    @Override
-    public boolean isUserDef() {
-      return type != null && type.getClazz() != null;
-    }
-
-    @Override
-    public boolean isTTI() {
-      return type != null && type.getTti() != null;
-    }
-
-    @Override
-    public boolean isTTL() {
-      return type != null && type.getTtl() != null;
-    }
-
-    @Override
-    public String type() {
-      return type.getClazz();
-    }
-
-    @Override
-    public long value() {
-      final TimeType time;
-      if(isTTI()) {
-        time = type.getTti();
-      } else {
-        time = type.getTtl();
-      }
-      return time == null ? 0L : time.getValue().longValue();
-    }
-
-    @Override
-    public TemporalUnit unit() {
-      final TimeType time;
-      if(isTTI()) {
-        time = type.getTti();
-      } else {
-        time = type.getTtl();
-      }
-      if(time != null) {
-        return XmlModel.convertToJavaTemporalUnit(time.getUnit());
-      }
-      return null;
-    }
-  }
-
-  private static class XmlSizeOfEngineLimits implements SizeOfEngineLimits {
-
-    private final SizeofType sizeoflimits;
-
-    private XmlSizeOfEngineLimits(SizeofType sizeoflimits) {
-      this.sizeoflimits = sizeoflimits;
-    }
-
-    @Override
-    public long getMaxObjectGraphSize() {
-      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
-      if (value == null) {
-        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
-      } else {
-        return value.getValue().longValue();
-      }
-    }
-
-    @Override
-    public long getMaxObjectSize() {
-      MemoryType value = sizeoflimits.getMaxObjectSize();
-      if (value == null) {
-        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
-      } else {
-        return value.getValue().longValue();
-      }
-    }
-
-    @Override
-    public MemoryUnit getUnit() {
-      MemoryType value = sizeoflimits.getMaxObjectSize();
-      if (value == null) {
-        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
-      } else {
-        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
-      }
-    }
-  }
 }

@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.service;
 
-import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.DiskStoreSettingsType;
 
-public interface CoreServiceConfigurationParser {
+public class OffHeapDiskStoreConfigurationParser extends SimpleCoreServiceConfigurationParser<DiskStoreSettingsType> {
 
-  <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException;
+  public OffHeapDiskStoreConfigurationParser() {
+    super(CacheTemplate::diskStoreSettings, config -> new OffHeapDiskStoreConfiguration(config.getThreadPool(), config.getWriterConcurrency().intValue(), config.getDiskSegments().intValue()));
+  }
 }
