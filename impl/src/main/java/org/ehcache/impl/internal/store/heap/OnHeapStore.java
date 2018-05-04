@@ -1555,7 +1555,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final Map<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
@@ -1596,7 +1596,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
-      List<Copier> copiers = new ArrayList<>();
+      List<Copier<?>> copiers = new ArrayList<>();
       copiers.add(keyCopier);
       copiers.add(valueCopier);
 
@@ -1610,17 +1610,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      List<Copier> copiers = createdStores.remove(resource);
+      List<Copier<?>> copiers = createdStores.remove(resource);
       if (copiers == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      OnHeapStore onHeapStore = (OnHeapStore)resource;
+      OnHeapStore<?, ?> onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
       StatisticsManager.nodeFor(onHeapStore).clean();
       tierOperationStatistics.remove(onHeapStore);
 
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
-      for (Copier copier: copiers) {
+      for (Copier<?> copier: copiers) {
         try {
           copyProvider.releaseCopier(copier);
         } catch (Exception e) {
@@ -1629,7 +1629,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     }
 
-    static void close(OnHeapStore onHeapStore) {
+    static void close(OnHeapStore<?, ?> onHeapStore) {
       onHeapStore.clear();
     }
 
@@ -1637,10 +1637,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     public void initStore(Store<?, ?> resource) {
       checkResource(resource);
 
-      List<Copier> copiers = createdStores.get(resource);
-      for (Copier copier : copiers) {
+      List<Copier<?>> copiers = createdStores.get(resource);
+      for (Copier<?> copier : copiers) {
         if(copier instanceof SerializingCopier) {
-          Serializer serializer = ((SerializingCopier)copier).getSerializer();
+          Serializer<?> serializer = ((SerializingCopier)copier).getSerializer();
           if(serializer instanceof StatefulSerializer) {
             ((StatefulSerializer)serializer).init(new TransientStateRepository());
           }
