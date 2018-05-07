@@ -152,7 +152,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final Copier<V> valueCopier;
 
   private final SizeOfEngine sizeOfEngine;
-  private final boolean byteSized;
 
   private volatile long capacity;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -216,7 +215,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
 
-    this.byteSized = !(this.sizeOfEngine instanceof NoopSizeOfEngine);
+    boolean byteSized = !(this.sizeOfEngine instanceof NoopSizeOfEngine);
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
 
     if (config.getEvictionAdvisor() == null) {
