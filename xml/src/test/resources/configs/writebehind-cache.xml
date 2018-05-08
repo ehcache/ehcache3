@@ -52,6 +52,6 @@
       </ehcache:resources>
     </ehcache:cache-template>
 
-      <ehcache:cache alias="template1" uses-template="example"/>
+    <ehcache:cache alias="template1" uses-template="example"/>
 
 </ehcache:config>
