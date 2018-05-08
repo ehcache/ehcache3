@@ -177,6 +177,15 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testAllExtensions() {
+    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/all-extensions.xml"));
+    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    CacheConfiguration<?, ?> cacheConfiguration = config.getCacheConfigurations().get("fancy");
+    assertThat(cacheConfiguration.getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(cacheConfiguration.getResourcePools().getResourceTypeSet(), hasItem(instanceOf(BazResource.Type.class)));
+  }
+
+  @Test
   public void testOneCacheConfigWithTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);

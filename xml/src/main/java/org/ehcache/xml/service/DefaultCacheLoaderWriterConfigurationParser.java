@@ -26,6 +26,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 public class DefaultCacheLoaderWriterConfigurationParser extends SimpleCoreServiceConfigurationParser<String> {
 
   public DefaultCacheLoaderWriterConfigurationParser() {
-    super(CacheTemplate::loaderWriter, (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)));
+    super(CacheTemplate::loaderWriter,
+      (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)));
   }
 }
