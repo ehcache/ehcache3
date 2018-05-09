@@ -24,10 +24,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -41,20 +46,22 @@ public class InvocationScopedEventSinkTest {
 
   private StoreEventListener<String, String> listener;
   private InvocationScopedEventSink<String, String> eventSink;
+  private BlockingQueue<FireableStoreEventHolder<String, String>> blockingQueue;
+  private Set<StoreEventListener<String, String>> storeEventListeners;
 
   @Before
   @SuppressWarnings("unchecked")
   public void setUp() {
-    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = mock(StoreEventListener.class);
-    storeEventListeners.add(listener);
-    eventSink = new InvocationScopedEventSink<String, String>(new HashSet<>(),
-        false, new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) }, storeEventListeners);
-
+    storeEventListeners = Collections.singleton(listener);
+    blockingQueue = new ArrayBlockingQueue<>(10);
   }
 
   @Test
   public void testReset() {
+    eventSink = new InvocationScopedEventSink<String, String>(Collections.emptySet(),
+      false, new BlockingQueue[] { blockingQueue }, storeEventListeners);
+
     eventSink.created("k1", "v1");
     eventSink.evicted("k1", () -> "v2");
     eventSink.reset();
@@ -73,4 +80,46 @@ public class InvocationScopedEventSinkTest {
     verifyNoMoreInteractions(listener);
   }
 
+  /**
+   * Make sure an interrupted sink sets the interrupted flag and keep both event queues in the state
+   * as of before the event that was interrupted.
+   *
+   * @throws InterruptedException
+   */
+  @Test
+  public void testInterruption() throws InterruptedException {
+    eventSink = new InvocationScopedEventSink<String, String>(Collections.emptySet(),
+      true, new BlockingQueue[] { blockingQueue }, storeEventListeners);
+
+    // Add enough elements to fill the queue
+    IntStream.range(0, 10).forEachOrdered(i -> eventSink.created("k" + i, "v" + i));
+
+    AtomicBoolean wasInterrupted = new AtomicBoolean(false);
+
+    Thread t = new Thread(() -> {
+      // add one element that will block on the full queue
+      eventSink.created("k", "v");
+      wasInterrupted.set(Thread.currentThread().isInterrupted());
+    });
+
+    t.start();
+    while(blockingQueue.remainingCapacity() != 0) {
+      System.out.println(blockingQueue.remainingCapacity());
+    }
+
+    t.interrupt();
+    t.join();
+
+    assertThat(wasInterrupted).isTrue();
+    assertThat(blockingQueue).hasSize(10);
+    IntStream.range(0, 10).forEachOrdered(i -> {
+        try {
+          assertThat(blockingQueue.take().getEvent().getKey()).isEqualTo("k" + i);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+    });
+    assertThat(eventSink.getEvents()).hasSize(10);
+    assertThat(eventSink.getEvents().getLast().getEvent().getKey()).isEqualTo("k9");
+  }
 }
