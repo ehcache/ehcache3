@@ -17,11 +17,13 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Set;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -48,5 +50,15 @@ public class BazParser implements CacheResourceConfigurationParser {
   @Override
   public ResourcePool parseResourceConfiguration(Element fragment) {
     return new BazResource();
+  }
+
+  @Override
+  public Element unparseResourcePool(final ResourcePool resourcePool) {
+    return null;
+  }
+
+  @Override
+  public Set<ResourceType<?>> getResourceTypes() {
+    return null;
   }
 }

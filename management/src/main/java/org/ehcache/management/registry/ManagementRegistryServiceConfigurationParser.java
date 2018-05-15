@@ -87,4 +87,14 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
     return element.hasChildNodes() ? element.getFirstChild().getNodeValue() : null;
   }
 
+  @Override
+  public Class<ManagementRegistryService> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService> serviceCreationConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
+
 }

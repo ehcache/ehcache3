@@ -49,4 +49,14 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
     return new BarConfiguration();
   }
+
+  @Override
+  public Class<Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service> serviceCreationConfiguration) {
+    return null;
+  }
 }

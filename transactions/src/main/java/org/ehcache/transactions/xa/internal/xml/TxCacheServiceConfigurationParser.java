@@ -58,4 +58,14 @@ public class TxCacheServiceConfigurationParser implements CacheServiceConfigurat
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<XAStore.Provider> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<XAStore.Provider> serviceConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
 }

@@ -68,4 +68,14 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<TransactionManagerProvider> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<TransactionManagerProvider> serviceCreationConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
 }

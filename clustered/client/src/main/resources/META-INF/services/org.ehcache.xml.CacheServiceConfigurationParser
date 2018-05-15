@@ -1,1 +1,1 @@
-org.ehcache.clustered.client.internal.config.xml.ClusteringServiceConfigurationParser
+org.ehcache.clustered.client.internal.config.xml.ClusteringCacheServiceConfigurationParser
