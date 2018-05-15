@@ -18,17 +18,21 @@ package org.ehcache.clustered.client.internal.config.xml;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.DomUtil;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
 import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -41,11 +45,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
+import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -59,6 +67,28 @@ import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
  * @see ClusteredCacheConstants#XSD
  */
 public class ClusteringCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService> {
+
+  public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
+  public static final String CLUSTER_ELEMENT_NAME = "cluster";
+  public static final String CONNECTION_ELEMENT_NAME = "connection";
+  public static final String CLUSTER_CONNECTION_ELEMENT_NAME = "cluster-connection";
+  public static final String CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME = "cluster-tier-manager";
+  public static final String SERVER_ELEMENT_NAME = "server";
+  public static final String HOST_ATTRIBUTE_NAME = "host";
+  public static final String PORT_ATTRIBUTE_NAME = "port";
+  public static final String READ_TIMEOUT_ELEMENT_NAME = "read-timeout";
+  public static final String WRITE_TIMEOUT_ELEMENT_NAME = "write-timeout";
+  public static final String CONNECTION_TIMEOUT_ELEMENT_NAME = "connection-timeout";
+  public static final String URL_ATTRIBUTE_NAME = "url";
+  public static final String DEFAULT_RESOURCE_ELEMENT_NAME = "default-resource";
+  public static final String SHARED_POOL_ELEMENT_NAME = "shared-pool";
+  public static final String SERVER_SIDE_CONFIG = "server-side-config";
+  public static final String AUTO_CREATE_ATTRIBUTE_NAME = "auto-create";
+  public static final String UNIT_ATTRIBUTE_NAME = "unit";
+  public static final String NAME_ATTRIBUTE_NAME = "name";
+  public static final String FROM_ATTRIBUTE_NAME = "from";
+  public static final String DEFAULT_UNIT_ATTRIBUTE_VALUE = "seconds";
+  public static final String COLON = ":";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -204,7 +234,156 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
    */
   @Override
   public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    try {
+      validateParametersForTranslationToServiceConfig(serviceCreationConfiguration);
+      Document doc = createDocumentRoot();
+      ClusteringServiceConfiguration clusteringServiceConfiguration = (ClusteringServiceConfiguration)serviceCreationConfiguration;
+      Element rootElement = createConnectionElement(doc, clusteringServiceConfiguration);
+      processTimeUnits(doc, rootElement, clusteringServiceConfiguration);
+      Element serverSideConfigurationElem = processServerSideElements(doc, clusteringServiceConfiguration);
+      rootElement.appendChild(serverSideConfigurationElem);
+      return rootElement;
+    } catch (SAXException | ParserConfigurationException | IOException e) {
+      throw new XmlConfigurationException(e);
+    }
+  }
+
+  private void validateParametersForTranslationToServiceConfig(ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
+    Objects.requireNonNull(serviceCreationConfiguration, "ServiceCreationConfiguration must not be NULL");
+    if (!(serviceCreationConfiguration instanceof ClusteringServiceConfiguration)) {
+      throw new IllegalArgumentException("Parameter serviceCreationConfiguration must be of type ClusteringServiceConfiguration."
+                                         + "Provided type of parameter is : " + serviceCreationConfiguration.getClass());
+    }
+  }
+
+  private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
+    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE.toString());
+    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_ELEMENT_NAME);
+    urlElement.setAttribute(URL_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClusterUri().toString());
+    rootElement.appendChild(urlElement);
+    return rootElement;
+  }
+
+  private Element createServerElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    if (!(clusteringServiceConfiguration.getConnectionSource() instanceof ConnectionSource.ServerList)) {
+      throw new IllegalArgumentException("When connection URL is null, source of connection MUST be of type ConnectionSource.ServerList.class");
+    }
+    ConnectionSource.ServerList servers = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
+    Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
+    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE.toString());
+    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_CONNECTION_ELEMENT_NAME);
+    connElement.setAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME, clusteringServiceConfiguration.getConnectionSource()
+      .getClusterTierManager());
+    servers.getServers().forEach(server -> {
+      Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_ELEMENT_NAME);
+      serverElement.setAttribute(HOST_ATTRIBUTE_NAME, server.getHostName());
+      /*
+      If port is greater than 0, set the attribute. Otherwise, do not set. Default value will be taken.
+       */
+      if (server.getPort() > 0) {
+        serverElement.setAttribute(PORT_ATTRIBUTE_NAME, Integer.toString(server.getPort()));
+      }
+      connElement.appendChild(serverElement);
+    });
+    rootElement.appendChild(connElement);
+    return rootElement;
+  }
+
+  private Element createConnectionElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    if (clusteringServiceConfiguration.getConnectionSource() instanceof ConnectionSource.ClusterUri) {
+      return createRootUrlElement(doc, clusteringServiceConfiguration);
+    }
+    return createServerElement(doc, clusteringServiceConfiguration);
+  }
+
+  private void processTimeUnits(Document doc, Element parent, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    if (clusteringServiceConfiguration.getTimeouts() != null) {
+      Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
+
+      Element readTimeoutElem = createTimeoutElement(doc, READ_TIMEOUT_ELEMENT_NAME, timeouts.getReadOperationTimeout());
+      Element writeTimeoutElem = createTimeoutElement(doc, WRITE_TIMEOUT_ELEMENT_NAME, timeouts.getWriteOperationTimeout());
+      Element connectionTimeoutElem = createTimeoutElement(doc, CONNECTION_TIMEOUT_ELEMENT_NAME, timeouts.getConnectionTimeout());
+      /*
+      Important: do not change the order of following three elements if corresponding change is not done in xsd
+       */
+      parent.appendChild(readTimeoutElem);
+      parent.appendChild(writeTimeoutElem);
+      parent.appendChild(connectionTimeoutElem);
+    }
+  }
+
+  private Element createTimeoutElement(Document doc, String timeoutName, Duration timeout) {
+    Element retElement = null;
+    if (READ_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + READ_TIMEOUT_ELEMENT_NAME);
+    } else if (WRITE_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + WRITE_TIMEOUT_ELEMENT_NAME);
+    } else {
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_TIMEOUT_ELEMENT_NAME);
+    }
+    retElement.setAttribute(UNIT_ATTRIBUTE_NAME, DEFAULT_UNIT_ATTRIBUTE_VALUE);
+    retElement.setTextContent(Long.toString(timeout.getSeconds()));
+    return retElement;
+  }
+
+  private Element processServerSideElements(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element serverSideConfigurationElem = createServerSideConfigurationElement(doc, clusteringServiceConfiguration);
+
+    if (clusteringServiceConfiguration.getServerConfiguration() != null) {
+      ServerSideConfiguration serverSideConfiguration = clusteringServiceConfiguration.getServerConfiguration();
+      String defaultServerResource = serverSideConfiguration.getDefaultServerResource();
+      if (!(defaultServerResource == null || defaultServerResource.trim().length() == 0)) {
+        Element defaultResourceElement = createDefaultServerResourceElement(doc, defaultServerResource);
+        serverSideConfigurationElem.appendChild(defaultResourceElement);
+      }
+      Map<String, ServerSideConfiguration.Pool> resourcePools = serverSideConfiguration.getResourcePools();
+      if (resourcePools != null) {
+        resourcePools.forEach(
+          (key, value) -> {
+            Element poolElement = createSharedPoolElement(doc, key, value);
+            serverSideConfigurationElem.appendChild(poolElement);
+          }
+        );
+      }
+    }
+    return serverSideConfigurationElem;
+  }
+
+  private Element createServerSideConfigurationElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element serverSideConfigurationElem = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_SIDE_CONFIG);
+    serverSideConfigurationElem.setAttribute(AUTO_CREATE_ATTRIBUTE_NAME, Boolean.toString(clusteringServiceConfiguration
+      .isAutoCreate()));
+    return serverSideConfigurationElem;
+  }
+
+
+  private Element createSharedPoolElement(Document doc, String poolName, ServerSideConfiguration.Pool pool) {
+    Element poolElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SHARED_POOL_ELEMENT_NAME);
+    poolElement.setAttribute(NAME_ATTRIBUTE_NAME, poolName);
+    String from = pool.getServerResource();
+    if (from != null) {
+      if (from.trim().length() == 0) {
+        throw new XmlConfigurationException("Resource pool name can not be empty.");
+      }
+      poolElement.setAttribute(FROM_ATTRIBUTE_NAME, from);
+    }
+    long memoryInBytes = MemoryUnit.B.convert(pool.getSize(), MemoryUnit.B);
+    poolElement.setAttribute(UNIT_ATTRIBUTE_NAME, MemoryUnit.B.toString());
+    poolElement.setTextContent(Long.toString(memoryInBytes));
+    return poolElement;
+  }
+
+  private Element createDefaultServerResourceElement(Document doc, String defaultServerResource) {
+    Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + DEFAULT_RESOURCE_ELEMENT_NAME);
+    defaultResourceElement.setAttribute(FROM_ATTRIBUTE_NAME, defaultServerResource);
+    return defaultResourceElement;
+  }
+
+  private Document createDocumentRoot() throws IOException, SAXException, ParserConfigurationException {
+    DocumentBuilder domBuilder = DomUtil.createAndGetDocumentBuilder();
+    Document doc = domBuilder.newDocument();
+    return doc;
   }
 
   private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {

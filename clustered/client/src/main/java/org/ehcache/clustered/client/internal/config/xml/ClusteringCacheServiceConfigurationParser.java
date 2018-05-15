@@ -20,12 +20,19 @@ import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CacheServiceConfigurationParser;
+import org.ehcache.xml.DomUtil;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Objects;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -41,6 +48,8 @@ public class ClusteringCacheServiceConfigurationParser implements CacheServiceCo
 
   public static final String CLUSTERED_STORE_ELEMENT_NAME = "clustered-store";
   public static final String CONSISTENCY_ATTRIBUTE_NAME = "consistency";
+  public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
+  public static final String COLON = ":";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -72,6 +81,32 @@ public class ClusteringCacheServiceConfigurationParser implements CacheServiceCo
 
   @Override
   public Element unparseServiceConfiguration(ServiceConfiguration<ClusteredStore.Provider> serviceConfiguration) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    try {
+      validateParametersForTranslationToServiceConfig(serviceConfiguration);
+      ClusteredStoreConfiguration clusteredStoreConfiguration = (ClusteredStoreConfiguration)serviceConfiguration;
+      Consistency consistency = clusteredStoreConfiguration.getConsistency();
+      Document doc = createDocumentRoot();
+      Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTERED_STORE_ELEMENT_NAME);
+      defaultResourceElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE
+        .toString());
+      defaultResourceElement.setAttribute(CONSISTENCY_ATTRIBUTE_NAME, consistency.name().toLowerCase());
+      return defaultResourceElement;
+    } catch (SAXException | ParserConfigurationException | IOException e) {
+      throw new XmlConfigurationException(e);
+    }
+  }
+
+  private void validateParametersForTranslationToServiceConfig(ServiceConfiguration<ClusteredStore.Provider> clusterStoreConfiguration) {
+    Objects.requireNonNull(clusterStoreConfiguration, "ServiceConfiguration must not be NULL");
+    if (!(clusterStoreConfiguration instanceof ClusteredStoreConfiguration)) {
+      throw new IllegalArgumentException("Parameter serviceCreationConfiguration must be of type ClusteredStoreConfiguration."
+                                         + "Provided type of parameter is : " + clusterStoreConfiguration.getClass());
+    }
+  }
+
+  private Document createDocumentRoot() throws IOException, SAXException, ParserConfigurationException {
+    DocumentBuilder domBuilder = DomUtil.createAndGetDocumentBuilder();
+    Document doc = domBuilder.newDocument();
+    return doc;
   }
 }

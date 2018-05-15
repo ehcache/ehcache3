@@ -17,9 +17,11 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -35,6 +37,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,6 +46,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
@@ -58,6 +63,7 @@ import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -419,6 +425,344 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     assertThat(servers, is(expectedServers));
   }
 
+  @Test
+  public void testTranslateServiceCreationConfiguration() throws Exception {
+    URI connectionUri = new URI("terracotta://localhost:9510/my-application");
+    ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
+      .timeouts(Timeouts.DEFAULT)
+      .autoCreate()
+      .defaultServerResource("main")
+      .resourcePool("primaryresource", 5, MemoryUnit.GB)
+      .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional")
+      .build();
+
+    ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
+    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+
+    assertThat(returnElement, is(notNullValue()));
+    assertThat(returnElement.getNodeName(), is("tc:cluster"));
+    assertThat(returnElement.getAttributes(), is(notNullValue()));
+    assertThat(returnElement.getAttributes().getLength(), is(1));
+    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
+    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
+    Node connElement = returnElement.getFirstChild();
+    assertThat(connElement, is(notNullValue()));
+    assertThat(connElement.getNodeName(), is("tc:connection"));
+    assertThat(connElement.getAttributes(), is(notNullValue()));
+    assertThat(connElement.getAttributes().getLength(), is(1));
+    assertThat(connElement.getAttributes().item(0), is(notNullValue()));
+    assertThat(connElement.getAttributes().item(0).getNodeName(), is("url"));
+    assertThat(connElement.getAttributes().item(0).getNodeValue(), is("terracotta://localhost:9510/my-application"));
+    Node readTomeOut = connElement.getNextSibling();
+    assertThat(readTomeOut, is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is("tc:read-timeout"));
+    assertThat(readTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().getLength(), is(1));
+    assertThat(readTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+
+    Node writeTomeOut = readTomeOut.getNextSibling();
+
+    assertThat(writeTomeOut, is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is("tc:write-timeout"));
+    assertThat(writeTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().getLength(), is(1));
+    assertThat(writeTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(writeTomeOut.getFirstChild().getNodeValue(), is("5"));
+
+    Node connectionTomeOut = writeTomeOut.getNextSibling();
+
+    assertThat(connectionTomeOut, is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is("tc:connection-timeout"));
+    assertThat(connectionTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().getLength(), is(1));
+    assertThat(connectionTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(connectionTomeOut.getFirstChild().getNodeValue(), is("150"));
+
+    Node serverSideConfig = connectionTomeOut.getNextSibling();
+
+    assertThat(serverSideConfig, is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is("tc:server-side-config"));
+    assertThat(serverSideConfig.getAttributes(), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().getLength(), is(1));
+    assertThat(serverSideConfig.getAttributes().item(0), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeName(), is("auto-create"));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeValue(), is("true"));
+
+    Node defaultResource = serverSideConfig.getFirstChild();
+
+    assertThat(defaultResource, is(notNullValue()));
+    assertThat(defaultResource.getNodeName(), is(notNullValue()));
+    assertThat(defaultResource.getNodeName(), is("tc:default-resource"));
+    assertThat(defaultResource.getAttributes(), is(notNullValue()));
+    assertThat(defaultResource.getAttributes().getLength(), is(1));
+    assertThat(defaultResource.getAttributes().item(0), is(notNullValue()));
+    assertThat(defaultResource.getAttributes().item(0).getNodeName(), is("from"));
+    assertThat(defaultResource.getAttributes().item(0).getNodeValue(), is("main"));
+
+    Node sharedPool = defaultResource.getNextSibling();
+
+    assertThat(sharedPool, is(notNullValue()));
+    assertThat(sharedPool.getNodeName(), is(notNullValue()));
+    assertThat(sharedPool.getNodeName(), is("tc:shared-pool"));
+    assertThat(sharedPool.getAttributes(), is(notNullValue()));
+    assertThat(sharedPool.getAttributes().getLength(), greaterThan(1));
+
+    SharePoolAttributesAndValueHolder attributeValoeHolder1 = getSharedPoolAttributes(sharedPool);
+
+    assertThat("primaryresource".equals(attributeValoeHolder1.name) || "secondaryresource".equals(attributeValoeHolder1.name), is(true));
+
+    if ("primaryresource".equals(attributeValoeHolder1.name)) {
+      assertThat(attributeValoeHolder1.memoryUnit, is(equalTo("B")));
+      assertThat(attributeValoeHolder1.memoryValue, is(equalTo(5368709120L)));
+      assertThat(attributeValoeHolder1.from, is(nullValue()));
+    } else {
+      assertThat(attributeValoeHolder1.memoryUnit, is(equalTo("B")));
+      assertThat(attributeValoeHolder1.memoryValue, is(equalTo(10737418240L)));
+      assertThat(attributeValoeHolder1.from, is(notNullValue()));
+      assertThat(attributeValoeHolder1.from, is(equalTo("optional")));
+    }
+
+    sharedPool = sharedPool.getNextSibling();
+    assertThat(sharedPool, is(notNullValue()));
+    assertThat(sharedPool.getNodeName(), is(notNullValue()));
+    assertThat(sharedPool.getNodeName(), is("tc:shared-pool"));
+    assertThat(sharedPool.getAttributes(), is(notNullValue()));
+    assertThat(sharedPool.getAttributes().getLength(), greaterThan(1));
+
+    SharePoolAttributesAndValueHolder attributeValoeHolder2 = getSharedPoolAttributes(sharedPool);
+
+    assertThat("primaryresource".equals(attributeValoeHolder2.name) || "secondaryresource".equals(attributeValoeHolder2.name), is(true));
+
+    assertThat((("primaryresource".equals(attributeValoeHolder1.name) && "secondaryresource".equals(attributeValoeHolder2.name))
+                || ("secondaryresource".equals(attributeValoeHolder1.name) && "primaryresource".equals(attributeValoeHolder2.name))), is(true));
+
+    if ("primaryresource".equals(attributeValoeHolder2.name)) {
+      assertThat(attributeValoeHolder2.memoryUnit, is(equalTo("B")));
+      assertThat(attributeValoeHolder2.memoryValue, is(equalTo(5368709120L)));
+      assertThat(attributeValoeHolder2.from, is(nullValue()));
+    } else {
+      assertThat(attributeValoeHolder2.memoryUnit, is(equalTo("B")));
+      assertThat(attributeValoeHolder2.memoryValue, is(equalTo(10737418240L)));
+      assertThat(attributeValoeHolder2.from, is(notNullValue()));
+      assertThat(attributeValoeHolder2.from, is(equalTo("optional")));
+    }
+  }
+
+  @Test
+  public void testTranslateServiceCreationConfigurationWithNoResourcePoolAndAutoCreateFalse() throws Exception {
+    URI connectionUri = new URI("terracotta://localhost:9510/my-application");
+    ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
+      .timeouts(Timeouts.DEFAULT)
+      .expecting()
+      .defaultServerResource("main")
+      .build();
+
+
+    ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
+    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+
+
+    assertThat(returnElement, is(notNullValue()));
+    assertThat(returnElement.getNodeName(), is("tc:cluster"));
+    assertThat(returnElement.getAttributes(), is(notNullValue()));
+    assertThat(returnElement.getAttributes().getLength(), is(1));
+    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
+    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
+    Node connElement = returnElement.getFirstChild();
+    assertThat(connElement, is(notNullValue()));
+    assertThat(connElement.getNodeName(), is("tc:connection"));
+    assertThat(connElement.getAttributes(), is(notNullValue()));
+    assertThat(connElement.getAttributes().getLength(), is(1));
+    assertThat(connElement.getAttributes().item(0), is(notNullValue()));
+    assertThat(connElement.getAttributes().item(0).getNodeName(), is("url"));
+    assertThat(connElement.getAttributes().item(0).getNodeValue(), is("terracotta://localhost:9510/my-application"));
+    Node readTomeOut = connElement.getNextSibling();
+    assertThat(readTomeOut, is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is("tc:read-timeout"));
+    assertThat(readTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().getLength(), is(1));
+    assertThat(readTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+
+    Node writeTomeOut = readTomeOut.getNextSibling();
+
+    assertThat(writeTomeOut, is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is("tc:write-timeout"));
+    assertThat(writeTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().getLength(), is(1));
+    assertThat(writeTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(writeTomeOut.getFirstChild().getNodeValue(), is("5"));
+
+    Node connectionTomeOut = writeTomeOut.getNextSibling();
+
+    assertThat(connectionTomeOut, is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is("tc:connection-timeout"));
+    assertThat(connectionTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().getLength(), is(1));
+    assertThat(connectionTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(connectionTomeOut.getFirstChild().getNodeValue(), is("150"));
+
+    Node serverSideConfig = connectionTomeOut.getNextSibling();
+
+    assertThat(serverSideConfig, is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is("tc:server-side-config"));
+    assertThat(serverSideConfig.getAttributes(), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().getLength(), is(1));
+    assertThat(serverSideConfig.getAttributes().item(0), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeName(), is("auto-create"));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeValue(), is("false"));
+
+    Node defaultResource = serverSideConfig.getFirstChild();
+
+    assertThat(defaultResource, is(notNullValue()));
+    assertThat(defaultResource.getNodeName(), is(notNullValue()));
+    assertThat(defaultResource.getNodeName(), is("tc:default-resource"));
+    assertThat(defaultResource.getAttributes(), is(notNullValue()));
+    assertThat(defaultResource.getAttributes().getLength(), is(1));
+    assertThat(defaultResource.getAttributes().item(0), is(notNullValue()));
+    assertThat(defaultResource.getAttributes().item(0).getNodeName(), is("from"));
+    assertThat(defaultResource.getAttributes().item(0).getNodeValue(), is("main"));
+
+    Node sharedPool = defaultResource.getNextSibling();
+
+    assertThat(sharedPool, is(nullValue()));
+  }
+
+  @Test
+  public void testTranslateServiceCreationConfigurationWithNoServerSideConfig() throws Exception {
+    URI connectionUri = new URI("terracotta://localhost:9510/my-application");
+    ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
+      .timeouts(Timeouts.DEFAULT)
+      .build();
+
+    ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
+    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+
+    assertThat(returnElement, is(notNullValue()));
+    assertThat(returnElement.getNodeName(), is("tc:cluster"));
+    assertThat(returnElement.getAttributes(), is(notNullValue()));
+    assertThat(returnElement.getAttributes().getLength(), is(1));
+    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
+    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
+    Node connElement = returnElement.getFirstChild();
+    assertThat(connElement, is(notNullValue()));
+    assertThat(connElement.getNodeName(), is("tc:connection"));
+    assertThat(connElement.getAttributes(), is(notNullValue()));
+    assertThat(connElement.getAttributes().getLength(), is(1));
+    assertThat(connElement.getAttributes().item(0), is(notNullValue()));
+    assertThat(connElement.getAttributes().item(0).getNodeName(), is("url"));
+    assertThat(connElement.getAttributes().item(0).getNodeValue(), is("terracotta://localhost:9510/my-application"));
+    Node readTomeOut = connElement.getNextSibling();
+    assertThat(readTomeOut, is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(readTomeOut.getNodeName(), is("tc:read-timeout"));
+    assertThat(readTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().getLength(), is(1));
+    assertThat(readTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(readTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+
+    Node writeTomeOut = readTomeOut.getNextSibling();
+
+    assertThat(writeTomeOut, is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(writeTomeOut.getNodeName(), is("tc:write-timeout"));
+    assertThat(writeTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().getLength(), is(1));
+    assertThat(writeTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(writeTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(writeTomeOut.getFirstChild().getNodeValue(), is("5"));
+
+    Node connectionTomeOut = writeTomeOut.getNextSibling();
+
+    assertThat(connectionTomeOut, is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is(notNullValue()));
+    assertThat(connectionTomeOut.getNodeName(), is("tc:connection-timeout"));
+    assertThat(connectionTomeOut.getAttributes(), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().getLength(), is(1));
+    assertThat(connectionTomeOut.getAttributes().item(0), is(notNullValue()));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeName(), is("unit"));
+    assertThat(connectionTomeOut.getAttributes().item(0).getNodeValue(), is("seconds"));
+    assertThat(connectionTomeOut.getFirstChild().getNodeValue(), is("150"));
+
+    Node serverSideConfig = connectionTomeOut.getNextSibling();
+
+    assertThat(serverSideConfig, is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is(notNullValue()));
+    assertThat(serverSideConfig.getNodeName(), is("tc:server-side-config"));
+    assertThat(serverSideConfig.getAttributes(), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().getLength(), is(1));
+    assertThat(serverSideConfig.getAttributes().item(0), is(notNullValue()));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeName(), is("auto-create"));
+    assertThat(serverSideConfig.getAttributes().item(0).getNodeValue(), is("false"));
+
+    Node defaultResource = serverSideConfig.getFirstChild();
+
+    assertThat(defaultResource, is(nullValue()));
+  }
+
+  @Test
+  public void testTranslateServiceCreationConfigurationWithInetSocketAddress() throws Exception {
+
+    InetSocketAddress firstServer = InetSocketAddress.createUnresolved("100.100.100.100", 9510);
+    InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 0);
+    InetSocketAddress thirdServer = InetSocketAddress.createUnresolved("[::1]", 0);
+    InetSocketAddress fourthServer = InetSocketAddress.createUnresolved("[fe80::1453:846e:7be4:15fe]", 9710);
+    List<InetSocketAddress> servers = Arrays.asList(firstServer, secondServer, thirdServer, fourthServer);
+    ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(servers, "my-application")
+      .timeouts(Timeouts.DEFAULT)
+      .build();
+
+    ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
+    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+
+    assertThat(returnElement, is(notNullValue()));
+    assertThat(returnElement.getNodeName(), is("tc:cluster"));
+    assertThat(returnElement.getAttributes(), is(notNullValue()));
+    assertThat(returnElement.getAttributes().getLength(), is(1));
+    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
+    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
+    Node connElement = returnElement.getFirstChild();
+    assertThat(connElement, is(notNullValue()));
+    assertThat(connElement.getNodeName(), is("tc:cluster-connection"));
+    assertThat(connElement.getAttributes(), is(notNullValue()));
+
+    int numberOfServers = 0;
+
+    Node serverElement = connElement.getFirstChild();
+    assertThat(serverElement, is(notNullValue()));
+    assertThat(serverElement.getNodeName(), is("tc:server"));
+    assertThat(connElement.getAttributes(), is(notNullValue()));
+
+    do {
+      numberOfServers++;
+      InetSocketAddress retSocketAddress = extractInetSocketAddressFromServerElement(serverElement);
+      assertThat(servers.contains(retSocketAddress), is(true));
+      serverElement = serverElement.getNextSibling();
+    } while (serverElement != null);
+    assertThat(numberOfServers, is(equalTo(4)));
+  }
+
   /**
    * Constructs a temporary XML configuration file.
    *
@@ -447,5 +791,55 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     }
 
     return configFile.toURI().toURL();
+  }
+
+  private SharePoolAttributesAndValueHolder getSharedPoolAttributes(Node sharedPool) {
+    SharePoolAttributesAndValueHolder attributeHolder = new SharePoolAttributesAndValueHolder();
+    attributeHolder.memoryValue = Long.parseLong(sharedPool.getFirstChild().getNodeValue());
+    for (int index = 0; index < sharedPool.getAttributes().getLength(); index++) {
+      Node attribute = sharedPool.getAttributes().item(index);
+      assertThat(attribute, is(notNullValue()));
+      String nodeName = attribute.getNodeName();
+      assertThat(nodeName, is(notNullValue()));
+      if (nodeName.equals("name")) {
+        String poolName;
+        poolName = attribute.getNodeValue();
+        attributeHolder.name = poolName;
+
+      } else if (nodeName.equals("unit")) {
+        attributeHolder.memoryUnit = attribute.getNodeValue();
+      } else if (nodeName.equals("from")) {
+        attributeHolder.from = attribute.getNodeValue();
+      }
+    }
+    return attributeHolder;
+  }
+
+  private InetSocketAddress extractInetSocketAddressFromServerElement(Node serverElement) {
+    NamedNodeMap attributeMap = serverElement.getAttributes();
+    String host = null;
+    String port = null;
+    for (int i = 0; i < attributeMap.getLength(); i++) {
+      Node attribute = attributeMap.item(i);
+      if ("host".equals(attribute.getNodeName())) {
+        host = attribute.getNodeValue();
+      }
+      if ("port".equals(attribute.getNodeName())) {
+        port = attribute.getNodeValue();
+      }
+    }
+    int portNumber = 0;
+    if (port != null) {
+      portNumber = Integer.parseInt(port);
+    }
+
+    return InetSocketAddress.createUnresolved(host, portNumber);
+  }
+
+  private static final class SharePoolAttributesAndValueHolder {
+    private String name;
+    private long memoryValue;
+    private String memoryUnit;
+    private String from;
   }
 }
