@@ -17,10 +17,13 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.model.ConfigType;
+import org.ehcache.xml.model.CopierType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -30,6 +33,7 @@ import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.copier.PersonCopier;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.JAXBException;
@@ -37,10 +41,10 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultCopiersConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
+public class DefaultCopyProviderConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
 
-  public DefaultCopiersConfigurationParserTest() {
-    super(new DefaultCopiersConfigurationParser());
+  public DefaultCopyProviderConfigurationParserTest() {
+    super(new DefaultCopyProviderConfigurationParser());
   }
 
   @Test
@@ -58,5 +62,27 @@ public class DefaultCopiersConfigurationParserTest extends ServiceProvideConfigu
     assertThat(defaults).hasSize(2);
     assertThat(defaults.get(Description.class).getClazz()).isEqualTo(DescriptionCopier.class);
     assertThat(defaults.get(Person.class).getClazz()).isEqualTo((PersonCopier.class));
+  }
+
+  @Test
+  public void unparseServiceCreationConfiguration() {
+    DefaultCopyProviderConfiguration providerConfig = new DefaultCopyProviderConfiguration();
+    providerConfig.addCopierFor(Description.class, DescriptionCopier.class);
+    providerConfig.addCopierFor(Person.class, PersonCopier.class);
+
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    ConfigType configType = parser.unparseServiceCreationConfiguration(config, new ConfigType());
+
+    List<CopierType.Copier> copiers = configType.getDefaultCopiers().getCopier();
+    assertThat(copiers).hasSize(2);
+    copiers.forEach(copier -> {
+      if (copier.getType().equals(Description.class.getName())) {
+        assertThat(copier.getValue()).isEqualTo(DescriptionCopier.class.getName());
+      } else if (copier.getType().equals(Person.class.getName())) {
+        assertThat(copier.getValue()).isEqualTo(PersonCopier.class.getName());
+      } else {
+        throw new AssertionError("Not expected");
+      }
+    });
   }
 }

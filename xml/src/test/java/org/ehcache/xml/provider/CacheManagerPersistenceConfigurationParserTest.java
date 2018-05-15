@@ -17,8 +17,10 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.model.ConfigType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -47,6 +49,15 @@ public class CacheManagerPersistenceConfigurationParserTest extends ServiceProvi
 
     CacheManagerPersistenceConfiguration providerConfiguration = (CacheManagerPersistenceConfiguration) configuration;
     assertThat(providerConfiguration.getRootDirectory()).isEqualTo(new File("some/dir"));
+  }
 
+
+  @Test
+  public void unparseServiceCreationConfiguration() {
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder()
+      .addService(new CacheManagerPersistenceConfiguration(new File("foo"))).build();
+    ConfigType configType = parser.unparseServiceCreationConfiguration(config, new ConfigType());
+
+    assertThat(configType.getPersistence().getDirectory()).isEqualTo("foo");
   }
 }

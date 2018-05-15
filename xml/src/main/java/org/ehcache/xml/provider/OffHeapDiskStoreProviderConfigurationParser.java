@@ -16,13 +16,16 @@
 
 package org.ehcache.xml.provider;
 
+import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 
-public class OffHeapDiskStoreProviderConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolReferenceType> {
+public class OffHeapDiskStoreProviderConfigurationParser extends ThreadPoolServiceCreationConfigurationParser<OffHeapDiskStoreProviderConfiguration> {
+
 
   public OffHeapDiskStoreProviderConfigurationParser() {
-    super(ConfigType::getDiskStore, config -> new OffHeapDiskStoreProviderConfiguration(config.getThreadPool()));
+    super(OffHeapDiskStoreProviderConfiguration.class, ConfigType::getDiskStore, ConfigType::setDiskStore,
+      OffHeapDiskStoreProviderConfiguration::new, OffHeapDiskStoreProviderConfiguration::getThreadPoolAlias);
   }
 }

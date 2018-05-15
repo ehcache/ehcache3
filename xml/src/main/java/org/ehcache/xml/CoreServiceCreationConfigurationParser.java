@@ -16,12 +16,14 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.model.ConfigType;
 
 public interface CoreServiceCreationConfigurationParser {
 
   ConfigurationBuilder parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, ConfigurationBuilder builder) throws ClassNotFoundException;
 
+
+  ConfigType unparseServiceCreationConfiguration(Configuration configuration, ConfigType root);
 }

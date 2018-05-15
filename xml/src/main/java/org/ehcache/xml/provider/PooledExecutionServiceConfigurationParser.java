@@ -20,20 +20,43 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ThreadPoolsType;
 
-public class PooledExecutionServiceConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolsType> {
+import java.math.BigInteger;
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
+
+public class PooledExecutionServiceConfigurationParser
+  extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolsType, PooledExecutionServiceConfiguration> {
 
   public PooledExecutionServiceConfigurationParser() {
-    super(ConfigType::getThreadPools, config -> {
-      PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
-      for (ThreadPoolsType.ThreadPool pool : config.getThreadPool()) {
-        if (pool.isDefault()) {
-          poolsConfiguration.addDefaultPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
-        } else {
-          poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+    super(PooledExecutionServiceConfiguration.class,
+      ConfigType::getThreadPools, ConfigType::setThreadPools,
+      config -> {
+        PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
+        for (ThreadPoolsType.ThreadPool pool : config.getThreadPool()) {
+          if (pool.isDefault()) {
+            poolsConfiguration.addDefaultPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+          } else {
+            poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
+          }
         }
+        return poolsConfiguration;
+      },
+      config -> {
+        List<ThreadPoolsType.ThreadPool> threadPools = config.getPoolConfigurations().entrySet().stream().map(entry -> {
+          PooledExecutionServiceConfiguration.PoolConfiguration poolConfig = entry.getValue();
+          String alias = entry.getKey();
+          ThreadPoolsType.ThreadPool threadPool = new ThreadPoolsType.ThreadPool()
+            .withAlias(alias)
+            .withMinSize(BigInteger.valueOf(poolConfig.minSize()))
+            .withMaxSize(BigInteger.valueOf(poolConfig.maxSize()));
+          if (alias.equals(config.getDefaultPoolAlias())) {
+            threadPool.setDefault(true);
+          }
+          return threadPool;
+        }).collect(toList());
+        return new ThreadPoolsType().withThreadPool(threadPools);
       }
-
-      return poolsConfiguration;
-    });
+    );
   }
 }

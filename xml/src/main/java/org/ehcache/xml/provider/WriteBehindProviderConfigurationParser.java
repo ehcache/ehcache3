@@ -20,9 +20,10 @@ import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfi
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 
-public class WriteBehindProviderConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolReferenceType> {
+public class WriteBehindProviderConfigurationParser extends ThreadPoolServiceCreationConfigurationParser<WriteBehindProviderConfiguration> {
 
   public WriteBehindProviderConfigurationParser() {
-    super(ConfigType::getWriteBehind, config -> new WriteBehindProviderConfiguration(config.getThreadPool()));
+    super(WriteBehindProviderConfiguration.class, ConfigType::getWriteBehind, ConfigType::setWriteBehind,
+      WriteBehindProviderConfiguration::new, WriteBehindProviderConfiguration::getThreadPoolAlias);
   }
 }

@@ -17,8 +17,10 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.model.ConfigType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -47,6 +49,15 @@ public class WriteBehindProviderConfigurationParserTest extends ServiceProvideCo
 
     WriteBehindProviderConfiguration providerConfiguration = (WriteBehindProviderConfiguration) configuration;
     assertThat(providerConfiguration.getThreadPoolAlias()).isEqualTo("write-behind-pool");
+  }
 
+  @Test
+  public void unparseServiceCreationConfiguration() {
+    ConfigType configType = new ConfigType();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder()
+      .addService(new WriteBehindProviderConfiguration("foo")).build();
+    configType = parser.unparseServiceCreationConfiguration(config, configType);
+
+    assertThat(configType.getWriteBehind().getThreadPool()).isEqualTo("foo");
   }
 }
