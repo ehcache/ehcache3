@@ -47,6 +47,16 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
+  public Class<Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<Service> serviceConfiguration) {
+    return null;
+  }
+
+  @Override
   public URI getNamespace() {
     return NAMESPACE;
   }

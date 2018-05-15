@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -66,10 +65,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-/**
- * Basic tests for {@link ClusteringServiceConfigurationParser}.
- */
-public class ClusteringServiceConfigurationParserTest {
+public class ClusteringCacheManagerServiceConfigurationParserTest {
 
   @ClassRule
   public static final TemporaryFolder folder = new TemporaryFolder();
@@ -77,16 +73,15 @@ public class ClusteringServiceConfigurationParserTest {
   @Rule
   public final TestName testName = new TestName();
 
-
   /**
-   * Ensures the {@link ClusteringServiceConfigurationParser} is locatable as a
+   * Ensures the {@link ClusteringCacheManagerServiceConfigurationParser} is locatable as a
    * {@link CacheManagerServiceConfigurationParser} instance.
    */
   @Test
   public void testServiceLocator() throws Exception {
-    final String expectedParser = ClusteringServiceConfigurationParser.class.getName();
+    final String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
     final ServiceLoader<CacheManagerServiceConfigurationParser> parsers =
-        ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
+      ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
     foundParser: {
       for (final CacheManagerServiceConfigurationParser parser : parsers) {
         if (parser.getClass().getName().equals(expectedParser)) {
@@ -98,12 +93,12 @@ public class ClusteringServiceConfigurationParserTest {
   }
 
   /**
-   * Ensures the namespace declared by {@link ClusteringServiceConfigurationParser} and its
+   * Ensures the namespace declared by {@link ClusteringCacheManagerServiceConfigurationParser} and its
    * schema are the same.
    */
   @Test
   public void testSchema() throws Exception {
-    final ClusteringServiceConfigurationParser parser = new ClusteringServiceConfigurationParser();
+    final ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
     final StreamSource schemaSource = (StreamSource) parser.getXmlSchema();
 
     final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -122,31 +117,31 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeout() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
-            "      <tc:write-timeout unit=\"minutes\">10</tc:write-timeout>",
-            "      <tc:connection-timeout unit=\"minutes\">15</tc:connection-timeout>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
+        "      <tc:write-timeout unit=\"minutes\">10</tc:write-timeout>",
+        "      <tc:connection-timeout unit=\"minutes\">15</tc:connection-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
     Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
-        configuration.getServiceCreationConfigurations();
+      configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
@@ -159,28 +154,28 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeoutNone() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
     Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
-        configuration.getServiceCreationConfigurations();
+      configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.timeouts().build()));
@@ -190,29 +185,29 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeoutUnitDefault() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:read-timeout>5</tc:read-timeout>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout>5</tc:read-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
     Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
-        configuration.getServiceCreationConfigurations();
+      configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
@@ -224,20 +219,20 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeoutUnitBad() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:read-timeout unit=\"femtos\">5</tc:read-timeout>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout unit=\"femtos\">5</tc:read-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     try {
       new XmlConfiguration(makeConfig(config));
@@ -252,22 +247,22 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeoutValueTooBig() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:read-timeout unit=\"seconds\">"
-                + BigInteger.ONE.add(BigInteger.valueOf(Long.MAX_VALUE))
-                + "</tc:read-timeout>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout unit=\"seconds\">"
+        + BigInteger.ONE.add(BigInteger.valueOf(Long.MAX_VALUE))
+        + "</tc:read-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     try {
       new XmlConfiguration(makeConfig(config));
@@ -281,20 +276,20 @@ public class ClusteringServiceConfigurationParserTest {
   public void testGetTimeoutValueOmitted() throws Exception {
 
     final String[] config = new String[]
-        {
-            "<ehcache:config",
-            "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-            "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-            "",
-            "  <ehcache:service>",
-            "    <tc:cluster>",
-            "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:read-timeout unit=\"seconds\"></tc:read-timeout>",
-            "    </tc:cluster>",
-            "  </ehcache:service>",
-            "",
-            "</ehcache:config>"
-        };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout unit=\"seconds\"></tc:read-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     try {
       new XmlConfiguration(makeConfig(config));
@@ -388,30 +383,30 @@ public class ClusteringServiceConfigurationParserTest {
   @Test
   public void testServersWithClusterTierManagerAndOptionalPorts() throws Exception {
     final String[] config = new String[]
-    {
-      "<ehcache:config",
-      "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
-      "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
-      "",
-      "  <ehcache:service>",
-      "    <tc:cluster>",
-      "      <tc:cluster-connection cluster-tier-manager=\"cM\">",
-      "        <tc:server host=\"100.100.100.100\" port=\"9510\" />",
-      "        <tc:server host=\"server-2\" />",
-      "        <tc:server host=\"[::1]\" />",
-      "        <tc:server host=\"[fe80::1453:846e:7be4:15fe]\" port=\"9710\" />",
-      "      </tc:cluster-connection>",
-      "    </tc:cluster>",
-      "  </ehcache:service>",
-      "",
-      "</ehcache:config>"
-    };
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:cluster-connection cluster-tier-manager=\"cM\">",
+        "        <tc:server host=\"100.100.100.100\" port=\"9510\" />",
+        "        <tc:server host=\"server-2\" />",
+        "        <tc:server host=\"[::1]\" />",
+        "        <tc:server host=\"[fe80::1453:846e:7be4:15fe]\" port=\"9710\" />",
+        "      </tc:cluster-connection>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
     Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
-    ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
+      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+    ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
     Iterable<InetSocketAddress> servers = connectionSource.getServers();
 
     InetSocketAddress firstServer = InetSocketAddress.createUnresolved("100.100.100.100", 9510);
@@ -428,9 +423,7 @@ public class ClusteringServiceConfigurationParserTest {
    * Constructs a temporary XML configuration file.
    *
    * @param lines the lines to include in the XML configuration file
-   *
    * @return a {@code URL} pointing to the XML configuration file
-   *
    * @throws IOException if an error is raised while creating or writing the XML configuration file
    */
   @SuppressWarnings("ThrowFromFinallyBlock")

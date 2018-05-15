@@ -69,4 +69,14 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<Jsr107Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<Jsr107Service> serviceConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
 }

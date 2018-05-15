@@ -86,4 +86,14 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
 
     return new Jsr107Configuration(defaultTemplate, templates, jsr107CompliantAtomics, enableManagementAll, enableStatisticsAll);
   }
+
+  @Override
+  public Class<Jsr107Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service> serviceCreationConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
 }

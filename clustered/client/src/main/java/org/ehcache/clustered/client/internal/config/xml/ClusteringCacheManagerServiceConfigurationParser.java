@@ -13,23 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.client.internal.config.xml;
 
-import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
-import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
 import org.w3c.dom.Attr;
@@ -56,7 +49,8 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.*;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 
 /**
@@ -64,11 +58,7 @@ import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
  *
  * @see ClusteredCacheConstants#XSD
  */
-public class ClusteringServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService>,
-                                                              CacheServiceConfigurationParser<ClusteredStore.Provider> {
-
-  public static final String CLUSTERED_STORE_ELEMENT_NAME = "clustered-store";
-  public static final String CONSISTENCY_ATTRIBUTE_NAME = "consistency";
+public class ClusteringCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService> {
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -80,19 +70,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
     return NAMESPACE;
   }
 
-  @Override
-  public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment) {
-    if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
-      if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
-        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));
-      } else {
-        return new ClusteredStoreConfiguration();
-      }
-    }
-    throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
-        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
-  }
-
   /**
    * Complete interpretation of the top-level elements defined in <code>{@value ClusteredCacheConstants#XSD}</code>.
    * This method is called only for those elements from the namespace set by {@link ClusteredCacheConstants#NAMESPACE}.
@@ -100,7 +77,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
    * This method presumes the element presented is valid according to the XSD.
    *
    * @param fragment the XML fragment to process
-   *
    * @return a {@link org.ehcache.clustered.client.config.ClusteringServiceConfiguration ClusteringServiceConfiguration}
    */
   @Override
@@ -108,7 +84,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
     if ("cluster".equals(fragment.getLocalName())) {
 
-      ServerSideConfig serverConfig = null;
+      ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverConfig = null;
       URI connectionUri = null;
       List<InetSocketAddress> serverAddresses = new ArrayList<>();
       String clusterTierManager = null;
@@ -122,7 +98,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
               /*
                * <connection> is a required element in the XSD
                */
-              final Attr urlAttribute = ((Element) item).getAttributeNode("url");
+              final Attr urlAttribute = ((Element)item).getAttributeNode("url");
               final String urlValue = urlAttribute.getValue();
               try {
                 connectionUri = new URI(urlValue);
@@ -134,12 +110,12 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
               break;
             case "cluster-connection":
-              clusterTierManager = ((Element) item).getAttribute("cluster-tier-manager");
+              clusterTierManager = ((Element)item).getAttribute("cluster-tier-manager");
               final NodeList serverNodes = item.getChildNodes();
               for (int j = 0; j < serverNodes.getLength(); j++) {
                 final Node serverNode = serverNodes.item(j);
-                final String host = ((Element) serverNode).getAttributeNode("host").getValue();
-                final Attr port = ((Element) serverNode).getAttributeNode("port");
+                final String host = ((Element)serverNode).getAttributeNode("host").getValue();
+                final Attr port = ((Element)serverNode).getAttributeNode("port");
                 InetSocketAddress address;
                 if (port == null) {
                   address = InetSocketAddress.createUnresolved(host, 0);
@@ -181,7 +157,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             default:
               throw new XmlConfigurationException(
                 String.format("Unknown XML configuration element <%s> in <%s>",
-                              item.getNodeName(), fragment.getTagName()));
+                  item.getNodeName(), fragment.getTagName()));
           }
         }
       }
@@ -213,47 +189,27 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       }
     }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
-        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
+      fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 
-  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
-    TimeoutsBuilder builder = TimeoutsBuilder.timeouts();
-    if (getTimeout != null) {
-      builder.read(getTimeout);
-    }
-    if(putTimeout != null) {
-      builder.write(putTimeout);
-    }
-    if(connectionTimeout != null) {
-      builder.connection(connectionTimeout);
-    }
-    return builder.build();
+  @Override
+  public Class<ClusteringService> getServiceType() {
+    return ClusteringService.class;
   }
 
-  private Duration processTimeout(Element parentElement, Node timeoutNode) {
-    try {
-      // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
-      Unmarshaller unmarshaller = context.createUnmarshaller();
-      JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
-
-      TimeType timeType = jaxbElement.getValue();
-      BigInteger amount = timeType.getValue();
-      if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
-        throw new XmlConfigurationException(
-            String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
-                timeoutNode.getNodeName(), parentElement.getTagName(), amount));
-      }
-      return Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
-
-    } catch (JAXBException e) {
-      throw new XmlConfigurationException(e);
-    }
+  /**
+   * Translates a {@link ServiceCreationConfiguration} to an xml element
+   *
+   * @param serviceCreationConfiguration
+   */
+  @Override
+  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
-  private ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
-    ServerSideConfig serverSideConfig = new ServerSideConfig();
-    serverSideConfig.autoCreate = Boolean.parseBoolean(((Element) serverSideConfigElement).getAttribute("auto-create"));
+  private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
+    ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverSideConfig = new ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig();
+    serverSideConfig.autoCreate = Boolean.parseBoolean(((Element)serverSideConfigElement).getAttribute("auto-create"));
     final NodeList serverSideNodes = serverSideConfigElement.getChildNodes();
     for (int i = 0; i < serverSideNodes.getLength(); i++) {
       final Node item = serverSideNodes.item(i);
@@ -277,14 +233,14 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             quantity = Long.parseLong(quantityValue);
           } catch (NumberFormatException e) {
             throw new XmlConfigurationException("Magnitude of value specified for <shared-pool name=\""
-                + poolName + "\"> is too large");
+                                                + poolName + "\"> is too large");
           }
 
-          Pool poolDefinition;
+          ServerSideConfiguration.Pool poolDefinition;
           if (fromResource == null) {
-            poolDefinition = new Pool(memoryUnit.toBytes(quantity));
+            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity));
           } else {
-            poolDefinition = new Pool(memoryUnit.toBytes(quantity), fromResource);
+            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity), fromResource);
           }
 
           if (serverSideConfig.pools.put(poolName, poolDefinition) != null) {
@@ -296,9 +252,44 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
     return serverSideConfig;
   }
 
+  private Duration processTimeout(Element parentElement, Node timeoutNode) {
+    try {
+      // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
+      JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
+      Unmarshaller unmarshaller = context.createUnmarshaller();
+      JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
+
+      TimeType timeType = jaxbElement.getValue();
+      BigInteger amount = timeType.getValue();
+      if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+        throw new XmlConfigurationException(
+          String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
+            timeoutNode.getNodeName(), parentElement.getTagName(), amount));
+      }
+      return Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
+
+    } catch (JAXBException e) {
+      throw new XmlConfigurationException(e);
+    }
+  }
+
+  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
+    TimeoutsBuilder builder = TimeoutsBuilder.timeouts();
+    if (getTimeout != null) {
+      builder.read(getTimeout);
+    }
+    if (putTimeout != null) {
+      builder.write(putTimeout);
+    }
+    if (connectionTimeout != null) {
+      builder.connection(connectionTimeout);
+    }
+    return builder.build();
+  }
+
   private static final class ServerSideConfig {
     private boolean autoCreate = false;
     private String defaultServerResource = null;
-    private final Map<String, Pool> pools = new HashMap<>();
+    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
   }
 }
