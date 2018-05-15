@@ -16,22 +16,29 @@
 
 package org.ehcache.xml.service;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
+import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.EventFiringType;
+import org.ehcache.xml.model.EventOrderingType;
 import org.ehcache.xml.model.EventType;
 import org.ehcache.xml.model.ListenersConfig;
 import org.ehcache.xml.model.ListenersType;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
+import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
 public class DefaultCacheEventListenerConfigurationParser implements CoreServiceConfigurationParser {
@@ -55,6 +62,35 @@ public class DefaultCacheEventListenerConfigurationParser implements CoreService
     }
 
     return cacheBuilder;
+  }
+
+  @Override
+  public CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
+    Collection<DefaultCacheEventListenerConfiguration> serviceConfigs =
+      findAmongst(DefaultCacheEventListenerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+
+    if (!serviceConfigs.isEmpty()) {
+      ListenersType listenersType = cacheType.getListeners();
+      if (listenersType == null) {
+        listenersType = new ListenersType();
+        cacheType.setListeners(listenersType);
+      }
+
+      Set<ListenersType.Listener> listeners = serviceConfigs.stream().map(serviceConfig -> {
+        ListenersType.Listener listener = new ListenersType.Listener();
+        return listener.withClazz(serviceConfig.getClazz().getName())
+          .withEventFiringMode(EventFiringType.fromValue(serviceConfig.firingMode().name()))
+          .withEventOrderingMode(EventOrderingType.fromValue(serviceConfig.orderingMode().name()))
+          .withEventsToFireOn(serviceConfig.fireOn()
+            .stream()
+            .map(eventType -> EventType.fromValue(eventType.name()))
+            .collect(toSet()));
+      }).collect(toSet());
+
+      cacheType.withListeners(listenersType.withListener(listeners));
+    }
+
+    return cacheType;
   }
 }
 

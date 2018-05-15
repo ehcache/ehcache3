@@ -17,8 +17,12 @@
 package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.xml.model.CacheLoaderWriterType;
+import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -64,5 +68,25 @@ public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurat
     assertThat(batchingConfiguration.isCoalescing()).isEqualTo(false);
     assertThat(batchingConfiguration.getMaxDelay()).isEqualTo(10);
     assertThat(batchingConfiguration.getMaxDelayUnit()).isEqualTo(TimeUnit.SECONDS);
+  }
+
+  @Test
+  public void unparseServiceConfigurationBatched() {
+    WriteBehindConfiguration writeBehindConfiguration =
+      WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(123, TimeUnit.SECONDS, 987)
+      .enableCoalescing().concurrencyLevel(8).useThreadPool("foo").queueSize(16).build();
+    CacheConfiguration<?, ?> cacheConfig = buildCacheConfigWithServiceConfig(writeBehindConfiguration);
+    CacheType cacheType = new CacheType();
+    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+
+    CacheLoaderWriterType.WriteBehind writeBehind = cacheType.getLoaderWriter().getWriteBehind();
+    assertThat(writeBehind.getThreadPool()).isEqualTo("foo");
+    assertThat(writeBehind.getSize()).isEqualTo(16);
+    assertThat(writeBehind.getConcurrency()).isEqualTo(8);
+    CacheLoaderWriterType.WriteBehind.Batching batching = writeBehind.getBatching();
+    assertThat(batching.getBatchSize()).isEqualTo(987);
+    assertThat(batching.isCoalesce()).isEqualTo(true);
+    assertThat(batching.getMaxWriteDelay().getValue()).isEqualTo(123);
+    assertThat(batching.getMaxWriteDelay().getUnit()).isEqualTo(org.ehcache.xml.model.TimeUnit.SECONDS);
   }
 }

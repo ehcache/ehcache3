@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.ConfigurationParser;
 import org.ehcache.xml.CoreServiceConfigurationParser;
 import org.ehcache.xml.model.CacheDefinition;
@@ -50,5 +51,9 @@ public class ServiceConfigurationParserTestBase {
     CacheDefinition cacheDefinition = StreamSupport.stream(rootParser.getCacheElements().spliterator(), false)
       .filter(def -> def.id().equals(cacheName)).findAny().get();
     return parser.parseServiceConfiguration(cacheDefinition, classLoader, cacheConfigurationBuilder).build();
+  }
+
+  protected CacheConfiguration<?, ?> buildCacheConfigWithServiceConfig(ServiceConfiguration serviceConfig) {
+    return cacheConfigurationBuilder.add(serviceConfig).build();
   }
 }

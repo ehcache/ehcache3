@@ -18,15 +18,20 @@ package org.ehcache.xml.service;
 
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.CacheType;
 
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
-public class DefaultCacheLoaderWriterConfigurationParser extends SimpleCoreServiceConfigurationParser<String> {
+public class DefaultCacheLoaderWriterConfigurationParser
+  extends SimpleCoreServiceConfigurationParser<String, CacheLoaderWriterType, DefaultCacheLoaderWriterConfiguration> {
 
   public DefaultCacheLoaderWriterConfigurationParser() {
-    super(CacheTemplate::loaderWriter,
-      (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)));
+    super(DefaultCacheLoaderWriterConfiguration.class,
+      CacheTemplate::loaderWriter,
+      (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)),
+      CacheType::getLoaderWriter, CacheType::setLoaderWriter,
+      config -> new CacheLoaderWriterType().withClazz(config.getClazz().getName()));
   }
 }

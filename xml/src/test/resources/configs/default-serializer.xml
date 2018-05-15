@@ -21,20 +21,32 @@
   <ehcache:default-serializers>
     <ehcache:serializer type="java.lang.CharSequence">com.pany.ehcache.serializer.TestSerializer</ehcache:serializer>
     <ehcache:serializer type="java.lang.Number">com.pany.ehcache.serializer.TestSerializer2</ehcache:serializer>
-    <ehcache:serializer type="java.lang.Long">               
-    com.pany.ehcache.serializer.TestSerializer3                        
+    <ehcache:serializer type="java.lang.Long">
+    com.pany.ehcache.serializer.TestSerializer3
     </ehcache:serializer>
     <ehcache:serializer type="java.lang.Integer">
     com.pany.ehcache.serializer.TestSerializer4
-    
+
     </ehcache:serializer>
   </ehcache:default-serializers>
 
-  <ehcache:cache alias="bar">
-    <ehcache:key-type>      
-    java.lang.Long         
+  <ehcache:cache alias="foo">
+    <ehcache:key-type serializer="com.pany.ehcache.serializer.TestSerializer3">
+      java.lang.Long
     </ehcache:key-type>
-    <ehcache:value-type>           java.lang.Double           
+    <ehcache:value-type serializer="com.pany.ehcache.serializer.TestSerializer4">
+      java.lang.Double
+    </ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap>10</ehcache:heap>
+    </ehcache:resources>
+  </ehcache:cache>
+
+  <ehcache:cache alias="bar">
+    <ehcache:key-type>
+    java.lang.Long
+    </ehcache:key-type>
+    <ehcache:value-type>           java.lang.Double
     </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
@@ -44,10 +56,10 @@
 
   <ehcache:cache alias="baz">
     <ehcache:key-type serializer="com.pany.ehcache.serializer.TestSerializer3">
-    java.lang.String  
+    java.lang.String
     </ehcache:key-type>
     <ehcache:value-type>
-     java.lang.String        
+     java.lang.String
                 </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>

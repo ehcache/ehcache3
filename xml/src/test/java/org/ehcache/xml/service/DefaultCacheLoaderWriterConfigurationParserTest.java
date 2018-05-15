@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -45,5 +46,15 @@ public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConf
 
     assertThat(loaderWriterConfig).isNotNull();
     assertThat(loaderWriterConfig.getClazz()).isEqualTo(TestCacheLoaderWriter.class);
+  }
+
+  @Test
+  public void unparseServiceConfiguration() {
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new DefaultCacheLoaderWriterConfiguration(TestCacheLoaderWriter.class));
+    CacheType cacheType = parser.unparseServiceConfiguration(cacheConfig, new CacheType());
+
+
+    assertThat(cacheType.getLoaderWriter().getClazz()).isEqualTo(TestCacheLoaderWriter.class.getName());
   }
 }

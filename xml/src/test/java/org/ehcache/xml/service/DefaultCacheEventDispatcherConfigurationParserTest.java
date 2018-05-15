@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -37,12 +38,23 @@ public class DefaultCacheEventDispatcherConfigurationParserTest extends ServiceC
 
   @Test
   public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/ehcache-cacheEventListener.xml", "template1");
+    CacheConfiguration<?, ?> cacheConfiguration =
+      getCacheDefinitionFrom("/configs/ehcache-cacheEventListener.xml", "template1");
 
     DefaultCacheEventDispatcherConfiguration eventDispatcherConfig =
       findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, cacheConfiguration.getServiceConfigurations());
 
     assertThat(eventDispatcherConfig).isNotNull();
     assertThat(eventDispatcherConfig.getThreadPoolAlias()).isEqualTo("listeners-pool");
+  }
+
+  @Test
+  public void unparseServiceConfiguration() {
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new DefaultCacheEventDispatcherConfiguration("foo"));
+    CacheType cacheType = new CacheType();
+    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+
+    assertThat(cacheType.getListeners().getDispatcherThreadPool()).isEqualTo("foo");
   }
 }
