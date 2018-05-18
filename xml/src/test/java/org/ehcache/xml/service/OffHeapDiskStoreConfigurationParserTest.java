@@ -18,6 +18,8 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.DiskStoreSettingsType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -44,6 +46,19 @@ public class OffHeapDiskStoreConfigurationParserTest extends ServiceConfiguratio
     assertThat(diskConfig.getThreadPoolAlias()).isEqualTo("some-pool");
     assertThat(diskConfig.getWriterConcurrency()).isEqualTo(2);
     assertThat(diskConfig.getDiskSegments()).isEqualTo(4);
+  }
+
+  @Test
+  public void unparseServiceConfiguration() {
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new OffHeapDiskStoreConfiguration("foo", 4, 8));
+    CacheType cacheType = new CacheType();
+    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+
+    DiskStoreSettingsType diskStoreSettings = cacheType.getDiskStoreSettings();
+    assertThat(diskStoreSettings.getThreadPool()).isEqualTo("foo");
+    assertThat(diskStoreSettings.getWriterConcurrency()).isEqualTo(4);
+    assertThat(diskStoreSettings.getDiskSegments()).isEqualTo(8);
   }
 
 }

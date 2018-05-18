@@ -21,17 +21,28 @@ import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.SerializerType;
 
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
-public class DefaultSerializationProviderConfigurationParser extends SimpleCoreServiceCreationConfigurationParser<SerializerType> {
+public class DefaultSerializationProviderConfigurationParser
+  extends SimpleCoreServiceCreationConfigurationParser<SerializerType, DefaultSerializationProviderConfiguration> {
 
   public DefaultSerializationProviderConfigurationParser() {
-    super(ConfigType::getDefaultSerializers, (config, loader) -> {
-      DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
-      for (SerializerType.Serializer serializer : config.getSerializer()) {
-        configuration.addSerializerFor(getClassForName(serializer.getType(), loader), (Class) getClassForName(serializer.getValue(), loader));
-      }
-      return configuration;
-    });
+    super(DefaultSerializationProviderConfiguration.class,
+      ConfigType::getDefaultSerializers, ConfigType::setDefaultSerializers,
+      (config, loader) -> {
+        DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+        for (SerializerType.Serializer serializer : config.getSerializer()) {
+          configuration.addSerializerFor(getClassForName(serializer.getType(), loader), (Class) getClassForName(serializer.getValue(), loader));
+        }
+        return configuration;
+      },
+      config -> new SerializerType()
+        .withSerializer(config.getDefaultSerializers().entrySet().stream().map(entry -> new SerializerType.Serializer()
+          .withType(entry.getKey().getName())
+          .withValue(entry.getValue().getName())).collect(toList()))
+    );
   }
 }

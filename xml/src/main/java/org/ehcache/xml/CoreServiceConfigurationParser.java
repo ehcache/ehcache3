@@ -16,11 +16,16 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.CacheType;
+import org.w3c.dom.Document;
 
 public interface CoreServiceConfigurationParser {
 
   <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
                                                                    CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException;
+
+  CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType);
 }

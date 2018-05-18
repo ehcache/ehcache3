@@ -18,11 +18,27 @@ package org.ehcache.xml.service;
 
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.MemoryUnit;
 import org.ehcache.xml.model.SizeOfEngineLimits;
+import org.ehcache.xml.model.SizeofType;
 
-public class DefaultSizeOfEngineConfigurationParser extends SimpleCoreServiceConfigurationParser<SizeOfEngineLimits> {
+import java.math.BigInteger;
+
+public class DefaultSizeOfEngineConfigurationParser
+  extends SimpleCoreServiceConfigurationParser<SizeOfEngineLimits, SizeofType, DefaultSizeOfEngineConfiguration> {
 
   public DefaultSizeOfEngineConfigurationParser() {
-    super(CacheTemplate::heapStoreSettings, config -> new DefaultSizeOfEngineConfiguration(config.getMaxObjectSize(), config.getUnit(), config.getMaxObjectGraphSize()));
+    super(DefaultSizeOfEngineConfiguration.class,
+      CacheTemplate::heapStoreSettings,
+      config -> new DefaultSizeOfEngineConfiguration(config.getMaxObjectSize(), config.getUnit(), config.getMaxObjectGraphSize()),
+      CacheType::getHeapStoreSettings, CacheType::setHeapStoreSettings,
+      config -> new SizeofType()
+        .withMaxObjectGraphSize(new SizeofType.MaxObjectGraphSize().withValue(BigInteger.valueOf(config.getMaxObjectGraphSize())))
+        .withMaxObjectSize(new MemoryType()
+          .withValue(BigInteger.valueOf(config.getMaxObjectSize()))
+          .withUnit(MemoryUnit.fromValue(config.getUnit().toString()))
+        ));
   }
 }

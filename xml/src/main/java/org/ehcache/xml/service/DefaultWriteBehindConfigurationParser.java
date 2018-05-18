@@ -19,18 +19,27 @@ package org.ehcache.xml.service;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.UnBatchedWriteBehindConfigurationBuilder;
+import org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplate;
+import org.ehcache.xml.model.TimeType;
+import org.ehcache.xml.model.TimeUnit;
+
+import java.math.BigInteger;
 
 import static java.util.Optional.ofNullable;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.xml.XmlModel.convertToJUCTimeUnit;
 
-public class DefaultWriteBehindConfigurationParser extends SimpleCoreServiceConfigurationParser<CacheLoaderWriterType.WriteBehind> {
+public class DefaultWriteBehindConfigurationParser
+  extends SimpleCoreServiceConfigurationParser<CacheLoaderWriterType.WriteBehind, CacheLoaderWriterType, WriteBehindConfiguration> {
 
   public DefaultWriteBehindConfigurationParser() {
-    super(CacheTemplate::writeBehind, config ->
-      ofNullable(config.getBatching()).<WriteBehindConfigurationBuilder>map(batching -> {
+    super(WriteBehindConfiguration.class,
+      CacheTemplate::writeBehind,
+      config -> ofNullable(config.getBatching()).<WriteBehindConfigurationBuilder>map(batching -> {
         BatchedWriteBehindConfigurationBuilder batchedBuilder = newBatchedWriteBehindConfiguration(batching.getMaxWriteDelay().getValue().longValue(), convertToJUCTimeUnit(batching.getMaxWriteDelay().getUnit()), batching.getBatchSize().intValue());
         if (batching.isCoalesce()) {
           batchedBuilder = batchedBuilder.enableCoalescing();
@@ -38,7 +47,32 @@ public class DefaultWriteBehindConfigurationParser extends SimpleCoreServiceConf
         return batchedBuilder;
       }).orElseGet(UnBatchedWriteBehindConfigurationBuilder::newUnBatchedWriteBehindConfiguration).useThreadPool(config.getThreadPool())
         .concurrencyLevel(config.getConcurrency().intValue())
-        .queueSize(config.getSize().intValue()).build()
-    );
+        .queueSize(config.getSize().intValue()).build(),
+      BaseCacheType::getLoaderWriter, BaseCacheType::setLoaderWriter,
+      config -> {
+        CacheLoaderWriterType.WriteBehind writeBehind = new CacheLoaderWriterType.WriteBehind()
+          .withThreadPool(config.getThreadPoolAlias())
+          .withConcurrency(BigInteger.valueOf(config.getConcurrency()))
+          .withSize(BigInteger.valueOf(config.getMaxQueueSize()));
+
+        WriteBehindConfiguration.BatchingConfiguration batchingConfiguration = config.getBatchingConfiguration();
+        if (batchingConfiguration == null) {
+          writeBehind.setNonBatching(null);
+        } else {
+          writeBehind.withBatching(new CacheLoaderWriterType.WriteBehind.Batching()
+            .withBatchSize(BigInteger.valueOf(batchingConfiguration.getBatchSize()))
+            .withCoalesce(batchingConfiguration.isCoalescing())
+            .withMaxWriteDelay(new TimeType()
+              .withValue(BigInteger.valueOf(batchingConfiguration.getMaxDelay()))
+              .withUnit(TimeUnit.fromValue(batchingConfiguration.getMaxDelayUnit().name().toLowerCase()))
+            )
+          );
+        }
+        return new CacheLoaderWriterType().withWriteBehind(writeBehind);
+      },
+      (existing, additional) -> {
+        existing.setWriteBehind(additional.getWriteBehind());
+        return existing;
+      });
   }
 }

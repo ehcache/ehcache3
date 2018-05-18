@@ -17,7 +17,10 @@
 package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
+import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.SizeofType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -62,5 +65,18 @@ public class DefaultSizeOfEngineConfigurationParserTest extends ServiceConfigura
     assertThat(sizeOfEngineConfig3).isNotNull();
     assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize()).isEqualTo(1000L);
     assertThat(sizeOfEngineConfig3.getMaxObjectSize()).isEqualTo(200000L);
+  }
+
+  @Test
+  public void unparseServiceConfiguration() {
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new DefaultSizeOfEngineConfiguration(123, MemoryUnit.MB, 987));
+    CacheType cacheType = new CacheType();
+    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+
+    SizeofType heapStore = cacheType.getHeapStoreSettings();
+    assertThat(heapStore.getMaxObjectGraphSize().getValue()).isEqualTo(987);
+    assertThat(heapStore.getMaxObjectSize().getValue()).isEqualTo(123);
+    assertThat(heapStore.getMaxObjectSize().getUnit().value()).isEqualTo("MB");
   }
 }

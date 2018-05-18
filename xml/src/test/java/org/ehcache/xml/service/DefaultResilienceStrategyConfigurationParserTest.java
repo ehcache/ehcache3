@@ -19,8 +19,11 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.xml.NiResilience;
+import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
+
+import com.pany.ehcache.integration.TestResilienceStrategy;
 
 import java.io.IOException;
 
@@ -44,5 +47,14 @@ public class DefaultResilienceStrategyConfigurationParserTest extends ServiceCon
 
     assertThat(resilienceStrategyConfig).isNotNull();
     assertThat(resilienceStrategyConfig.getClazz()).isEqualTo(NiResilience.class);
+  }
+
+  @Test
+  public void unparseServiceConfiguration() {
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class));
+    CacheType cacheType = parser.unparseServiceConfiguration(cacheConfig, new CacheType());
+
+    assertThat(cacheType.getResilience()).isEqualTo(TestResilienceStrategy.class.getName());
   }
 }

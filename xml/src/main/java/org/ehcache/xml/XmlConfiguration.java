@@ -39,7 +39,7 @@ import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.Expiry;
 import org.ehcache.xml.model.ServiceType;
-import org.ehcache.xml.provider.DefaultCopiersConfigurationParser;
+import org.ehcache.xml.provider.DefaultCopyProviderConfigurationParser;
 import org.ehcache.xml.provider.DefaultSerializationProviderConfigurationParser;
 import org.ehcache.xml.provider.OffHeapDiskStoreProviderConfigurationParser;
 import org.ehcache.xml.provider.CacheEventDispatcherFactoryConfigurationParser;
@@ -89,7 +89,7 @@ public class XmlConfiguration implements Configuration {
   private final Map<String, CacheTemplate> templates = new HashMap<>();
 
   private static final Collection<CoreServiceCreationConfigurationParser> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
-    new DefaultCopiersConfigurationParser(),
+    new DefaultCopyProviderConfigurationParser(),
     new DefaultSerializationProviderConfigurationParser(),
     new OffHeapDiskStoreProviderConfigurationParser(),
     new CacheEventDispatcherFactoryConfigurationParser(),

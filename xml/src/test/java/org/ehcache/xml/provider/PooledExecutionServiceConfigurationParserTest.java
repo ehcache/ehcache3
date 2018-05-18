@@ -17,12 +17,16 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.model.ConfigType;
+import org.ehcache.xml.model.ThreadPoolsType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
@@ -56,6 +60,32 @@ public class PooledExecutionServiceConfigurationParserTest extends ServiceProvid
     assertThat(big.maxSize()).isEqualTo(32);
 
     assertThat(providerConfiguration.getDefaultPoolAlias()).isEqualTo("big");
+  }
 
+  @Test
+  public void unparseServiceCreationConfiguration() {
+    PooledExecutionServiceConfiguration providerConfig = new PooledExecutionServiceConfiguration();
+    providerConfig.addDefaultPool("foo", 5, 9);
+    providerConfig.addPool("bar", 2, 6);
+
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    ConfigType configType = new ConfigType();
+    configType = parser.unparseServiceCreationConfiguration(config, configType);
+
+    List<ThreadPoolsType.ThreadPool> threadPools = configType.getThreadPools().getThreadPool();
+    assertThat(threadPools).hasSize(2);
+    threadPools.forEach(pool -> {
+      if (pool.getAlias().equals("foo")) {
+        assertThat(pool.getMinSize()).isEqualTo(5);
+        assertThat(pool.getMaxSize()).isEqualTo(9);
+        assertThat(pool.isDefault()).isEqualTo(true);
+      } else if (pool.getAlias().equals("bar")) {
+        assertThat(pool.getMinSize()).isEqualTo(2);
+        assertThat(pool.getMaxSize()).isEqualTo(6);
+        assertThat(pool.isDefault()).isEqualTo(false);
+      } else {
+        throw new AssertionError("Not expected");
+      }
+    });
   }
 }
