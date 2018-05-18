@@ -355,7 +355,6 @@
       </xs:element>
     </xs:sequence>
     <xs:attribute name="dispatcher-thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="dispatcher-concurrency" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-loader-writer-type">
@@ -382,7 +381,9 @@
                   <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
                 </xs:complexType>
               </xs:element>
-              <xs:element name="non-batching"/>
+              <xs:element name="non-batching">
+                <xs:complexType/>
+              </xs:element>
             </xs:choice>
           </xs:sequence>
           <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>

@@ -46,7 +46,7 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/default-serializer.xml", "foo");
     Collection<DefaultSerializerConfiguration> copierConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());

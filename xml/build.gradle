@@ -22,6 +22,7 @@ apply plugin: EhDeploy
 
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
+  testCompile 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
 }
 

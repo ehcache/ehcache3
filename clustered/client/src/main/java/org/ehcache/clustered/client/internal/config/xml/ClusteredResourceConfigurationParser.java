@@ -30,6 +30,7 @@ import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
 import java.util.Set;
 
 import javax.xml.transform.Source;
@@ -109,6 +110,6 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
 
   @Override
   public Set<ResourceType<?>> getResourceTypes() {
-    return null;
+    return Collections.emptySet();
   }
 }

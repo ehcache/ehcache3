@@ -21,8 +21,10 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheDefinition;
 import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.TimeType;
 import org.ehcache.xml.model.TimeUnit;
 import org.hamcrest.CoreMatchers;
@@ -51,40 +53,40 @@ public class CoreCacheConfigurationParserTest {
 
   @Test
   public void parseConfigurationExpiryPolicy() throws Exception {
-    ConfigurationParser rootParser = parseXmlConfiguration("/configs/expiry-caches.xml");
+    ConfigType configType = parseXmlConfiguration("/configs/expiry-caches.xml");
 
-    ExpiryPolicy<?, ?> expiry = getCacheDefinitionFrom(rootParser, "none").getExpiryPolicy();
+    ExpiryPolicy<?, ?> expiry = getCacheDefinitionFrom(configType, "none").getExpiryPolicy();
     ExpiryPolicy<?, ?> value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = getCacheDefinitionFrom(rootParser, "notSet").getExpiryPolicy();
+    expiry = getCacheDefinitionFrom(configType, "notSet").getExpiryPolicy();
     value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = getCacheDefinitionFrom(rootParser, "class").getExpiryPolicy();
+    expiry = getCacheDefinitionFrom(configType, "class").getExpiryPolicy();
     assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
 
-    expiry = getCacheDefinitionFrom(rootParser, "deprecatedClass").getExpiryPolicy();
+    expiry = getCacheDefinitionFrom(configType, "deprecatedClass").getExpiryPolicy();
     assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
     assertThat(expiry.getExpiryForAccess(null, () -> null), is(Duration.ofSeconds(42)));
     assertThat(expiry.getExpiryForUpdate(null, () -> null, null), is(Duration.ofSeconds(42)));
 
-    expiry = getCacheDefinitionFrom(rootParser, "tti").getExpiryPolicy();
+    expiry = getCacheDefinitionFrom(configType, "tti").getExpiryPolicy();
     value = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(500));
     assertThat(expiry, equalTo(value));
 
-    expiry = getCacheDefinitionFrom(rootParser, "ttl").getExpiryPolicy();
+    expiry = getCacheDefinitionFrom(configType, "ttl").getExpiryPolicy();
     value = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30));
     assertThat(expiry, equalTo(value));
   }
 
-  private ConfigurationParser parseXmlConfiguration(String resourcePath) throws Exception {
+  private ConfigType parseXmlConfiguration(String resourcePath) throws Exception {
     URL resource = this.getClass().getResource(resourcePath);
-    return new ConfigurationParser(resource.toExternalForm());
+    return new ConfigurationParser().parseXml(resource.toExternalForm());
   }
 
-  private CacheConfiguration<?,?> getCacheDefinitionFrom(ConfigurationParser rootParser, String cacheName) throws Exception {
-    CacheDefinition cacheDefinition = StreamSupport.stream(rootParser.getCacheElements().spliterator(), false)
+  private CacheConfiguration<?,?> getCacheDefinitionFrom(ConfigType configType, String cacheName) throws Exception {
+    CacheDefinition cacheDefinition = StreamSupport.stream(ConfigurationParser.getCacheElements(configType).spliterator(), false)
       .filter(def -> def.id().equals(cacheName)).findAny().get();
     return parser.parseConfiguration(cacheDefinition, classLoader, cacheConfigurationBuilder).build();
   }
@@ -96,38 +98,36 @@ public class CoreCacheConfigurationParserTest {
     assertThat(cacheType.getExpiry().getNone(), notNullValue());
   }
 
-  @Test
+  @Test(expected = XmlConfigurationException.class)
   public void unparseConfigurationCustomExpiry() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(new MyExpiry());
-    CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
-    assertThat(cacheType.getExpiry().getClazz(), is(MyExpiry.class.getName()));
+    parser.unparseConfiguration(cacheConfiguration, new CacheType());
   }
 
   @Test
   public void unparseConfigurationTtiExpiry() {
-    CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(5)));
+    CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(2500)));
     CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
     TimeType tti = cacheType.getExpiry().getTti();
     assertThat(tti, notNullValue());
-    assertThat(tti.getValue(), is(BigInteger.valueOf(5)));
-    assertThat(tti.getUnit(), is(TimeUnit.SECONDS));
+    assertThat(tti.getValue(), is(BigInteger.valueOf(2500)));
+    assertThat(tti.getUnit(), is(TimeUnit.MILLIS));
   }
 
   @Test
   public void unparseConfigurationTtlExpiry() {
-    CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(5)));
+    CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMinutes(60)));
     CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
     TimeType ttl = cacheType.getExpiry().getTtl();
     assertThat(ttl, notNullValue());
-    assertThat(ttl.getValue(), is(BigInteger.valueOf(5)));
-    assertThat(ttl.getUnit(), is(TimeUnit.SECONDS));
+    assertThat(ttl.getValue(), is(BigInteger.valueOf(1)));
+    assertThat(ttl.getUnit(), is(TimeUnit.HOURS));
   }
 
-  @Test
+  @Test(expected = XmlConfigurationException.class)
   public void unparseConfigurationEvictionAdvisor() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(new TestEvictionAdvisor<>());
     CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
-    assertThat(cacheType.getEvictionAdvisor(), is(TestEvictionAdvisor.class.getName()));
   }
 
   private CacheConfiguration<Object, Object> buildCacheConfigWith(ExpiryPolicy<Object, Object> expiryPolicy) {

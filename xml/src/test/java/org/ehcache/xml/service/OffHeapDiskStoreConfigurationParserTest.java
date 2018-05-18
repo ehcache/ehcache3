@@ -38,7 +38,7 @@ public class OffHeapDiskStoreConfigurationParserTest extends ServiceConfiguratio
   }
 
   @Test
-  public void parseServiceConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/resources-caches.xml", "tiered");
     OffHeapDiskStoreConfiguration diskConfig =
       findSingletonAmongst(OffHeapDiskStoreConfiguration.class, cacheConfiguration.getServiceConfigurations());

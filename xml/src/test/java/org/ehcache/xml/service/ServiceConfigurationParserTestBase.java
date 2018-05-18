@@ -22,15 +22,18 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.ConfigurationParser;
 import org.ehcache.xml.CoreServiceConfigurationParser;
 import org.ehcache.xml.model.CacheDefinition;
+import org.ehcache.xml.model.ConfigType;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.stream.StreamSupport;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
+import static java.util.Collections.emptyMap;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 
@@ -44,11 +47,12 @@ public class ServiceConfigurationParserTestBase {
     this.parser = parser;
   }
 
-  protected CacheConfiguration<?, ?> getCacheDefinitionFrom(String resourcePath, String cacheName) throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
+  protected CacheConfiguration<?, ?> getCacheDefinitionFrom(String resourcePath, String cacheName) throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
     final URL resource = this.getClass().getResource(resourcePath);
-    ConfigurationParser rootParser = new ConfigurationParser(resource.toExternalForm());
+    ConfigurationParser rootParser = new ConfigurationParser();
+    ConfigType configType = rootParser.parseXml(resource.toExternalForm());
 
-    CacheDefinition cacheDefinition = StreamSupport.stream(rootParser.getCacheElements().spliterator(), false)
+    CacheDefinition cacheDefinition = StreamSupport.stream(ConfigurationParser.getCacheElements(configType).spliterator(), false)
       .filter(def -> def.id().equals(cacheName)).findAny().get();
     return parser.parseServiceConfiguration(cacheDefinition, classLoader, cacheConfigurationBuilder).build();
   }

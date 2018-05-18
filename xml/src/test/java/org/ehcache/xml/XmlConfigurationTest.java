@@ -57,6 +57,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
+import org.xmlunit.builder.Input;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
 import com.pany.ehcache.copier.AnotherPersonCopier;
 import com.pany.ehcache.copier.Description;
@@ -111,6 +114,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  *
@@ -123,7 +127,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("foo"));
     assertThat(xmlConfig.getCacheConfigurations().get("foo").getKeyType(), sameInstance((Class)Object.class));
@@ -161,7 +166,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testOneServiceConfig() throws Exception {
-    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-service.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/one-service.xml");
+    Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.<ServiceCreationConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
@@ -169,7 +175,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testOneCacheConfig() throws Exception {
-    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/one-cache.xml");
+    Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
@@ -178,7 +185,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testAllExtensions() {
-    Configuration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/all-extensions.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/all-extensions.xml");
+    Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
     assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
     CacheConfiguration<?, ?> cacheConfiguration = config.getCacheConfigurations().get("fancy");
     assertThat(cacheConfiguration.getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
@@ -205,13 +213,13 @@ public class XmlConfigurationTest {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
       fail();
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("CacheTemplate 'example' declares value type of java.lang.String"));
+      assertThat(e.getMessage(), is("CacheTemplate 'example' declares value type of java.lang.String. Provided: class java.lang.Number"));
     }
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class);
       fail();
     } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.String"));
+      assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.String. Provided: class java.lang.Number"));
     }
 
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar", Object.class, Object.class), nullValue());
@@ -219,7 +227,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testExpiryIsParsed() throws Exception {
-    final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml");
+    final XmlConfiguration xmlConfiguration = new XmlConfiguration(resource);
 
     ExpiryPolicy<?, ?> expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
     ExpiryPolicy<?, ?> value = ExpiryPolicyBuilder.noExpiration();
@@ -291,7 +300,7 @@ public class XmlConfigurationTest {
   @Test
   public void testResourcesCaches() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
@@ -352,7 +361,8 @@ public class XmlConfigurationTest {
 
   @Test
   public void testNoClassLoaderSpecified() throws Exception {
-    XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+    URL resource = XmlConfigurationTest.class.getResource("/configs/one-cache.xml");
+    XmlConfiguration config = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertSame(config.getClassLoader(), ClassLoading.getDefaultClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
@@ -364,7 +374,8 @@ public class XmlConfigurationTest {
       //
     };
 
-    XmlConfiguration config= new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl);
+    URL resource = XmlConfigurationTest.class.getResource("/configs/one-cache.xml");
+    XmlConfiguration config= new XmlConfiguration(new XmlConfiguration(resource, cl));
 
     assertSame(cl, config.getClassLoader());
     assertNull(config.getCacheConfigurations().get("bar").getClassLoader());
@@ -384,7 +395,8 @@ public class XmlConfigurationTest {
 
     Map<String, ClassLoader> loaders = new HashMap<>();
     loaders.put("bar", cl2);
-    XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
+    URL resource = XmlConfigurationTest.class.getResource("/configs/one-cache.xml");
+    XmlConfiguration config = new XmlConfiguration(new XmlConfiguration(resource, cl, loaders));
 
     assertSame(cl, config.getClassLoader());
     assertSame(cl2, config.getCacheConfigurations().get("bar").getClassLoader());
@@ -393,7 +405,7 @@ public class XmlConfigurationTest {
   @Test
   public void testDefaultSerializerConfiguration() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/default-serializer.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
@@ -423,7 +435,7 @@ public class XmlConfigurationTest {
   @Test
   public void testThreadPoolsConfiguration() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/thread-pools.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertThat(xmlConfig.getServiceCreationConfigurations(), contains(instanceOf(PooledExecutionServiceConfiguration.class)));
 
@@ -445,7 +457,7 @@ public class XmlConfigurationTest {
   @Test
   public void testCacheCopierConfiguration() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/cache-copiers.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
@@ -493,7 +505,7 @@ public class XmlConfigurationTest {
   @Test
   public void testPersistenceConfig() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(serviceConfig, instanceOf(DefaultPersistenceConfiguration.class));
@@ -547,7 +559,7 @@ public class XmlConfigurationTest {
   @Test
   public void testCacheEventListener() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-cacheEventListener.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     assertThat(xmlConfig.getCacheConfigurations().size(), is(2));
 
     Collection<?> configuration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
@@ -602,7 +614,7 @@ public class XmlConfigurationTest {
   @Test
   public void testDiskStoreSettings() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
 
@@ -637,7 +649,7 @@ public class XmlConfigurationTest {
   @Test
   public void testSizeOfEngineLimits() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
@@ -674,7 +686,7 @@ public class XmlConfigurationTest {
   @Test
   public void testCacheManagerDefaultObjectGraphSize() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-one.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
@@ -685,7 +697,7 @@ public class XmlConfigurationTest {
   @Test
   public void testCacheManagerDefaultObjectSize() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-two.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
@@ -706,7 +718,7 @@ public class XmlConfigurationTest {
   @Test
   public void testResilienceStrategy() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("ni");
 
     DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
@@ -716,7 +728,7 @@ public class XmlConfigurationTest {
   @Test
   public void testResilienceStrategyFromTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("shrubbery");
 
     DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
@@ -759,6 +771,14 @@ public class XmlConfigurationTest {
     } finally {
       service.shutdown();
     }
+  }
+
+  @Test
+  public void testCompleteXmlToString() {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
+    Configuration config = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(config);
+    assertThat(xmlConfig.toString(), isSimilarTo(Input.from(resource)).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

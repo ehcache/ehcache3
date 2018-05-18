@@ -22,6 +22,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Expiry;
@@ -31,9 +32,19 @@ import org.ehcache.xml.model.TimeUnit;
 
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.stream.Stream;
 
-import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
-import static org.ehcache.xml.XmlConfiguration.getInstanceOfName;
+import static java.util.Comparator.comparing;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.ehcache.core.config.ExpiryUtils.jucTimeUnitToTemporalUnit;
+import static org.ehcache.xml.XmlConfiguration.getClassForName;
+import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;
 
 public class CoreCacheConfigurationParser {
 
@@ -72,29 +83,47 @@ public class CoreCacheConfigurationParser {
     return expiry;
   }
 
+  static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    if (name == null) {
+      return null;
+    }
+    Class<?> klazz = getClassForName(name, classLoader);
+    return klazz.asSubclass(type).newInstance();
+  }
+
   public CacheType unparseConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
     ExpiryPolicy<?, ?> expiryPolicy = cacheConfiguration.getExpiryPolicy();
     if (expiryPolicy != null) {
+      Duration expiry = expiryPolicy.getExpiryForCreation(null, null);
       ExpiryType expiryType = new ExpiryType();
-      if (expiryPolicy == ExpiryPolicy.NO_EXPIRY) {
+      if (expiryPolicy.equals(ExpiryPolicy.NO_EXPIRY)) {
         expiryType.withNone(new ExpiryType.None());
-      } else if (expiryPolicy instanceof ExpiryPolicyBuilder.TimeToLiveExpiryPolicy) {
-        Duration ttl = expiryPolicy.getExpiryForCreation(null, null);
-        expiryType.withTtl(new TimeType().withValue(BigInteger.valueOf(ttl.getSeconds())).withUnit(TimeUnit.SECONDS));
-      } else if (expiryPolicy instanceof ExpiryPolicyBuilder.TimeToIdleExpiryPolicy) {
-        Duration tti = expiryPolicy.getExpiryForCreation(null, null);
-        expiryType.withTti(new TimeType().withValue(BigInteger.valueOf(tti.getSeconds())).withUnit(TimeUnit.SECONDS));
+      } else if (expiryPolicy.equals(ExpiryPolicyBuilder.timeToLiveExpiration(expiry))) {
+        expiryType.withTtl(convertToTimeType(expiry));
+      } else if (expiryPolicy.equals(ExpiryPolicyBuilder.timeToIdleExpiration(expiry))) {
+        expiryType.withTti(convertToTimeType(expiry));
       } else {
-        expiryType.setClazz(expiryPolicy.getClass().getName());
+        throw new XmlConfigurationException("XML translation of custom expiry policy is not supported");
       }
       cacheType.withExpiry(expiryType);
     }
 
     EvictionAdvisor<?, ?> evictionAdvisor = cacheConfiguration.getEvictionAdvisor();
     if (evictionAdvisor != null) {
-      cacheType.withEvictionAdvisor(evictionAdvisor.getClass().getName());
+      throw new XmlConfigurationException("XML translation of eviction advisor is not supported");
     }
 
     return cacheType;
+  }
+
+  private static TimeType convertToTimeType(Duration duration) {
+    return Stream.of(java.util.concurrent.TimeUnit.values())
+      .sorted(comparing(unit -> unit.convert(duration.toNanos(), NANOSECONDS)))
+      .filter(unit -> duration.equals(Duration.of(unit.convert(duration.toNanos(), NANOSECONDS), jucTimeUnitToTemporalUnit(unit))))
+      .findFirst()
+      .map(unit -> new TimeType()
+        .withValue(BigInteger.valueOf(unit.convert(duration.toNanos(), NANOSECONDS)))
+        .withUnit(convertToXmlTimeUnit(unit))
+      ).orElseThrow(AssertionError::new);
   }
 }
