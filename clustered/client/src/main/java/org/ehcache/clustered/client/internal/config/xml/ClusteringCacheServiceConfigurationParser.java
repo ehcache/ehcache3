@@ -87,7 +87,7 @@ public class ClusteringCacheServiceConfigurationParser implements CacheServiceCo
       Consistency consistency = clusteredStoreConfiguration.getConsistency();
       Document doc = createDocumentRoot();
       Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTERED_STORE_ELEMENT_NAME);
-      defaultResourceElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE
+      defaultResourceElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, getNamespace()
         .toString());
       defaultResourceElement.setAttribute(CONSISTENCY_ATTRIBUTE_NAME, consistency.name().toLowerCase());
       return defaultResourceElement;
