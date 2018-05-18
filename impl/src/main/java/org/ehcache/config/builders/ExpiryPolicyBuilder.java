@@ -193,13 +193,13 @@ public final class ExpiryPolicyBuilder implements Builder<ExpiryPolicy<Object, O
     }
   }
 
-  private static final class TimeToLiveExpiryPolicy extends BaseExpiryPolicy {
+  public static final class TimeToLiveExpiryPolicy extends BaseExpiryPolicy {
     TimeToLiveExpiryPolicy(Duration ttl) {
       super(ttl, null, ttl);
     }
   }
 
-  private static final class TimeToIdleExpiryPolicy extends BaseExpiryPolicy {
+  public static final class TimeToIdleExpiryPolicy extends BaseExpiryPolicy {
     TimeToIdleExpiryPolicy(Duration tti) {
       super(tti, tti, tti);
     }

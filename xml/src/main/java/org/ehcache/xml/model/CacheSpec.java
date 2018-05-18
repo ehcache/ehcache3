@@ -21,11 +21,9 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.xml.CacheResourceConfigurationParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
-import org.ehcache.xml.CoreResourceConfigurationParser;
 import org.ehcache.xml.JaxbHelper;
-import org.ehcache.xml.resource.DefaultResourceConfigurationParser;
+import org.ehcache.xml.ResourceConfigurationParser;
 import org.w3c.dom.Element;
 
 import java.net.URI;
@@ -37,6 +35,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import static java.util.Arrays.asList;
@@ -50,12 +49,12 @@ public class CacheSpec implements CacheTemplate {
   protected final List<BaseCacheType> sources;
   private final Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers;
 
-  CoreResourceConfigurationParser coreResourceConfigurationParser;
+  ResourceConfigurationParser resourceConfigurationParser;
 
   public CacheSpec(Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers,
-                   Map<URI, CacheResourceConfigurationParser> resourceConfigParsers, Unmarshaller unmarshaller, BaseCacheType... sources) {
+                   Marshaller marshaller, Unmarshaller unmarshaller, BaseCacheType... sources) {
     this.serviceConfigParsers = serviceConfigParsers;
-    this.coreResourceConfigurationParser = new DefaultResourceConfigurationParser(resourceConfigParsers, unmarshaller);
+    this.resourceConfigurationParser = new ResourceConfigurationParser(marshaller, unmarshaller);
     this.sources = asList(sources);
   }
 
@@ -179,7 +178,7 @@ public class CacheSpec implements CacheTemplate {
   }
 
   private ResourcePool parseResource(Element element) {
-    return coreResourceConfigurationParser.parseResourceConfiguration(element);
+    return resourceConfigurationParser.parseResourceConfiguration(element);
   }
 
   @Override

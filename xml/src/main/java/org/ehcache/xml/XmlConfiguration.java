@@ -18,26 +18,19 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ConfigurationBuilder;
-import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheDefinition;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.ConfigType;
-import org.ehcache.xml.model.Expiry;
 import org.ehcache.xml.model.ServiceType;
 import org.ehcache.xml.provider.DefaultCopyProviderConfigurationParser;
 import org.ehcache.xml.provider.DefaultSerializationProviderConfigurationParser;
@@ -50,7 +43,9 @@ import org.ehcache.xml.provider.WriteBehindProviderConfigurationParser;
 import org.ehcache.xml.service.DefaultCacheEventDispatcherConfigurationParser;
 import org.ehcache.xml.service.DefaultCacheEventListenerConfigurationParser;
 import org.ehcache.xml.service.DefaultCacheLoaderWriterConfigurationParser;
+import org.ehcache.xml.service.DefaultCopierConfigurationParser;
 import org.ehcache.xml.service.DefaultResilienceStrategyConfigurationParser;
+import org.ehcache.xml.service.DefaultSerializerConfigurationParser;
 import org.ehcache.xml.service.DefaultSizeOfEngineConfigurationParser;
 import org.ehcache.xml.service.DefaultWriteBehindConfigurationParser;
 import org.ehcache.xml.service.OffHeapDiskStoreConfigurationParser;
@@ -63,7 +58,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.IOException;
 import java.net.URL;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,7 +82,9 @@ public class XmlConfiguration implements Configuration {
   private final Configuration configuration;
   private final Map<String, CacheTemplate> templates = new HashMap<>();
 
-  private static final Collection<CoreServiceCreationConfigurationParser> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
+  public static final CoreCacheConfigurationParser CORE_CACHE_CONFIGURATION_PARSER = new CoreCacheConfigurationParser();
+
+  public static final Collection<CoreServiceCreationConfigurationParser> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
     new DefaultCopyProviderConfigurationParser(),
     new DefaultSerializationProviderConfigurationParser(),
     new OffHeapDiskStoreProviderConfigurationParser(),
@@ -99,7 +95,9 @@ public class XmlConfiguration implements Configuration {
     new WriteBehindProviderConfigurationParser()
   );
 
-  private static final Collection<CoreServiceConfigurationParser> CORE_SERVICE_CONFIGURATION_PARSERS = asList(
+  public static final Collection<CoreServiceConfigurationParser> CORE_SERVICE_CONFIGURATION_PARSERS = asList(
+    new DefaultSerializerConfigurationParser(),
+    new DefaultCopierConfigurationParser(),
     new DefaultCacheLoaderWriterConfigurationParser(),
     new DefaultResilienceStrategyConfigurationParser(),
     new DefaultSizeOfEngineConfigurationParser(),
@@ -235,29 +233,7 @@ public class XmlConfiguration implements Configuration {
     return managerBuilder.build();
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
-  private static ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, Expiry parsedExpiry)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    final ExpiryPolicy<? super Object, ? super Object> expiry;
-    if (parsedExpiry.isUserDef()) {
-      ExpiryPolicy<? super Object, ? super Object> tmpExpiry;
-      try {
-        tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
-      } catch (ClassCastException e) {
-        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
-      }
-      expiry = tmpExpiry;
-    } else if (parsedExpiry.isTTL()) {
-      expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
-    } else if (parsedExpiry.isTTI()) {
-      expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
-    } else {
-      expiry = ExpiryPolicyBuilder.noExpiration();
-    }
-    return expiry;
-  }
-
-  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     if (name == null) {
       return null;
     }
@@ -414,29 +390,7 @@ public class XmlConfiguration implements Configuration {
                                                                                             ClassLoader cacheClassLoader,
                                                                                             CacheTemplate cacheDefinition) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
 
-    if (cacheDefinition.keySerializer() != null) {
-      Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
-    }
-    if (cacheDefinition.keyCopier() != null) {
-      Class keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
-    }
-    if (cacheDefinition.valueSerializer() != null) {
-      Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
-    }
-    if (cacheDefinition.valueCopier() != null) {
-      Class valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
-    }
-
-    EvictionAdvisor evictionAdvisor = getInstanceOfName(cacheDefinition.evictionAdvisor(), cacheClassLoader, EvictionAdvisor.class);
-    cacheBuilder = cacheBuilder.withEvictionAdvisor(evictionAdvisor);
-    final Expiry parsedExpiry = cacheDefinition.expiry();
-    if (parsedExpiry != null) {
-      cacheBuilder = cacheBuilder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
-    }
+    cacheBuilder = CORE_CACHE_CONFIGURATION_PARSER.parseConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
 
     for (CoreServiceConfigurationParser coreServiceConfigParser : CORE_SERVICE_CONFIGURATION_PARSERS) {
       cacheBuilder = coreServiceConfigParser.parseServiceConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);

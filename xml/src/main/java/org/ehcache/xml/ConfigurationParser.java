@@ -36,6 +36,7 @@ import org.xml.sax.SAXParseException;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -72,14 +73,16 @@ public class ConfigurationParser {
     }
   }
 
-  private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
   public static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
   private static final String CORE_SCHEMA_ROOT_ELEMENT = "config";
-  private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = ConfigType.class.getPackage().getName();
+  public static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = ConfigType.class.getPackage().getName();
+
+  private final Marshaller marshaller;
+  private final Unmarshaller unmarshaller;
 
   private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<>();
   private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<>();
-  private final Unmarshaller unmarshaller;
   private final Map<URI, CacheResourceConfigurationParser> resourceXmlParsers = new HashMap<>();
   private final ConfigType config;
 
@@ -137,6 +140,8 @@ public class ConfigurationParser {
 
     Class<ConfigType> configTypeClass = ConfigType.class;
     JAXBContext jc = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE, configTypeClass.getClassLoader());
+    this.marshaller = jc.createMarshaller();
+    this.marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
     this.unmarshaller = jc.createUnmarshaller();
     this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
   }
@@ -192,7 +197,7 @@ public class ConfigurationParser {
           sources[0] = cacheType;
         }
 
-        cacheCfgs.add(new CacheDefinition(cacheType.getAlias(), cacheXmlParsers, resourceXmlParsers, unmarshaller, sources));
+        cacheCfgs.add(new CacheDefinition(cacheType.getAlias(), cacheXmlParsers, marshaller, unmarshaller, sources));
       }
     }
 
@@ -205,7 +210,7 @@ public class ConfigurationParser {
     for (BaseCacheType baseCacheType : cacheOrCacheTemplate) {
       if (baseCacheType instanceof CacheTemplateType) {
         final CacheTemplateType cacheTemplate = (CacheTemplateType)baseCacheType;
-        templates.put(cacheTemplate.getName(), new CacheTemplate.Impl(cacheXmlParsers, resourceXmlParsers, unmarshaller, cacheTemplate));
+        templates.put(cacheTemplate.getName(), new CacheTemplate.Impl(cacheXmlParsers, marshaller, unmarshaller, cacheTemplate));
       }
     }
     return Collections.unmodifiableMap(templates);

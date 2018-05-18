@@ -18,13 +18,18 @@ package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Set;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -54,11 +59,16 @@ public class BazParser implements CacheResourceConfigurationParser {
 
   @Override
   public Element unparseResourcePool(final ResourcePool resourcePool) {
-    return null;
+    try {
+      Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
+      return document.createElementNS(NAMESPACE.toString(), "baz:baz");
+    } catch (SAXException | ParserConfigurationException | IOException e) {
+      throw new XmlConfigurationException(e);
+    }
   }
 
   @Override
   public Set<ResourceType<?>> getResourceTypes() {
-    return null;
+    return Collections.singleton(BazResource.Type.BAZ_TYPE);
   }
 }

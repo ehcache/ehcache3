@@ -16,12 +16,12 @@
 
 package org.ehcache.xml.model;
 
-import org.ehcache.xml.CacheResourceConfigurationParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 
 import java.net.URI;
 import java.util.Map;
 
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 public class CacheDefinition extends CacheSpec {
@@ -29,8 +29,8 @@ public class CacheDefinition extends CacheSpec {
   private final String id;
 
   public CacheDefinition(String id, Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers,
-                         Map<URI, CacheResourceConfigurationParser> resourceConfigParsers, Unmarshaller unmarshaller, BaseCacheType... sources) {
-    super(serviceConfigParsers, resourceConfigParsers, unmarshaller, sources);
+                         Marshaller marshaller, Unmarshaller unmarshaller, BaseCacheType... sources) {
+    super(serviceConfigParsers, marshaller, unmarshaller, sources);
     this.id = id;
   }
 

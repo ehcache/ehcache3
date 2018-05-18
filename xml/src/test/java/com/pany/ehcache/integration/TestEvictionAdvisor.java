@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package com.pany.ehcache.integration;
 
-import org.ehcache.config.ResourcePool;
-import org.w3c.dom.Element;
+import org.ehcache.config.EvictionAdvisor;
 
-public interface CoreResourceConfigurationParser {
+public class TestEvictionAdvisor<K, V> implements EvictionAdvisor<K, V> {
 
-  ResourcePool parseResourceConfiguration(Element fragment);
+  @Override
+  public boolean adviseAgainstEviction(K key, V value) {
+    return false;
+  }
 }

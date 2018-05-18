@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 public interface CacheTemplate {
@@ -63,8 +64,8 @@ public interface CacheTemplate {
 
   class Impl extends CacheSpec {
     public Impl(Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers,
-                Map<URI, CacheResourceConfigurationParser> resourceConfigParsers, Unmarshaller unmarshaller, CacheTemplateType cacheTemplateType) {
-      super(serviceConfigParsers, resourceConfigParsers, unmarshaller, cacheTemplateType);
+                Marshaller marshaller, Unmarshaller unmarshaller, CacheTemplateType cacheTemplateType) {
+      super(serviceConfigParsers, marshaller, unmarshaller, cacheTemplateType);
     }
   }
 

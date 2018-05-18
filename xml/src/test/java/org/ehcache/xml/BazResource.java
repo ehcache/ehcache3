@@ -23,7 +23,7 @@ public class BazResource implements ResourcePool {
 
   @Override
   public ResourceType<?> getType() {
-    return new Type();
+    return Type.BAZ_TYPE;
   }
 
   @Override
@@ -38,9 +38,11 @@ public class BazResource implements ResourcePool {
 
   public static class Type implements ResourceType<BazResource> {
 
+    public static final Type BAZ_TYPE = new Type();
+
     @Override
     public Class<BazResource> getResourcePoolClass() {
-      return null;
+      return BazResource.class;
     }
 
     @Override
