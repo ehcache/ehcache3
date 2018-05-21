@@ -116,10 +116,6 @@ public class DefaultCacheStatisticsTest {
   @Test
   public void getKnownStatistics() {
     assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(
-      "Cache:ClearLatency#100",
-      "Cache:ClearLatency#50",
-      "Cache:ClearLatency#95",
-      "Cache:ClearLatency#99",
       "Cache:EvictionCount",
       "Cache:ExpirationCount",
       "Cache:GetHitLatency#100",
@@ -334,22 +330,6 @@ public class DefaultCacheStatisticsTest {
 
     assertThat(histogram.count()).isEqualTo(2L);
     assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
-  }
-
-  @Test
-  public void getCacheClearLatencies() {
-    LatencyHistogramStatistic histogram = cacheStatistics.getCacheClearLatencies();
-
-    cache.put(3L, "");
-    cache.put(4L, "");
-
-    assertThat(histogram.count()).isEqualTo(0L);
-    assertThat(histogram.maximum()).isNull();
-
-    cache.clear();
-
-    assertThat(histogram.count()).isEqualTo(1L);
-    assertThat(histogram.maximum()).isNotNull();
   }
 
   private long nanos(long millis) {

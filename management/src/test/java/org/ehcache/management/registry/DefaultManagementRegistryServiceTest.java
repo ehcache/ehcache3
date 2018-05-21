@@ -445,10 +445,6 @@ public class DefaultManagementRegistryServiceTest {
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemovalCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:EvictionCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#100", "GAUGE"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#50", "GAUGE"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#95", "GAUGE"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatency#99", "GAUGE"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#100", "GAUGE"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#50", "GAUGE"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetHitLatency#95", "GAUGE"));
