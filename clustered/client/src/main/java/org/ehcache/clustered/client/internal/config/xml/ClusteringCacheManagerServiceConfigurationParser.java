@@ -258,11 +258,16 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
 
   private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
     Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
-    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE.toString());
-    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_ELEMENT_NAME);
-    urlElement.setAttribute(URL_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClusterUri().toString());
+    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, getNamespace().toString());
+    Element urlElement = createUrlElement(doc, clusteringServiceConfiguration);
     rootElement.appendChild(urlElement);
     return rootElement;
+  }
+
+  protected Element createUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_ELEMENT_NAME);
+    urlElement.setAttribute(URL_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClusterUri().toString());
+    return urlElement;
   }
 
   private Element createServerElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
@@ -271,10 +276,8 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     }
     ConnectionSource.ServerList servers = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
     Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
-    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, NAMESPACE.toString());
-    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_CONNECTION_ELEMENT_NAME);
-    connElement.setAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME, clusteringServiceConfiguration.getConnectionSource()
-      .getClusterTierManager());
+    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, getNamespace().toString());
+    Element connElement = createConnectionElementWrapper(doc, clusteringServiceConfiguration);
     servers.getServers().forEach(server -> {
       Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_ELEMENT_NAME);
       serverElement.setAttribute(HOST_ATTRIBUTE_NAME, server.getHostName());
@@ -288,6 +291,13 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     });
     rootElement.appendChild(connElement);
     return rootElement;
+  }
+
+  protected Element createConnectionElementWrapper(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_CONNECTION_ELEMENT_NAME);
+    connElement.setAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME, clusteringServiceConfiguration.getConnectionSource()
+      .getClusterTierManager());
+    return connElement;
   }
 
   private Element createConnectionElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
@@ -327,7 +337,7 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     return retElement;
   }
 
-  private Element processServerSideElements(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+  protected Element processServerSideElements(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
     Element serverSideConfigurationElem = createServerSideConfigurationElement(doc, clusteringServiceConfiguration);
 
     if (clusteringServiceConfiguration.getServerConfiguration() != null) {
