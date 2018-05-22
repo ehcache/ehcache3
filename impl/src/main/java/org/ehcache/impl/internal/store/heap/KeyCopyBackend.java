@@ -45,7 +45,8 @@ import java.util.function.Supplier;
  */
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
-  private final EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private volatile EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier;
   private final boolean byteSized;
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
@@ -54,6 +55,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
     this.keyCopyMap = keyCopyMapSupplier.get();
+    this.keyCopyMapSupplier = keyCopyMapSupplier;
   }
 
   @Override
@@ -101,8 +103,6 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
       byteSize.addAndGet(delta);
     }
   }
-
-
 
   @Override
   public Iterable<K> keySet() {
@@ -156,7 +156,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
 
   @Override
   public void clear() {
-    keyCopyMap.clear();
+    // This is faster than performing a clear on the underlying map
+    keyCopyMap = keyCopyMapSupplier.get();
   }
 
   @Override

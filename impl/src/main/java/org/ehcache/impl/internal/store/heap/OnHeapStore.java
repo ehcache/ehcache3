@@ -146,7 +146,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   };
 
   static final int SAMPLE_SIZE = 8;
-  private volatile Backend<K, V> map;
+  private final Backend<K, V> map;
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -269,7 +269,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  @SuppressWarnings("rawtype")
+  @SuppressWarnings({"unchecked", "rawtype"})
   private <L, M> Supplier<EvictingConcurrentMap<L, M>> castBackend(Supplier<EvictingConcurrentMap<?, ?>> backingMap) {
     return (Supplier) backingMap;
   }
