@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Simple passthrough backend, no key translation
@@ -38,9 +39,9 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend(boolean byteSized, EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap) {
+  SimpleBackend(boolean byteSized, Supplier<EvictingConcurrentMap<K, OnHeapValueHolder<V>>> realMapSupplier) {
     this.byteSized = byteSized;
-    this.realMap = realMap;
+    this.realMap = realMapSupplier.get();
   }
 
   @Override

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Backend dealing with a key copier and storing keys as {@code OnHeapKey<K>}
@@ -49,10 +50,10 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap) {
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    this.keyCopyMap = keyCopyMap;
+    this.keyCopyMap = keyCopyMapSupplier.get();
   }
 
   @Override
