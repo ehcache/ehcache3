@@ -616,7 +616,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public void clear() {
-    this.map = map.clear();
+    map.clear();
   }
 
   @Override

@@ -158,8 +158,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Backend<K, V> clear() {
-    return new KeyCopyBackend<>(byteSized, keyCopier);
+  public void clear() {
+    keyCopyMap.clear();
   }
 
   @Override

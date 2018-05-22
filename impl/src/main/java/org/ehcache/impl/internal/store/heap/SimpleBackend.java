@@ -103,8 +103,8 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Backend<K, V> clear() {
-    return new SimpleBackend<>(byteSized);
+  public void clear() {
+    realMap.clear();
   }
 
   @Override

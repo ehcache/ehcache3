@@ -38,7 +38,7 @@ interface Backend<K, V> {
 
   OnHeapValueHolder<V> compute(K key, BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> biFunction);
 
-  Backend<K, V> clear();
+  void clear();
 
   Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash);
 
