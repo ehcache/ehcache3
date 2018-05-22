@@ -38,10 +38,6 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend(boolean byteSized) {
-    this(byteSized, new ConcurrentHashMap<>());
-  }
-
   SimpleBackend(boolean byteSized, EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap) {
     this.byteSized = byteSized;
     this.realMap = realMap;
