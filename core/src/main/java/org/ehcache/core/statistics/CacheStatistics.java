@@ -161,11 +161,4 @@ public interface CacheStatistics {
    */
   LatencyHistogramStatistic getCacheRemoveLatencies();
 
-  /**
-   * The histogram representing the current latencies for {@link Cache#clear()} operations when the outcome is a SUCCESS.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheClearLatencies();
-
 }

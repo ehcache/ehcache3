@@ -62,7 +62,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final OperationStatistic<GetOutcome> get;
   private final OperationStatistic<PutOutcome> put;
   private final OperationStatistic<RemoveOutcome> remove;
-  private final OperationStatistic<ClearOutcome> clear;
   private final OperationStatistic<PutIfAbsentOutcome> putIfAbsent;
   private final OperationStatistic<ReplaceOutcome> replace;
   private final OperationStatistic<ConditionalRemoveOutcome> conditionalRemove;
@@ -86,7 +85,6 @@ class DefaultCacheStatistics implements CacheStatistics {
     get = findOperationStatisticOnChildren(cache, GetOutcome.class, "get");
     put = findOperationStatisticOnChildren(cache, PutOutcome.class, "put");
     remove = findOperationStatisticOnChildren(cache, RemoveOutcome.class, "remove");
-    clear = findOperationStatisticOnChildren(cache, ClearOutcome.class, "clear");
     putIfAbsent = findOperationStatisticOnChildren(cache, PutIfAbsentOutcome.class, "putIfAbsent");
     replace = findOperationStatisticOnChildren(cache, ReplaceOutcome.class, "replace");
     conditionalRemove = findOperationStatisticOnChildren(cache, ConditionalRemoveOutcome.class, "conditionalRemove");
@@ -103,14 +101,13 @@ class DefaultCacheStatistics implements CacheStatistics {
     String lowestTierName = findLowestTier(tierNames);
     TierStatistics lowestTier = null;
 
-    cacheLatencies = Stream.of("Cache:GetHitLatency", "Cache:GetMissLatency", "Cache:PutLatency", "Cache:RemoveLatency", "Cache:ClearLatency")
+    cacheLatencies = Stream.of("Cache:GetHitLatency", "Cache:GetMissLatency", "Cache:PutLatency", "Cache:RemoveLatency")
       .collect(toMap(identity(), name -> new DefaultLatencyHistogramStatistic(0.63, 20, configuration.getDefaultHistogramWindow())));
 
     get.addDerivedStatistic(new OperationResultFilter<>(of(GetOutcome.HIT), cacheLatencies.get("Cache:GetHitLatency")));
     get.addDerivedStatistic(new OperationResultFilter<>(of(GetOutcome.MISS), cacheLatencies.get("Cache:GetMissLatency")));
     put.addDerivedStatistic(new OperationResultFilter<>(of(PutOutcome.PUT), cacheLatencies.get("Cache:PutLatency")));
     remove.addDerivedStatistic(new OperationResultFilter<>(of(RemoveOutcome.SUCCESS), cacheLatencies.get("Cache:RemoveLatency")));
-    clear.addDerivedStatistic(new OperationResultFilter<>(of(ClearOutcome.SUCCESS), cacheLatencies.get("Cache:ClearLatency")));
 
     tierStatistics = new HashMap<>(tierNames.length);
     for (String tierName : tierNames) {
@@ -256,11 +253,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   @Override
   public LatencyHistogramStatistic getCacheRemoveLatencies() {
     return cacheLatencies.get("Cache:RemoveLatency");
-  }
-
-  @Override
-  public LatencyHistogramStatistic getCacheClearLatencies() {
-    return cacheLatencies.get("Cache:ClearLatency");
   }
 
   private long getMisses() {
