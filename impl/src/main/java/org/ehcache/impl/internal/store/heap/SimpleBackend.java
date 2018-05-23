@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
 import java.util.Collection;
@@ -27,19 +28,22 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Simple passthrough backend, no key translation
  */
 class SimpleBackend<K, V> implements Backend<K, V> {
 
-  private final ConcurrentHashMap<K, OnHeapValueHolder<V>> realMap;
+  private volatile EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap;
+  private final Supplier<EvictingConcurrentMap<K, OnHeapValueHolder<V>>> realMapSupplier;
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend(boolean byteSized) {
+  SimpleBackend(boolean byteSized, Supplier<EvictingConcurrentMap<K, OnHeapValueHolder<V>>> realMapSupplier) {
     this.byteSized = byteSized;
-    realMap = new ConcurrentHashMap<>();
+    this.realMap = realMapSupplier.get();
+    this.realMapSupplier = realMapSupplier;
   }
 
   @Override
@@ -98,8 +102,9 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Backend<K, V> clear() {
-    return new SimpleBackend<>(byteSized);
+  public void clear() {
+    // This is faster than performing a clear on the underlying map
+    realMap = realMapSupplier.get();
   }
 
   @Override

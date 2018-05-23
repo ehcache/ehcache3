@@ -28,6 +28,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
@@ -145,7 +146,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   };
 
   static final int SAMPLE_SIZE = 8;
-  private volatile Backend<K, V> map;
+  private final Backend<K, V> map;
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -204,6 +205,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher) {
+    this(config, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new);
+  }
+
+  public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
+                     SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier) {
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 
     this.valueCopier = Objects.requireNonNull(valueCopier, "valueCopier must not be null");
@@ -229,9 +235,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.storeEventDispatcher = eventDispatcher;
 
     if (keyCopier instanceof IdentityCopier) {
-      this.map = new SimpleBackend<>(byteSized);
+      this.map = new SimpleBackend<>(byteSized, castBackend(backingMapSupplier));
     } else {
-      this.map = new KeyCopyBackend<>(byteSized, keyCopier);
+      this.map = new KeyCopyBackend<>(byteSized, keyCopier, castBackend(backingMapSupplier));
     }
 
     getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag(STATISTICS_TAG).build();
@@ -261,6 +267,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if(byteSized) {
       StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, GAUGE, () -> map.byteSize());
     }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtype"})
+  private <L, M> Supplier<EvictingConcurrentMap<L, M>> castBackend(Supplier<EvictingConcurrentMap<?, ?>> backingMap) {
+    return (Supplier) backingMap;
   }
 
   @Override
@@ -616,7 +627,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public void clear() {
-    this.map = map.clear();
+    map.clear();
   }
 
   @Override
@@ -1590,7 +1601,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new);
       createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }

@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapKey;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Backend dealing with a key copier and storing keys as {@code OnHeapKey<K>}
@@ -43,15 +45,17 @@ import java.util.function.BiFunction;
  */
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
-  private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private volatile EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier;
   private final boolean byteSized;
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    keyCopyMap = new ConcurrentHashMap<>();
+    this.keyCopyMap = keyCopyMapSupplier.get();
+    this.keyCopyMapSupplier = keyCopyMapSupplier;
   }
 
   @Override
@@ -99,8 +103,6 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
       byteSize.addAndGet(delta);
     }
   }
-
-
 
   @Override
   public Iterable<K> keySet() {
@@ -153,8 +155,9 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Backend<K, V> clear() {
-    return new KeyCopyBackend<>(byteSized, keyCopier);
+  public void clear() {
+    // This is faster than performing a clear on the underlying map
+    keyCopyMap = keyCopyMapSupplier.get();
   }
 
   @Override
