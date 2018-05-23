@@ -350,7 +350,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the replaced configuration
    */
   public CacheManagerBuilder<T> replacing(ServiceCreationConfiguration<?> overwriteServiceConfiguration) {
-    ServiceCreationConfiguration existingConfiguration = configBuilder.findServiceByClass(overwriteServiceConfiguration.getClass());
+    ServiceCreationConfiguration<?> existingConfiguration = configBuilder.findServiceByClass(overwriteServiceConfiguration.getClass());
     return new CacheManagerBuilder<>(this, configBuilder.removeService(existingConfiguration)
       .addService(overwriteServiceConfiguration));
   }

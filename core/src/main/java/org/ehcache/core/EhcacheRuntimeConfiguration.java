@@ -163,7 +163,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   @Override
   public String readableString() {
     StringBuilder serviceConfigurationsToStringBuilder = new StringBuilder();
-    for (ServiceConfiguration serviceConfiguration : serviceConfigurations) {
+    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       serviceConfigurationsToStringBuilder
           .append("\n    ")
           .append("- ");

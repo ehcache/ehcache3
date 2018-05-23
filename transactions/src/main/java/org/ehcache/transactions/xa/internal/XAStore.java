@@ -99,7 +99,7 @@ public class XAStore<K, V> implements Store<K, V> {
   private final Journal<K> journal;
   private final String uniqueXAResourceId;
   private final XATransactionContextFactory<K, V> transactionContextFactory;
-  private final EhcacheXAResource recoveryXaResource;
+  private final EhcacheXAResource<K, V> recoveryXaResource;
   private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
@@ -699,9 +699,9 @@ public class XAStore<K, V> implements Store<K, V> {
 
   private static final class CreatedStoreRef {
     final Store.Provider storeProvider;
-    final SoftLockValueCombinedSerializerLifecycleHelper lifecycleHelper;
+    final SoftLockValueCombinedSerializerLifecycleHelper<?> lifecycleHelper;
 
-    public CreatedStoreRef(final Store.Provider storeProvider, final SoftLockValueCombinedSerializerLifecycleHelper lifecycleHelper) {
+    public CreatedStoreRef(final Store.Provider storeProvider, final SoftLockValueCombinedSerializerLifecycleHelper<?> lifecycleHelper) {
       this.storeProvider = storeProvider;
       this.lifecycleHelper = lifecycleHelper;
     }

@@ -52,10 +52,10 @@ public class Eh107CacheTypeTest {
     assertThat(cache.get(2l), is(equalTo("two")));
 
 
-    javax.cache.Cache second = cacheManager.getCache("cache1");
+    javax.cache.Cache<String, String> second = cacheManager.getCache("cache1");
     second.put("3","three");
 
-    assertThat((String)second.get("3"), is(equalTo("three")));
+    assertThat(second.get("3"), is(equalTo("three")));
     cacheManager.destroyCache("cache1");
     cacheManager.close();
 

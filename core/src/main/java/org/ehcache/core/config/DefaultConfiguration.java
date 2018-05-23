@@ -168,7 +168,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     }
 
     StringBuilder serviceCreationConfigurationsToStringBuilder = new StringBuilder();
-    for (ServiceCreationConfiguration serviceCreationConfiguration : services) {
+    for (ServiceCreationConfiguration<?> serviceCreationConfiguration : services) {
       serviceCreationConfigurationsToStringBuilder.append("- ");
       if(serviceCreationConfiguration instanceof HumanReadable) {
         serviceCreationConfigurationsToStringBuilder

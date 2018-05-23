@@ -194,7 +194,7 @@ public class ExpiryChainResolverExpiryTest {
 
     Chain chain = getChainFromOperations(list);
 
-    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<?, ?> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
     assertTrue(resolvedChain.getCompactedChain().isEmpty());
     assertThat(resolvedChain.isCompacted(), is(true));

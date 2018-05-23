@@ -260,12 +260,12 @@ public class EventNotificationTest {
     cache.put(4L, "4");
     cache.put(5L, "5");
     assertThat(listener1.expired.get(), is(0));
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
     testTimeSource.setTimeMillis(2000);
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 

@@ -74,27 +74,12 @@ public class CacheConfigurationBuilderTest {
       }
 
       @Override
-      public Map<Object, Object> loadAll(Iterable keys) {
-        return null;
-      }
-
-      @Override
       public void write(Object key, Object value) {
 
       }
 
       @Override
-      public void writeAll(Iterable iterable) {
-
-      }
-
-      @Override
       public void delete(Object key) {
-
-      }
-
-      @Override
-      public void deleteAll(Iterable keys) {
 
       }
     };

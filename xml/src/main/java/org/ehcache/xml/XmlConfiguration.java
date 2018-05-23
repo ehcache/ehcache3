@@ -384,8 +384,8 @@ public class XmlConfiguration implements Configuration {
       return null;
     }
     final ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-    Class keyClass = getClassForName(cacheTemplate.keyType(), defaultClassLoader);
-    Class valueClass = getClassForName(cacheTemplate.valueType(), defaultClassLoader);
+    Class<?> keyClass = getClassForName(cacheTemplate.keyType(), defaultClassLoader);
+    Class<?> valueClass = getClassForName(cacheTemplate.valueType(), defaultClassLoader);
     if(keyType != null && cacheTemplate.keyType() != null && !keyClass.isAssignableFrom(keyType)) {
       throw new IllegalArgumentException("CacheTemplate '" + name + "' declares key type of " + cacheTemplate.keyType());
     }

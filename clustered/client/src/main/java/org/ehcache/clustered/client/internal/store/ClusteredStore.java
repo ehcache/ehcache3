@@ -637,7 +637,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         if (createdStores.remove(resource) == null) {
           throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
         }
-        ClusteredStore clusteredStore = (ClusteredStore) resource;
+        ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
         StatisticsManager.nodeFor(clusteredStore).clean();
         tierOperationStatistics.remove(clusteredStore);
@@ -716,7 +716,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
           throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
         }
 
-        Serializer keySerializer = clusteredStore.codec.getKeySerializer();
+        Serializer<?> keySerializer = clusteredStore.codec.getKeySerializer();
         if (keySerializer instanceof StatefulSerializer) {
           StateRepository stateRepository;
           try {
@@ -726,7 +726,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
           }
           ((StatefulSerializer) keySerializer).init(stateRepository);
         }
-        Serializer valueSerializer = clusteredStore.codec.getValueSerializer();
+        Serializer<?> valueSerializer = clusteredStore.codec.getValueSerializer();
         if (valueSerializer instanceof StatefulSerializer) {
           StateRepository stateRepository;
           try {
