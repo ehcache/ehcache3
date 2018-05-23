@@ -23,6 +23,8 @@ plugins {
   // This adds the ability to print a taskTree
   // ./gradlew <task1> ... <taskN> taskTree
   id "com.dorongold.task-tree" version "1.3"
+  // Declare spotbugs at the top
+  id 'com.github.spotbugs' version '1.6.1' apply false
 }
 
 if (deployUrl.contains('nexus')) {
@@ -79,7 +81,7 @@ subprojects {
   apply plugin: 'java'
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
-  apply plugin: 'findbugs'
+  apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
@@ -108,8 +110,8 @@ subprojects {
   }
 
   dependencies {
-    compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
+    compileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
+    testCompileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
     testCompile "junit:junit:$junitVersion", "org.assertj:assertj-core:$assertjVersion", "org.hamcrest:hamcrest-library:$hamcrestVersion"
     testCompile("org.mockito:mockito-core:$mockitoVersion") {
       exclude group:'org.hamcrest', module:'hamcrest-core'
@@ -167,13 +169,13 @@ subprojects {
     toolVersion = checkstyleVersion
   }
 
-  findbugs {
+  spotbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    toolVersion = findbugsVersion
+    toolVersion = spotbugsVersion
   }
 
-  findbugsMain {
+  spotbugsMain {
     reports {
       // Switch from xml to html by changing these flags
       xml.enabled = true
