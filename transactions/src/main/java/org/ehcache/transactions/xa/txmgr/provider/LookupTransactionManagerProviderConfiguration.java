@@ -39,7 +39,7 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
    *
    * @return the transaction manager lookup class
    */
-  Class<? extends TransactionManagerLookup> getTransactionManagerLookup() {
+  public Class<? extends TransactionManagerLookup> getTransactionManagerLookup() {
     return lookupClass;
   }
 
