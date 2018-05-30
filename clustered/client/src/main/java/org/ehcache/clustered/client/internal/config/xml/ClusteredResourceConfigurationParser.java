@@ -16,21 +16,26 @@
 
 package org.ehcache.clustered.client.internal.config.xml;
 
+import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.internal.config.ClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
-import org.ehcache.clustered.client.internal.config.ClusteredResourcePoolImpl;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheResourceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.xml.transform.Source;
@@ -38,11 +43,21 @@ import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
+import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.
  */
-public class ClusteredResourceConfigurationParser implements CacheResourceConfigurationParser {
+public class ClusteredResourceConfigurationParser extends BaseConfigParser<ResourcePool> implements CacheResourceConfigurationParser {
+
+  private static final String RESOURCE_NAMESPACE_PREFIX = "tc";
+  private static final String CLUSTERED_ELEMENT_NAME = "clustered";
+  private static final String DEDICATED_ELEMENT_NAME = "clustered-dedicated";
+  private static final String SHARED_ELEMENT_NAME = "clustered-shared";
+  private static final String FROM_ELEMENT_NAME = "from";
+  private static final String UNIT_ELEMENT_NAME = "unit";
+  private static final String SHARING_ELEMENT_NAME = "sharing";
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
@@ -105,11 +120,32 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
 
   @Override
   public Element unparseResourcePool(ResourcePool resourcePool) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    return unparseConfig(resourcePool);
+  }
+
+  @Override
+  protected Element createRootElement(Document doc, ResourcePool resourcePool) {
+    Element rootElement = null;
+    if (ClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + CLUSTERED_ELEMENT_NAME);
+    } else if (DedicatedClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+      DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = (DedicatedClusteredResourcePoolImpl) resourcePool;
+      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + DEDICATED_ELEMENT_NAME);
+      if (dedicatedClusteredResourcePool.getFromResource() != null) {
+        rootElement.setAttribute(FROM_ELEMENT_NAME, dedicatedClusteredResourcePool.getFromResource());
+      }
+      rootElement.setAttribute(UNIT_ELEMENT_NAME, dedicatedClusteredResourcePool.getUnit().toString());
+      rootElement.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
+    } else if (SharedClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+      SharedClusteredResourcePoolImpl sharedClusteredResourcePool = (SharedClusteredResourcePoolImpl) resourcePool;
+      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + SHARED_ELEMENT_NAME);
+      rootElement.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
+    }
+    return rootElement;
   }
 
   @Override
   public Set<ResourceType<?>> getResourceTypes() {
-    return Collections.emptySet();
+    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ClusteredResourceType.Types.values())));
   }
 }
