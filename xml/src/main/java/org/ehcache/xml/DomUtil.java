@@ -15,14 +15,16 @@
  */
 package org.ehcache.xml;
 
+import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -37,6 +39,7 @@ public class DomUtil {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  public static final String COLON = ":";
 
   private static Schema newSchema(Source[] schemas) throws SAXException {
     synchronized (XSD_SCHEMA_FACTORY) {
@@ -51,8 +54,15 @@ public class DomUtil {
     return documentBuilder;
   }
 
+  public static DocumentBuilder createAndGetDocumentBuilder(Source schemaSource) throws SAXException, ParserConfigurationException, IOException {
+    List<Source> schemaSources = new ArrayList<>(2);
+    schemaSources.add(new StreamSource(CORE_SCHEMA_URL.openStream()));
+    schemaSources.add(schemaSource);
+    return createAndGetDocumentBuilder(schemaSources);
+  }
+
   public static DocumentBuilder createAndGetDocumentBuilder() throws SAXException, ParserConfigurationException, IOException {
-    return createAndGetDocumentBuilder(Arrays.asList(new StreamSource(CORE_SCHEMA_URL.openStream())));
+    return createAndGetDocumentBuilder(new StreamSource(CORE_SCHEMA_URL.openStream()));
   }
 
   private static DocumentBuilderFactory createAndGetFactory(Collection<Source> schemaSources) throws SAXException {
@@ -62,6 +72,12 @@ public class DomUtil {
     factory.setIgnoringElementContentWhitespace(true);
     factory.setSchema(newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
     return factory;
+  }
+
+  public static Document createDocumentRoot(Source schemaSource) throws IOException, SAXException, ParserConfigurationException {
+    DocumentBuilder domBuilder = createAndGetDocumentBuilder(schemaSource);
+    Document doc = domBuilder.newDocument();
+    return doc;
   }
 
   static class TransformationErrorHandler implements ErrorHandler {
