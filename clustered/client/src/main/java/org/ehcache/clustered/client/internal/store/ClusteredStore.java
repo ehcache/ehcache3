@@ -129,15 +129,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.resolver = resolver;
     this.timeSource = timeSource;
 
-    this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
-    this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
-    this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
-    this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
-    this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
-    this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
-    this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(STATISTICS_TAG).build();
-    this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(STATISTICS_TAG).build();
-    this.getAndFaultObserver = operation(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class).of(this).named("getAndFault").tag(STATISTICS_TAG).build();
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
+  }
+
+  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
+    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
   }
 
   /**
