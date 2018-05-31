@@ -157,7 +157,7 @@ class ConfigurationMerger {
       if(jsr107Configuration.isStoreByValue()) {
         if (xmlConfiguration != null) {
           DefaultCopyProviderConfiguration defaultCopyProviderConfiguration = findSingletonAmongst(DefaultCopyProviderConfiguration.class,
-              xmlConfiguration.getServiceCreationConfigurations().toArray());
+              xmlConfiguration.getServiceCreationConfigurations());
           if (defaultCopyProviderConfiguration != null) {
             Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = defaultCopyProviderConfiguration.getDefaults();
             handleCopierDefaultsforImmutableTypes(defaults);

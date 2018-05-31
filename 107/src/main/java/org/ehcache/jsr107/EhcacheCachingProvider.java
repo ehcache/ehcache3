@@ -24,6 +24,7 @@ import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 
 import java.net.URI;
@@ -135,7 +136,7 @@ public class EhcacheCachingProvider implements CachingProvider {
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
 
-    Object[] serviceCreationConfigurations = config.getServiceCreationConfigurations().toArray();
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = config.getServiceCreationConfigurations();
 
     Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
 
