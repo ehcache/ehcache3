@@ -22,6 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
