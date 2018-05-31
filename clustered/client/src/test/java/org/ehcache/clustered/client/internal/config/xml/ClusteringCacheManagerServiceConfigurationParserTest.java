@@ -441,10 +441,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     assertThat(returnElement, is(notNullValue()));
     assertThat(returnElement.getNodeName(), is("tc:cluster"));
-    assertThat(returnElement.getAttributes(), is(notNullValue()));
-    assertThat(returnElement.getAttributes().getLength(), is(1));
-    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
-    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
+
     Node connElement = returnElement.getFirstChild();
     assertThat(connElement, is(notNullValue()));
     assertThat(connElement.getNodeName(), is("tc:connection"));
@@ -574,10 +571,6 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     assertThat(returnElement, is(notNullValue()));
     assertThat(returnElement.getNodeName(), is("tc:cluster"));
-    assertThat(returnElement.getAttributes(), is(notNullValue()));
-    assertThat(returnElement.getAttributes().getLength(), is(1));
-    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
-    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
     Node connElement = returnElement.getFirstChild();
     assertThat(connElement, is(notNullValue()));
     assertThat(connElement.getNodeName(), is("tc:connection"));
@@ -659,10 +652,6 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     assertThat(returnElement, is(notNullValue()));
     assertThat(returnElement.getNodeName(), is("tc:cluster"));
-    assertThat(returnElement.getAttributes(), is(notNullValue()));
-    assertThat(returnElement.getAttributes().getLength(), is(1));
-    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
-    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
     Node connElement = returnElement.getFirstChild();
     assertThat(connElement, is(notNullValue()));
     assertThat(connElement.getNodeName(), is("tc:connection"));
@@ -738,10 +727,6 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     assertThat(returnElement, is(notNullValue()));
     assertThat(returnElement.getNodeName(), is("tc:cluster"));
-    assertThat(returnElement.getAttributes(), is(notNullValue()));
-    assertThat(returnElement.getAttributes().getLength(), is(1));
-    assertThat(returnElement.getAttributes().item(0).getNodeName(), is("xmlns:tc"));
-    assertThat(returnElement.getAttributes().item(0).getNodeValue(), is("http://www.ehcache.org/v3/clustered"));
     Node connElement = returnElement.getFirstChild();
     assertThat(connElement, is(notNullValue()));
     assertThat(connElement.getNodeName(), is("tc:cluster-connection"));

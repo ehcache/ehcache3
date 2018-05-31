@@ -16,12 +16,15 @@
 
 package org.ehcache.jsr107.internal;
 
+
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -31,15 +34,19 @@ import java.net.URL;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
+import static org.ehcache.xml.DomUtil.COLON;
+import static org.ehcache.jsr107.internal.Jsr107ServiceConfigurationParser.JSR_NAMESPACE_PREFIX;
+
 /**
  * Jsr107CacheConfigurationParser
  */
-public class Jsr107CacheConfigurationParser implements CacheServiceConfigurationParser<Jsr107Service> {
+public class Jsr107CacheConfigurationParser extends BaseConfigParser<Jsr107CacheConfiguration> implements CacheServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
   private static final URL XML_SCHEMA = Jsr107CacheConfigurationParser.class.getResource("/ehcache-107ext.xsd");
   private static final String MANAGEMENT_ENABLED_ATTRIBUTE = "enable-management";
   private static final String STATISTICS_ENABLED_ATTRIBUTE = "enable-statistics";
+  private static final String MBEANS_ELEMENT_NAME = "mbeans";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -72,11 +79,28 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
 
   @Override
   public Class<Jsr107Service> getServiceType() {
-    return null;
+    return Jsr107Service.class;
   }
 
   @Override
   public Element unparseServiceConfiguration(ServiceConfiguration<Jsr107Service> serviceConfiguration) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    return unparseConfig(serviceConfiguration);
   }
+
+  @Override
+  protected Element createRootElement(Document doc, Jsr107CacheConfiguration cacheConfiguration) {
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + COLON + MBEANS_ELEMENT_NAME);
+    ConfigurationElementState managementState = cacheConfiguration.isManagementEnabled();
+    ConfigurationElementState statisticsState = cacheConfiguration.isStatisticsEnabled();
+    if (ConfigurationElementState.ENABLED == managementState || ConfigurationElementState.DISABLED == managementState) {
+      rootElement.setAttribute(MANAGEMENT_ENABLED_ATTRIBUTE, String.valueOf(cacheConfiguration.isManagementEnabled()
+        .asBoolean()));
+    }
+    if (ConfigurationElementState.ENABLED == statisticsState || ConfigurationElementState.DISABLED == statisticsState) {
+      rootElement.setAttribute(STATISTICS_ENABLED_ATTRIBUTE, String.valueOf(cacheConfiguration.isStatisticsEnabled()
+        .asBoolean()));
+    }
+    return rootElement;
+  }
+
 }

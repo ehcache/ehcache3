@@ -23,8 +23,8 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.DomUtil;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
 import org.w3c.dom.Attr;
@@ -32,7 +32,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -45,28 +45,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
-import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
+import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
  *
  * @see ClusteredCacheConstants#XSD
  */
-public class ClusteringCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService> {
+public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfigParser<ClusteringServiceConfiguration> implements CacheManagerServiceConfigurationParser<ClusteringService> {
 
   public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
   public static final String CLUSTER_ELEMENT_NAME = "cluster";
@@ -88,7 +85,6 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
   public static final String NAME_ATTRIBUTE_NAME = "name";
   public static final String FROM_ATTRIBUTE_NAME = "from";
   public static final String DEFAULT_UNIT_ATTRIBUTE_VALUE = "seconds";
-  public static final String COLON = ":";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -234,31 +230,12 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
    */
   @Override
   public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
-    try {
-      validateParametersForTranslationToServiceConfig(serviceCreationConfiguration);
-      Document doc = createDocumentRoot();
-      ClusteringServiceConfiguration clusteringServiceConfiguration = (ClusteringServiceConfiguration)serviceCreationConfiguration;
-      Element rootElement = createConnectionElement(doc, clusteringServiceConfiguration);
-      processTimeUnits(doc, rootElement, clusteringServiceConfiguration);
-      Element serverSideConfigurationElem = processServerSideElements(doc, clusteringServiceConfiguration);
-      rootElement.appendChild(serverSideConfigurationElem);
-      return rootElement;
-    } catch (SAXException | ParserConfigurationException | IOException e) {
-      throw new XmlConfigurationException(e);
-    }
-  }
-
-  private void validateParametersForTranslationToServiceConfig(ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
-    Objects.requireNonNull(serviceCreationConfiguration, "ServiceCreationConfiguration must not be NULL");
-    if (!(serviceCreationConfiguration instanceof ClusteringServiceConfiguration)) {
-      throw new IllegalArgumentException("Parameter serviceCreationConfiguration must be of type ClusteringServiceConfiguration."
-                                         + "Provided type of parameter is : " + serviceCreationConfiguration.getClass());
-    }
+    Element rootElement = unparseConfig(serviceCreationConfiguration);
+    return rootElement;
   }
 
   private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
-    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, getNamespace().toString());
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
     Element urlElement = createUrlElement(doc, clusteringServiceConfiguration);
     rootElement.appendChild(urlElement);
     return rootElement;
@@ -276,7 +253,6 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     }
     ConnectionSource.ServerList servers = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
     Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
-    rootElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, "xmlns:" + TC_CLUSTERED_NAMESPACE_PREFIX, getNamespace().toString());
     Element connElement = createConnectionElementWrapper(doc, clusteringServiceConfiguration);
     servers.getServers().forEach(server -> {
       Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_ELEMENT_NAME);
@@ -300,11 +276,19 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     return connElement;
   }
 
-  private Element createConnectionElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+  @Override
+  protected Element createRootElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+    Element rootElement;
     if (clusteringServiceConfiguration.getConnectionSource() instanceof ConnectionSource.ClusterUri) {
-      return createRootUrlElement(doc, clusteringServiceConfiguration);
+      rootElement = createRootUrlElement(doc, clusteringServiceConfiguration);
+    } else {
+      rootElement = createServerElement(doc, clusteringServiceConfiguration);
     }
-    return createServerElement(doc, clusteringServiceConfiguration);
+
+    processTimeUnits(doc, rootElement, clusteringServiceConfiguration);
+    Element serverSideConfigurationElem = processServerSideElements(doc, clusteringServiceConfiguration);
+    rootElement.appendChild(serverSideConfigurationElem);
+    return rootElement;
   }
 
   private void processTimeUnits(Document doc, Element parent, ClusteringServiceConfiguration clusteringServiceConfiguration) {
@@ -388,12 +372,6 @@ public class ClusteringCacheManagerServiceConfigurationParser implements CacheMa
     Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + DEFAULT_RESOURCE_ELEMENT_NAME);
     defaultResourceElement.setAttribute(FROM_ATTRIBUTE_NAME, defaultServerResource);
     return defaultResourceElement;
-  }
-
-  private Document createDocumentRoot() throws IOException, SAXException, ParserConfigurationException {
-    DocumentBuilder domBuilder = DomUtil.createAndGetDocumentBuilder();
-    Document doc = domBuilder.newDocument();
-    return doc;
   }
 
   private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {

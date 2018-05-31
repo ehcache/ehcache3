@@ -16,11 +16,13 @@
 
 package org.ehcache.transactions.xa.internal.xml;
 
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -29,13 +31,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
+import static org.ehcache.xml.DomUtil.COLON;
+
 /**
  * @author Ludovic Orban
  */
-public class TxCacheServiceConfigurationParser implements CacheServiceConfigurationParser<XAStore.Provider> {
+public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreConfiguration> implements CacheServiceConfigurationParser<XAStore.Provider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
+  private static final String TRANSACTION_NAMESPACE_PREFIX = "tx";
+  private static final String STORE_ELEMENT_NAME = "xa-store";
+  private static final String UNIQUE_RESOURCE_NAME = "unique-XAResource-id";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -61,11 +68,19 @@ public class TxCacheServiceConfigurationParser implements CacheServiceConfigurat
 
   @Override
   public Class<XAStore.Provider> getServiceType() {
-    return null;
+    return XAStore.Provider.class;
   }
 
   @Override
   public Element unparseServiceConfiguration(ServiceConfiguration<XAStore.Provider> serviceConfiguration) {
-    throw new UnsupportedOperationException("Not yet implemented");
+    return unparseConfig(serviceConfiguration);
   }
+
+  @Override
+  protected Element createRootElement(Document doc, XAStoreConfiguration storeConfiguration) {
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX + COLON + STORE_ELEMENT_NAME);
+    rootElement.setAttribute(UNIQUE_RESOURCE_NAME, storeConfiguration.getUniqueXAResourceId());
+    return rootElement;
+  }
+
 }

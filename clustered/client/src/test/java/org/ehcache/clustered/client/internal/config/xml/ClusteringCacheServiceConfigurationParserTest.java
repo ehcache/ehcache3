@@ -61,7 +61,7 @@ public class ClusteringCacheServiceConfigurationParserTest {
     assertThat(retNode.getNodeName(), is(notNullValue()));
     assertThat(retNode.getNodeName(), is("tc:clustered-store"));
     assertThat(retNode.getAttributes(), is(notNullValue()));
-    assertThat(retNode.getAttributes().getLength(), is(2));
+    assertThat(retNode.getAttributes().getLength(), is(1));
     NamedNodeMap nameNodeMap = retNode.getAttributes();
     boolean foundConsistencyNode = false;
     for (int i = 0; i < nameNodeMap.getLength(); i++) {
