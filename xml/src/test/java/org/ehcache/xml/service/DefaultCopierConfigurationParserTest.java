@@ -50,7 +50,7 @@ public class DefaultCopierConfigurationParserTest extends ServiceConfigurationPa
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/cache-copiers.xml", "baz");
 
     Collection<DefaultCopierConfiguration> copierConfigs =

@@ -39,7 +39,7 @@ public class DefaultSizeOfEngineConfigurationParserTest extends ServiceConfigura
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfig = getCacheDefinitionFrom("/configs/sizeof-engine.xml", "usesDefaultSizeOfEngine");
     DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 

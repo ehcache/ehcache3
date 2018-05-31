@@ -21,12 +21,10 @@ import java.util.Set;
 
 public class ListenersConfig {
 
-  private final int dispatcherConcurrency;
   private final String threadPool;
   private final Iterable<ListenersType.Listener> listeners;
 
   public ListenersConfig(final ListenersType type, final ListenersType... others) {
-    this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
     String threadPool = type.getDispatcherThreadPool();
     Set<ListenersType.Listener> listenerSet = new HashSet<>();
     listenerSet.addAll(type.getListener());
@@ -40,10 +38,6 @@ public class ListenersConfig {
 
     this.threadPool = threadPool;
     this.listeners = !listenerSet.isEmpty() ? listenerSet : null;
-  }
-
-  public int dispatcherConcurrency() {
-    return dispatcherConcurrency;
   }
 
   public String threadPool() {

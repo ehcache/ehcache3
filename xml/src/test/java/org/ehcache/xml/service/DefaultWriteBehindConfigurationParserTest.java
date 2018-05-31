@@ -42,7 +42,7 @@ public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurat
   }
 
   @Test
-  public void parseServiceConfigurationNonBatching() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfigurationNonBatching() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "bar");
     DefaultWriteBehindConfiguration writeBehindConfig =
       findSingletonAmongst(DefaultWriteBehindConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -54,7 +54,7 @@ public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurat
   }
 
   @Test
-  public void parseServiceConfigurationBatching() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfigurationBatching() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "template1");
     DefaultWriteBehindConfiguration writeBehindConfig =
       findSingletonAmongst(DefaultWriteBehindConfiguration.class, cacheConfiguration.getServiceConfigurations());

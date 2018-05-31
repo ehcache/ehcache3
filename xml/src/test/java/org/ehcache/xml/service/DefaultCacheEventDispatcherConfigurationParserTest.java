@@ -37,7 +37,7 @@ public class DefaultCacheEventDispatcherConfigurationParserTest extends ServiceC
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration =
       getCacheDefinitionFrom("/configs/ehcache-cacheEventListener.xml", "template1");
 

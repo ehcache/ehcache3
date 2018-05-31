@@ -37,7 +37,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
 
   private final Function<CacheType, OUT> getter;
   private final BiConsumer<CacheType, OUT> setter;
-  private final Function<U, OUT> mapper;
+  private final Function<U, OUT> unparser;
   private final BinaryOperator<OUT> merger;
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
@@ -54,8 +54,8 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
                                        Function<CacheTemplate, IN> extractor, Parser<IN, U> parser,
-                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> mapper) {
-    this(configType, extractor, parser, getter, setter, mapper, (a, b) -> { throw new IllegalStateException(); });
+                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser) {
+    this(configType, extractor, parser, getter, setter, unparser, (a, b) -> { throw new IllegalStateException(); });
   }
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
@@ -67,7 +67,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
 
     this.getter = getter;
     this.setter = setter;
-    this.mapper = unparser;
+    this.unparser = unparser;
     this.merger = merger;
   }
 
@@ -91,9 +91,9 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
     } else {
       OUT foo = getter.apply(cacheType);
       if (foo == null) {
-        setter.accept(cacheType, mapper.apply(serviceConfig));
+        setter.accept(cacheType, unparser.apply(serviceConfig));
       } else {
-        setter.accept(cacheType, merger.apply(foo, mapper.apply(serviceConfig)));
+        setter.accept(cacheType, merger.apply(foo, unparser.apply(serviceConfig)));
       }
       return cacheType;
     }

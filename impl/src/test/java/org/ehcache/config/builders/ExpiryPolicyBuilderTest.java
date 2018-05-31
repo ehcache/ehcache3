@@ -45,6 +45,9 @@ public class ExpiryPolicyBuilderTest {
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(duration));
     assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
+
+    ExpiryPolicy<Object, Object> otherExpiry = ExpiryPolicyBuilder.timeToIdleExpiration(java.time.Duration.ofSeconds(1L));
+    assertThat(otherExpiry, equalTo(expiry));
   }
 
   @Test
@@ -54,6 +57,9 @@ public class ExpiryPolicyBuilderTest {
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(duration));
     assertThat(expiry.getExpiryForAccess(this, () -> this), nullValue());
     assertThat(expiry.getExpiryForUpdate(this, () -> this, this), equalTo(duration));
+
+    ExpiryPolicy<Object, Object> otherExpiry = ExpiryPolicyBuilder.timeToLiveExpiration(java.time.Duration.ofSeconds(1L));
+    assertThat(otherExpiry, equalTo(expiry));
   }
 
   @Test

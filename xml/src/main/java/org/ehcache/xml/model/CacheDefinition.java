@@ -16,26 +16,9 @@
 
 package org.ehcache.xml.model;
 
-import org.ehcache.xml.CacheResourceConfigurationParser;
-import org.ehcache.xml.CacheServiceConfigurationParser;
-
-import java.net.URI;
-import java.util.Map;
-
-import javax.xml.bind.Unmarshaller;
-
 public class CacheDefinition extends CacheSpec {
 
-  private final String id;
-
-  public CacheDefinition(String id, Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers,
-                         Map<URI, CacheResourceConfigurationParser> resourceConfigParsers, Unmarshaller unmarshaller, BaseCacheType... sources) {
-    super(serviceConfigParsers, resourceConfigParsers, unmarshaller, sources);
-    this.id = id;
+  public CacheDefinition(String id, BaseCacheType... sources) {
+    super(id, sources);
   }
-
-  public String id() {
-    return id;
-  }
-
 }

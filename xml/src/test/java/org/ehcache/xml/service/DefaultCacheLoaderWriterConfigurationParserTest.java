@@ -39,7 +39,7 @@ public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConf
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "bar");
     DefaultCacheLoaderWriterConfiguration loaderWriterConfig =
       findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());

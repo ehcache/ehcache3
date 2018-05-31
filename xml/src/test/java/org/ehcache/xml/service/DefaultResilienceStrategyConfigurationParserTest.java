@@ -40,7 +40,7 @@ public class DefaultResilienceStrategyConfigurationParserTest extends ServiceCon
   }
 
   @Test
-  public void parseServiceConfiguration() throws ClassNotFoundException, SAXException, ParserConfigurationException, IOException, JAXBException {
+  public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/resilience-config.xml", "ni");
     DefaultResilienceStrategyConfiguration resilienceStrategyConfig =
       findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());

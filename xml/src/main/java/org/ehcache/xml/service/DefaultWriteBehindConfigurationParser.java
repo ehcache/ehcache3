@@ -32,6 +32,7 @@ import java.math.BigInteger;
 import static java.util.Optional.ofNullable;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.xml.XmlModel.convertToJUCTimeUnit;
+import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;
 
 public class DefaultWriteBehindConfigurationParser
   extends SimpleCoreServiceConfigurationParser<CacheLoaderWriterType.WriteBehind, CacheLoaderWriterType, WriteBehindConfiguration> {
@@ -57,14 +58,14 @@ public class DefaultWriteBehindConfigurationParser
 
         WriteBehindConfiguration.BatchingConfiguration batchingConfiguration = config.getBatchingConfiguration();
         if (batchingConfiguration == null) {
-          writeBehind.setNonBatching(null);
+          writeBehind.setNonBatching(new CacheLoaderWriterType.WriteBehind.NonBatching());
         } else {
           writeBehind.withBatching(new CacheLoaderWriterType.WriteBehind.Batching()
             .withBatchSize(BigInteger.valueOf(batchingConfiguration.getBatchSize()))
             .withCoalesce(batchingConfiguration.isCoalescing())
             .withMaxWriteDelay(new TimeType()
               .withValue(BigInteger.valueOf(batchingConfiguration.getMaxDelay()))
-              .withUnit(TimeUnit.fromValue(batchingConfiguration.getMaxDelayUnit().name().toLowerCase()))
+              .withUnit(convertToXmlTimeUnit(batchingConfiguration.getMaxDelayUnit()))
             )
           );
         }

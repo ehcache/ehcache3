@@ -20,6 +20,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.xml.ConfigurationParser;
 import org.ehcache.xml.CoreServiceCreationConfigurationParser;
+import org.ehcache.xml.model.ConfigType;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -42,9 +43,9 @@ public class ServiceProvideConfigurationParserTestBase {
 
   protected Configuration parseXmlConfiguration(String resourcePath) throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
     URL resource = this.getClass().getResource(resourcePath);
-    ConfigurationParser rootParser = new ConfigurationParser(resource.toExternalForm());
+    ConfigType configType = new ConfigurationParser().parseXml(resource.toExternalForm());
 
-    managerBuilder = parser.parseServiceCreationConfiguration(rootParser.getConfigRoot(), classLoader, managerBuilder);
+    managerBuilder = parser.parseServiceCreationConfiguration(configType, classLoader, managerBuilder);
     return managerBuilder.build();
   }
 

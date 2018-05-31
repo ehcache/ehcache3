@@ -16,18 +16,14 @@
 
 package org.ehcache.xml.model;
 
-import org.ehcache.config.ResourcePool;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.xml.CacheResourceConfigurationParser;
-import org.ehcache.xml.CacheServiceConfigurationParser;
+import org.w3c.dom.Element;
 
-import java.net.URI;
 import java.util.Collection;
-import java.util.Map;
-
-import javax.xml.bind.Unmarshaller;
+import java.util.List;
 
 public interface CacheTemplate {
+
+  String id();
 
   String keyType();
 
@@ -45,15 +41,17 @@ public interface CacheTemplate {
 
   Expiry expiry();
 
+  Heap getHeap();
+
+  List<Element> getResources();
+
   String loaderWriter();
 
   String resilienceStrategy();
 
   ListenersConfig listenersConfig();
 
-  Iterable<? extends ServiceConfiguration<?>> serviceConfigs();
-
-  Collection<ResourcePool> resourcePools();
+  Collection<Element> serviceConfigExtensions();
 
   CacheLoaderWriterType.WriteBehind writeBehind();
 
@@ -62,9 +60,9 @@ public interface CacheTemplate {
   SizeOfEngineLimits heapStoreSettings();
 
   class Impl extends CacheSpec {
-    public Impl(Map<URI, CacheServiceConfigurationParser<?>> serviceConfigParsers,
-                Map<URI, CacheResourceConfigurationParser> resourceConfigParsers, Unmarshaller unmarshaller, CacheTemplateType cacheTemplateType) {
-      super(serviceConfigParsers, resourceConfigParsers, unmarshaller, cacheTemplateType);
+
+    public Impl(String id, CacheTemplateType cacheTemplateType) {
+      super(id, cacheTemplateType);
     }
   }
 
