@@ -17,15 +17,19 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -35,7 +39,6 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -44,23 +47,31 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  */
 public class InvocationScopedEventSinkTest {
 
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
+
+  @Mock
   private StoreEventListener<String, String> listener;
+
   private InvocationScopedEventSink<String, String> eventSink;
   private BlockingQueue<FireableStoreEventHolder<String, String>> blockingQueue;
   private Set<StoreEventListener<String, String>> storeEventListeners;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
-    listener = mock(StoreEventListener.class);
     storeEventListeners = Collections.singleton(listener);
     blockingQueue = new ArrayBlockingQueue<>(10);
   }
 
+  private InvocationScopedEventSink<String, String> createEventSink(boolean ordered) {
+    @SuppressWarnings("unchecked")
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[]) new BlockingQueue<?>[] { blockingQueue };
+    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners);
+  }
+
   @Test
   public void testReset() {
-    eventSink = new InvocationScopedEventSink<String, String>(Collections.emptySet(),
-      false, new BlockingQueue[] { blockingQueue }, storeEventListeners);
+    eventSink = createEventSink(false);
 
     eventSink.created("k1", "v1");
     eventSink.evicted("k1", () -> "v2");
@@ -88,8 +99,7 @@ public class InvocationScopedEventSinkTest {
    */
   @Test
   public void testInterruption() throws InterruptedException {
-    eventSink = new InvocationScopedEventSink<String, String>(Collections.emptySet(),
-      true, new BlockingQueue[] { blockingQueue }, storeEventListeners);
+    eventSink = createEventSink(true);
 
     // Add enough elements to fill the queue
     IntStream.range(0, 10).forEachOrdered(i -> eventSink.created("k" + i, "v" + i));
