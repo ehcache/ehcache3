@@ -19,7 +19,6 @@ package org.ehcache.xml;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -42,7 +41,6 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -76,7 +74,7 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -169,7 +167,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/one-service.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.<ServiceCreationConfiguration<?>>hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
@@ -180,7 +178,7 @@ public class XmlConfigurationTest {
 
     assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
   }
 
   @Test
@@ -200,7 +198,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
@@ -315,7 +313,7 @@ public class XmlConfigurationTest {
     CacheConfiguration<?, ?> tieredOffHeapCacheConfig = xmlConfig.getCacheConfigurations().get("tieredOffHeap");
     assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(10L));
     assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(10L));
-    assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo((ResourceUnit) MemoryUnit.MB));
+    assertThat(tieredOffHeapCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo(MemoryUnit.MB));
 
     CacheConfiguration<?, ?> explicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("explicitHeapOnly");
     assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));
@@ -344,7 +342,7 @@ public class XmlConfigurationTest {
     CacheConfigurationBuilder<String, String> tieredOffHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredOffHeapResourceTemplate", String.class, String.class);
     assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(50L));
-    assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo((ResourceUnit)MemoryUnit.MB));
+    assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo(MemoryUnit.MB));
 
     CacheConfigurationBuilder<String, String> explicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("explicitHeapResourceTemplate", String.class, String.class);
     assertThat(explicitHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));
@@ -415,17 +413,17 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaultSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
       .get("baz")
       .getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
-    Collections.sort(orderedServiceConfigurations, (o1, o2) -> o1.getClass().getName().compareTo(o2.getClass().getName()));
+    orderedServiceConfigurations.sort(Comparator.comparing(o -> o.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
@@ -482,8 +480,6 @@ public class XmlConfigurationTest {
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
         }
-      } else {
-        continue;
       }
     }
 
@@ -496,8 +492,6 @@ public class XmlConfigurationTest {
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
         }
-      } else {
-        continue;
       }
     }
   }
@@ -536,11 +530,11 @@ public class XmlConfigurationTest {
 
     Collection<ServiceConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class).build().getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     for (ServiceConfiguration<?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
@@ -618,7 +612,7 @@ public class XmlConfigurationTest {
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("tiered");
 
-    OffHeapDiskStoreConfiguration diskConfig = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, cacheConfig.getServiceConfigurations().toArray());
+    OffHeapDiskStoreConfiguration diskConfig = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
@@ -629,21 +623,21 @@ public class XmlConfigurationTest {
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The url can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), getClassLoaderMapMock());
+    new XmlConfiguration(null, mock(ClassLoader.class), getClassLoaderMapMock());
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The classLoader can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
+    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The cacheClassLoaders map can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
   }
 
   @Test

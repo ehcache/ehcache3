@@ -321,7 +321,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       final CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
-          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {

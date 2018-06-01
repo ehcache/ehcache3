@@ -308,7 +308,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypes() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-copiers-immutable-types.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
@@ -346,7 +346,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypesWithCMLevelDefaults() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-immutable-types-cm-level-copiers.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
