@@ -20,19 +20,20 @@ dependencies {
     felixVersion = '5.6.10'
   }
 
-  testCompile project(':impl'), project(':xml'), project(':107'),
-          "org.apache.felix:org.apache.felix.framework:$felixVersion",
-          "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
-    exclude group:'junit', module:'junit'
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':107')
+  testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
+  testImplementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
+  testImplementation ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 
-  testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
-  testRuntime ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
+  testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion",
+  testRuntimeOnly ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testRuntime ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
+  testRuntimeOnly ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 }

@@ -29,7 +29,7 @@ class EhDistribute implements Plugin<Project> {
     def utils = new Utils(project.baseVersion, project.logger)
     def hashsetOfProjects = project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
 
-    project.plugins.apply 'java'
+    project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
     project.plugins.apply 'com.github.johnrengelman.shadow'
