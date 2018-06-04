@@ -38,6 +38,10 @@ public abstract class BaseConfigParser<T> {
     typeParameterClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
   }
 
+  public BaseConfigParser(Class type) {
+    this.typeParameterClass = type;
+  }
+
   private T validateConfig(Object config) {
     Objects.requireNonNull(config, "Configuration must not be null.");
     if (!(typeParameterClass.isAssignableFrom(config.getClass()))) {

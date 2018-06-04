@@ -58,6 +58,10 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
   private static final String UNIT_ELEMENT_NAME = "unit";
   private static final String SHARING_ELEMENT_NAME = "sharing";
 
+  public ClusteredResourceConfigurationParser() {
+    super(ResourcePool.class);
+  }
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
@@ -126,9 +130,9 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
   @Override
   protected Element createRootElement(Document doc, ResourcePool resourcePool) {
     Element rootElement = null;
-    if (ClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+    if (ClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + CLUSTERED_ELEMENT_NAME);
-    } else if (DedicatedClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+    } else if (DedicatedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = (DedicatedClusteredResourcePoolImpl) resourcePool;
       rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + DEDICATED_ELEMENT_NAME);
       if (dedicatedClusteredResourcePool.getFromResource() != null) {
@@ -136,7 +140,7 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
       }
       rootElement.setAttribute(UNIT_ELEMENT_NAME, dedicatedClusteredResourcePool.getUnit().toString());
       rootElement.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
-    } else if (SharedClusteredResourcePoolImpl.class.isInstance(resourcePool)) {
+    } else if (SharedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       SharedClusteredResourcePoolImpl sharedClusteredResourcePool = (SharedClusteredResourcePoolImpl) resourcePool;
       rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + SHARED_ELEMENT_NAME);
       rootElement.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
