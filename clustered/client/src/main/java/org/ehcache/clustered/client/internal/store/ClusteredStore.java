@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -36,7 +37,9 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
@@ -98,7 +101,6 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  */
 public class ClusteredStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V> {
 
-  private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.client.chain.compaction.threshold";
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
@@ -539,7 +541,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
    * Provider of {@link ClusteredStore} instances.
    */
   @ServiceDependencies({TimeSourceService.class, ClusteringService.class})
-  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
@@ -559,6 +561,11 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private final Map<ClusteredStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
+    protected ClusteredResourceType<ClusteredResourcePool> getResourceType() {
+      return ClusteredResourceType.Types.UNKNOWN;
+    }
+
+    @Override
     public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
@@ -568,12 +575,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       });
 
       return store;
-    }
-
-    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(ClusteredStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, TIER_HEIGHT, targetName, store.getStatisticsTag());
-      StatisticsManager.associate(stat).withParent(store);
-      return stat;
     }
 
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
@@ -806,6 +807,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       initStore(resource);
     }
+
   }
 
   private static class StoreConfig {

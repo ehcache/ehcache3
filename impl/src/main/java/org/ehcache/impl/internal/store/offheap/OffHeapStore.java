@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
@@ -129,13 +130,18 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
-  public static class Provider implements Store.Provider, AuthoritativeTier.Provider, LowerCachingTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
     private final Map<OffHeapStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+
+    @Override
+    protected ResourceType<SizedResourcePool> getResourceType() {
+      return ResourceType.Core.OFFHEAP;
+    }
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -159,19 +165,13 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       return store;
     }
 
-    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.OFFHEAP.getTierHeight(), targetName, store.getStatisticsTag());
-      StatisticsManager.associate(stat).withParent(store);
-      return stat;
-    }
-
     private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+      SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
       }

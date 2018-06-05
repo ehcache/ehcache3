@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
@@ -292,7 +293,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
-  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
     private final Map<OffHeapDiskStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -309,13 +310,18 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
+    protected ResourceType<SizedResourcePool> getResourceType() {
+      return ResourceType.Core.DISK;
+    }
+
+    @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return resourceTypes.equals(Collections.singleton(ResourceType.Core.DISK)) ? 1 : 0;
+      return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
     public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return authorityResource.equals(ResourceType.Core.DISK) ? 1 : 0;
+      return authorityResource.equals(getResourceType()) ? 1 : 0;
     }
 
     @Override
@@ -330,12 +336,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       return store;
     }
 
-    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapDiskStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.DISK.getTierHeight(), targetName, store.getStatisticsTag());
-      StatisticsManager.associate(stat).withParent(store);
-      return stat;
-    }
-
     private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
@@ -343,7 +343,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
-      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
       }
