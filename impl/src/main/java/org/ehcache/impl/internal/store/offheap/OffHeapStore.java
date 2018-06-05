@@ -70,8 +70,6 @@ import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBuffe
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
-  private static final String STATISTICS_TAG = "OffHeap";
-
   private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
@@ -80,7 +78,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
+    super(config, timeSource, eventDispatcher);
     EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
@@ -90,6 +88,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
     this.sizeInBytes = sizeInBytes;
+  }
+
+  @Override
+  protected String getStatisticsTag() {
+    return "OffHeap";
   }
 
   @Override
@@ -157,7 +160,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.OFFHEAP.getTierHeight(), targetName, STATISTICS_TAG);
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.OFFHEAP.getTierHeight(), targetName, store.getStatisticsTag());
       StatisticsManager.associate(stat).withParent(store);
       return stat;
     }

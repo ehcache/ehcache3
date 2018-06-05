@@ -91,8 +91,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
 
-  private static final String STATISTICS_TAG = "Disk";
-
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
 
@@ -116,7 +114,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
                           final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
+    super(config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -139,6 +137,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
       throw new AssertionError();
     }
+  }
+
+  @Override
+  protected String getStatisticsTag() {
+    return "Disk";
   }
 
   @Override
@@ -328,7 +331,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapDiskStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.DISK.getTierHeight(), targetName, STATISTICS_TAG);
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.DISK.getTierHeight(), targetName, store.getStatisticsTag());
       StatisticsManager.associate(stat).withParent(store);
       return stat;
     }

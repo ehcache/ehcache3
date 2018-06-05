@@ -46,6 +46,7 @@ import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.impl.internal.store.basic.BaseStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -95,9 +96,8 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * Supports a {@link Store} in a clustered environment.
  */
-public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
+public class ClusteredStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V> {
 
-  private static final String STATISTICS_TAG = "Clustered";
   private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.client.chain.compaction.threshold";
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
@@ -140,8 +140,9 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
   }
 
-  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
-    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
+  @Override
+  protected String getStatisticsTag() {
+    return "Clustered";
   }
 
   /**
@@ -570,7 +571,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(ClusteredStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, TIER_HEIGHT, targetName, STATISTICS_TAG);
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, TIER_HEIGHT, targetName, store.getStatisticsTag());
       StatisticsManager.associate(stat).withParent(store);
       return stat;
     }

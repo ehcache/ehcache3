@@ -30,6 +30,7 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
+import org.ehcache.impl.internal.store.basic.BaseStore;
 import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
@@ -116,11 +117,9 @@ import static org.terracotta.statistics.StatisticType.GAUGE;
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  */
-public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
+public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
-
-  private static final String STATISTICS_TAG = "OnHeap";
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -261,7 +260,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateAllObserver = createObserver("silentInvalidateAll", HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class);
     silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class);
 
-    Set<String> tags = new HashSet<>(Arrays.asList(STATISTICS_TAG, "tier"));
+    Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
     StatisticsManager.createPassThroughStatistic(this, "mappings", tags, COUNTER, () -> map.mappingCount());
 
     if(byteSized) {
@@ -269,8 +268,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
-    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
+  @Override
+  protected String getStatisticsTag() {
+    return "OnHeap";
   }
 
   @SuppressWarnings({"unchecked", "rawtype"})
@@ -1573,7 +1573,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OnHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.HEAP.getTierHeight(), targetName, STATISTICS_TAG);
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.HEAP.getTierHeight(), targetName, store.getStatisticsTag());
       StatisticsManager.associate(stat).withParent(store);
       return stat;
     }
