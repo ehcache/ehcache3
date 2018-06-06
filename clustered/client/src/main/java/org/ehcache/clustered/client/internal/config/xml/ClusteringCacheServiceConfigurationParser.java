@@ -46,6 +46,10 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   public static final String CONSISTENCY_ATTRIBUTE_NAME = "consistency";
   public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
 
+  public ClusteringCacheServiceConfigurationParser() {
+    super(ClusteredStoreConfiguration.class);
+  }
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
