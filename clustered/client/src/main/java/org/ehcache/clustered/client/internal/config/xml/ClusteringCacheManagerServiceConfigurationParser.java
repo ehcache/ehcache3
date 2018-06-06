@@ -86,6 +86,10 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   public static final String FROM_ATTRIBUTE_NAME = "from";
   public static final String DEFAULT_UNIT_ATTRIBUTE_VALUE = "seconds";
 
+  public ClusteringCacheManagerServiceConfigurationParser() {
+    super(ClusteringServiceConfiguration.class);
+  }
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());

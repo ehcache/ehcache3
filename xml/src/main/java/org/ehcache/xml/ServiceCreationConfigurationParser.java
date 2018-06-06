@@ -90,7 +90,14 @@ public class ServiceCreationConfigurationParser {
     }
 
     Map<Class<?>, CacheManagerServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity()));
+      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
+        (key1, key2) -> {
+          if (key1.getClass().isInstance(key2)) {
+            return key2;
+          } else {
+            return key1;
+          }
+        }));
     List<ServiceType> services = configType.getService();
     configuration.getServiceCreationConfigurations().forEach(config -> {
       CacheManagerServiceConfigurationParser parser = parsers.get(config.getServiceType());
