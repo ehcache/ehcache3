@@ -41,5 +41,5 @@ public interface CacheResourceConfigurationParser {
 
   Element unparseResourcePool(ResourcePool resourcePool);
 
-  Set<ResourceType<?>> getResourceTypes();
+  Set<Class<? extends ResourcePool>> getResourceTypes();
 }

@@ -86,7 +86,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   @Override
   protected Element createRootElement(Document doc, ClusteredStoreConfiguration clusteredStoreConfiguration) {
     Consistency consistency = clusteredStoreConfiguration.getConsistency();
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTERED_STORE_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTERED_STORE_ELEMENT_NAME);
     rootElement.setAttribute(CONSISTENCY_ATTRIBUTE_NAME, consistency.name().toLowerCase());
     return rootElement;
   }

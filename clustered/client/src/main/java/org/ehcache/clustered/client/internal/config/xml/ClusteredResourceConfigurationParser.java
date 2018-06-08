@@ -131,10 +131,10 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
   protected Element createRootElement(Document doc, ResourcePool resourcePool) {
     Element rootElement = null;
     if (ClusteredResourcePoolImpl.class == resourcePool.getClass()) {
-      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + CLUSTERED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(getNamespace().toString(), RESOURCE_NAMESPACE_PREFIX + COLON + CLUSTERED_ELEMENT_NAME);
     } else if (DedicatedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = (DedicatedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + DEDICATED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(getNamespace().toString(), RESOURCE_NAMESPACE_PREFIX + COLON + DEDICATED_ELEMENT_NAME);
       if (dedicatedClusteredResourcePool.getFromResource() != null) {
         rootElement.setAttribute(FROM_ELEMENT_NAME, dedicatedClusteredResourcePool.getFromResource());
       }
@@ -142,14 +142,15 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
       rootElement.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
     } else if (SharedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       SharedClusteredResourcePoolImpl sharedClusteredResourcePool = (SharedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(NAMESPACE.toString(), RESOURCE_NAMESPACE_PREFIX + COLON + SHARED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(getNamespace().toString(), RESOURCE_NAMESPACE_PREFIX + COLON + SHARED_ELEMENT_NAME);
       rootElement.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
     }
     return rootElement;
   }
 
   @Override
-  public Set<ResourceType<?>> getResourceTypes() {
-    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ClusteredResourceType.Types.values())));
+  public Set<Class<? extends ResourcePool>> getResourceTypes() {
+    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ClusteredResourcePoolImpl.class,
+      DedicatedClusteredResourcePoolImpl.class, SharedClusteredResourcePoolImpl.class)));
   }
 }
