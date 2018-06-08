@@ -179,9 +179,9 @@ public class ResourceConfigurationParser {
           throw new XmlConfigurationException(e);
         }
       } else {
-        Map<org.ehcache.config.ResourceType<?>, CacheResourceConfigurationParser> parsers = new HashMap<>();
-        extensionParsers.forEach(parser -> parser.getResourceTypes().forEach(rt -> parsers.put(resourceType, parser)));
-        CacheResourceConfigurationParser parser = parsers.get(resourceType);
+        Map<Class<? extends ResourcePool>, CacheResourceConfigurationParser> parsers = new HashMap<>();
+        extensionParsers.forEach(parser -> parser.getResourceTypes().forEach(rt -> parsers.put(rt, parser)));
+        CacheResourceConfigurationParser parser = parsers.get(resourcePool.getClass());
         if (parser != null) {
           element = parser.unparseResourcePool(resourcePool);
         } else {

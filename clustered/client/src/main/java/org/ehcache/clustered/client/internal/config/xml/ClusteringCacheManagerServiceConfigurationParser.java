@@ -239,7 +239,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
     Element urlElement = createUrlElement(doc, clusteringServiceConfiguration);
     rootElement.appendChild(urlElement);
     return rootElement;

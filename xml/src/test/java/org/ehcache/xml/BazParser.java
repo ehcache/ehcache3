@@ -68,7 +68,7 @@ public class BazParser implements CacheResourceConfigurationParser {
   }
 
   @Override
-  public Set<ResourceType<?>> getResourceTypes() {
-    return Collections.singleton(BazResource.Type.BAZ_TYPE);
+  public Set<Class<? extends ResourcePool>> getResourceTypes() {
+    return Collections.singleton(BazResource.class);
   }
 }
