@@ -71,7 +71,6 @@ import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -129,15 +128,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.resolver = resolver;
     this.timeSource = timeSource;
 
-    this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
-    this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
-    this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
-    this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
-    this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
-    this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
-    this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(STATISTICS_TAG).build();
-    this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(STATISTICS_TAG).build();
-    this.getAndFaultObserver = operation(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class).of(this).named("getAndFault").tag(STATISTICS_TAG).build();
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
+  }
+
+  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
+    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
   }
 
   /**
@@ -551,27 +554,24 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<ClusteredStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<ClusteredStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.GET_TRANSLATION, "get", TIER_HEIGHT, "get", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(store);
-      tieredOps.add(get);
+      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+        createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
+        createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(store);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(store, tieredOps);
       return store;
+    }
+
+    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(ClusteredStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, TIER_HEIGHT, targetName, STATISTICS_TAG);
+      StatisticsManager.associate(stat).withParent(store);
+      return stat;
     }
 
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
@@ -786,21 +786,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", TIER_HEIGHT, "getAndFault", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(authoritativeTier);
-      tieredOps.add(get);
+      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
+        createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
+        createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(authoritativeTier);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;
     }
 

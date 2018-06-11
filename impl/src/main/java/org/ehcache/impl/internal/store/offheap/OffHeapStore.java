@@ -23,9 +23,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
-import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -58,7 +55,6 @@ import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -134,8 +130,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
-    private final Map<OffHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
+    private final Map<OffHeapStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -150,22 +146,19 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.OFFHEAP.getTierHeight(), "get", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(store);
-      tieredOps.add(get);
+      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+        createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
+        createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.OFFHEAP.getTierHeight(), "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(store);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(store, tieredOps);
       return store;
+    }
+
+    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.OFFHEAP.getTierHeight(), targetName, STATISTICS_TAG);
+      StatisticsManager.associate(stat).withParent(store);
+      return stat;
     }
 
     private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
@@ -244,21 +237,12 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", ResourceType.Core.OFFHEAP.getTierHeight(), "getAndFault", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(authoritativeTier);
-      tieredOps.add(get);
+      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
+        createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
+        createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict
-              = new MappedOperationStatistic<>(
-        authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.OFFHEAP.getTierHeight(), "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(authoritativeTier);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;
     }
 
@@ -275,21 +259,12 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     @Override
     public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome, TierOperationOutcomes.GetOutcome> get
-              = new MappedOperationStatistic<>(
-        lowerCachingTier, TierOperationOutcomes.GET_AND_REMOVE_TRANSLATION, "get", ResourceType.Core.OFFHEAP.getTierHeight(), "getAndRemove", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(lowerCachingTier);
-      tieredOps.add(get);
+      tierOperationStatistics.put(lowerCachingTier, new MappedOperationStatistic<?, ?>[] {
+        createTranslatedStatistic(lowerCachingTier, "get", TierOperationOutcomes.GET_AND_REMOVE_TRANSLATION, "getAndRemove"),
+        createTranslatedStatistic(lowerCachingTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          lowerCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.OFFHEAP.getTierHeight(), "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(lowerCachingTier);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(lowerCachingTier, tieredOps);
       return lowerCachingTier;
     }
 
