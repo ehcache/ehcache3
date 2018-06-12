@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.basic;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.util.CheckerUtil;
 import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.StatisticsManager;
@@ -36,6 +37,22 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  * it but the implementor might find it easier to do so.
  */
 public abstract class BaseStore<K, V> implements Store<K, V> {
+
+  protected final Class<K> keyType;
+  protected final Class<V> valueType;
+
+  public BaseStore(Class<K> keyType, Class<V> valueType) {
+    this.keyType = keyType;
+    this.valueType = valueType;
+  }
+
+  protected void checkKey(K keyObject) {
+    CheckerUtil.checkKey(keyType, keyObject);
+  }
+
+  protected void checkValue(V valueObject) {
+    CheckerUtil.checkValue(valueType, valueObject);
+  }
 
   protected <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
     return operation(outcome).named(name).of(this).tag(getStatisticsTag()).build();

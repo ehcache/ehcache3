@@ -72,8 +72,6 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     // Do nothing
   };
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> eventDispatcher;
 
@@ -108,8 +106,8 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   public AbstractOffHeapStore(Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
-    keyType = config.getKeyType();
-    valueType = config.getValueType();
+    super(config.getKeyType(), config.getValueType());
+
     expiry = config.getExpiry();
 
     this.timeSource = timeSource;
@@ -1066,14 +1064,6 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     if (valve != null) {
       valve.invalidateAll();
     }
-  }
-
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
   }
 
   private void onExpirationInCachingTier(ValueHolder<V> mappedValue, K key) {

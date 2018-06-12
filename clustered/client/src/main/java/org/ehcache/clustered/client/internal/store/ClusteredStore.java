@@ -125,7 +125,9 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, TimeSource timeSource) {
+  private ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource) {
+    super(config.getKeyType(), config.getValueType());
+
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
@@ -142,17 +144,17 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
   }
 
-  @Override
-  protected String getStatisticsTag() {
-    return "Clustered";
-  }
-
   /**
    * For tests
    */
-  ClusteredStore(OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
-    this(codec, resolver, timeSource);
+  ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
+    this(config, codec, resolver, timeSource);
     this.storeProxy = proxy;
+  }
+
+  @Override
+  protected String getStatisticsTag() {
+    return "Clustered";
   }
 
   @Override
@@ -561,6 +563,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private final Map<ClusteredStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
+    @SuppressWarnings("unchecked")
     protected ClusteredResourceType<ClusteredResourcePool> getResourceType() {
       return ClusteredResourceType.Types.UNKNOWN;
     }
@@ -624,7 +627,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
 
-        ClusteredStore<K, V> store = new ClusteredStore<>(codec, resolver, timeSource);
+        ClusteredStore<K, V> store = new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
 
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
         return store;

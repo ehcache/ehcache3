@@ -148,8 +148,6 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   static final int SAMPLE_SIZE = 8;
   private final Backend<K, V> map;
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final Copier<V> valueCopier;
 
   private final SizeOfEngine sizeOfEngine;
@@ -210,6 +208,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
                      SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier) {
+    super(config.getKeyType(), config.getValueType());
+
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 
     this.valueCopier = Objects.requireNonNull(valueCopier, "valueCopier must not be null");
@@ -229,8 +229,6 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     } else {
       this.evictionAdvisor = config.getEvictionAdvisor();
     }
-    this.keyType = config.getKeyType();
-    this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
     this.storeEventDispatcher = eventDispatcher;
 
@@ -1539,14 +1537,6 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         return false;
       }
     }
-  }
-
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
   }
 
   private void fireOnExpirationEvent(K mappedKey, ValueHolder<V> mappedValue, StoreEventSink<K, V> eventSink) {
