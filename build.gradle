@@ -216,7 +216,7 @@ subprojects {
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Werror', '-Xlint:unchecked,deprecation']
+    options.compilerArgs += ['-Werror', '-Xlint:all']
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'

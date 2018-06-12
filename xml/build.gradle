@@ -39,7 +39,11 @@ xjcGenerate {
   extraArgs = ['-Xfluent-api']
 }
 
-tasks.withType(JavaCompile) {
+compileJava {
   // We can't check for unchecked errors because of XJC that produces them
-  options.compilerArgs = ['-Werror', '-Xlint:deprecation']
+  options.compilerArgs = ['-Xlint:-unchecked,-serial']
+}
+
+compileTestJava {
+  options.compilerArgs = ['-Xlint:-rawtypes']
 }

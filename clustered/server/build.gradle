@@ -32,3 +32,10 @@ dependencies {
   provided "org.terracotta:standard-cluster-services:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
 }
+
+compileJava {
+  options.compilerArgs += ['-Xlint:-rawtypes']
+}
+compileTestJava {
+  options.compilerArgs += ['-Xlint:-rawtypes,-serial']
+}

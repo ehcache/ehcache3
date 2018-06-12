@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-
-checkstyle {
-  configFile = file("$projectDir/config/checkstyle.xml")
-}
-
 compileJava {
   options.compilerArgs += ['-Xlint:-serial']
 }

@@ -267,6 +267,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     return messageHandler.invoke(context, message, this::invokeActiveInternal);
   }
 
+  @SuppressWarnings("try")
   private EhcacheEntityResponse invokeActiveInternal(InvokeContext context, EhcacheEntityMessage message) {
 
     try {

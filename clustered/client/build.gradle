@@ -42,3 +42,11 @@ test {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
 }
+
+compileJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+}
+
+compileTestJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+}

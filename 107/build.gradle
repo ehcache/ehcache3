@@ -79,4 +79,10 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
 
 test.dependsOn tckTest
 
+compileJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+}
 
+compileTestJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+}

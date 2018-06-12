@@ -162,6 +162,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
   }
 
+  @SuppressWarnings("try")
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
     if (message instanceof EhcacheOperationMessage) {
       EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
