@@ -23,6 +23,8 @@ import org.ehcache.transactions.xa.internal.XAStore;
  * @author Ludovic Orban
  */
 public class XACacheException extends RuntimeException {
+  private static final long serialVersionUID = -6691335026252002011L;
+
   public XACacheException(String message) {
     super(message);
   }

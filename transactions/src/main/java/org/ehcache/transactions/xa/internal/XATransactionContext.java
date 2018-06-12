@@ -306,6 +306,7 @@ public class XATransactionContext<K, V> {
   }
 
   static class TransactionTimeoutException extends RuntimeException {
+    private static final long serialVersionUID = -4629992436523905812L;
   }
 
 }

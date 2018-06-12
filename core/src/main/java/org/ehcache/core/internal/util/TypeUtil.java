@@ -13,26 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
-
-import javax.transaction.xa.XAException;
+package org.ehcache.core.internal.util;
 
 /**
- * {@link XAException} allowing construction of message, errorCode and throwable.
- *
- * @author Ludovic Orban
+ * Holder for static helper methods related to types and casting.
  */
-public class EhcacheXAException extends XAException {
+public final class TypeUtil {
 
-  private static final long serialVersionUID = 4369895735968757104L;
-
-  public EhcacheXAException(String msg, int errorCode) {
-    super(msg);
-    this.errorCode = errorCode;
+  private TypeUtil() {
+    //static holder
   }
 
-  public EhcacheXAException(String msg, int errorCode, Throwable t) {
-    this(msg, errorCode);
-    initCause(t);
+  /**
+   * Performs a (warning suppressed) unchecked cast to an infered type {@code U}.
+   */
+  @SuppressWarnings("unchecked")
+  public static <U> U uncheckedCast(Object o) {
+    return (U) o;
   }
 }

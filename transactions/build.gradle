@@ -45,9 +45,6 @@ project.signing {
   sign project.configurations.getByName('archives')
 }
 
-compileJava {
-  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
-}
 compileTestJava {
   options.compilerArgs += ['-Xlint:-serial,-rawtypes']
 }

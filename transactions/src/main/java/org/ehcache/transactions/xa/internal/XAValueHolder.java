@@ -26,12 +26,15 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+
 /**
  * The {@link XAStore} {@link Store.ValueHolder} implementation.
  *
  * @author Ludovic Orban
  */
 @FindbugsSuppressWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
+@SuppressWarnings("serial") //this class has writeReplace/readResolve methods
 public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 
   static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
@@ -107,8 +110,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
-    @SuppressWarnings("unchecked")
-    XAValueHolder<V> that = (XAValueHolder<V>) other;
+    XAValueHolder<V> that = uncheckedCast(other);
 
     if (!super.equals(that)) return false;
     return value.equals(that.value);
@@ -125,6 +127,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
    * @param <V> the value type
    */
   private static class SerializedXAValueHolder<V> implements Serializable {
+    private static final long serialVersionUID = -9126450990666297321L;
     private final long id;
     private final long creationTime;
     private final long lastAccessTime;
