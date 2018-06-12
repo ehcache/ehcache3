@@ -63,6 +63,8 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   static class NormalEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
 
+    private static final long serialVersionUID = 1566947833363986792L;
+
     public NormalEvent(Cache<K, V> source, EventType eventType, CacheEvent<? extends K, ? extends V> ehEvent, boolean hasOldValue) {
       super(source, eventType, ehEvent, hasOldValue);
     }
@@ -74,6 +76,8 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
   }
 
   static class RemovingEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
+
+    private static final long serialVersionUID = -1363817518693572909L;
 
     public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<? extends K, ? extends V> ehEvent, boolean hasOldValue) {
       super(source, eventType, ehEvent, hasOldValue);
