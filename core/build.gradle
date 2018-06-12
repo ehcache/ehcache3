@@ -24,10 +24,6 @@ dependencies {
   testCompile project(':spi-tester')
 }
 
-compileJava {
-  options.compilerArgs += ['-Xlint:-rawtypes,-serial']
-}
-
 compileTestJava {
   options.compilerArgs += ['-Xlint:-serial,-rawtypes']
 }
