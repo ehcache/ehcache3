@@ -51,8 +51,7 @@ public class DefaultCacheEventListenerConfigurationParser implements CoreService
       for (ListenersType.Listener listener : listenersConfig.listeners()) {
         Set<org.ehcache.event.EventType> eventSetToFireOn = listener.getEventsToFireOn().stream()
           .map(EventType::value).map(org.ehcache.event.EventType::valueOf).collect(toSet());
-        @SuppressWarnings("unchecked")
-        Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>) getClassForName(listener.getClazz(), cacheClassLoader);
+        Class<CacheEventListener<?, ?>> cacheEventListenerClass = getClassForName(listener.getClazz(), cacheClassLoader);
         CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
           .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
           .firingMode(EventFiring.valueOf(listener.getEventFiringMode().value()))

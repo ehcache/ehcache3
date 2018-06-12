@@ -71,8 +71,8 @@ public class DefaultCopierConfigurationParserTest extends ServiceConfigurationPa
   public void unparseServiceConfiguration() {
     @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(new DefaultCopierConfiguration(DescriptionCopier.class, DefaultCopierConfiguration.Type.KEY))
-      .add(new DefaultCopierConfiguration(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
+      .add(new DefaultCopierConfiguration<>(DescriptionCopier.class, DefaultCopierConfiguration.Type.KEY))
+      .add(new DefaultCopierConfiguration<>(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
       .build();
 
     CacheType cacheType = new CacheType();

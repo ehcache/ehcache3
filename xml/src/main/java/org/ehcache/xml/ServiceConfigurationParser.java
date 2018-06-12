@@ -18,6 +18,7 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.service.DefaultCacheEventDispatcherConfigurationParser;
@@ -98,10 +99,10 @@ public class ServiceConfigurationParser {
     List<Element> serviceConfigs = cacheType.getServiceConfiguration();
     cacheConfiguration.getServiceConfigurations().forEach(config -> {
       @SuppressWarnings("rawtypes")
-      CacheServiceConfigurationParser parser = parsers.get(config.getServiceType());
+      CacheServiceConfigurationParser<?> parser = parsers.get(config.getServiceType());
       if (parser != null) {
-        @SuppressWarnings("unchecked")
-        Element element = parser.unparseServiceConfiguration(config);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Element element = parser.unparseServiceConfiguration((ServiceConfiguration) config);
         serviceConfigs.add(element);
       }
     });

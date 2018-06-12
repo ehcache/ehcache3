@@ -30,7 +30,7 @@ public class DefaultResilienceStrategyConfigurationParser
   public DefaultResilienceStrategyConfigurationParser() {
     super(DefaultResilienceStrategyConfiguration.class,
       CacheTemplate::resilienceStrategy,
-      (config, loader) -> new DefaultResilienceStrategyConfiguration((Class<? extends ResilienceStrategy>) getClassForName(config, loader)),
+      (config, loader) -> new DefaultResilienceStrategyConfiguration(getClassForName(config, loader)),
       CacheType::getResilience, CacheType::setResilience, config -> config.getClazz().getName());
   }
 }

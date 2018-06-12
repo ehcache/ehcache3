@@ -34,7 +34,7 @@ public class DefaultCopyProviderConfigurationParser
       (config, loader) -> {
         DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
         for (CopierType.Copier copier : config.getCopier()) {
-          configuration.addCopierFor(getClassForName(copier.getType(), loader), (Class) getClassForName(copier.getValue(), loader));
+          configuration.addCopierFor(getClassForName(copier.getType(), loader), getClassForName(copier.getValue(), loader));
         }
         return configuration;
       },

@@ -21,18 +21,13 @@ import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.xml.model.CacheEntryType;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.serializer.TestSerializer3;
 import com.pany.ehcache.serializer.TestSerializer4;
 
-import java.io.IOException;
 import java.util.Collection;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -66,8 +61,8 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
   public void unparseServiceConfiguration() {
     @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(new DefaultSerializerConfiguration(TestSerializer3.class, DefaultSerializerConfiguration.Type.KEY))
-      .add(new DefaultSerializerConfiguration(TestSerializer4.class, DefaultSerializerConfiguration.Type.VALUE))
+      .add(new DefaultSerializerConfiguration<>((Class)  TestSerializer3.class, DefaultSerializerConfiguration.Type.KEY))
+      .add(new DefaultSerializerConfiguration<>((Class) TestSerializer4.class, DefaultSerializerConfiguration.Type.VALUE))
       .build();
 
     CacheType cacheType = new CacheType();

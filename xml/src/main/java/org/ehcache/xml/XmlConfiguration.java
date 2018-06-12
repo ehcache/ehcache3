@@ -289,8 +289,9 @@ public class XmlConfiguration implements Configuration {
     }
   }
 
-  public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
-    return Class.forName(name, true, classLoader);
+  @SuppressWarnings("unchecked")
+  public static <T> Class<T> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
+    return (Class<T>) Class.forName(name, true, classLoader);
   }
 
   @Override

@@ -36,7 +36,7 @@ public class DefaultSerializationProviderConfigurationParser
       (config, loader) -> {
         DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
         for (SerializerType.Serializer serializer : config.getSerializer()) {
-          configuration.addSerializerFor(getClassForName(serializer.getType(), loader), (Class) getClassForName(serializer.getValue(), loader));
+          configuration.addSerializerFor(getClassForName(serializer.getType(), loader), getClassForName(serializer.getValue(), loader));
         }
         return configuration;
       },

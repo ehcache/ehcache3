@@ -31,7 +31,7 @@ public class DefaultCacheLoaderWriterConfigurationParser
   public DefaultCacheLoaderWriterConfigurationParser() {
     super(DefaultCacheLoaderWriterConfiguration.class,
       CacheTemplate::loaderWriter,
-      (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)),
+      (config, loader) -> new DefaultCacheLoaderWriterConfiguration(getClassForName(config, loader)),
       CacheType::getLoaderWriter, CacheType::setLoaderWriter,
       config -> new CacheLoaderWriterType().withClazz(config.getClazz().getName()));
   }

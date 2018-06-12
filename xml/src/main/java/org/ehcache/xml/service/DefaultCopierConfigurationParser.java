@@ -19,6 +19,7 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.xml.CoreServiceConfigurationParser;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
@@ -30,17 +31,17 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
 public class DefaultCopierConfigurationParser implements CoreServiceConfigurationParser {
 
-  @Override @SuppressWarnings({"unchecked", "rawtypes"})
+  @Override
   public <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keyCopier() != null) {
-      Class<?> keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
+      Class<? extends Copier<K>> keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
+      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration<>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     }
 
     if (cacheDefinition.valueCopier() != null) {
-      Class<?> valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+      Class<? extends Copier<V>> valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
+      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration<>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     }
 
     return cacheBuilder;

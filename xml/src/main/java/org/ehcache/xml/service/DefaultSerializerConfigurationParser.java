@@ -19,6 +19,7 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.xml.CoreServiceConfigurationParser;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
@@ -34,13 +35,13 @@ public class DefaultSerializerConfigurationParser implements CoreServiceConfigur
   public <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keySerializer() != null) {
-      Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
+      Class<Serializer<K>> keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
+      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration<>(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
 
     if (cacheDefinition.valueSerializer() != null) {
-      Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+      Class<Serializer<V>> valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
+      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration<>(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
     return cacheBuilder;

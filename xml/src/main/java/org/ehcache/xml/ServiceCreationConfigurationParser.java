@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.validation.Schema;
-
 import static java.util.Arrays.asList;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
@@ -100,12 +98,11 @@ public class ServiceCreationConfigurationParser {
         }));
     List<ServiceType> services = configType.getService();
     configuration.getServiceCreationConfigurations().forEach(config -> {
-      @SuppressWarnings("rawtypes")
-      CacheManagerServiceConfigurationParser parser = parsers.get(config.getServiceType());
+      CacheManagerServiceConfigurationParser<?> parser = parsers.get(config.getServiceType());
       if (parser != null) {
         ServiceType serviceType = new ServiceType();
-        @SuppressWarnings("unchecked")
-        Element element = parser.unparseServiceCreationConfiguration(config);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Element element = parser.unparseServiceCreationConfiguration((ServiceCreationConfiguration) config);
         serviceType.setServiceCreationConfiguration(element);
         services.add(serviceType);
       }
