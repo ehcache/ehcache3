@@ -103,7 +103,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   public AbstractOffHeapStore(Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
-    super(config.getKeyType(), config.getValueType());
+    super(config);
 
     expiry = config.getExpiry();
 

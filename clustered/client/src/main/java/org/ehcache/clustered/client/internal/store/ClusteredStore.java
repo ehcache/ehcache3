@@ -122,7 +122,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
 
   private ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource) {
-    super(config.getKeyType(), config.getValueType());
+    super(config);
 
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;

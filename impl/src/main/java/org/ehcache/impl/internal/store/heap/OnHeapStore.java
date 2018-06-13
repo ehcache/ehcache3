@@ -205,7 +205,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
                      SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier) {
-    super(config.getKeyType(), config.getValueType());
+    super(config);
 
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 

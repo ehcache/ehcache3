@@ -37,12 +37,14 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  */
 public abstract class BaseStore<K, V> implements Store<K, V> {
 
+  /* Type of the keys stored in this store */
   protected final Class<K> keyType;
+  /* Type of the values stored in this store */
   protected final Class<V> valueType;
 
-  public BaseStore(Class<K> keyType, Class<V> valueType) {
-    this.keyType = keyType;
-    this.valueType = valueType;
+  public BaseStore(Configuration<K, V> config) {
+    this.keyType = config.getKeyType();
+    this.valueType = config.getValueType();
   }
 
   protected void checkKey(K keyObject) {
