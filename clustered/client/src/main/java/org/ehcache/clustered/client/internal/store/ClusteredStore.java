@@ -37,9 +37,7 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
@@ -50,7 +48,6 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.impl.internal.store.basic.BaseStore;
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
@@ -94,7 +91,6 @@ import java.util.function.Supplier;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Supports a {@link Store} in a clustered environment.

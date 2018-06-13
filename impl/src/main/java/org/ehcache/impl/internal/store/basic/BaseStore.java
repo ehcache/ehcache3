@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.basic;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.util.CheckerUtil;
@@ -58,7 +57,7 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     return operation(outcome).named(name).of(this).tag(getStatisticsTag()).build();
   }
 
-  protected <T extends Serializable> void registerStatistic(String name, Set<String> tags, StatisticType type, Supplier<T> valueSupplier) {
+  protected <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
     StatisticsManager.createPassThroughStatistic(this, name, tags, type, valueSupplier);
   }
 

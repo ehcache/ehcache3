@@ -18,7 +18,6 @@ package org.ehcache.impl.internal.store.heap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.Cache;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
@@ -32,7 +31,6 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.internal.store.basic.BaseStore;
-import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -100,7 +98,6 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticType.COUNTER;
 import static org.terracotta.statistics.StatisticType.GAUGE;
 
@@ -260,10 +257,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class);
 
     Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, COUNTER, () -> map.mappingCount());
-
-    if(byteSized) {
-      StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, GAUGE, () -> map.byteSize());
+    registerStatistic("mappings", COUNTER, tags, () -> map.mappingCount());
+    if (byteSized) {
+      registerStatistic("occupiedMemory", GAUGE, tags, () -> map.byteSize());
     }
   }
 

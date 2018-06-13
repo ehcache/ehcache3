@@ -36,7 +36,6 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.impl.internal.store.basic.BaseStore;
-import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -54,13 +53,11 @@ import org.ehcache.impl.store.HashUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
-import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticsManager.tags;
 import static org.terracotta.statistics.StatisticType.GAUGE;
 
@@ -152,7 +149,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   private <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Function<EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>>, T> fn) {
-    StatisticsManager.createPassThroughStatistic(this, name, tags, type, () -> {
+    registerStatistic(name, type, tags, () -> {
       EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
       // Returning null means not available.
       // Do not return -1 because a stat can be negative and it's hard to tell the difference
