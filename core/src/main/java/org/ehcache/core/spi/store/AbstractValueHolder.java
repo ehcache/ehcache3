@@ -30,6 +30,7 @@ import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
+  @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
@@ -39,7 +40,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   private volatile long expirationTime;
   private volatile long hits;
 
+  @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> ACCESSTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "lastAccessTime");
+  @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> EXPIRATIONTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "expirationTime");
 
   protected AbstractValueHolder(long id, long creationTime) {

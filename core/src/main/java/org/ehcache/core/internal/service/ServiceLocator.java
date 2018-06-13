@@ -458,6 +458,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static class DependencyException extends Exception {
+    private static final long serialVersionUID = -5269926129639323941L;
+
     public DependencyException(String s) {
       super(s);
     }

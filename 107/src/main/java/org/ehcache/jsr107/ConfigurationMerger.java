@@ -152,7 +152,7 @@ class ConfigurationMerger {
   }
 
   private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder, String cacheName) {
-    DefaultCopierConfiguration copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
+    DefaultCopierConfiguration<?> copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
     if(copierConfig == null) {
       if(jsr107Configuration.isStoreByValue()) {
         if (xmlConfiguration != null) {
@@ -219,7 +219,7 @@ class ConfigurationMerger {
     addIdentityCopierIfNoneRegistered(defaults, Character.class);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class<?> clazz) {
     if (!defaults.containsKey(clazz)) {
       defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));

@@ -18,6 +18,8 @@ package org.ehcache.transactions.xa.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.
  */
@@ -25,9 +27,8 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
 
   private final Class<? extends TransactionManagerLookup> lookupClass;
 
-  @SuppressWarnings("unchecked")
   public LookupTransactionManagerProviderConfiguration(String className) throws ClassNotFoundException {
-    this.lookupClass = (Class<? extends TransactionManagerLookup>) Class.forName(className);
+    this.lookupClass = uncheckedCast(Class.forName(className));
   }
 
   public LookupTransactionManagerProviderConfiguration(Class<? extends TransactionManagerLookup> clazz) {

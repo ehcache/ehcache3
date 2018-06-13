@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 import static org.ehcache.xml.DomUtil.COLON;
 
 /**
@@ -64,8 +65,7 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
       try {
         ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
         Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, defaultClassLoader);
-        @SuppressWarnings("unchecked")
-        Class<? extends TransactionManagerLookup> clazz = (Class<? extends TransactionManagerLookup>) aClass;
+        Class<? extends TransactionManagerLookup> clazz = uncheckedCast(aClass);
         return new LookupTransactionManagerProviderConfiguration(clazz);
       } catch (Exception e) {
         throw new XmlConfigurationException("Error configuring XA transaction manager", e);

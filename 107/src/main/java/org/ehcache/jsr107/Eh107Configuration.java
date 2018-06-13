@@ -118,8 +118,7 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
     @Override
     public boolean isStoreByValue() {
-      Collection<DefaultCopierConfiguration> copierConfig = findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-      return !copierConfig.isEmpty();
+      return !findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations()).isEmpty();
     }
   }
 }

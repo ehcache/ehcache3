@@ -44,3 +44,7 @@ project.signing {
   required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
   sign project.configurations.getByName('archives')
 }
+
+compileTestJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+}

@@ -475,6 +475,11 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       this.padding = new byte[800];
     }
 
+    @Override
+    public int hashCode() {
+      return value;
+    }
+
     public boolean equals(Object o) {
       if (o instanceof CacheValue) {
         return value == ((CacheValue) o).value;

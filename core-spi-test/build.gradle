@@ -20,3 +20,7 @@ dependencies {
     exclude group:'org.hamcrest', module:'hamcrest-core'
   }
 }
+
+compileJava {
+  options.compilerArgs += ['-Xlint:-rawtypes']
+}

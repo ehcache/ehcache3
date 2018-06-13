@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.core.spi.store.heap;
+package org.ehcache.core.internal.util;
 
 /**
- * This exception is thrown when {@link SizeOfEngine} reaches one of the limits defined in configuration while sizing
- * the object on heap.
+ * Holder for static helper methods related to types and casting.
  */
-public class LimitExceededException extends Exception {
+public final class TypeUtil {
 
-  private static final long serialVersionUID = -4689090295854830331L;
-
-  /**
-   * Creates an exception with the provided message
-   *
-   * @param message information about the exception
-   */
-  public LimitExceededException(String message) {
-    super(message);
+  private TypeUtil() {
+    //static holder
   }
 
+  /**
+   * Performs a (warning suppressed) unchecked cast to an infered type {@code U}.
+   */
+  @SuppressWarnings("unchecked")
+  public static <U> U uncheckedCast(Object o) {
+    return (U) o;
+  }
 }

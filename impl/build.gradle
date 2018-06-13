@@ -29,6 +29,11 @@ jar {
   from "$rootDir/NOTICE"
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs = ['-Xlint:unchecked,deprecation']
+compileJava {
+  //no -Werror due to unsafe
+  options.compilerArgs = ['-Xlint:all']
+}
+
+compileTestJava {
+  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
 }
