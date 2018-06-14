@@ -16,14 +16,12 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
@@ -55,6 +53,7 @@ import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collection;
@@ -136,7 +135,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
-    private final Map<OffHeapStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OffHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     protected ResourceType<SizedResourcePool> getResourceType() {
@@ -157,7 +156,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -242,7 +241,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -264,7 +263,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
-      tierOperationStatistics.put(lowerCachingTier, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(lowerCachingTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(lowerCachingTier, "get", TierOperationOutcomes.GET_AND_REMOVE_TRANSLATION, "getAndRemove"),
         createTranslatedStatistic(lowerCachingTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });

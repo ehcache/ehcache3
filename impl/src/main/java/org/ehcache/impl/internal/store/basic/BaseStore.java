@@ -17,11 +17,15 @@
 package org.ehcache.impl.internal.store.basic;
 
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.statistics.StatsUtils;
 import org.ehcache.impl.internal.util.CheckerUtil;
 import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.ZeroOperationStatistic;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.io.Serializable;
@@ -41,10 +45,13 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
   protected final Class<K> keyType;
   /* Type of the values stored in this store */
   protected final Class<V> valueType;
+  /** Tells if this store is by itself or in a tiered setup */
+  protected final boolean operationStatisticsEnabled;
 
   public BaseStore(Configuration<K, V> config) {
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
+    this.operationStatisticsEnabled = config.isOperationStatisticsEnabled();
   }
 
   protected void checkKey(K keyObject) {
@@ -55,7 +62,19 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     CheckerUtil.checkValue(valueType, valueObject);
   }
 
-  protected <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
+  /**
+   * Create an {@code OperationObserver} using {@code this} for the context.
+   *
+   * @param name name of the statistic
+   * @param outcome class of the possible outcomes
+   * @param canBeDisabled if this statistic can be disabled by a {@link StoreStatisticsConfiguration}
+   * @param <T> type of the outcome
+   * @return the created observer
+   */
+  protected <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome, boolean canBeDisabled) {
+    if(!operationStatisticsEnabled && canBeDisabled) {
+      return ZeroOperationStatistic.get();
+    }
     return operation(outcome).named(name).of(this).tag(getStatisticsTag()).build();
   }
 
@@ -68,11 +87,32 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
 
   protected static abstract class BaseStoreProvider implements Store.Provider {
 
-    protected  <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      int tierHeight = getResourceType().getTierHeight();
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, store.getStatisticsTag());
-      StatisticsManager.associate(stat).withParent(store);
-      return stat;
+    protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      Class<S> outcomeType = getOutcomeType(translation);
+
+      // If the original stat doesn't exist, we do not need to translate it
+      if (StatsUtils.hasOperationStat(store, outcomeType, targetName)) {
+        int tierHeight = getResourceType().getTierHeight();
+        OperationStatistic<T> stat = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, store
+          .getStatisticsTag());
+        StatisticsManager.associate(stat).withParent(store);
+        return stat;
+      }
+      return ZeroOperationStatistic.get();
+    }
+
+    /**
+     * From the Map of translation, we extract one of the items to get the declaring class of the enum.
+     *
+     * @param translation translation map
+     * @param <S> type of the outcome
+     * @param <T> type of the possible translations
+     * @return the outcome type
+     */
+    private static <S extends Enum<S>, T extends Enum<T>> Class<S> getOutcomeType(Map<T, Set<S>> translation) {
+      Map.Entry<T, Set<S>> first = translation.entrySet().iterator().next();
+      Class<S> outcomeType = first.getValue().iterator().next().getDeclaringClass();
+      return outcomeType;
     }
 
     protected abstract ResourceType<?> getResourceType();

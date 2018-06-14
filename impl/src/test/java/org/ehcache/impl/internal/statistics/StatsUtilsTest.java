@@ -21,7 +21,9 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.junit.After;
 import org.junit.Before;
@@ -43,12 +45,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
-import static org.ehcache.impl.internal.statistics.StatsUtils.hasProperty;
-import static org.ehcache.impl.internal.statistics.StatsUtils.hasTag;
+import static org.ehcache.impl.internal.statistics.StatsUtils.*;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -67,7 +64,9 @@ public class StatsUtilsTest {
   @Before
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10)).build();
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("aCache", cacheConfiguration)
@@ -209,5 +208,15 @@ public class StatsUtilsTest {
   public void testFindLowerTier_none() {
     expectedException.expect(RuntimeException.class);
     findLowestTier(new String[0]);
+  }
+
+  @Test
+  public void testHasOperationStatistic_found() {
+    assertThat(hasOperationStat(cache, StoreOperationOutcomes.GetOutcome.class, "get")).isTrue();
+  }
+
+  @Test
+  public void testHasOperationStatistic_notFound() {
+    assertThat(hasOperationStat(cache, StoreOperationOutcomes.GetOutcome.class, "xxx")).isFalse();
   }
 }

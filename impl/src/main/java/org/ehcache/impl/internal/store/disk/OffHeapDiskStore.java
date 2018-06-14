@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
@@ -60,7 +59,7 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
@@ -295,7 +294,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
   public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
-    private final Map<OffHeapDiskStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
@@ -328,7 +327,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -464,7 +463,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });

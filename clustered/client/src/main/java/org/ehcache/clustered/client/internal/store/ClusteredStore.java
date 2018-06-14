@@ -68,7 +68,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -129,15 +129,15 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     this.resolver = resolver;
     this.timeSource = timeSource;
 
-    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class);
-    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class);
-    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class);
-    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class);
-    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class);
-    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class);
-    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class);
-    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class);
-    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, true);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, true);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, true);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
   }
 
   /**
@@ -556,7 +556,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<ClusteredStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<ClusteredStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     @SuppressWarnings("unchecked")
@@ -568,7 +568,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
-      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -789,7 +789,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
