@@ -64,9 +64,72 @@ public class DefaultCacheStatisticsTest {
    * @return if store statistics are enabled or disabled
    */
   @Parameterized.Parameters
-  public static Object[] data() {
+  public static final Object[] data() {
     return new Object[] { Boolean.FALSE, Boolean.TRUE };
   }
+
+  private static final String[][] KNOWN_STATISTICS = {
+    {
+      // Disabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:GetHitLatency#100",
+      "Cache:GetHitLatency#50",
+      "Cache:GetHitLatency#95",
+      "Cache:GetHitLatency#99",
+      "Cache:GetMissLatency#100",
+      "Cache:GetMissLatency#50",
+      "Cache:GetMissLatency#95",
+      "Cache:GetMissLatency#99",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:PutLatency#100",
+      "Cache:PutLatency#50",
+      "Cache:PutLatency#95",
+      "Cache:PutLatency#99",
+      "Cache:RemovalCount",
+      "Cache:RemoveLatency#100",
+      "Cache:RemoveLatency#50",
+      "Cache:RemoveLatency#95",
+      "Cache:RemoveLatency#99",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:MappingCount"
+    },
+    {
+      // Enabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:GetHitLatency#100",
+      "Cache:GetHitLatency#50",
+      "Cache:GetHitLatency#95",
+      "Cache:GetHitLatency#99",
+      "Cache:GetMissLatency#100",
+      "Cache:GetMissLatency#50",
+      "Cache:GetMissLatency#95",
+      "Cache:GetMissLatency#99",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:PutLatency#100",
+      "Cache:PutLatency#50",
+      "Cache:PutLatency#95",
+      "Cache:PutLatency#99",
+      "Cache:RemovalCount",
+      "Cache:RemoveLatency#100",
+      "Cache:RemoveLatency#50",
+      "Cache:RemoveLatency#95",
+      "Cache:RemoveLatency#99",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount"
+    }
+  };
 
   private static final int TIME_TO_EXPIRATION = 100;
   private static final int HISTOGRAM_WINDOW_MILLIS = 400;
@@ -141,36 +204,7 @@ public class DefaultCacheStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(
-      "Cache:EvictionCount",
-      "Cache:ExpirationCount",
-      "Cache:GetHitLatency#100",
-      "Cache:GetHitLatency#50",
-      "Cache:GetHitLatency#95",
-      "Cache:GetHitLatency#99",
-      "Cache:GetMissLatency#100",
-      "Cache:GetMissLatency#50",
-      "Cache:GetMissLatency#95",
-      "Cache:GetMissLatency#99",
-      "Cache:HitCount",
-      "Cache:MissCount",
-      "Cache:PutCount",
-      "Cache:PutLatency#100",
-      "Cache:PutLatency#50",
-      "Cache:PutLatency#95",
-      "Cache:PutLatency#99",
-      "Cache:RemovalCount",
-      "Cache:RemoveLatency#100",
-      "Cache:RemoveLatency#50",
-      "Cache:RemoveLatency#95",
-      "Cache:RemoveLatency#99",
-      "OnHeap:EvictionCount",
-      "OnHeap:ExpirationCount",
-      "OnHeap:HitCount",
-      "OnHeap:MappingCount",
-      "OnHeap:MissCount",
-      "OnHeap:PutCount",
-      "OnHeap:RemovalCount");
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(KNOWN_STATISTICS[enableStoreStatistics ? 1 : 0]);
   }
 
   @Test

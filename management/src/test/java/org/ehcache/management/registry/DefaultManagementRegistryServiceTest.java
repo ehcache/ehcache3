@@ -31,6 +31,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -56,6 +57,7 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 public class DefaultManagementRegistryServiceTest {
 
   private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> ONHEAP_NO_STATS_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> DISK_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
@@ -102,6 +104,7 @@ public class DefaultManagementRegistryServiceTest {
     CacheManager cacheManager1 = null;
     try {
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .add(new StoreStatisticsConfiguration(true))
           .build();
 
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -122,6 +125,41 @@ public class DefaultManagementRegistryServiceTest {
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
       Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
+      allDescriptors.addAll(CACHE_DESCRIPTORS);
+
+      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
+    }
+
+  }
+
+  @Test
+  public void descriptorOnHeapTest_withoutStats() {
+    CacheManager cacheManager1 = null;
+    try {
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        .build();
+
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+      cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("aCache", cacheConfiguration)
+        .using(managementRegistry)
+        .build(true);
+
+      assertThat(managementRegistry.getCapabilities()).hasSize(4);
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName()).isEqualTo("ActionsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName()).isEqualTo("SettingsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName()).isEqualTo("StatisticCollectorCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName()).isEqualTo("StatisticsCapability");
+
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
+
+      Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
+      allDescriptors.addAll(ONHEAP_NO_STATS_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
       assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
@@ -214,6 +252,7 @@ public class DefaultManagementRegistryServiceTest {
   @Test
   public void testCanGetCapabilities() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+      .add(new StoreStatisticsConfiguration(true))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -410,7 +449,11 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @BeforeClass
-  public static void loadStatsUtil() throws ClassNotFoundException {
+  public static void loadStatsUtil() {
+    ONHEAP_NO_STATS_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"));
+    ONHEAP_NO_STATS_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));
+    ONHEAP_NO_STATS_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"));
+
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"));
