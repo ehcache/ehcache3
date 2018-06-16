@@ -20,13 +20,11 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.terracotta.entity.ActiveInvokeContext;
-import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
 
@@ -50,7 +48,7 @@ public class ObservableEhcacheServerEntityService extends ClusterTierManagerServ
    *
    * @return an unmodifiable list of {@code ObservableEhcacheActiveEntity} instances
    */
-  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
+  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() {
     return Collections.unmodifiableList(servedActiveEntities);
   }
 
@@ -114,7 +112,7 @@ public class ObservableEhcacheServerEntityService extends ClusterTierManagerServ
     }
 
     @Override
-    public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
+    public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> invokeContext, EhcacheEntityMessage message) {
       return activeEntity.invokeActive(invokeContext, message);
     }
 

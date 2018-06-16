@@ -111,8 +111,8 @@ public class ConfigurationMergerTest {
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("Cache", configuration);
 
     assertThat(factory.called, is(true));
-    org.ehcache.expiry.ExpiryPolicy resourcesExpiry = configHolder.cacheResources.getExpiryPolicy();
-    org.ehcache.expiry.ExpiryPolicy configExpiry = configHolder.cacheConfiguration.getExpiryPolicy();
+    org.ehcache.expiry.ExpiryPolicy<Object, Object> resourcesExpiry = configHolder.cacheResources.getExpiryPolicy();
+    org.ehcache.expiry.ExpiryPolicy<Object, Object> configExpiry = configHolder.cacheConfiguration.getExpiryPolicy();
     assertThat(configExpiry, sameInstance(resourcesExpiry));
   }
 
@@ -215,7 +215,7 @@ public class ConfigurationMergerTest {
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        DefaultCopierConfiguration<Object> copierConfig = (DefaultCopierConfiguration<Object>)serviceConfiguration;
         if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
           storeByValue = false;
         break;
@@ -383,7 +383,7 @@ public class ConfigurationMergerTest {
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         noCopierConfigPresent = true;
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        DefaultCopierConfiguration<Object> copierConfig = (DefaultCopierConfiguration<Object>)serviceConfiguration;
         assertThat(copierConfig.getClazz().isAssignableFrom(Eh107IdentityCopier.class), is(true));
       }
     }
@@ -403,6 +403,7 @@ public class ConfigurationMergerTest {
   }
 
   private static class RecordingFactory<T> implements Factory<T> {
+    private static final long serialVersionUID = 1L;
     private final T instance;
     boolean called;
 
@@ -418,6 +419,8 @@ public class ConfigurationMergerTest {
   }
 
   private static class ThrowingCacheEntryListenerConfiguration implements CacheEntryListenerConfiguration<Object, Object> {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public Factory<CacheEntryListener<? super Object, ? super Object>> getCacheEntryListenerFactory() {
       throw new UnsupportedOperationException("BOOM");

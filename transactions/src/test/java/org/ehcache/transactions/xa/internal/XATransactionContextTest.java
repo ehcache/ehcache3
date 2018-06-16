@@ -26,14 +26,12 @@ import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -64,22 +62,25 @@ import static org.mockito.Mockito.when;
  */
 public class XATransactionContextTest {
 
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
+
   @Mock
   private Store<Long, SoftLock<String>> underlyingStore;
   @Mock
   private Journal<Long> journal;
 
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
+  private final TestTimeSource timeSource = new TestTimeSource();
+
+  private XATransactionContext<Long, String> getXaTransactionContext() {
+    return new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource,
+      timeSource.getTimeMillis() + 30000);
   }
 
   @Test
-  public void testSimpleCommands() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
+  public void testSimpleCommands() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
     assertThat(xaTransactionContext.touched(1L), is(false));
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(false));
@@ -117,11 +118,8 @@ public class XATransactionContextTest {
   }
 
   @Test
-  public void testCommandsOverrideEachOther() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
+  public void testCommandsOverrideEachOther() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old", new XAValueHolder<>("new", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
     assertThat(xaTransactionContext.removed(1L), is(false));
@@ -160,11 +158,9 @@ public class XATransactionContextTest {
   }
 
   @Test
-  public void testEvictCommandCannotBeOverridden() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
+  public void testEvictCommandCannotBeOverridden() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old", new XAValueHolder<>("new", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
     assertThat(xaTransactionContext.removed(1L), is(false));
@@ -194,9 +190,7 @@ public class XATransactionContextTest {
   }
 
   @Test
-  public void testHasTimedOut() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
+  public void testHasTimedOut() {
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
                                                                                                                                                          .getTimeMillis() + 30000);
     assertThat(xaTransactionContext.hasTimedOut(), is(false));
@@ -206,13 +200,11 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareReadOnly() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     assertThat(xaTransactionContext.prepare(), is(0));
 
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), eq(Collections.<Long>emptySet()));
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), eq(Collections.emptySet()));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
     verify(journal, times(1)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), eq(false));
   }
@@ -220,9 +212,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testPrepare() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>(null, new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -261,10 +251,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitNotPreparedInFlightThrows() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StorePutCommand<>("two", new XAValueHolder<>("deux", timeSource.getTimeMillis())));
 
@@ -284,9 +271,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommit() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -325,9 +310,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhasePreparedThrows() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
 
@@ -342,9 +325,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommitInOnePhase() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>(null, new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -424,10 +405,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testRollbackPhase1() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -440,10 +418,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testRollbackPhase2() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -484,10 +459,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhaseTimeout() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -503,10 +475,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareTimeout() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -523,10 +492,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommitConflictsEvicts() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
@@ -566,10 +532,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testPrepareConflictsEvicts() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -587,10 +550,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testRollbackConflictsEvicts() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
@@ -626,18 +586,4 @@ public class XATransactionContextTest {
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null)), eq(new SoftLock<>(null, "old2", null)));
     verify(underlyingStore, times(1)).remove(eq(2L));
   }
-
-  private static <T> Matcher<Collection<T>> isACollectionThat(
-      final Matcher<Iterable<? extends T>> matcher) {
-    return new BaseMatcher<Collection<T>>() {
-      @Override public boolean matches(Object item) {
-        return matcher.matches(item);
-      }
-
-      @Override public void describeTo(Description description) {
-        matcher.describeTo(description);
-      }
-    };
-  }
-
 }

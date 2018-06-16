@@ -20,6 +20,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -32,13 +33,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
 
-import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToIdleExpiration;
-
 /**
  * GettingStarted
  */
 public class GettingStarted {
-
 
   @Rule
   public TemporaryFolder tmpDir = new TemporaryFolder();
@@ -79,7 +77,7 @@ public class GettingStarted {
             .heap(10, EntryUnit.ENTRIES)
             .offheap(1, MemoryUnit.MB)
             .disk(20, MemoryUnit.MB, true))
-          .withExpiry(timeToIdleExpiration(Duration.ofSeconds(20)))
+          .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(20)))
       ).build(false);
 
     Configuration configuration = cacheManager.getRuntimeConfiguration();

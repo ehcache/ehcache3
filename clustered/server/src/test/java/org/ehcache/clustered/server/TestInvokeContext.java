@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveInvokeChannel;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
@@ -23,7 +24,7 @@ import org.terracotta.entity.ClientSourceId;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class TestInvokeContext implements ActiveInvokeContext {
+public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntityResponse> {
 
   private final AtomicLong currentTransactionId = new AtomicLong();
 
@@ -39,7 +40,7 @@ public final class TestInvokeContext implements ActiveInvokeContext {
   }
 
   @Override
-  public ActiveInvokeChannel openInvokeChannel() {
+  public ActiveInvokeChannel<EhcacheEntityResponse> openInvokeChannel() {
     return null;
   }
 
