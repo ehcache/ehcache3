@@ -167,7 +167,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       clientCommunicator = registry.getService(new CommunicatorServiceConfiguration());
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
       entityMessenger = registry.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
-      messageHandler = registry.getService(new OOOMessageHandlerConfiguration<EhcacheEntityMessage, EhcacheEntityResponse>(managerIdentifier + "###" + storeIdentifier,
+      messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
         ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
@@ -263,7 +263,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   @Override
-  public EhcacheEntityResponse invokeActive(ActiveInvokeContext context, EhcacheEntityMessage message)  throws EntityUserException {
+  public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> context, EhcacheEntityMessage message)  throws EntityUserException {
     return messageHandler.invoke(context, message, this::invokeActiveInternal);
   }
 
@@ -293,12 +293,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
   }
 
-  private EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) throws ClusterException {
+  private EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message) {
     return stateService.getStateRepositoryManager().invoke(message);
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(InvokeContext context, LifecycleMessage message) throws ClusterException {
-    ActiveInvokeContext activeInvokeContext = (ActiveInvokeContext)context;
+    @SuppressWarnings("unchecked")
+    ActiveInvokeContext<EhcacheEntityResponse> activeInvokeContext = (ActiveInvokeContext<EhcacheEntityResponse>) context;
     switch (message.getMessageType()) {
       case VALIDATE_SERVER_STORE:
         validateServerStore(activeInvokeContext.getClientDescriptor(), (ValidateServerStore) message);
@@ -321,7 +322,8 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(InvokeContext context, ServerStoreOpMessage message) throws ClusterException {
-    ActiveInvokeContext activeInvokeContext = (ActiveInvokeContext) context;
+    @SuppressWarnings("unchecked")
+    ActiveInvokeContext<EhcacheEntityResponse> activeInvokeContext = (ActiveInvokeContext<EhcacheEntityResponse>) context;
     ClientDescriptor clientDescriptor = activeInvokeContext.getClientDescriptor();
 
     ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
@@ -555,7 +557,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
    * @param message message to be forwarded
    * @param newChain resulting chain to send
    */
-  private void sendMessageToSelfAndDeferRetirement(ActiveInvokeContext context, KeyBasedServerStoreOpMessage message, Chain newChain) {
+  private void sendMessageToSelfAndDeferRetirement(ActiveInvokeContext<EhcacheEntityResponse> context, KeyBasedServerStoreOpMessage message, Chain newChain) {
     try {
       long clientId = context.getClientSource().toLong();
       entityMessenger.messageSelfAndDeferRetirement(message, new PassiveReplicationMessage.ChainReplicationMessage(message.getKey(), newChain,

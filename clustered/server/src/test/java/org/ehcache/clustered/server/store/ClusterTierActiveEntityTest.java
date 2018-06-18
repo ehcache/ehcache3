@@ -46,6 +46,7 @@ import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHo
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
@@ -100,7 +101,6 @@ import static org.mockito.Mockito.when;
 
 public class ClusterTierActiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -217,7 +217,7 @@ public class ClusterTierActiveEntityTest {
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
-    IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
+    IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
@@ -1321,5 +1321,10 @@ public class ClusterTierActiveEntityTest {
     private long getUsed() {
       return used;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T mock(Class<?> clazz) {
+    return Mockito.mock((Class<T>) clazz);
   }
 }

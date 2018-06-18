@@ -24,6 +24,7 @@ import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.journal.Journal;
@@ -55,16 +56,16 @@ public class XAStoreProviderTest {
     TransactionManagerProvider transactionManagerProvider = mock(TransactionManagerProvider.class);
     when(transactionManagerProvider.getTransactionManagerWrapper()).thenReturn(mock(TransactionManagerWrapper.class));
 
-    ServiceProvider serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(JournalProvider.class)).thenReturn(journalProvider);
     when(serviceProvider.getService(TimeSourceService.class)).thenReturn(new DefaultTimeSourceService(null));
     when(serviceProvider.getService(TransactionManagerProvider.class)).thenReturn(transactionManagerProvider);
     when(serviceProvider.getServicesOfType(Store.Provider.class)).thenReturn(Collections.singleton(underlyingStoreProvider));
 
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(1, MemoryUnit.MB).build());
     when(configuration.getDispatcherConcurrency()).thenReturn(1);
-    StatefulSerializer valueSerializer = mock(StatefulSerializer.class);
+    StatefulSerializer<String> valueSerializer = mock(StatefulSerializer.class);
     when(configuration.getValueSerializer()).thenReturn(valueSerializer);
 
     underlyingStoreProvider.start(serviceProvider);
@@ -72,7 +73,7 @@ public class XAStoreProviderTest {
     XAStore.Provider provider = new XAStore.Provider();
     provider.start(serviceProvider);
 
-    Store store = provider.createStore(configuration, mock(XAStoreConfiguration.class));
+    Store<String, String> store = provider.createStore(configuration, mock(XAStoreConfiguration.class));
     provider.initStore(store);
 
     verify(valueSerializer).init(any(StateRepository.class));

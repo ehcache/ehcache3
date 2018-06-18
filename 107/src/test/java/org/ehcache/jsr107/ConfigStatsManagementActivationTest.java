@@ -202,7 +202,7 @@ public class ConfigStatsManagementActivationTest {
 
     Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
     @SuppressWarnings("unchecked")
-    Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));

@@ -98,7 +98,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   }
 
   @Override
-  public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> invokeContext, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
