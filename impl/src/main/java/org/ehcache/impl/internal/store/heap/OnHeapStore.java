@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.heap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.Cache;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeEvent;
@@ -69,7 +70,6 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -1479,7 +1479,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return map.byteSize();
   }
 
-  @FindbugsSuppressWarnings("QF_QUESTIONABLE_FOR_LOOP")
+  @SuppressFBWarnings("QF_QUESTIONABLE_FOR_LOOP")
   protected void enforceCapacity() {
     StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
     try {

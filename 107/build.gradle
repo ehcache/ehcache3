@@ -30,8 +30,12 @@ sourceSets {
 }
 
 dependencies {
-  compile project(':impl'), project(':xml')
-  provided "javax.cache:cache-api:$parent.jcacheVersion"
+  api project(':api')
+  providedApi "javax.cache:cache-api:$parent.jcacheVersion"
+
+  implementation project(':impl')
+  implementation project(':xml')
+
   tckTestRuntime "javax.cache:cache-tests:$jcacheTckVersion"
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
@@ -44,7 +48,6 @@ tasks.withType(JavaCompile) {
 
 javadoc {
   exclude '**/tck/**'
-  classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
 }
 
 test {

@@ -18,7 +18,6 @@ package org.ehcache.xml.provider;
 
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.xml.model.ConfigType;
-import org.ehcache.xml.model.ThreadPoolReferenceType;
 
 public class CacheEventDispatcherFactoryConfigurationParser extends ThreadPoolServiceCreationConfigurationParser<CacheEventDispatcherFactoryConfiguration> {
 

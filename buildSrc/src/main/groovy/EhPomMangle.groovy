@@ -44,7 +44,7 @@ class EhPomMangle implements Plugin<Project> {
   void apply(Project project) {
     def utils = new Utils(project.baseVersion, project.logger)
 
-    project.plugins.apply 'java'
+    project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
 

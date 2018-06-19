@@ -16,12 +16,11 @@
 
 package org.ehcache.transactions.xa.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
-import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +32,7 @@ import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
  *
  * @author Ludovic Orban
  */
-@FindbugsSuppressWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
+@SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
 @SuppressWarnings("serial") //this class has writeReplace/readResolve methods
 public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 

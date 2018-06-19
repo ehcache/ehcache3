@@ -28,12 +28,10 @@ dependencies {
   compileOnly project(':api')
   compileOnly project(':core')
   compileOnly project(':impl')
-  testCompile ("org.terracotta.management:management-registry:$terracottaPlatformVersion") {
-    exclude group: 'org.terracotta', module: 'statistics'
-  }
-
-  testCompile project(':xml')
-  testCompile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testImplementation "org.terracotta.management:management-registry:$terracottaPlatformVersion"
+  testImplementation project(':xml')
+  testImplementation project(':impl')
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
 }
 
 test {
