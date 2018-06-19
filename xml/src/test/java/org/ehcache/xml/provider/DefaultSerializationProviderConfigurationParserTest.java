@@ -54,7 +54,7 @@ public class DefaultSerializationProviderConfigurationParserTest extends Service
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(DefaultSerializationProviderConfiguration.class);
 
@@ -68,7 +68,7 @@ public class DefaultSerializationProviderConfigurationParserTest extends Service
   }
 
 
-  @Test
+  @Test @SuppressWarnings("unchecked")
   public void unparseServiceCreationConfiguration() {
     DefaultSerializationProviderConfiguration providerConfig = new DefaultSerializationProviderConfiguration();
     providerConfig.addSerializerFor(Description.class, (Class) TestSerializer3.class);

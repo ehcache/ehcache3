@@ -27,6 +27,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 public class DefaultCacheLoaderWriterConfigurationParser
   extends SimpleCoreServiceConfigurationParser<String, CacheLoaderWriterType, DefaultCacheLoaderWriterConfiguration> {
 
+  @SuppressWarnings("unchecked")
   public DefaultCacheLoaderWriterConfigurationParser() {
     super(DefaultCacheLoaderWriterConfiguration.class,
       CacheTemplate::loaderWriter,

@@ -48,11 +48,12 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
   @Test
   public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/default-serializer.xml", "foo");
+    @SuppressWarnings("rawtypes")
     Collection<DefaultSerializerConfiguration> copierConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfigs).hasSize(2);
 
-    for(DefaultSerializerConfiguration copierConfig: copierConfigs) {
+    for(DefaultSerializerConfiguration<?> copierConfig : copierConfigs) {
       if(copierConfig.getType() == DefaultSerializerConfiguration.Type.KEY) {
         assertThat(copierConfig.getClazz()).isEqualTo(TestSerializer3.class);
       } else {
@@ -63,6 +64,7 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
 
   @Test
   public void unparseServiceConfiguration() {
+    @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
       .add(new DefaultSerializerConfiguration(TestSerializer3.class, DefaultSerializerConfiguration.Type.KEY))
       .add(new DefaultSerializerConfiguration(TestSerializer4.class, DefaultSerializerConfiguration.Type.VALUE))

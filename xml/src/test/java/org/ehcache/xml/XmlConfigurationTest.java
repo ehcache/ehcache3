@@ -407,7 +407,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
@@ -426,7 +426,7 @@ public class XmlConfigurationTest {
     orderedServiceConfigurations.sort(Comparator.comparing(o -> o.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
-    DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
+    DefaultSerializerConfiguration<?> keySerializationProviderConfiguration = (DefaultSerializerConfiguration<?>) it.next();
     assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
   }
 
@@ -459,22 +459,22 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultCopyProviderConfiguration.class));
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaults().size(), is(2));
     assertThat(factoryConfiguration.getDefaults().get(Description.class).getClazz(),
-        Matchers.<Class<? extends Copier>>equalTo(DescriptionCopier.class));
+        Matchers.<Class<? extends Copier<?>>>equalTo(DescriptionCopier.class));
     assertThat(factoryConfiguration.getDefaults().get(Person.class).getClazz(),
-        Matchers.<Class<? extends Copier>>equalTo(PersonCopier.class));
+        Matchers.<Class<? extends Copier<?>>>equalTo(PersonCopier.class));
 
 
     Collection<ServiceConfiguration<?>> configs = xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations();
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
+        DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration<?>) config;
         if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
@@ -486,7 +486,7 @@ public class XmlConfigurationTest {
     configs = xmlConfig.getCacheConfigurations().get("bak").getServiceConfigurations();
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
+        DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration<?>) config;
         if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {

@@ -17,6 +17,7 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
 
@@ -26,6 +27,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 public class DefaultCopyProviderConfigurationParser
   extends SimpleCoreServiceCreationConfigurationParser<CopierType, DefaultCopyProviderConfiguration> {
 
+  @SuppressWarnings("unchecked")
   public DefaultCopyProviderConfigurationParser() {
     super(DefaultCopyProviderConfiguration.class,
       ConfigType::getDefaultCopiers, ConfigType::setDefaultCopiers,

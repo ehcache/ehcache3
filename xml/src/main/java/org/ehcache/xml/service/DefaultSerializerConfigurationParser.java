@@ -30,7 +30,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
 public class DefaultSerializerConfigurationParser implements CoreServiceConfigurationParser {
 
-  @Override
+  @Override @SuppressWarnings({"rawtypes", "unchecked"})
   public <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keySerializer() != null) {
@@ -46,7 +46,7 @@ public class DefaultSerializerConfigurationParser implements CoreServiceConfigur
     return cacheBuilder;
   }
 
-  @Override
+  @Override @SuppressWarnings({"rawtypes", "unchecked"})
   public CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
     Collection<DefaultSerializerConfiguration> serializerConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());

@@ -29,6 +29,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 public class DefaultSerializationProviderConfigurationParser
   extends SimpleCoreServiceCreationConfigurationParser<SerializerType, DefaultSerializationProviderConfiguration> {
 
+  @SuppressWarnings("unchecked")
   public DefaultSerializationProviderConfigurationParser() {
     super(DefaultSerializationProviderConfiguration.class,
       ConfigType::getDefaultSerializers, ConfigType::setDefaultSerializers,
