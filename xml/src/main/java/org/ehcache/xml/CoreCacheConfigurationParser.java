@@ -55,7 +55,8 @@ public class CoreCacheConfigurationParser {
       cacheBuilder = cacheBuilder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
     }
 
-    EvictionAdvisor evictionAdvisor = getInstanceOfName(cacheDefinition.evictionAdvisor(), cacheClassLoader, EvictionAdvisor.class);
+    @SuppressWarnings("unchecked")
+    EvictionAdvisor<? super K, ? super V> evictionAdvisor = getInstanceOfName(cacheDefinition.evictionAdvisor(), cacheClassLoader, EvictionAdvisor.class);
     cacheBuilder = cacheBuilder.withEvictionAdvisor(evictionAdvisor);
 
     return cacheBuilder;
@@ -64,23 +65,19 @@ public class CoreCacheConfigurationParser {
   @SuppressWarnings({"unchecked", "deprecation"})
   private static ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, Expiry parsedExpiry)
     throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    final ExpiryPolicy<? super Object, ? super Object> expiry;
     if (parsedExpiry.isUserDef()) {
-      ExpiryPolicy<? super Object, ? super Object> tmpExpiry;
       try {
-        tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
+        return getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
       } catch (ClassCastException e) {
-        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
+        return ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
       }
-      expiry = tmpExpiry;
     } else if (parsedExpiry.isTTL()) {
-      expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
+      return ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else if (parsedExpiry.isTTI()) {
-      expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
+      return ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else {
-      expiry = ExpiryPolicyBuilder.noExpiration();
+      return ExpiryPolicyBuilder.noExpiration();
     }
-    return expiry;
   }
 
   static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {

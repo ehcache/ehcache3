@@ -100,9 +100,11 @@ public class ServiceCreationConfigurationParser {
         }));
     List<ServiceType> services = configType.getService();
     configuration.getServiceCreationConfigurations().forEach(config -> {
+      @SuppressWarnings("rawtypes")
       CacheManagerServiceConfigurationParser parser = parsers.get(config.getServiceType());
       if (parser != null) {
         ServiceType serviceType = new ServiceType();
+        @SuppressWarnings("unchecked")
         Element element = parser.unparseServiceCreationConfiguration(config);
         serviceType.setServiceCreationConfiguration(element);
         services.add(serviceType);

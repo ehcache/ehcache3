@@ -97,8 +97,10 @@ public class ServiceConfigurationParser {
         }));
     List<Element> serviceConfigs = cacheType.getServiceConfiguration();
     cacheConfiguration.getServiceConfigurations().forEach(config -> {
+      @SuppressWarnings("rawtypes")
       CacheServiceConfigurationParser parser = parsers.get(config.getServiceType());
       if (parser != null) {
+        @SuppressWarnings("unchecked")
         Element element = parser.unparseServiceConfiguration(config);
         serviceConfigs.add(element);
       }
@@ -106,5 +108,4 @@ public class ServiceConfigurationParser {
 
     return cacheType;
   }
-
 }

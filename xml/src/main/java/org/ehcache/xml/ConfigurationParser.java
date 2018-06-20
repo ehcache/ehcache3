@@ -178,8 +178,8 @@ public class ConfigurationParser {
         }
       }
 
-      Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
-      Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
+      Class<?> keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
+      Class<?> valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
 
       ResourcePools resourcePools = resourceConfigurationParser.parseResourceConfiguration(cacheDefinition, newResourcePoolsBuilder());
 

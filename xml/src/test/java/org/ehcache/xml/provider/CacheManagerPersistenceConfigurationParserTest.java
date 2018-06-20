@@ -44,7 +44,7 @@ public class CacheManagerPersistenceConfigurationParserTest extends ServiceProvi
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(CacheManagerPersistenceConfiguration.class);
 
     CacheManagerPersistenceConfiguration providerConfiguration = (CacheManagerPersistenceConfiguration) configuration;

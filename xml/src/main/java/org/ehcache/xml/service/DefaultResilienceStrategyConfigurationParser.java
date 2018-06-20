@@ -26,6 +26,7 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 public class DefaultResilienceStrategyConfigurationParser
   extends SimpleCoreServiceConfigurationParser<String, String, DefaultResilienceStrategyConfiguration> {
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public DefaultResilienceStrategyConfigurationParser() {
     super(DefaultResilienceStrategyConfiguration.class,
       CacheTemplate::resilienceStrategy,

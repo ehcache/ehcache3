@@ -26,6 +26,7 @@ dependencies {
   implementation project(':impl')
   testImplementation 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
+  xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
 }
 
 test {
@@ -38,14 +39,5 @@ xjcGenerate {
   source = fileTree('src/main/resources') { include '*.xsd' }
   targetPackage = 'org.ehcache.xml.model'
   extension = true
-  extraArgs = ['-Xfluent-api']
-}
-
-compileJava {
-  // We can't check for unchecked errors because of XJC that produces them
-  options.compilerArgs = ['-Xlint:-unchecked,-serial']
-}
-
-compileTestJava {
-  options.compilerArgs = ['-Xlint:-rawtypes']
+  extraArgs = ['-Xfluent-api', '-Xannotate']
 }

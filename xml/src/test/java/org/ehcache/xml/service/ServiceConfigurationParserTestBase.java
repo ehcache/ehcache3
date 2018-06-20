@@ -57,7 +57,7 @@ public class ServiceConfigurationParserTestBase {
     return parser.parseServiceConfiguration(cacheDefinition, classLoader, cacheConfigurationBuilder).build();
   }
 
-  protected CacheConfiguration<?, ?> buildCacheConfigWithServiceConfig(ServiceConfiguration serviceConfig) {
+  protected CacheConfiguration<?, ?> buildCacheConfigWithServiceConfig(ServiceConfiguration<?> serviceConfig) {
     return cacheConfigurationBuilder.add(serviceConfig).build();
   }
 }

@@ -46,7 +46,7 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest extends ServiceP
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
 
-    ServiceCreationConfiguration configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(DefaultSizeOfEngineProviderConfiguration.class);
 
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = (DefaultSizeOfEngineProviderConfiguration) configuration;

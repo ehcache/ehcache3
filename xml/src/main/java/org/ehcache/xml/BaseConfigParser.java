@@ -34,20 +34,22 @@ import javax.xml.transform.Source;
 public abstract class BaseConfigParser<T> {
   private final Class<T> typeParameterClass;
 
+  @SuppressWarnings("unchecked")
   public BaseConfigParser() {
     typeParameterClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
   }
 
-  public BaseConfigParser(Class type) {
+  public BaseConfigParser(Class<T> type) {
     this.typeParameterClass = type;
   }
 
   private T validateConfig(Object config) {
     Objects.requireNonNull(config, "Configuration must not be null.");
-    if (!(typeParameterClass.isAssignableFrom(config.getClass()))) {
-      throw new IllegalArgumentException("Invalid configuration parameter passed.");
+    try {
+      return typeParameterClass.cast(config);
+    } catch (ClassCastException e) {
+      throw new IllegalArgumentException("Invalid configuration parameter passed.", e);
     }
-    return (T) config;
   }
 
   private Document createDocument() {

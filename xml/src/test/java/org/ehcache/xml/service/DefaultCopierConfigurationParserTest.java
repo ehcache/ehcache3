@@ -53,11 +53,12 @@ public class DefaultCopierConfigurationParserTest extends ServiceConfigurationPa
   public void parseServiceConfiguration() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/cache-copiers.xml", "baz");
 
+    @SuppressWarnings("rawtypes")
     Collection<DefaultCopierConfiguration> copierConfigs =
       findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfigs).hasSize(2);
 
-    for(DefaultCopierConfiguration copierConfig: copierConfigs) {
+    for(DefaultCopierConfiguration<?> copierConfig : copierConfigs) {
       if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
         assertThat(copierConfig.getClazz()).isEqualTo(SerializingCopier.class);
       } else {
@@ -68,6 +69,7 @@ public class DefaultCopierConfigurationParserTest extends ServiceConfigurationPa
 
   @Test
   public void unparseServiceConfiguration() {
+    @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
       .add(new DefaultCopierConfiguration(DescriptionCopier.class, DefaultCopierConfiguration.Type.KEY))
       .add(new DefaultCopierConfiguration(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
