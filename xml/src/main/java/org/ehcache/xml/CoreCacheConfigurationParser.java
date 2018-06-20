@@ -28,20 +28,13 @@ import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Expiry;
 import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.TimeType;
-import org.ehcache.xml.model.TimeUnit;
 
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.core.config.ExpiryUtils.jucTimeUnitToTemporalUnit;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;

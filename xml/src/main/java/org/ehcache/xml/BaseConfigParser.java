@@ -43,6 +43,7 @@ public abstract class BaseConfigParser<T> {
     this.typeParameterClass = type;
   }
 
+  @SuppressWarnings("unchecked")
   private T validateConfig(Object config) {
     Objects.requireNonNull(config, "Configuration must not be null.");
     try {
