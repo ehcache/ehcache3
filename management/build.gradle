@@ -32,6 +32,7 @@ dependencies {
   testImplementation project(':xml')
   testImplementation project(':impl')
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 test {

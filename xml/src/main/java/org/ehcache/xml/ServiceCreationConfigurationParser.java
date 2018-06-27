@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.validation.Schema;
-
 import static java.util.Arrays.asList;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
@@ -56,9 +54,9 @@ public class ServiceCreationConfigurationParser {
     new WriteBehindProviderConfigurationParser()
   );
 
-  private final Set<CacheManagerServiceConfigurationParser<?>> extensionParsers;
+  private final Collection<CacheManagerServiceConfigurationParser<?>> extensionParsers;
 
-  public ServiceCreationConfigurationParser(Set<CacheManagerServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceCreationConfigurationParser(Collection<CacheManagerServiceConfigurationParser<?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
@@ -90,14 +88,8 @@ public class ServiceCreationConfigurationParser {
     }
 
     Map<Class<?>, CacheManagerServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
-        (key1, key2) -> {
-          if (key1.getClass().isInstance(key2)) {
-            return key2;
-          } else {
-            return key1;
-          }
-        }));
+      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity()));
+
     List<ServiceType> services = configType.getService();
     configuration.getServiceCreationConfigurations().forEach(config -> {
       @SuppressWarnings("rawtypes")

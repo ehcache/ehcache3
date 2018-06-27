@@ -18,6 +18,7 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ConfigurationBuilder;
@@ -119,30 +120,70 @@ public class ConfigurationParser {
     return resolvedValue.equals(originalValue) ? null : resolvedValue;
   }
 
+  private static <T> T retrieveChild(T val1, T val2) {
+    if (val1.getClass().isInstance(val2)) {
+      return val2;
+    } else {
+      return val1;
+    }
+  }
+
   public ConfigurationParser() throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<>();
     schemaSources.add(new StreamSource(CORE_SCHEMA_URL.openStream()));
 
-    Set<CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashSet<>();
+    Map<Class<?>, CacheManagerServiceConfigurationParser<?>> xmlParserMap = new HashMap<>();
     for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
-      schemaSources.add(parser.getXmlSchema());
-      xmlParsers.add(parser);
+      xmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> {
+        if (parserVal == null) {
+          return parser;
+        } else {
+          return retrieveChild(parserVal, parser);
+        }
+      });
     }
-    serviceCreationConfigurationParser = new ServiceCreationConfigurationParser(xmlParsers);
+    for (CacheManagerServiceConfigurationParser<?> parser : xmlParserMap.values()) {
+      schemaSources.add(parser.getXmlSchema());
+    }
+    serviceCreationConfigurationParser = new ServiceCreationConfigurationParser(xmlParserMap.values());
 
-    Set<CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashSet<>();
+    Map<Class<?>, CacheServiceConfigurationParser<?>> cacheXmlParserMap = new HashMap<>();
     for (CacheServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
-      schemaSources.add(parser.getXmlSchema());
-      cacheXmlParsers.add(parser);
+      cacheXmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> {
+        if (parserVal == null) {
+          return parser;
+        } else {
+          return retrieveChild(parserVal, parser);
+        }
+      });
     }
-    serviceConfigurationParser = new ServiceConfigurationParser(cacheXmlParsers);
+    for (CacheServiceConfigurationParser<?> parser : cacheXmlParserMap.values()) {
+      schemaSources.add(parser.getXmlSchema());
+    }
+    serviceConfigurationParser = new ServiceConfigurationParser(cacheXmlParserMap.values());
 
     // Parsers for /config/cache/resources extensions
-    Set<CacheResourceConfigurationParser> resourceXmlParsers = new HashSet<>();
+    Map<Class<?>, CacheResourceConfigurationParser> resourceXmlParserMap = new HashMap<>();
     for (CacheResourceConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
-      schemaSources.add(parser.getXmlSchema());
-      resourceXmlParsers.add(parser);
+      Set<Class<? extends ResourcePool>> resourcePoolSet = parser.getResourceTypes();
+      for (Class<? extends ResourcePool> x : resourcePoolSet) {
+        resourceXmlParserMap.compute(x, (k, parserVal) -> {
+          if (parserVal == null) {
+            return parser;
+          } else {
+            return retrieveChild(parserVal, parser);
+          }
+        });
+      }
     }
+    Set<CacheResourceConfigurationParser> resourceXmlParsers = new HashSet<>();
+    for (CacheResourceConfigurationParser parser : resourceXmlParserMap.values()) {
+      if (!resourceXmlParsers.contains(parser)) {
+        resourceXmlParsers.add(parser);
+        schemaSources.add(parser.getXmlSchema());
+      }
+    }
+
     this.schema = newSchema(schemaSources.toArray(new Source[schemaSources.size()]));
     resourceConfigurationParser = new ResourceConfigurationParser(this.schema, resourceXmlParsers);
   }

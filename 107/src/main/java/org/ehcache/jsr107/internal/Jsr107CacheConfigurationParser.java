@@ -34,7 +34,6 @@ import java.net.URL;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
-import static org.ehcache.xml.DomUtil.COLON;
 import static org.ehcache.jsr107.internal.Jsr107ServiceConfigurationParser.JSR_NAMESPACE_PREFIX;
 
 /**
@@ -89,7 +88,7 @@ public class Jsr107CacheConfigurationParser extends BaseConfigParser<Jsr107Cache
 
   @Override
   protected Element createRootElement(Document doc, Jsr107CacheConfiguration cacheConfiguration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + COLON + MBEANS_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + MBEANS_ELEMENT_NAME);
     ConfigurationElementState managementState = cacheConfiguration.isManagementEnabled();
     ConfigurationElementState statisticsState = cacheConfiguration.isStatisticsEnabled();
     if (ConfigurationElementState.ENABLED == managementState || ConfigurationElementState.DISABLED == managementState) {

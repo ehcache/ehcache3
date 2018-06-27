@@ -55,9 +55,9 @@ public class ServiceConfigurationParser {
     new DefaultCacheEventListenerConfigurationParser()
   );
 
-  private final Set<CacheServiceConfigurationParser<?>> extensionParsers;
+  private final Collection<CacheServiceConfigurationParser<?>> extensionParsers;
 
-  public ServiceConfigurationParser(Set<CacheServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceConfigurationParser(Collection<CacheServiceConfigurationParser<?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
@@ -87,14 +87,8 @@ public class ServiceConfigurationParser {
     }
 
     Map<Class<?>, CacheServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
-        (key1, key2) -> {
-          if (key1.getClass().isInstance(key2)) {
-            return key2;
-          } else {
-            return key1;
-          }
-        }));
+      extensionParsers.stream().collect(toMap(CacheServiceConfigurationParser::getServiceType, identity()));
+
     List<Element> serviceConfigs = cacheType.getServiceConfiguration();
     cacheConfiguration.getServiceConfigurations().forEach(config -> {
       @SuppressWarnings("rawtypes")

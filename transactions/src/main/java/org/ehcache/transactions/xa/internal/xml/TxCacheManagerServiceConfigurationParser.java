@@ -35,7 +35,6 @@ import java.net.URI;
 import java.net.URL;
 
 import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
-import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * @author Ludovic Orban
@@ -43,7 +42,7 @@ import static org.ehcache.xml.DomUtil.COLON;
 public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<LookupTransactionManagerProviderConfiguration> implements CacheManagerServiceConfigurationParser<TransactionManagerProvider> {
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
-  private static final String TRANSACTION_NAMESPACE_PREFIX = "tx";
+  public static final String TRANSACTION_NAMESPACE_PREFIX = "tx:";
   private static final String TRANSACTION_ELEMENT_NAME = "jta-tm";
   private static final String TRANSACTION_LOOKUP_CLASS = "transaction-manager-lookup-class";
 
@@ -88,7 +87,7 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
 
   @Override
   protected Element createRootElement(Document doc, LookupTransactionManagerProviderConfiguration lookupTransactionManagerProviderConfiguration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX + COLON + TRANSACTION_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX + TRANSACTION_ELEMENT_NAME);
     rootElement.setAttribute(TRANSACTION_LOOKUP_CLASS, lookupTransactionManagerProviderConfiguration.getTransactionManagerLookup()
       .getName());
     return rootElement;

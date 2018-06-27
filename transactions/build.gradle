@@ -29,6 +29,7 @@ dependencies {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testImplementation project(':core-spi-test')
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 // For EhPomMangle

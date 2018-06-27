@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
-import static org.ehcache.xml.DomUtil.COLON;
+import static org.ehcache.transactions.xa.internal.xml.TxCacheManagerServiceConfigurationParser.TRANSACTION_NAMESPACE_PREFIX;
 
 /**
  * @author Ludovic Orban
@@ -40,7 +40,6 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
-  private static final String TRANSACTION_NAMESPACE_PREFIX = "tx";
   private static final String STORE_ELEMENT_NAME = "xa-store";
   private static final String UNIQUE_RESOURCE_NAME = "unique-XAResource-id";
 
@@ -78,7 +77,7 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
 
   @Override
   protected Element createRootElement(Document doc, XAStoreConfiguration storeConfiguration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX + COLON + STORE_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX  + STORE_ELEMENT_NAME);
     rootElement.setAttribute(UNIQUE_RESOURCE_NAME, storeConfiguration.getUniqueXAResourceId());
     return rootElement;
   }

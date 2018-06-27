@@ -15,16 +15,22 @@
  */
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.config.Configuration;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
+import org.ehcache.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfigurationTest;
 import org.junit.Test;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.xmlunit.builder.Input;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import java.net.URL;
+
+import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
 import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * Jsr107CacheConfigurationParserTest
@@ -37,10 +43,9 @@ public class Jsr107CacheConfigurationParserTest {
     Jsr107CacheConfiguration cacheConfiguration =
       new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.DISABLED);
     Node retElement = configTranslator.unparseServiceConfiguration(cacheConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertAttributeItemsWithStatisticsManagementEnabled(retElement);
-    assertThat(retElement.getNodeName(), is("jsr107:mbeans"));
-    assertThat(retElement.getFirstChild(), is(nullValue()));
+    String inputString = "<jsr107:mbeans enable-management = \"false\" enable-statistics = \"true\" " +
+                         "xmlns:jsr107 = \"http://www.ehcache.org/v3/jsr107\"></jsr107:mbeans>";
+    assertElement(inputString, retElement);
   }
 
   @Test
@@ -49,29 +54,8 @@ public class Jsr107CacheConfigurationParserTest {
     Jsr107CacheConfiguration cacheConfiguration =
       new Jsr107CacheConfiguration(ConfigurationElementState.UNSPECIFIED, ConfigurationElementState.UNSPECIFIED);
     Node retElement = configTranslator.unparseServiceConfiguration(cacheConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertAttributeItemsWithStatisticsManagementUnspecified(retElement);
-    assertThat(retElement.getNodeName(), is("jsr107:mbeans"));
-    assertThat(retElement.getFirstChild(), is(nullValue()));
+    String inputString = "<jsr107:mbeans xmlns:jsr107 = \"http://www.ehcache.org/v3/jsr107\"></jsr107:mbeans>";
+    assertElement(inputString, retElement);
   }
 
-
-  private void assertAttributeItemsWithStatisticsManagementUnspecified(Node retElement) {
-    NamedNodeMap node = retElement.getAttributes();
-    assertThat(node, is(notNullValue()));
-    assertThat(node.getLength(), is(0));
-  }
-
-  private void assertItemNameAndValue(NamedNodeMap node, int index, String name, String value) {
-    assertThat(node.item(index).getNodeName(), is(name));
-    assertThat(node.item(index).getNodeValue(), is(value));
-  }
-
-  private void assertAttributeItemsWithStatisticsManagementEnabled(Node retElement) {
-    NamedNodeMap node = retElement.getAttributes();
-    assertThat(node, is(notNullValue()));
-    assertThat(node.getLength(), is(2));
-    assertItemNameAndValue(node, 0, "enable-management", "false");
-    assertItemNameAndValue(node, 1, "enable-statistics", "true");
-  }
 }

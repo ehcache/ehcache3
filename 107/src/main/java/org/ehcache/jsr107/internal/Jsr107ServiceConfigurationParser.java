@@ -37,7 +37,6 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.lang.Boolean.parseBoolean;
-import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * @author Alex Snaps
@@ -53,7 +52,7 @@ public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Con
   private static final String CACHE_NAME_ATTRIBUTE = "name";
   private static final String TEMPLATE_NAME_ATTRIBUTE = "template";
   private static final String DEFAULT_ELEMENT_NAME = "defaults";
-  public static final String JSR_NAMESPACE_PREFIX = "jsr107";
+  public static final String JSR_NAMESPACE_PREFIX = "jsr107:";
   private static final String CACHE_ELEMENT_NAME = "cache";
 
   @Override
@@ -106,7 +105,7 @@ public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Con
 
   @Override
   protected Element createRootElement(Document doc, Jsr107Configuration configuration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + COLON + DEFAULT_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + DEFAULT_ELEMENT_NAME);
     rootElement.setAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE, String.valueOf(configuration.isJsr107CompliantAtomics()));
     ConfigurationElementState managementState = configuration.isEnableManagementAll();
     ConfigurationElementState statisticsState = configuration.isEnableStatisticsAll();
@@ -126,7 +125,7 @@ public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Con
   private void processCaches(Document doc, Element parent, Jsr107Configuration configuration) {
     Map<String, String> cacheMap = configuration.getTemplates();
     cacheMap.forEach((k, v) -> {
-      Element cacheElement = doc.createElement(JSR_NAMESPACE_PREFIX + COLON + CACHE_ELEMENT_NAME);
+      Element cacheElement = doc.createElement(JSR_NAMESPACE_PREFIX + CACHE_ELEMENT_NAME);
       cacheElement.setAttribute(CACHE_NAME_ATTRIBUTE, k);
       cacheElement.setAttribute(TEMPLATE_NAME_ATTRIBUTE, v);
       parent.appendChild(cacheElement);

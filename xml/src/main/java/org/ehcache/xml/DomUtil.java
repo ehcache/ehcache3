@@ -39,7 +39,6 @@ public class DomUtil {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
-  public static final String COLON = ":";
 
   private static Schema newSchema(Source[] schemas) throws SAXException {
     synchronized (XSD_SCHEMA_FACTORY) {
