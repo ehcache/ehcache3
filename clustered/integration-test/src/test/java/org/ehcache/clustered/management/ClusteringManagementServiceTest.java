@@ -51,7 +51,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"),
-    new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:MappingCount" , "GAUGE"),
     new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER")
@@ -60,7 +60,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OffHeap:MissCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"),
     new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"),
-    new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:MappingCount", "GAUGE"),
     new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:HitCount", "COUNTER"),
@@ -74,7 +74,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Disk:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("Disk:MissCount", "COUNTER"),
-    new StatisticDescriptor("Disk:MappingCount", "COUNTER"),
+    new StatisticDescriptor("Disk:MappingCount", "GAUGE"),
     new StatisticDescriptor("Disk:PutCount", "COUNTER"),
     new StatisticDescriptor("Disk:RemovalCount", "COUNTER")
   );
