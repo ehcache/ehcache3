@@ -49,8 +49,9 @@ class EhDeploy implements Plugin<Project> {
     }
 
     def artifactFiltering = {
-      pom.scopeMappings.mappings.remove(project.configurations.testImplementation)
-      pom.scopeMappings.mappings.remove(project.configurations.testRuntimeOnly)
+      project.configurations.matching {it.name.startsWith('test')}.forEach {
+        pom.scopeMappings.mappings.remove(it)
+      }
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedApi, Conf2ScopeMappingContainer.PROVIDED)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedImplementation, Conf2ScopeMappingContainer.PROVIDED)
 
