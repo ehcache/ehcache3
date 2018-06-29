@@ -121,6 +121,9 @@ public class ConfigurationParser {
   }
 
   private static <T> T retrieveChild(T val1, T val2) {
+    if (val1 == null) {
+      return val2;
+    }
     if (val1.getClass().isInstance(val2)) {
       return val2;
     } else {
@@ -134,46 +137,28 @@ public class ConfigurationParser {
 
     Map<Class<?>, CacheManagerServiceConfigurationParser<?>> xmlParserMap = new HashMap<>();
     for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
-      xmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> {
-        if (parserVal == null) {
-          return parser;
-        } else {
-          return retrieveChild(parserVal, parser);
-        }
-      });
+      xmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> retrieveChild(parserVal, parser));
     }
     for (CacheManagerServiceConfigurationParser<?> parser : xmlParserMap.values()) {
       schemaSources.add(parser.getXmlSchema());
     }
-    serviceCreationConfigurationParser = new ServiceCreationConfigurationParser(xmlParserMap.values());
+    serviceCreationConfigurationParser = new ServiceCreationConfigurationParser(xmlParserMap);
 
     Map<Class<?>, CacheServiceConfigurationParser<?>> cacheXmlParserMap = new HashMap<>();
     for (CacheServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
-      cacheXmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> {
-        if (parserVal == null) {
-          return parser;
-        } else {
-          return retrieveChild(parserVal, parser);
-        }
-      });
+      cacheXmlParserMap.compute(parser.getServiceType(), (k, parserVal) -> retrieveChild(parserVal, parser));
     }
     for (CacheServiceConfigurationParser<?> parser : cacheXmlParserMap.values()) {
       schemaSources.add(parser.getXmlSchema());
     }
-    serviceConfigurationParser = new ServiceConfigurationParser(cacheXmlParserMap.values());
+    serviceConfigurationParser = new ServiceConfigurationParser(cacheXmlParserMap);
 
     // Parsers for /config/cache/resources extensions
     Map<Class<?>, CacheResourceConfigurationParser> resourceXmlParserMap = new HashMap<>();
     for (CacheResourceConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
       Set<Class<? extends ResourcePool>> resourcePoolSet = parser.getResourceTypes();
       for (Class<? extends ResourcePool> x : resourcePoolSet) {
-        resourceXmlParserMap.compute(x, (k, parserVal) -> {
-          if (parserVal == null) {
-            return parser;
-          } else {
-            return retrieveChild(parserVal, parser);
-          }
-        });
+        resourceXmlParserMap.compute(x, (k, parserVal) -> retrieveChild(parserVal, parser));
       }
     }
     Set<CacheResourceConfigurationParser> resourceXmlParsers = new HashSet<>();

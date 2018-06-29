@@ -35,11 +35,10 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
+import static java.util.function.Function.identity;
 
 public class ServiceCreationConfigurationParser {
 
@@ -54,9 +53,9 @@ public class ServiceCreationConfigurationParser {
     new WriteBehindProviderConfigurationParser()
   );
 
-  private final Collection<CacheManagerServiceConfigurationParser<?>> extensionParsers;
+  private final Map<Class<?>, CacheManagerServiceConfigurationParser<?>> extensionParsers;
 
-  public ServiceCreationConfigurationParser(Collection<CacheManagerServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceCreationConfigurationParser(Map<Class<?>, CacheManagerServiceConfigurationParser<?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
@@ -65,8 +64,8 @@ public class ServiceCreationConfigurationParser {
       managerBuilder = parser.parseServiceCreationConfiguration(configRoot, classLoader, managerBuilder);
     }
 
-    Map<URI, CacheManagerServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getNamespace, identity()));
+    Map<URI, CacheManagerServiceConfigurationParser<?>> parsers = extensionParsers.values().stream().
+     collect(toMap(CacheManagerServiceConfigurationParser::getNamespace, identity()));
     for (ServiceType serviceType : configRoot.getService()) {
       Element element = serviceType.getServiceCreationConfiguration();
       URI namespace = URI.create(element.getNamespaceURI());
@@ -87,13 +86,10 @@ public class ServiceCreationConfigurationParser {
       parser.unparseServiceCreationConfiguration(configuration, configType);
     }
 
-    Map<Class<?>, CacheManagerServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity()));
-
     List<ServiceType> services = configType.getService();
     configuration.getServiceCreationConfigurations().forEach(config -> {
       @SuppressWarnings("rawtypes")
-      CacheManagerServiceConfigurationParser parser = parsers.get(config.getServiceType());
+      CacheManagerServiceConfigurationParser parser = extensionParsers.get(config.getServiceType());
       if (parser != null) {
         ServiceType serviceType = new ServiceType();
         @SuppressWarnings("unchecked")
