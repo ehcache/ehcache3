@@ -705,7 +705,7 @@ public class XmlConfigurationTest {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
       fail();
     } catch (XmlConfigurationException xce) {
-      assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
+      assertThat(xce.getMessage(), containsString("Can't find parser for element"));
     }
   }
 

@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.jsr107.internal;
+package org.ehcache.jsr107;
 
-import org.ehcache.jsr107.config.ConfigurationElementState;
-import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
+import org.ehcache.config.Configuration;
+import org.ehcache.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfigurationTest;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
 
+import java.net.URL;
+
 /**
- * Jsr107CacheConfigurationParserTest
+ * Jsr107CacheParserIT
  */
-public class Jsr107CacheConfigurationParserTest {
+public class Jsr107CacheParserIT {
 
   @Test(expected = XmlConfigurationException.class)
-  public void testTranslateServiceCreationConfigurationWithStatisticsManagementEnabled() {
-    Jsr107CacheConfigurationParser configTranslator = new Jsr107CacheConfigurationParser();
-    Jsr107CacheConfiguration cacheConfiguration =
-      new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.DISABLED);
-    configTranslator.unparseServiceConfiguration(cacheConfiguration);
+  public void testJsr107CacheXmlTranslationToString() {
+    URL resource = XmlConfigurationTest.class.getResource("/ehcache-107.xml");
+    Configuration config = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(config);
   }
-
 }

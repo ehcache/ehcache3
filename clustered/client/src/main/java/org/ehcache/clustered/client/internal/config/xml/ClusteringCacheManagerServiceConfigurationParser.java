@@ -55,8 +55,8 @@ import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.TC_CLUSTERED_NAMESPACE_PREFIX;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
-import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
@@ -65,7 +65,6 @@ import static org.ehcache.xml.DomUtil.COLON;
  */
 public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfigParser<ClusteringServiceConfiguration> implements CacheManagerServiceConfigurationParser<ClusteringService> {
 
-  public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
   public static final String CLUSTER_ELEMENT_NAME = "cluster";
   public static final String CONNECTION_ELEMENT_NAME = "connection";
   public static final String CLUSTER_CONNECTION_ELEMENT_NAME = "cluster-connection";
@@ -239,14 +238,14 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
     Element urlElement = createUrlElement(doc, clusteringServiceConfiguration);
     rootElement.appendChild(urlElement);
     return rootElement;
   }
 
   protected Element createUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_ELEMENT_NAME);
+    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_ELEMENT_NAME);
     urlElement.setAttribute(URL_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClusterUri().toString());
     return urlElement;
   }
@@ -256,10 +255,10 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
       throw new IllegalArgumentException("When connection URL is null, source of connection MUST be of type ConnectionSource.ServerList.class");
     }
     ConnectionSource.ServerList servers = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
-    Element rootElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
     Element connElement = createConnectionElementWrapper(doc, clusteringServiceConfiguration);
     servers.getServers().forEach(server -> {
-      Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_ELEMENT_NAME);
+      Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_ELEMENT_NAME);
       serverElement.setAttribute(HOST_ATTRIBUTE_NAME, server.getHostName());
       /*
       If port is greater than 0, set the attribute. Otherwise, do not set. Default value will be taken.
@@ -274,7 +273,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   protected Element createConnectionElementWrapper(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTER_CONNECTION_ELEMENT_NAME);
+    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_CONNECTION_ELEMENT_NAME);
     connElement.setAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME, clusteringServiceConfiguration.getConnectionSource()
       .getClusterTierManager());
     return connElement;
@@ -314,11 +313,11 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   private Element createTimeoutElement(Document doc, String timeoutName, Duration timeout) {
     Element retElement = null;
     if (READ_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + READ_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + READ_TIMEOUT_ELEMENT_NAME);
     } else if (WRITE_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + WRITE_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + WRITE_TIMEOUT_ELEMENT_NAME);
     } else {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CONNECTION_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_TIMEOUT_ELEMENT_NAME);
     }
     retElement.setAttribute(UNIT_ATTRIBUTE_NAME, DEFAULT_UNIT_ATTRIBUTE_VALUE);
     retElement.setTextContent(Long.toString(timeout.getSeconds()));
@@ -349,7 +348,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createServerSideConfigurationElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element serverSideConfigurationElem = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SERVER_SIDE_CONFIG);
+    Element serverSideConfigurationElem = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_SIDE_CONFIG);
     serverSideConfigurationElem.setAttribute(AUTO_CREATE_ATTRIBUTE_NAME, Boolean.toString(clusteringServiceConfiguration
       .isAutoCreate()));
     return serverSideConfigurationElem;
@@ -357,7 +356,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
 
 
   private Element createSharedPoolElement(Document doc, String poolName, ServerSideConfiguration.Pool pool) {
-    Element poolElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + SHARED_POOL_ELEMENT_NAME);
+    Element poolElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_POOL_ELEMENT_NAME);
     poolElement.setAttribute(NAME_ATTRIBUTE_NAME, poolName);
     String from = pool.getServerResource();
     if (from != null) {
@@ -373,7 +372,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createDefaultServerResourceElement(Document doc, String defaultServerResource) {
-    Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + COLON + DEFAULT_RESOURCE_ELEMENT_NAME);
+    Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + DEFAULT_RESOURCE_ELEMENT_NAME);
     defaultResourceElement.setAttribute(FROM_ATTRIBUTE_NAME, defaultServerResource);
     return defaultResourceElement;
   }

@@ -34,4 +34,5 @@ final class ClusteredCacheConstants {
    * Namespace for cluster configuration elements.  Must match {@code targetNamespace} in <code>{@value #XSD}</code>.
    */
   static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/clustered");
+  static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc:";
 }

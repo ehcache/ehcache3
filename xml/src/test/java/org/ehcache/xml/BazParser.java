@@ -54,7 +54,11 @@ public class BazParser implements CacheResourceConfigurationParser {
 
   @Override
   public ResourcePool parseResourceConfiguration(Element fragment) {
-    return new BazResource();
+    String elementName = fragment.getLocalName();
+    if (elementName.equals("baz")) {
+      return new BazResource();
+    }
+    return null;
   }
 
   @Override

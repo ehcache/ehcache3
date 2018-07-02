@@ -33,7 +33,7 @@ import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
-import static org.ehcache.xml.DomUtil.COLON;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.TC_CLUSTERED_NAMESPACE_PREFIX;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteredStore.Provider ClusteringService}.
@@ -44,7 +44,6 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
 
   public static final String CLUSTERED_STORE_ELEMENT_NAME = "clustered-store";
   public static final String CONSISTENCY_ATTRIBUTE_NAME = "consistency";
-  public static final String TC_CLUSTERED_NAMESPACE_PREFIX = "tc";
 
   public ClusteringCacheServiceConfigurationParser() {
     super(ClusteredStoreConfiguration.class);
@@ -86,7 +85,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   @Override
   protected Element createRootElement(Document doc, ClusteredStoreConfiguration clusteredStoreConfiguration) {
     Consistency consistency = clusteredStoreConfiguration.getConsistency();
-    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + COLON + CLUSTERED_STORE_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTERED_STORE_ELEMENT_NAME);
     rootElement.setAttribute(CONSISTENCY_ATTRIBUTE_NAME, consistency.name().toLowerCase());
     return rootElement;
   }

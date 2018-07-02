@@ -24,9 +24,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.CacheDefinition;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Disk;
@@ -42,7 +40,6 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,8 +53,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
 import static org.ehcache.xml.ConfigurationParser.CORE_SCHEMA_JAXB_MODEL_PACKAGE;
 import static org.ehcache.xml.ConfigurationParser.CORE_SCHEMA_NAMESPACE;
 
@@ -132,13 +127,14 @@ public class ResourceConfigurationParser {
   }
 
   ResourcePool parseResourceExtension(final Element element) {
-    URI namespace = URI.create(element.getNamespaceURI());
-    Map<URI, CacheResourceConfigurationParser> parsers = extensionParsers.stream().collect(toMap(CacheResourceConfigurationParser::getNamespace, identity()));
-    CacheResourceConfigurationParser parser = parsers.get(namespace);
-    if (parser == null) {
-      throw new XmlConfigurationException("Can't find parser for namespace: " + namespace);
+    ResourcePool resourcePool = null;
+    for (CacheResourceConfigurationParser parser : extensionParsers) {
+      resourcePool = parser.parseResourceConfiguration(element);
+      if (resourcePool != null) {
+        return resourcePool;
+      }
     }
-    return parser.parseResourceConfiguration(element);
+    throw new XmlConfigurationException("Can't find parser for element: " + element);
   }
 
   public CacheType unparseResourceConfiguration(ResourcePools resourcePools, CacheType cacheType) {
