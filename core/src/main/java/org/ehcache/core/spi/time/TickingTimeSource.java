@@ -23,30 +23,33 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * The default {@link TimeSource} in Ehcache. it increases the time every millisecond
- * using a timer. We set it to the system time every second to prevent time drifting.
+ * A {@link TimeSource} that increases the time in background using a timer. This time usually gives better performances
+ * to Ehcache than the default {@link SystemTimeSource}. However, it will create a background thread that will continuously
+ * wake up to update the time.
+ * <p>
+ * It works be increasing the time at a given granularity. So if you set the granularity at 10ms, a timer is called every
+ * 10ms and will increase the current time of 10ms. This will cause the current time to diverge a bit from the system time
+ * after a while. So you specify a system update period where the current time will be reset to the system time.
  */
 public class TickingTimeSource implements TimeSource, Service {
 
-  private static final long GRANULARITY_IN_MS = 1L;
-
-  private static final long PERIOD_BETWEEN_SYSTEM_SET_IN_MS = 1_000L;
-
   private final long granularity;
-  private final long period;
+  private final long systemUpdatePeriod;
 
   private volatile long currentTime;
   private volatile long lastUpdate;
 
   private final Timer timer = new Timer("TickingTimeSource-timer", true);
 
-  public TickingTimeSource() {
-    this(GRANULARITY_IN_MS, PERIOD_BETWEEN_SYSTEM_SET_IN_MS);
-  }
-
-  public TickingTimeSource(long granularity, long period) {
+  /**
+   * Constructor to create a ticking time source.
+   *
+   * @param granularity how long in milliseconds between each timer call to increment the current time
+   * @param systemUpdatePeriod how long between resets of the current time to system time
+   */
+  public TickingTimeSource(long granularity, long systemUpdatePeriod) {
     this.granularity = granularity;
-    this.period = period;
+    this.systemUpdatePeriod = systemUpdatePeriod;
   }
 
   private void updateToSystemTime() {
@@ -66,7 +69,7 @@ public class TickingTimeSource implements TimeSource, Service {
     timer.scheduleAtFixedRate(new TimerTask() {
       @Override
       public void run() {
-        if (currentTime - lastUpdate >= period) {
+        if (currentTime - lastUpdate >= systemUpdatePeriod) {
           updateToSystemTime();
         } else {
           currentTime += granularity;

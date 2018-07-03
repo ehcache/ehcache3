@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class TickingTimeSourceTest {
 
-  private final TickingTimeSource tickingTimeSource = new TickingTimeSource();
+  private final TickingTimeSource tickingTimeSource = new TickingTimeSource(1L, 1000L);
 
   @After
   public void after() {
