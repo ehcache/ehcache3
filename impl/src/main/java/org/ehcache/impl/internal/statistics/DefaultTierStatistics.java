@@ -91,7 +91,7 @@ class DefaultTierStatistics implements TierStatistics {
     knownStatistics.put(tierName + ":RemovalCount", counter(this::getRemovals));
     knownStatistics.put(tierName + ":EvictionCount", counter(this::getEvictions));
     knownStatistics.put(tierName + ":ExpirationCount", counter(this::getExpirations));
-    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", counter(this::getMappings)));
+    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", gauge(this::getMappings)));
     allocatedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":AllocatedByteSize", gauge(this::getAllocatedByteSize)));
     occupiedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":OccupiedByteSize", gauge(this::getOccupiedByteSize)));
     return knownStatistics;
