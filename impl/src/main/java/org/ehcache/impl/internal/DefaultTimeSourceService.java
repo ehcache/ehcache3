@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal;
 
+import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TickingTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -33,7 +34,7 @@ public class DefaultTimeSourceService implements TimeSourceService {
     if (config != null) {
       timeSource = config.getTimeSource();
     } else {
-      timeSource = new TickingTimeSource();
+      timeSource = SystemTimeSource.INSTANCE;
     }
   }
 
