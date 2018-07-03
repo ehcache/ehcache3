@@ -51,6 +51,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 public class DefaultCacheStatisticsTest {
 
   private static final int TIME_TO_EXPIRATION = 100;
+  private static final int HISTOGRAM_WINDOW_MILLIS = 400;
+  private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
 
   private DefaultCacheStatistics cacheStatistics;
   private CacheManager cacheManager;
@@ -103,7 +105,7 @@ public class DefaultCacheStatisticsTest {
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
 
     cacheStatistics = new DefaultCacheStatistics(cache, new DefaultStatisticsServiceConfiguration()
-      .withDefaultHistogramWindow(Duration.ofMillis(400)), timeSource);
+      .withDefaultHistogramWindow(Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)), timeSource);
   }
 
   @After
@@ -250,7 +252,7 @@ public class DefaultCacheStatisticsTest {
       assertThat(histogram.count()).isEqualTo(2L);
       assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
 
-      minimumSleep(300); // next window
+      minimumSleep(NEXT_WINDOW_SLEEP_MILLIS); // next window
 
       latency.set(50);
       cache.get(3L);
@@ -288,7 +290,7 @@ public class DefaultCacheStatisticsTest {
     assertThat(histogram.count()).isEqualTo(2L);
     assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
 
-    minimumSleep(300); // next window
+    minimumSleep(NEXT_WINDOW_SLEEP_MILLIS); // next window
 
     latency.set(50);
     cache.put(3L, "");
@@ -320,7 +322,7 @@ public class DefaultCacheStatisticsTest {
     assertThat(histogram.count()).isEqualTo(2L);
     assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
 
-    minimumSleep(300); // next window
+    minimumSleep(NEXT_WINDOW_SLEEP_MILLIS); // next window
 
     latency.set(50);
     cache.remove(3L);
