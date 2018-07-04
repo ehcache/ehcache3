@@ -268,12 +268,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
-    Set<String> keys = new HashSet<String>() {{
-      add("1");
-      add("2");
-    }};
+    Set<String> keys = new HashSet<>();
+    keys.add("1");
+    keys.add("2");
 
-    HashMap<String, String> entriesMap = new HashMap<>();
+    Map<String, String> entriesMap = new HashMap<>();
     entriesMap.put("1", "one");
     entriesMap.put("2", "two");
 

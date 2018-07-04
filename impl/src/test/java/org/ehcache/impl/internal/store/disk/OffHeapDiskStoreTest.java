@@ -471,6 +471,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   public static class CacheValue implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final int value;
     private final byte[] padding;
 

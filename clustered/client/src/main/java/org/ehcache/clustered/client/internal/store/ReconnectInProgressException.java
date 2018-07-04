@@ -17,6 +17,8 @@ package org.ehcache.clustered.client.internal.store;
 
 public class ReconnectInProgressException extends RuntimeException {
 
+  private static final long serialVersionUID = 2561046982957750120L;
+
   public ReconnectInProgressException() {
     super("Connection lost to server. Client is trying to reconnect to server");
   }

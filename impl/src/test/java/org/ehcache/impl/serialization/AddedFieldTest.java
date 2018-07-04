@@ -79,6 +79,8 @@ public class AddedFieldTest {
 
   public static class Serializable_write implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     int k;
 
     Serializable_write(int value) {
@@ -88,13 +90,15 @@ public class AddedFieldTest {
 
   public static class IncompatibleSerializable_write implements Serializable {
 
-    private static long serialVersionUID = 3L;
+    private static final long serialVersionUID = 3L;
+
     int x = 5;
   };
 
   public static class IncompatibleSerializable_read implements Serializable {
 
-    private static long serialVersionUID = 4L;
+    private static final long serialVersionUID = 4L;
+
     int x = 5;
   };
 
@@ -120,6 +124,8 @@ public class AddedFieldTest {
   }
 
   public static class Externalizable_write implements Externalizable {
+
+    private static final long serialVersionUID = 1L;
 
     byte l;
 

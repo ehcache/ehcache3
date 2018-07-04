@@ -108,6 +108,8 @@ public class BasicSerializationTest {
 
   static class Handler implements InvocationHandler, Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     static Method fooMethod, barMethod;
 
     static {

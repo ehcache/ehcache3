@@ -21,6 +21,8 @@ package org.ehcache.clustered.common.internal.exceptions;
  */
 public class DestroyInProgressException extends LifecycleException {
 
+  private static final long serialVersionUID = 1917543049279158303L;
+
   public DestroyInProgressException(String message) {
     super(message);
   }

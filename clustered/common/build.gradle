@@ -20,7 +20,3 @@ dependencies {
   providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
 }
-
-compileJava {
-  options.compilerArgs += ['-Xlint:-serial']
-}

@@ -60,11 +60,11 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
     InternalCache<Number, CharSequence> ehcache = getCache(store, cacheLoaderWriter);
     ehcache.init();
 
-    ehcache.putAll(new LinkedHashMap<Number, CharSequence>() {{
-      put(1, "one");
-      put(2, "two");
-      put(3, "three");
-    }});
+    LinkedHashMap<Number, CharSequence> entries = new LinkedHashMap<>();
+    entries.put(1, "one");
+    entries.put(2, "two");
+    entries.put(3, "three");
+    ehcache.putAll(entries);
 
     verify(store).bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class));
     verify(cacheLoaderWriter).writeAll(argThat(hasItems(entry(1, "one"), entry(2, "two"), entry(3, "three"))));
@@ -78,7 +78,7 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
       Function function = (Function)invocation.getArguments()[1];
       function.apply(invocation.getArguments()[0]);
 
-      final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<>();
+      Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<>();
       loaderValues.put(1, valueHolder((CharSequence)"one"));
       loaderValues.put(2, valueHolder((CharSequence)"two"));
       loaderValues.put(3, null);

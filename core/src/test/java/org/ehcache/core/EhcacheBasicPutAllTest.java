@@ -299,10 +299,9 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
 
-    Map<String, String> map = new HashMap<String, String>() {{
-      put("1", "one");
-      put("2", "two");
-    }};
+    Map<String, String> map = new HashMap();
+    map.put("1", "one");
+    map.put("2", "two");
 
     when(store.bulkCompute(ArgumentMatchers.<String>anySet(), functionArgumentCaptor.capture())).then(invocation -> {
       Function<Iterable, Object> function = functionArgumentCaptor.getValue();

@@ -50,9 +50,9 @@ test {
 }
 
 compileJava {
-  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+  options.compilerArgs += ['-Xlint:-rawtypes']
 }
 
 compileTestJava {
-  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
+  options.compilerArgs += ['-Xlint:-rawtypes']
 }

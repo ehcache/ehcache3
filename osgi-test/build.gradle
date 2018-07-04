@@ -62,7 +62,3 @@ test {
 }
 
 test.dependsOn ':dist:jar'
-
-compileTestJava {
-  options.compilerArgs += ['-Xlint:-serial']
-}

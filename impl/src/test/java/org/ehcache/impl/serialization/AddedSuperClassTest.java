@@ -70,6 +70,9 @@ public class AddedSuperClassTest {
   }
 
   public static class AddedSuperClass_Hidden implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     int field;
   }
 

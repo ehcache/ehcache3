@@ -37,5 +37,5 @@ compileJava {
   options.compilerArgs += ['-Xlint:-rawtypes']
 }
 compileTestJava {
-  options.compilerArgs += ['-Xlint:-rawtypes,-serial']
+  options.compilerArgs += ['-Xlint:-rawtypes']
 }
