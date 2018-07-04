@@ -17,6 +17,7 @@
 dependencies {
   api project(':spi-tester')
   implementation project(':core')
+  implementation project(':impl')
   implementation "junit:junit:$junitVersion"
   implementation "org.mockito:mockito-core:$mockitoVersion"
   implementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
