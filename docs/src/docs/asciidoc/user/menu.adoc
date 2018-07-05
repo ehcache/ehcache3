@@ -26,6 +26,7 @@ Advanced topics::
 - link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
 - link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
 - link:./class-loading{outfilesuffix}[Class loading in Ehcache]
+- link:./performance{outfilesuffix}[Performance Tuning]
 
 Not published::
 - link:./management{outfilesuffix}[Management and Monitoring]
