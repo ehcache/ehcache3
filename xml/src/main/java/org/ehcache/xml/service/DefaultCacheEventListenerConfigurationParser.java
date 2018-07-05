@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toSet;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
+import static org.ehcache.xml.service.SimpleCoreServiceConfigurationParser.checkNoConcreteInstance;
 
 public class DefaultCacheEventListenerConfigurationParser implements CoreServiceConfigurationParser {
 
@@ -78,6 +79,7 @@ public class DefaultCacheEventListenerConfigurationParser implements CoreService
 
       Set<ListenersType.Listener> listeners = serviceConfigs.stream().map(serviceConfig -> {
         ListenersType.Listener listener = new ListenersType.Listener();
+        checkNoConcreteInstance(serviceConfig);
         return listener.withClazz(serviceConfig.getClazz().getName())
           .withEventFiringMode(EventFiringType.fromValue(serviceConfig.firingMode().name()))
           .withEventOrderingMode(EventOrderingType.fromValue(serviceConfig.orderingMode().name()))

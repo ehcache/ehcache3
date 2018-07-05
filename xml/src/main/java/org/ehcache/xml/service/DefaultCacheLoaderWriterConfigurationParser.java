@@ -33,6 +33,9 @@ public class DefaultCacheLoaderWriterConfigurationParser
       CacheTemplate::loaderWriter,
       (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)),
       CacheType::getLoaderWriter, CacheType::setLoaderWriter,
-      config -> new CacheLoaderWriterType().withClazz(config.getClazz().getName()));
+      config -> {
+        checkNoConcreteInstance(config);
+        return new CacheLoaderWriterType().withClazz(config.getClazz().getName());
+      });
   }
 }

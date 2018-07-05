@@ -31,6 +31,9 @@ public class DefaultResilienceStrategyConfigurationParser
     super(DefaultResilienceStrategyConfiguration.class,
       CacheTemplate::resilienceStrategy,
       (config, loader) -> new DefaultResilienceStrategyConfiguration((Class<? extends ResilienceStrategy>) getClassForName(config, loader)),
-      CacheType::getResilience, CacheType::setResilience, config -> config.getClazz().getName());
+      CacheType::getResilience, CacheType::setResilience, config -> {
+        checkNoConcreteInstance(config);
+        return config.getClazz().getName();
+      });
   }
 }

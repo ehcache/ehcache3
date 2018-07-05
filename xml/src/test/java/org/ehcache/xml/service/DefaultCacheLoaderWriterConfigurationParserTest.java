@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -30,6 +31,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConfigurationParserTestBase {
@@ -56,5 +58,16 @@ public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConf
 
 
     assertThat(cacheType.getLoaderWriter().getClazz()).isEqualTo(TestCacheLoaderWriter.class.getName());
+  }
+
+  @Test
+  public void unparseServiceConfigurationWithInstance() {
+    TestCacheLoaderWriter testCacheLoaderWriter = new TestCacheLoaderWriter();
+    CacheConfiguration<?, ?> cacheConfig =
+      buildCacheConfigWithServiceConfig(new DefaultCacheLoaderWriterConfiguration(testCacheLoaderWriter));
+    assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
+      parser.unparseServiceConfiguration(cacheConfig, new CacheType()))
+      .withMessage("%s", "XML translation for instance based intialization for " +
+                         "DefaultCacheLoaderWriterConfiguration is not supported");
   }
 }
