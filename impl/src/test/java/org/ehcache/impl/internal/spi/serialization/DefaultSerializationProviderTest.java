@@ -95,8 +95,7 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    @SuppressWarnings("unchecked")
-    DefaultSerializerConfiguration dspConfig = new DefaultSerializerConfiguration(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
+    DefaultSerializerConfiguration<?> dspConfig = new DefaultSerializerConfiguration<>(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
 
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
     assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
@@ -165,7 +164,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testReleaseSerializerWithProvidedCloseableSerializerDoesNotClose() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CloseableSerializer closeableSerializer = new CloseableSerializer();
+    CloseableSerializer<?> closeableSerializer = new CloseableSerializer<>();
     provider.providedVsCount.put(closeableSerializer, new AtomicInteger(1));
 
     provider.releaseSerializer(closeableSerializer);
@@ -178,7 +177,7 @@ public class DefaultSerializationProviderTest {
     Class<? extends Serializer<String>> serializerClass = (Class) CloseableSerializer.class;
     DefaultSerializerConfiguration<String> config = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.KEY);
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    Serializer serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
+    Serializer<?> serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
 
     provider.releaseSerializer(serializer);
     assertTrue(((CloseableSerializer)serializer).closed);

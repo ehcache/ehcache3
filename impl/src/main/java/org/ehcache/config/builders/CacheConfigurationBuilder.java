@@ -148,10 +148,10 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
     if (getExistingServiceConfiguration(configuration.getClass()) != null) {
       if (configuration instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfiguration = (DefaultCopierConfiguration) configuration;
+        DefaultCopierConfiguration<?> copierConfiguration = (DefaultCopierConfiguration<?>) configuration;
         otherBuilder.removeExistingCopierConfigFor(copierConfiguration.getType());
       } else if (configuration instanceof DefaultSerializerConfiguration) {
-        DefaultSerializerConfiguration serializerConfiguration = (DefaultSerializerConfiguration) configuration;
+        DefaultSerializerConfiguration<?> serializerConfiguration = (DefaultSerializerConfiguration<?>) configuration;
         otherBuilder.removeExistingSerializerConfigFor(serializerConfiguration.getType());
       } else if (!(configuration instanceof DefaultCacheEventListenerConfiguration)) {
         throw new IllegalStateException("Cannot add a generic service configuration when another one already exists. " +
@@ -370,6 +370,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * @param arguments optional constructor arguments
    * @return a new builder with the added resilience strategy configuration
    */
+  @SuppressWarnings("rawtypes")
   public CacheConfigurationBuilder<K, V> withResilienceStrategy(Class<? extends ResilienceStrategy> resilienceStrategyClass, Object... arguments) {
     return addOrReplaceConfiguration(new DefaultResilienceStrategyConfiguration(requireNonNull(resilienceStrategyClass, "Null resilienceStrategyClass"), arguments));
   }
@@ -564,7 +565,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  private CacheConfigurationBuilder<K, V> withSerializer(DefaultSerializerConfiguration configuration) {
+  private CacheConfigurationBuilder<K, V> withSerializer(DefaultSerializerConfiguration<?> configuration) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<>(this);
     otherBuilder.removeExistingSerializerConfigFor(configuration.getType());
     otherBuilder.serviceConfigurations.add(configuration);
@@ -572,8 +573,10 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   private void removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type type) {
-    List<DefaultSerializerConfiguration> existingServiceConfigurations = getExistingServiceConfigurations(DefaultSerializerConfiguration.class);
-    for (DefaultSerializerConfiguration configuration : existingServiceConfigurations) {
+    @SuppressWarnings({"unchecked","rawtypes"})
+    List<DefaultSerializerConfiguration<?>> existingServiceConfigurations =
+      (List) getExistingServiceConfigurations(DefaultSerializerConfiguration.class);
+    for (DefaultSerializerConfiguration<?> configuration : existingServiceConfigurations) {
       if (configuration.getType().equals(type)) {
         serviceConfigurations.remove(configuration);
       }
@@ -588,8 +591,9 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   private void removeExistingCopierConfigFor(DefaultCopierConfiguration.Type type) {
-    List<DefaultCopierConfiguration> existingServiceConfigurations = getExistingServiceConfigurations(DefaultCopierConfiguration.class);
-    for (DefaultCopierConfiguration configuration : existingServiceConfigurations) {
+    @SuppressWarnings({"unchecked","rawtypes"})
+    List<DefaultCopierConfiguration<?>> existingServiceConfigurations = (List) getExistingServiceConfigurations(DefaultCopierConfiguration.class);
+    for (DefaultCopierConfiguration<?> configuration : existingServiceConfigurations) {
       if (configuration.getType().equals(type)) {
         serviceConfigurations.remove(configuration);
       }

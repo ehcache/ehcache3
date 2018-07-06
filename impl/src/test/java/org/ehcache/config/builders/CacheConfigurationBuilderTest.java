@@ -172,7 +172,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
     Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.sameInstance(keyCopier));
@@ -197,7 +197,7 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
     Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.sameInstance(valueCopier));
@@ -223,7 +223,7 @@ public class CacheConfigurationBuilderTest {
 
     final ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
-    CacheConfiguration config = builder
+    CacheConfiguration<Long, CharSequence> config = builder
         .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
         .withExpiry(expiry)
         .build();

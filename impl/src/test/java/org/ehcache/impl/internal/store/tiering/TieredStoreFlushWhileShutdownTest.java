@@ -42,9 +42,9 @@ import java.io.File;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TieredStoreFlushWhileShutdownTest {
@@ -110,7 +110,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
     tieredStoreProvider.start(serviceLocator);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Number, String> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);

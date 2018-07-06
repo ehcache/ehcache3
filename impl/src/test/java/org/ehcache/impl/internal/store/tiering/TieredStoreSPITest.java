@@ -129,8 +129,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
-        @SuppressWarnings("unchecked")
-        final Copier<String> defaultCopier = new IdentityCopier();
+        Copier<String> defaultCopier = IdentityCopier.identityCopier();
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
         try {
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -278,7 +277,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override

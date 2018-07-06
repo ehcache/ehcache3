@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 
 import org.hamcrest.Description;
@@ -362,13 +363,13 @@ public class ChainMapTest {
     int nThreads = 10;
     ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
 
-    List<Future> futures = new ArrayList<>();
+    List<Future<Chain>> futures = new ArrayList<>();
 
     for (int i = 0; i < nThreads ; i++) {
       futures.add(executorService.submit(() -> map.get("key")));
     }
 
-    for (Future f : futures) {
+    for (Future<Chain> f : futures) {
       f.get();
     }
 

@@ -75,6 +75,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration setDefaultResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultRegularConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
@@ -104,6 +105,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration setDefaultLoaderWriterResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultLoaderWriterConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
@@ -134,6 +136,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     getDefaults().put(alias, new DefaultResilienceStrategyConfiguration(clazz, arguments));
     return this;

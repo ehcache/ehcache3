@@ -119,7 +119,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override

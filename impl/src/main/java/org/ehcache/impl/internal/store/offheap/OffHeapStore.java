@@ -188,7 +188,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      OffHeapStore offHeapStore = (OffHeapStore)resource;
+      OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       close(offHeapStore);
       StatisticsManager.nodeFor(offHeapStore).clean();
       tierOperationStatistics.remove(offHeapStore);
@@ -209,11 +209,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
 
       OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
-      Serializer keySerializer = offHeapStore.keySerializer;
+      Serializer<?> keySerializer = offHeapStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
         ((StatefulSerializer)keySerializer).init(new TransientStateRepository());
       }
-      Serializer valueSerializer = offHeapStore.valueSerializer;
+      Serializer<?> valueSerializer = offHeapStore.valueSerializer;
       if (valueSerializer instanceof StatefulSerializer) {
         ((StatefulSerializer)valueSerializer).init(new TransientStateRepository());
       }

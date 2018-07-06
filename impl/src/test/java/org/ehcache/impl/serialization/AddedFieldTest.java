@@ -41,8 +41,7 @@ public class AddedFieldTest {
 
   @Test
   public void addingSerializableField() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_write.class, IncompatibleSerializable_write.class, Serializable_write.class);
@@ -60,8 +59,7 @@ public class AddedFieldTest {
 
   @Test
   public void addingExternalizableField() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(B_write.class, Externalizable_write.class);
@@ -90,7 +88,7 @@ public class AddedFieldTest {
 
   public static class IncompatibleSerializable_write implements Serializable {
 
-    private static final long serialVersionUID = 3L;
+    private static final long serialVersionUID = 4L;
 
     int x = 5;
   };

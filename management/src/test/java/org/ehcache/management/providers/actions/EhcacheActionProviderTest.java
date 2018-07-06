@@ -105,7 +105,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_happyPathNoParam() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
+    EhcacheWithLoaderWriter<?, ?> ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
@@ -144,7 +144,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchCache() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
+    EhcacheWithLoaderWriter<?, ?> ehcache = mock(EhcacheWithLoaderWriter.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Context context = cmContext_0.with("cacheName", "cache-1");
@@ -163,7 +163,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchCacheManager() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
+    EhcacheWithLoaderWriter<?, ?> ehcache = mock(EhcacheWithLoaderWriter.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Context context = Context.empty()
@@ -184,7 +184,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchMethodName() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
+    EhcacheWithLoaderWriter<?, ?> ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);

@@ -414,7 +414,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
 
-      Serializer keySerializer = diskStore.keySerializer;
+      Serializer<?> keySerializer = diskStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
         StateRepository stateRepository;
         try {
@@ -424,7 +424,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         }
         ((StatefulSerializer)keySerializer).init(stateRepository);
       }
-      Serializer valueSerializer = diskStore.valueSerializer;
+      Serializer<?> valueSerializer = diskStore.valueSerializer;
       if (valueSerializer instanceof StatefulSerializer) {
         StateRepository stateRepository;
         try {

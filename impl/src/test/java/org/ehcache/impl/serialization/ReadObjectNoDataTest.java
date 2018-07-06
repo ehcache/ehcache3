@@ -37,8 +37,7 @@ public class ReadObjectNoDataTest {
 
   @Test
   public void test() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
     ClassLoader loaderW = createClassNameRewritingLoader(C_W.class, B_W.class);
 

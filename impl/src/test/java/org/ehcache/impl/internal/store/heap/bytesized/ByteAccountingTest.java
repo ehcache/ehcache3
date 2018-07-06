@@ -38,7 +38,6 @@ import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
@@ -65,7 +64,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  */
 public class ByteAccountingTest {
 
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
   private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 
   private static final String KEY = "key";
@@ -483,7 +481,7 @@ public class ByteAccountingTest {
     timeSource.advanceTime(1);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
     assertThat(store.get(KEY), nullValue());
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
@@ -519,8 +517,7 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    @SuppressWarnings("unchecked")
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0L, 0L, true, DEFAULT_COPIER);
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<>(value, 0L, 0L, true, IdentityCopier.identityCopier());
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -532,12 +529,10 @@ public class ByteAccountingTest {
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
-    private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
     @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, eventDispatcher);
     }
 
     long getCurrentUsageInBytes() {
