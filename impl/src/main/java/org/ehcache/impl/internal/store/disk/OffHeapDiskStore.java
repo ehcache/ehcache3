@@ -295,7 +295,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
     private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
@@ -408,7 +408,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      PersistenceSpaceIdentifier identifier = createdStores.get(resource);
+      PersistenceSpaceIdentifier<?> identifier = createdStores.get(resource);
       if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }

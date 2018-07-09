@@ -144,7 +144,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          DiskResourceService.PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);

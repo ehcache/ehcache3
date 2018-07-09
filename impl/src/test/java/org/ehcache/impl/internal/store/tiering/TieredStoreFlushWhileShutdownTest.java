@@ -114,7 +114,7 @@ public class TieredStoreFlushWhileShutdownTest {
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace);
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
@@ -137,7 +137,7 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.start(serviceLocator1);
 
     DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace1);
     tieredStoreProvider.initStore(tieredStore);
 

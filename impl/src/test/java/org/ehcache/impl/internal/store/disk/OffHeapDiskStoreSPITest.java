@@ -110,7 +110,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
@@ -159,7 +159,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           return new ServiceConfiguration<?>[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
