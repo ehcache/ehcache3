@@ -99,7 +99,10 @@ public class XmlConfigTest {
         expectedConfiguration.setCacheManagerAlias(registryConfiguration.getContext().get("cacheManagerName"));
       }
 
-      assertThat(registryConfiguration, equalTo(expectedConfiguration));
+      assertThat(registryConfiguration.getCacheManagerAlias(), equalTo(expectedConfiguration.getCacheManagerAlias()));
+      assertThat(registryConfiguration.getCollectorExecutorAlias(), equalTo(expectedConfiguration.getCollectorExecutorAlias()));
+      assertThat(registryConfiguration.getContext(), equalTo(expectedConfiguration.getContext()));
+      assertThat(registryConfiguration.getTags(), equalTo(expectedConfiguration.getTags()));
 
     } finally {
       myCacheManager.close();
