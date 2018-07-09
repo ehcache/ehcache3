@@ -22,6 +22,3 @@ dependencies {
   implementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
 }
 
-compileJava {
-  options.compilerArgs += ['-Xlint:-rawtypes']
-}

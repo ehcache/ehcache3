@@ -72,6 +72,3 @@ test {
   // testLogging.showStandardStreams = true
 }
 
-compileTestJava {
-  options.compilerArgs += ['-Xlint:-rawtypes']
-}
