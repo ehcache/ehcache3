@@ -80,6 +80,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
+
+    private static final long serialVersionUID = 6832417052348277644L;
+
     public ComputationException(StoreAccessException cause) {
       super(cause);
     }

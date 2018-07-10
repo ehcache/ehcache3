@@ -71,8 +71,8 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
     verify(cacheLoaderWriter).writeAll(argThat(hasItems(entry(1, "one"), entry(2, "two"), entry(3, "three"))));
   }
 
-  private Function<List<Map.Entry<Integer, String>>, Object> extractFunctionFromArgs(InvocationOnMock invocation) {
-    return (Function<List<Map.Entry<Integer, String>>, Object>)invocation.getArguments()[1];
+  private <T, R> Function<T, R> extractFunctionFromArgs(InvocationOnMock invocation) {
+    return (Function<T, R>) invocation.getArguments()[1];
   }
 
   @Test
@@ -80,8 +80,8 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
 
     when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
-      Function<List<Map.Entry<Integer, String>>, Object> function = extractFunctionFromArgs(invocation);
-      List<Map.Entry<Integer, String>> o = (List<Map.Entry<Integer, String>>) invocation.getArguments()[0];
+      Function<Set<? extends Number>, Object> function = extractFunctionFromArgs(invocation);
+      Set<? extends Number> o = (Set<? extends Number>) invocation.getArguments()[0];
       function.apply(o);
 
       Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<>();

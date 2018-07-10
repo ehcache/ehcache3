@@ -21,7 +21,3 @@ dependencies {
   implementation "org.terracotta:statistics:$parent.statisticVersion"
   testImplementation project(':spi-tester')
 }
-
-compileTestJava {
-  options.compilerArgs += ['-Xlint:-rawtypes']
-}

@@ -85,7 +85,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
   @Test
   public void testServiceLocator() throws Exception {
     String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
-    @SuppressWarnings({"unchecked                                                                                                                                                                                                                                                                                                                                                                                                                                       ", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes"})
     ServiceLoader<CacheManagerServiceConfigurationParser<? extends Service>> parsers = (ServiceLoader)
       ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
 

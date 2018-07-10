@@ -40,7 +40,3 @@ test {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
 }
-
-compileTestJava {
-  options.compilerArgs += ['-Xlint:-rawtypes']
-}
