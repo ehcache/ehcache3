@@ -16,14 +16,13 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.junit.Test;
 
 import java.util.ServiceLoader;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * @author Clifford W. Johnson
@@ -32,16 +31,17 @@ public class ClusteringServiceFactoryTest {
 
   @Test
   public void testServiceLocator() throws Exception {
-    final String expectedFactory = ClusteringServiceFactory.class.getName();
-    final ServiceLoader<ServiceFactory> factories = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
-    foundParser: {
-      for (final ServiceFactory factory : factories) {
-        if (factory.getClass().getName().equals(expectedFactory)) {
-          break foundParser;
-        }
+    String expectedFactory = ClusteringServiceFactory.class.getName();
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    ServiceLoader<ServiceFactory<?>> factories = (ServiceLoader) ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
+
+    for (ServiceFactory<?> factory : factories) {
+      if (factory.getClass().getName().equals(expectedFactory)) {
+        return;
       }
-      fail("Expected factory not found");
     }
+
+    fail("Expected factory not found");
   }
 
 }

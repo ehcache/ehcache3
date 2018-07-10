@@ -53,6 +53,8 @@ import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.EntityMessage;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
@@ -1057,7 +1059,7 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 IEntityMessenger<?, ?> entityMessenger, EntityMonitoringService entityMonitoringService,
                                                  EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
@@ -1074,7 +1076,7 @@ public class ClusterTierActiveEntityTest {
         } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
           return (T) entityManagementRegistry;
         } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
-          return (T) new OOOMessageHandlerImpl(message -> true, 1, message -> 0);
+          return (T) new OOOMessageHandlerImpl<>(message -> true, 1, message -> 0);
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1261,8 +1263,8 @@ public class ClusterTierActiveEntityTest {
       } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
-        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+        OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
           oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
