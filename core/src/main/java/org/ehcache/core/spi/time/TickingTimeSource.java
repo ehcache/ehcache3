@@ -39,7 +39,7 @@ public class TickingTimeSource implements TimeSource, Service {
   private volatile long currentTime;
   private volatile long lastUpdate;
 
-  private final Timer timer = new Timer("TickingTimeSource-timer", true);
+  private final Timer timer = new Timer("Ehcache-TickingTimeSource-timer", true);
 
   /**
    * Constructor to create a ticking time source.
