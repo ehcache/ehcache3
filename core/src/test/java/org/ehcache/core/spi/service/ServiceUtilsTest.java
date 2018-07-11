@@ -76,4 +76,25 @@ public class ServiceUtilsTest {
     assertThatThrownBy(() ->ServiceUtils.findSingletonAmongst(String.class, Arrays.asList("t1", "t2")))
       .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  public void findOptionalAmongstColl_notFound() {
+    assertThat(ServiceUtils.findOptionalAmongst(String.class, Collections.emptySet())).isEmpty();
+  }
+
+  @Test
+  public void findOptionalAmongstColl_found() {
+    assertThat(ServiceUtils.findOptionalAmongst(String.class, Arrays.asList( 2, "t1"))).contains("t1");
+  }
+
+  @Test
+  public void findOptionalAmongstArray_notFound() {
+    assertThat(ServiceUtils.findOptionalAmongst(String.class)).isEmpty();
+  }
+
+  @Test
+  public void findOptionalAmongstArray_found() {
+    assertThat(ServiceUtils.findOptionalAmongst(String.class, 2, "t1")).contains("t1");
+  }
+
 }

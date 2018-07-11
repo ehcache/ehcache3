@@ -28,6 +28,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
@@ -77,7 +78,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findOptionalAmongst;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
@@ -492,18 +493,20 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = findSingletonAmongst(StoreEventSourceConfiguration.class, config
-        .getServiceConfigurations()
-        .toArray());
-    if (eventSourceConfiguration != null) {
-      dispatcherConcurrency = eventSourceConfiguration.getDispatcherConcurrency();
-    } else {
-      dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
-    }
+    Collection<ServiceConfiguration<?>> serviceConfigurations = config.getServiceConfigurations();
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency, keySerializer, valueSerializer);
-    final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
+    int dispatcherConcurrency = findOptionalAmongst(StoreEventSourceConfiguration.class, serviceConfigurations)
+      .map(StoreEventSourceConfiguration::getDispatcherConcurrency)
+      .orElse(StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY);
+
+    boolean operationStatisticsEnabled = findOptionalAmongst(StoreStatisticsConfiguration.class, serviceConfigurations)
+      .map(StoreStatisticsConfiguration::isOperationStatisticsEnabled)
+      // By default, we enable statistics only in a tiered environment
+      .orElseGet(() -> config.getResourcePools().getResourceTypeSet().size() > 1);
+
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
+      operationStatisticsEnabled, keySerializer, valueSerializer);
+    Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
       @Override

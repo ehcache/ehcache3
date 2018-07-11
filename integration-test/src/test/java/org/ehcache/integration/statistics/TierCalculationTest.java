@@ -29,6 +29,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
@@ -65,6 +66,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();

@@ -30,7 +30,7 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
-import org.ehcache.impl.internal.util.CheckerUtil;
+import org.ehcache.impl.internal.store.basic.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -70,7 +70,7 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -98,7 +98,6 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticType.COUNTER;
 import static org.terracotta.statistics.StatisticType.GAUGE;
 
@@ -116,11 +115,9 @@ import static org.terracotta.statistics.StatisticType.GAUGE;
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  */
-public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
+public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
-
-  private static final String STATISTICS_TAG = "OnHeap";
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -148,8 +145,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   static final int SAMPLE_SIZE = 8;
   private final Backend<K, V> map;
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final Copier<V> valueCopier;
 
   private final SizeOfEngine sizeOfEngine;
@@ -210,6 +205,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
                      SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier) {
+    super(config);
+
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 
     this.valueCopier = Objects.requireNonNull(valueCopier, "valueCopier must not be null");
@@ -229,8 +226,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } else {
       this.evictionAdvisor = config.getEvictionAdvisor();
     }
-    this.keyType = config.getKeyType();
-    this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
     this.storeEventDispatcher = eventDispatcher;
 
@@ -240,37 +235,37 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       this.map = new KeyCopyBackend<>(byteSized, keyCopier, castBackend(backingMapSupplier));
     }
 
-    getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class);
-    putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class);
-    removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class);
-    putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class);
-    conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class);
-    replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class);
-    conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class);
-    computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class);
-    computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class);
-    evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class);
-    expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class);
+    getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
+    putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
+    removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, true);
+    putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, true);
+    conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
+    replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
+    conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
+    computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
+    evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
+    expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
 
-    getOrComputeIfAbsentObserver = createObserver("getOrComputeIfAbsent", CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class);
-    invalidateObserver = createObserver("invalidate", CachingTierOperationOutcomes.InvalidateOutcome.class);
-    invalidateAllObserver = createObserver("invalidateAll", CachingTierOperationOutcomes.InvalidateAllOutcome.class);
-    invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.class);
+    getOrComputeIfAbsentObserver = createObserver("getOrComputeIfAbsent", CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class, true);
+    invalidateObserver = createObserver("invalidate", CachingTierOperationOutcomes.InvalidateOutcome.class, true);
+    invalidateAllObserver = createObserver("invalidateAll", CachingTierOperationOutcomes.InvalidateAllOutcome.class, true);
+    invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.class, true);
 
-    silentInvalidateObserver = createObserver("silentInvalidate", HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class);
-    silentInvalidateAllObserver = createObserver("silentInvalidateAll", HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class);
-    silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class);
+    silentInvalidateObserver = createObserver("silentInvalidate", HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class, true);
+    silentInvalidateAllObserver = createObserver("silentInvalidateAll", HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class, true);
+    silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class, true);
 
-    Set<String> tags = new HashSet<>(Arrays.asList(STATISTICS_TAG, "tier"));
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, COUNTER, () -> map.mappingCount());
-
-    if(byteSized) {
-      StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, GAUGE, () -> map.byteSize());
+    Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
+    registerStatistic("mappings", COUNTER, tags, () -> map.mappingCount());
+    if (byteSized) {
+      registerStatistic("occupiedMemory", GAUGE, tags, () -> map.byteSize());
     }
   }
 
-  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
-    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
+  @Override
+  protected String getStatisticsTag() {
+    return "OnHeap";
   }
 
   @SuppressWarnings({"unchecked", "rawtype"})
@@ -1540,14 +1535,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
-  }
-
   private void fireOnExpirationEvent(K mappedKey, ValueHolder<V> mappedValue, StoreEventSink<K, V> eventSink) {
     expirationObserver.begin();
     expirationObserver.end(StoreOperationOutcomes.ExpirationOutcome.SUCCESS);
@@ -1556,15 +1543,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
-  public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
+  public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<OnHeapStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OnHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+
+    @Override
+    protected ResourceType<SizedResourcePool> getResourceType() {
+      return ResourceType.Core.HEAP;
+    }
 
     @Override
     public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return resourceTypes.equals(Collections.singleton(ResourceType.Core.HEAP)) ? 1 : 0;
+      return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
@@ -1572,17 +1564,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return rank(resourceTypes, serviceConfigs);
     }
 
-    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OnHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.HEAP.getTierHeight(), targetName, STATISTICS_TAG);
-      StatisticsManager.associate(stat).withParent(store);
-      return stat;
-    }
-
     @Override
     public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
+      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction") });
 
@@ -1667,7 +1653,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
-      this.tierOperationStatistics.put(cachingTier, new MappedOperationStatistic<?, ?>[] {
+      this.tierOperationStatistics.put(cachingTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(cachingTier, "get", TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "getOrComputeIfAbsent"),
         createTranslatedStatistic(cachingTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -1696,7 +1682,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
-      this.tierOperationStatistics.put(higherCachingTier, new MappedOperationStatistic<?, ?>[] {
+      this.tierOperationStatistics.put(higherCachingTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(higherCachingTier, "get", TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "getOrComputeIfAbsent"),
         createTranslatedStatistic(higherCachingTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });

@@ -35,7 +35,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.impl.internal.util.CheckerUtil;
+import org.ehcache.impl.internal.store.basic.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -53,17 +53,15 @@ import org.ehcache.impl.store.HashUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
-import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
 import static org.terracotta.statistics.StatisticsManager.tags;
 import static org.terracotta.statistics.StatisticType.GAUGE;
 
-public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
+public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
@@ -71,8 +69,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     // Do nothing
   };
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> eventDispatcher;
 
@@ -106,37 +102,37 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   @SuppressWarnings("unchecked")
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
-  public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
-    keyType = config.getKeyType();
-    valueType = config.getValueType();
+  public AbstractOffHeapStore(Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
+    super(config);
+
     expiry = config.getExpiry();
 
     this.timeSource = timeSource;
     this.eventDispatcher = eventDispatcher;
 
-    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, statisticsTag);
-    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, statisticsTag);
-    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, statisticsTag);
-    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, statisticsTag);
-    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, statisticsTag);
-    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, statisticsTag);
-    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, statisticsTag);
-    this.computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, statisticsTag);
-    this.computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, statisticsTag);
-    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, statisticsTag);
-    this.expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, statisticsTag);
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, true);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, true);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
+    this.computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    this.computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
+    this.expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
 
-    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, statisticsTag);
-    this.computeIfAbsentAndFaultObserver = createObserver("computeIfAbsentAndFault", AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.class, statisticsTag);
-    this.flushObserver = createObserver("flush", AuthoritativeTierOperationOutcomes.FlushOutcome.class, statisticsTag);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, true);
+    this.computeIfAbsentAndFaultObserver = createObserver("computeIfAbsentAndFault", AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.class, true);
+    this.flushObserver = createObserver("flush", AuthoritativeTierOperationOutcomes.FlushOutcome.class, true);
 
-    this.invalidateObserver = createObserver("invalidate", LowerCachingTierOperationsOutcome.InvalidateOutcome.class, statisticsTag);
-    this.invalidateAllObserver = createObserver("invalidateAll", LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class, statisticsTag);
-    this.invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.class, statisticsTag);
-    this.getAndRemoveObserver= createObserver("getAndRemove", LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class, statisticsTag);
-    this.installMappingObserver= createObserver("installMapping", LowerCachingTierOperationsOutcome.InstallMappingOutcome.class, statisticsTag);
+    this.invalidateObserver = createObserver("invalidate", LowerCachingTierOperationsOutcome.InvalidateOutcome.class, true);
+    this.invalidateAllObserver = createObserver("invalidateAll", LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class, true);
+    this.invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.class, true);
+    this.getAndRemoveObserver= createObserver("getAndRemove", LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class, true);
+    this.installMappingObserver= createObserver("installMapping", LowerCachingTierOperationsOutcome.InstallMappingOutcome.class, true);
 
-    Set<String> tags = tags(statisticsTag, "tier");
+    Set<String> tags = tags(getStatisticsTag(), "tier");
     registerStatistic("allocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::allocatedMemory);
     registerStatistic("occupiedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::occupiedMemory);
     registerStatistic("dataAllocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::dataAllocatedMemory);
@@ -152,12 +148,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.mapEvictionListener = new BackingMapEvictionListener<>(eventDispatcher, evictionObserver);
   }
 
-  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome, String statisticsTag) {
-    return operation(outcome).named(name).of(this).tag(statisticsTag).build();
-  }
-
   private <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Function<EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>>, T> fn) {
-    StatisticsManager.createPassThroughStatistic(this, name, tags, type, () -> {
+    registerStatistic(name, type, tags, () -> {
       EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
       // Returning null means not available.
       // Do not return -1 because a stat can be negative and it's hard to tell the difference
@@ -1069,14 +1061,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     if (valve != null) {
       valve.invalidateAll();
     }
-  }
-
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
   }
 
   private void onExpirationInCachingTier(ValueHolder<V> mappedValue, K key) {
