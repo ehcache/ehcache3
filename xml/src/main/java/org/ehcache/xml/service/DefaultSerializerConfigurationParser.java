@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
+import static org.ehcache.xml.service.SimpleCoreServiceConfigurationParser.checkNoConcreteInstance;
 
 public class DefaultSerializerConfigurationParser implements CoreServiceConfigurationParser {
 
@@ -51,6 +52,7 @@ public class DefaultSerializerConfigurationParser implements CoreServiceConfigur
     Collection<DefaultSerializerConfiguration> serializerConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     for (DefaultSerializerConfiguration serializerConfig : serializerConfigs) {
+      checkNoConcreteInstance(serializerConfig);
       if (serializerConfig.getType() == DefaultSerializerConfiguration.Type.KEY) {
         cacheType.getKeyType().setSerializer(serializerConfig.getClazz().getName());
       } else {

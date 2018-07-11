@@ -19,8 +19,10 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 
@@ -40,6 +42,12 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
   private final Function<U, OUT> unparser;
   private final BinaryOperator<OUT> merger;
 
+  public static void checkNoConcreteInstance(ClassInstanceConfiguration<?> classInstanceConfiguration) {
+    if(classInstanceConfiguration.getInstance() != null) {
+      throw new XmlConfigurationException("XML translation for instance based intialization for " + classInstanceConfiguration.getClass().getSimpleName() +
+        " is not supported");
+    }
+  }
   SimpleCoreServiceConfigurationParser(Class<U> configType,
                                        Function<CacheTemplate, IN> extractor, Function<IN, U> parser,
                                        Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser) {
@@ -89,6 +97,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
     if (serviceConfig == null) {
       return cacheType;
     } else {
+
       OUT foo = getter.apply(cacheType);
       if (foo == null) {
         setter.accept(cacheType, unparser.apply(serviceConfig));

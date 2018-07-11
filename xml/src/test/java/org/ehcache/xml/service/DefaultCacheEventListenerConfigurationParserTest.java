@@ -19,6 +19,7 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.EventFiringType;
 import org.ehcache.xml.model.EventOrderingType;
@@ -36,6 +37,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.event.EventFiring.SYNCHRONOUS;
 import static org.ehcache.event.EventOrdering.UNORDERED;
@@ -80,5 +82,21 @@ public class DefaultCacheEventListenerConfigurationParserTest extends ServiceCon
     assertThat(listener.getEventFiringMode()).isEqualTo(EventFiringType.SYNCHRONOUS);
     assertThat(listener.getEventOrderingMode()).isEqualTo(EventOrderingType.UNORDERED);
     assertThat(listener.getEventsToFireOn()).contains(org.ehcache.xml.model.EventType.CREATED, org.ehcache.xml.model.EventType.REMOVED);
+  }
+
+  @Test
+  public void unparseServiceConfigurationWithInstance() {
+    TestCacheEventListener testCacheEventListener = new TestCacheEventListener();
+    DefaultCacheEventListenerConfiguration listenerConfig =
+      new DefaultCacheEventListenerConfiguration(EnumSet.of(CREATED, REMOVED), testCacheEventListener);
+    listenerConfig.setEventFiringMode(SYNCHRONOUS);
+    listenerConfig.setEventOrderingMode(UNORDERED);
+
+    CacheConfiguration<?, ?> cacheConfig = buildCacheConfigWithServiceConfig(listenerConfig);
+    CacheType cacheType = new CacheType();
+    assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
+      parser.unparseServiceConfiguration(cacheConfig, cacheType))
+      .withMessage("%s", "XML translation for instance based intialization for " +
+                         "DefaultCacheEventListenerConfiguration is not supported");
   }
 }

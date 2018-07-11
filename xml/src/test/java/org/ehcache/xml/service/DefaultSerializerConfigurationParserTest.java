@@ -17,7 +17,10 @@
 package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheEntryType;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
@@ -35,6 +38,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
@@ -82,5 +86,28 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
 
     assertThat(cacheType.getKeyType().getSerializer()).isEqualTo(TestSerializer3.class.getName());
     assertThat(cacheType.getValueType().getSerializer()).isEqualTo(TestSerializer4.class.getName());
+  }
+
+  @Test
+  public void unparseServiceConfigurationWithInstance() {
+    TestSerializer3<Integer> testSerializer3 = new TestSerializer3<>(ClassLoading.getDefaultClassLoader());
+    TestSerializer4<Integer> testSerializer4 = new TestSerializer4<>(ClassLoading.getDefaultClassLoader());
+
+    DefaultSerializerConfiguration<Integer> config1 = new DefaultSerializerConfiguration<>(testSerializer3, DefaultSerializerConfiguration.Type.KEY);
+    DefaultSerializerConfiguration<Integer> config2 = new DefaultSerializerConfiguration<>(testSerializer4, DefaultSerializerConfiguration.Type.VALUE);
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
+      .add(config1).add(config2).build();
+
+    CacheType cacheType = new CacheType();
+    CacheEntryType keyType = new CacheEntryType();
+    keyType.setValue("foo");
+    cacheType.setKeyType(keyType);
+    CacheEntryType valueType = new CacheEntryType();
+    valueType.setValue("bar");
+    cacheType.setValueType(valueType);
+    assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
+      parser.unparseServiceConfiguration(cacheConfig, cacheType))
+      .withMessage("%s", "XML translation for instance based intialization for " +
+                         "DefaultSerializerConfiguration is not supported");
   }
 }
