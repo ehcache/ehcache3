@@ -79,13 +79,19 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public void abandonLeadership(String entityIdentifier) {
+  /**
+   * Proactively abandon any maintenance holds (READ or WRITE) before closing connection.
+   *
+   * @param entityIdentifier the master entity identifier
+   * @return true of abandoned false otherwise
+   */
+  public boolean abandonMaintenanceHolds(String entityIdentifier) {
     Hold hold = maintenanceHolds.remove(entityIdentifier);
-    if (hold == null) {
-      throw new IllegalMonitorStateException("Leadership was never held");
-    } else {
+    if (hold != null) {
       hold.unlock();
+      return true;
     }
+    return false;
   }
 
   /**
