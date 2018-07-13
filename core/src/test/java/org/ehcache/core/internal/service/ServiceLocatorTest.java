@@ -239,8 +239,7 @@ public class ServiceLocatorTest {
     serviceLocator.startAllServices();
   }
 
-  @Test
-  @Ignore
+  @Test(expected = IllegalStateException.class)
   public void testCircularDeps() throws Exception {
 
     final class StartStopCounter {

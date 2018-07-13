@@ -84,7 +84,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   protected static ServerEntityIdentifier clusterTierManagerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  protected static NmsService nmsService;
+  static NmsService nmsService;
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
   protected static Connection managementConnection;
 

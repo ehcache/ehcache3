@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -33,6 +34,7 @@ import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.settings.EhcacheSettingsProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
@@ -44,7 +46,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class, TimeSourceService.class})
+@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class, TimeSourceService.class, ExecutionService.class})
+@OptionalServiceDependencies({
+  "org.ehcache.clustered.client.service.EntityService",
+  "org.ehcache.clustered.client.service.ClusteringService"})
 public class DefaultManagementRegistryService extends DefaultManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;

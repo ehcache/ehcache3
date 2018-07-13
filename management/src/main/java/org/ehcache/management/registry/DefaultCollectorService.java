@@ -88,6 +88,11 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     // so deregisterListener is done in the stateTransition listener
     //cacheManager.deregisterListener(this);
 
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext(),
+        EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
+
     statisticCollector.stopStatisticCollector();
     shutdownNow(scheduledExecutorService);
   }
@@ -131,11 +136,6 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         break;
 
       case UNINITIALIZED:
-        collector.onNotification(
-          new ContextualNotification(
-            configuration.getContext(),
-            EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
-
         // deregister me - should not be in stop() - see other comments
         cacheManager.deregisterListener(this);
         break;
