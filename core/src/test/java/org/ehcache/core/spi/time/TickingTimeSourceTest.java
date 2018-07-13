@@ -43,7 +43,8 @@ public class TickingTimeSourceTest {
     assertThat(actualTime).isGreaterThanOrEqualTo(currentTime);
 
     // ... and increase
-    for (int i = 0; i < 1_000_000; i++) {
+    long end = System.currentTimeMillis() + 30_000; // 30 seconds should be way way enough to at least tick of one millisecond
+    while(System.currentTimeMillis() < end) {
       if(tickingTimeSource.getTimeMillis() > actualTime) {
         break;
       }
