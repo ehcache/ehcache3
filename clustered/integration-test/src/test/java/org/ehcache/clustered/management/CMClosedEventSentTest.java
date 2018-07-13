@@ -30,6 +30,8 @@ import java.io.File;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.clustered.management.AbstractClusteringManagementTest.createNmsService;
+import static org.ehcache.clustered.management.AbstractClusteringManagementTest.nmsService;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -58,15 +60,13 @@ public class CMClosedEventSentTest {
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {
-    AbstractClusteringManagementTest.createNmsService(CLUSTER);
+    createNmsService(CLUSTER);
 
-    CacheManager cacheManager = newCacheManagerBuilder()
-      // cluster config
-      .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
-        .resourcePool("resource-pool-b", 10, MemoryUnit.MB)) // will take from primary-server-resource
+    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
+      .autoCreate()
+      .defaultServerResource("primary-server-resource")
+      .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+      .resourcePool("resource-pool-b", 10, MemoryUnit.MB)) // will take from primary-server-resource
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
@@ -79,18 +79,18 @@ public class CMClosedEventSentTest {
           .offheap(1, MemoryUnit.MB)
           .with(clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
         .build())
-      .build(true);
+      .build(true)) {
 
-    assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
-    waitFor("CACHE_MANAGER_AVAILABLE");
+      assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
+      waitFor("CACHE_MANAGER_AVAILABLE");
 
-    cacheManager.close();
+    }
     waitFor("CACHE_MANAGER_CLOSED");
   }
 
   private void waitFor(String notifType) throws InterruptedException {
     while (!Thread.currentThread().isInterrupted()) {
-      Message message = AbstractClusteringManagementTest.nmsService.waitForMessage();
+      Message message = nmsService.waitForMessage();
       if (message.getType().equals("NOTIFICATION")) {
         ContextualNotification notification = message.unwrap(ContextualNotification.class).get(0);
         if (notification.getType().equals(notifType)) {

@@ -163,7 +163,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         boolean stoppedSomething = false;
         for (Iterator<Service> it = running.iterator(); it.hasNext(); ) {
           Service s = it.next();
-          if (aRunningServiceStillDependsOnMe(s, running)) {
+          if (hasRunningDependents(s, running)) {
             LOGGER.trace("Delaying stopping {}", s);
           } else {
             LOGGER.trace("Stopping {}", s);
@@ -206,11 +206,11 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return false;
   }
 
-  private boolean aRunningServiceStillDependsOnMe(Service service, Iterable<Service> running) {
+  private boolean hasRunningDependents(Service service, Iterable<Service> running) {
     for (Service runningService : running) {
-      Set<Class<? extends Service>> dependencies = identifyTransitiveDependenciesOf(runningService.getClass());
-      for (Class<? extends Service> dependency : dependencies) {
-        if (dependency.isInstance(service)) {
+      Set<Class<? extends Service>> dependencyClasses = identifyTransitiveDependenciesOf(runningService.getClass());
+      for (Class<? extends Service> dependencyClass : dependencyClasses) {
+        if (dependencyClass.isInstance(service)) {
           return true;
         }
       }
@@ -412,7 +412,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     Set<Class<? extends Service>> dependencies = new HashSet<>();
-    final ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
+    ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
     if (annotation != null) {
       for (final Class<?> dependency : annotation.value()) {
         if (Service.class.isAssignableFrom(dependency)) {
@@ -425,17 +425,17 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         }
       }
     }
-    final OptionalServiceDependencies optionaAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
+    OptionalServiceDependencies optionaAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
     if (optionaAnnotation != null) {
       for (String className : optionaAnnotation.value()) {
         try {
-          Class<?> dependency = ClassLoading.getDefaultClassLoader().loadClass(className);
-          if (Service.class.isAssignableFrom(dependency)) {
+          Class<?> dependencyClass = ClassLoading.getDefaultClassLoader().loadClass(className);
+          if (Service.class.isAssignableFrom(dependencyClass)) {
             @SuppressWarnings("unchecked")
-            Class<? extends Service> serviceDependency = (Class<? extends Service>) dependency;
+            Class<? extends Service> serviceDependency = (Class<? extends Service>) dependencyClass;
             dependencies.add(serviceDependency);
           } else {
-            throw new IllegalStateException("Service dependency declared by " + className + " is not a Service: " + dependency.getName());
+            throw new IllegalStateException("Service dependency declared by " + className + " is not a Service: " + dependencyClass.getName());
           }
         } catch (ClassNotFoundException ignored) {
           // dependency is optional so we ignore it
@@ -457,8 +457,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   private static Set<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
 
     Set<Class<? extends Service>> dependencies = identifyImmediateDependenciesOf(clazz);
-    for (Class<? extends Service> dep : dependencies) {
-      if (dep == clazz) {
+    for (Class<? extends Service> dependencyClass : dependencies) {
+      if (dependencyClass == clazz) {
         throw new IllegalStateException("Circular dependency found. Service " + clazz.getName() + " cannot depend on itself.");
       }
     }
