@@ -17,6 +17,7 @@
 package org.ehcache.core.internal.service;
 
 import org.ehcache.config.Builder;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -162,7 +163,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         boolean stoppedSomething = false;
         for (Iterator<Service> it = running.iterator(); it.hasNext(); ) {
           Service s = it.next();
-          if (hasRunningDependencies(s, running)) {
+          if (aRunningServiceStillDependsOnMe(s, running)) {
             LOGGER.trace("Delaying stopping {}", s);
           } else {
             LOGGER.trace("Stopping {}", s);
@@ -205,10 +206,11 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return false;
   }
 
-  private boolean hasRunningDependencies(Service service, Iterable<Service> running) {
-    for (Class<? extends Service> dep : identifyTransitiveDependenciesOf(service.getClass())) {
-      for (Service s : running) {
-        if (dep.isInstance(s)) {
+  private boolean aRunningServiceStillDependsOnMe(Service service, Iterable<Service> running) {
+    for (Service runningService : running) {
+      Set<Class<? extends Service>> dependencies = identifyTransitiveDependenciesOf(runningService.getClass());
+      for (Class<? extends Service> dependency : dependencies) {
+        if (dependency.isInstance(service)) {
           return true;
         }
       }
@@ -423,6 +425,23 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         }
       }
     }
+    final OptionalServiceDependencies optionaAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
+    if (optionaAnnotation != null) {
+      for (String className : optionaAnnotation.value()) {
+        try {
+          Class<?> dependency = ClassLoading.getDefaultClassLoader().loadClass(className);
+          if (Service.class.isAssignableFrom(dependency)) {
+            @SuppressWarnings("unchecked")
+            Class<? extends Service> serviceDependency = (Class<? extends Service>) dependency;
+            dependencies.add(serviceDependency);
+          } else {
+            throw new IllegalStateException("Service dependency declared by " + className + " is not a Service: " + dependency.getName());
+          }
+        } catch (ClassNotFoundException ignored) {
+          // dependency is optional so we ignore it
+        }
+      }
+    }
 
     for (Class<?> interfaceClazz : clazz.getInterfaces()) {
       if (Service.class.isAssignableFrom(interfaceClazz)) {
@@ -438,11 +457,22 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   private static Set<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
 
     Set<Class<? extends Service>> dependencies = identifyImmediateDependenciesOf(clazz);
+    for (Class<? extends Service> dep : dependencies) {
+      if (dep == clazz) {
+        throw new IllegalStateException("Circular dependency found. Service " + clazz.getName() + " cannot depend on itself.");
+      }
+    }
     Set<Class<? extends Service>> transitive = new HashSet<>(dependencies.size() * 3); // 3 is my feeling of how many there should be per class at most
     transitive.addAll(dependencies);
 
     for (Class<? extends Service> klazz : dependencies) {
-      transitive.addAll(identifyTransitiveDependenciesOf(klazz));
+      Set<Class<? extends Service>> identified = identifyTransitiveDependenciesOf(klazz);
+      for (Class<? extends Service> dep : identified) {
+        if(dep == clazz) {
+          throw new IllegalStateException("Circular dependency found. A dependency of service " + clazz.getName() + " depends on it.");
+        }
+      }
+      transitive.addAll(identified);
     }
 
     return transitive;
