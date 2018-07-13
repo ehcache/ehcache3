@@ -36,7 +36,3 @@ compileJava {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }
-
-compileTestJava {
-  options.compilerArgs += ['-Xlint:-serial,-rawtypes']
-}

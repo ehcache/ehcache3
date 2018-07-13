@@ -104,6 +104,8 @@ public class OverSizeMappingTest {
 
   private static class ObjectSizeGreaterThanN implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final Integer[] arr;
 
     private ObjectSizeGreaterThanN(int n) {

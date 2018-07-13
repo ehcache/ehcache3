@@ -38,7 +38,7 @@ public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfigu
    * @param clazz resilience strategy type to use
    * @param arguments initial constructor arguments
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public DefaultResilienceStrategyConfiguration(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     super((Class<? extends ResilienceStrategy<?, ?>>) clazz, arguments);
   }

@@ -22,6 +22,8 @@ import javax.cache.processor.MutableEntry;
 
 public class ExistEntryProcessor implements EntryProcessor<Integer, String, Boolean>, Serializable {
 
+  private static final long serialVersionUID = 1L;
+
   /**
    * {@inheritDoc}
    */

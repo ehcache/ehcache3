@@ -75,7 +75,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0,
           new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
         return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,
-          new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+          new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher());
       }
 
       @Override
@@ -109,7 +109,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -125,7 +125,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
       }
 
       @Override

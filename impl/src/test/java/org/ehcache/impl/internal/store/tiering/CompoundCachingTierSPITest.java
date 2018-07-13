@@ -119,21 +119,21 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
         OffHeapStore<?, ?> offHeapStore = map.remove(tier);
         OffHeapStoreLifecycleHelper.close(offHeapStore);
       }

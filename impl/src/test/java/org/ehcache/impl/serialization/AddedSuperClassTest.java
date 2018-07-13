@@ -35,8 +35,7 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClass() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
@@ -53,8 +52,7 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClassNotHidden() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
@@ -70,6 +68,9 @@ public class AddedSuperClassTest {
   }
 
   public static class AddedSuperClass_Hidden implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     int field;
   }
 

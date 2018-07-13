@@ -42,19 +42,12 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      @SuppressWarnings("unchecked")
-      Store<K, V> kvStore2 = this.kvStore2;
-      factory.close(kvStore2);
-      this.kvStore2 = null;
     }
   }
 
@@ -90,7 +83,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings("unchecked")
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -106,7 +99,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       // wrong key type
-      kvStore2.compute(key, (key1, oldValue) -> {
+      kvStore.compute((K) key, (key1, oldValue) -> {
         throw new AssertionError();
       });
       throw new AssertionError();

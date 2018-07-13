@@ -30,7 +30,6 @@ import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
@@ -57,8 +56,6 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
-      private final Copier DEFAULT_COPIER = new IdentityCopier();
-
       @Override
       public CachingTier<String, String> newCachingTier() {
         return newCachingTier(null);
@@ -73,12 +70,12 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, null, null);
 
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, DEFAULT_COPIER);
+        return new CopiedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, IdentityCopier.identityCopier());
       }
 
       @Override
@@ -106,21 +103,21 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
       }
 
       @Override

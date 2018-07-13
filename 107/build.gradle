@@ -43,10 +43,6 @@ dependencies {
   testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
-
 javadoc {
   exclude '**/tck/**'
 }

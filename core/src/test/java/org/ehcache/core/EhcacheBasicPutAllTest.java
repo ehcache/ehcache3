@@ -285,7 +285,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   public void putAllStoreCallsMethodTwice() throws Exception {
     this.store = mock(Store.class);
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    final List<Map.Entry> written = new ArrayList<>();
+    final List<Map.Entry<?, ?>> written = new ArrayList<>();
     doAnswer(invocation -> {
       Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
       for (Map.Entry<?, ?> entry : i) {
@@ -297,16 +297,17 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     }).when(cacheLoaderWriter).writeAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
-    final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+    ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>>
+      functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
 
-    Map<String, String> map = new HashMap<String, String>() {{
-      put("1", "one");
-      put("2", "two");
-    }};
+    Map<String, String> map = new HashMap<>();
+    map.put("1", "one");
+    map.put("2", "two");
 
-    when(store.bulkCompute(ArgumentMatchers.<String>anySet(), functionArgumentCaptor.capture())).then(invocation -> {
-      Function<Iterable, Object> function = functionArgumentCaptor.getValue();
-      Iterable arg = map.entrySet();
+    when(store.bulkCompute(ArgumentMatchers.anySet(), functionArgumentCaptor.capture())).then(invocation -> {
+      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function =
+        functionArgumentCaptor.getValue();
+      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = map.entrySet();
       function.apply(arg);
       function.apply(arg);
       return null;

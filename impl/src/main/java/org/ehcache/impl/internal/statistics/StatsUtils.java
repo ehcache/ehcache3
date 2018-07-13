@@ -235,9 +235,9 @@ public final class StatsUtils {
       .filter(context(identifier(subclassOf(OperationStatistic.class))))
       .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
-        hasAttribute("this", new Matcher<OperationStatistic>() {
+        hasAttribute("this", new Matcher<OperationStatistic<T>>() {
           @Override
-          protected boolean matchesSafely(OperationStatistic object) {
+          protected boolean matchesSafely(OperationStatistic<T> object) {
             return object.type().equals(statisticType);
           }
         })

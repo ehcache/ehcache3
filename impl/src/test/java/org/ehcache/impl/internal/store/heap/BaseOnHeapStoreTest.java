@@ -78,8 +78,8 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 public abstract class BaseOnHeapStoreTest {
 
   private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException();
-  protected StoreEventDispatcher eventDispatcher;
-  protected StoreEventSink eventSink;
+  protected StoreEventDispatcher<Object, Object> eventDispatcher;
+  protected StoreEventSink<Object, Object> eventSink;
 
   @Rule
   public TestRule watchman = new TestWatcher() {
@@ -1249,8 +1249,8 @@ public abstract class BaseOnHeapStoreTest {
     return any(Supplier.class);
   }
 
-  private void verifyListenerReleaseEventsInOrder(StoreEventDispatcher<String, String> listener) {
-    StoreEventSink<String, String> eventSink = getStoreEventSink();
+  private <K, V> void verifyListenerReleaseEventsInOrder(StoreEventDispatcher<K, V> listener) {
+    StoreEventSink<K, V> eventSink = getStoreEventSink();
 
     InOrder inOrder = inOrder(listener);
     inOrder.verify(listener).eventSink();
@@ -1324,12 +1324,12 @@ public abstract class BaseOnHeapStoreTest {
 
   @SuppressWarnings("unchecked")
   protected <K, V> StoreEventSink<K, V> getStoreEventSink() {
-    return eventSink;
+    return (StoreEventSink<K, V>) eventSink;
   }
 
   @SuppressWarnings("unchecked")
   protected <K, V> StoreEventDispatcher<K, V> getStoreEventDispatcher() {
-    return eventDispatcher;
+    return (StoreEventDispatcher<K, V>) eventDispatcher;
   }
 
   protected <K, V> OnHeapStore<K, V> newStore() {

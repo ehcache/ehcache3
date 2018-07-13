@@ -15,9 +15,9 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-/**
- */
 public class ServerStoreProxyException extends RuntimeException {
+
+  private static final long serialVersionUID = -3451273597124838171L;
 
   /**
    * Creates a new exception wrapping the {@link Throwable cause} passed in.

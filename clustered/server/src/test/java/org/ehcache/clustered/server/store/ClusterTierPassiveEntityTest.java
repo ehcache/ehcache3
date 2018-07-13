@@ -35,6 +35,8 @@ import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.EntityMessage;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -356,8 +358,8 @@ public class ClusterTierPassiveEntityTest {
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
-        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+        OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
           oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 

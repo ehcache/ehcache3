@@ -24,6 +24,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -83,17 +84,17 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    */
   @Test
   public void testServiceLocator() throws Exception {
-    final String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
-    final ServiceLoader<CacheManagerServiceConfigurationParser> parsers =
+    String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    ServiceLoader<CacheManagerServiceConfigurationParser<? extends Service>> parsers = (ServiceLoader)
       ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
-    foundParser: {
-      for (final CacheManagerServiceConfigurationParser parser : parsers) {
-        if (parser.getClass().getName().equals(expectedParser)) {
-          break foundParser;
-        }
+
+    for (CacheManagerServiceConfigurationParser<?> parser : parsers) {
+      if (parser.getClass().getName().equals(expectedParser)) {
+        return;
       }
-      fail("Expected parser not found");
     }
+    fail("Expected parser not found");
   }
 
   /**

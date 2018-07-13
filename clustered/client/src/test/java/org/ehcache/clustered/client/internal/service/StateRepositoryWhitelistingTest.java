@@ -169,6 +169,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final int val;
 
     private Parent(int val) {
@@ -192,6 +195,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Child extends Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final long longValue;
 
     private Child(int val, long longValue) {

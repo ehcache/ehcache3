@@ -112,7 +112,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -126,7 +126,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
       }
 
       @Override

@@ -154,7 +154,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;

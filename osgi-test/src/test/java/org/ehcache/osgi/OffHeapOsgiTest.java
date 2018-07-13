@@ -93,6 +93,9 @@ public class OffHeapOsgiTest {
   }
 
   private static class Order implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final long id;
 
     Order(long id) {

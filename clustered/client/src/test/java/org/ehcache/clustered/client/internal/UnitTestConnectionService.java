@@ -240,7 +240,7 @@ public class UnitTestConnectionService implements ConnectionService {
         String stringArg = (String) args[1];
 
         try {
-          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
+          EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
           LOGGER.error("Entity destroy failed (not provided???): ", ex);

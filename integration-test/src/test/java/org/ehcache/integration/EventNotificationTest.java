@@ -462,6 +462,9 @@ public class EventNotificationTest {
   }
 
   public static class SerializableObject implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private int size;
     private Byte [] data;
 
