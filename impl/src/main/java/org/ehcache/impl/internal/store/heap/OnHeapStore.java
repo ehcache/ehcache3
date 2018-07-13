@@ -332,28 +332,34 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     try {
       map.compute(key, (mappedKey, mappedValue) -> {
 
+        long delta = 0;
+
         if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-          updateUsageInBytesIfRequired(- mappedValue.size());
+          delta -= mappedValue.size();
           mappedValue = null;
         }
 
+        OnHeapValueHolder<V> newValue;
+
         if (mappedValue == null) {
-          OnHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
+          newValue = newCreateValueHolder(key, value, now, eventSink);
           if (newValue != null) {
-            updateUsageInBytesIfRequired(newValue.size());
+            delta += newValue.size();
             statOutcome.set(StoreOperationOutcomes.PutOutcome.PUT);
           }
-          return newValue;
         } else {
-          OnHeapValueHolder<V> newValue = newUpdateValueHolder(key, mappedValue, value, now, eventSink);
+          newValue = newUpdateValueHolder(key, mappedValue, value, now, eventSink);
           if (newValue != null) {
-            updateUsageInBytesIfRequired(newValue.size() - mappedValue.size());
+            delta += newValue.size() - mappedValue.size();
           } else {
-            updateUsageInBytesIfRequired(- mappedValue.size());
+            delta -= mappedValue.size();
           }
           statOutcome.set(StoreOperationOutcomes.PutOutcome.PUT);
-          return newValue;
         }
+
+        updateUsageInBytesIfRequired(delta);
+
+        return newValue;
       });
       storeEventDispatcher.releaseEventSink(eventSink);
 
@@ -429,25 +435,31 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     try {
       map.compute(key, (mappedKey, mappedValue) -> {
+        long delta = 0;
+
+        OnHeapValueHolder<V> holder;
+
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            updateUsageInBytesIfRequired(- mappedValue.size());
+            delta -= mappedValue.size();
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           }
 
-          OnHeapValueHolder<V> holder = newCreateValueHolder(key, value, now, eventSink);
+          holder = newCreateValueHolder(key, value, now, eventSink);
           if (holder != null) {
-            updateUsageInBytesIfRequired(holder.size());
+            delta += holder.size();
           }
           entryActuallyAdded.set(holder != null);
-          return holder;
+        } else {
+          returnValue.set(mappedValue);
+          holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          if (holder == null) {
+            delta -= mappedValue.size();
+          }
         }
 
-        returnValue.set(mappedValue);
-        OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
-        if (holder == null) {
-          updateUsageInBytesIfRequired(- mappedValue.size());
-        }
+        updateUsageInBytesIfRequired(delta);
+
         return holder;
       });
 
@@ -1070,61 +1082,61 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         new AtomicReference<>(StoreOperationOutcomes.ComputeOutcome.MISS);
 
       OnHeapValueHolder<V> computeResult = map.compute(key, (mappedKey, mappedValue) -> {
-        long sizeDelta = 0L;
+        long delta = 0L;
+
         if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
-          sizeDelta -= mappedValue.size();
+          delta -= mappedValue.size();
           mappedValue = null;
         }
 
+        OnHeapValueHolder<V> holder;
         V existingValue = mappedValue == null ? null : mappedValue.get();
         V computedValue = mappingFunction.apply(mappedKey, existingValue);
         if (computedValue == null) {
           if (existingValue != null) {
             eventSink.removed(mappedKey, mappedValue);
             outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
-            updateUsageInBytesIfRequired(- mappedValue.size());
+            delta -= mappedValue.size();
           }
-          return null;
-        } else if (Objects.equals(existingValue, computedValue) && !replaceEqual.get()) {
+          holder = null;
+        } else if (Objects.equals(existingValue, computedValue) && !replaceEqual.get() && mappedValue != null) {
+          holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
+          if (holder == null) {
+            valueHeld.set(mappedValue);
+            delta -= mappedValue.size();
+          }
+        } else {
+          checkValue(computedValue);
           if (mappedValue != null) {
-            OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
-            outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+            long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+            holder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
+            delta -= mappedValue.size();
             if (holder == null) {
-              valueHeld.set(mappedValue);
-              updateUsageInBytesIfRequired(- mappedValue.size());
+              try {
+                valueHeld.set(makeValue(key, computedValue, now, expirationTime, valueCopier, false));
+              } catch (LimitExceededException e) {
+                // Not happening
+              }
+            } else {
+              delta += holder.size();
             }
-            return holder;
+          } else {
+            holder = newCreateValueHolder(key, computedValue, now, eventSink);
+            if (holder != null) {
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+              delta += holder.size();
+            }
           }
         }
 
-        checkValue(computedValue);
-        if (mappedValue != null) {
-          outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
-          long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
-          OnHeapValueHolder<V> valueHolder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
-          sizeDelta -= mappedValue.size();
-          if (valueHolder == null) {
-            try {
-              valueHeld.set(makeValue(key, computedValue, now, expirationTime, valueCopier, false));
-            } catch (LimitExceededException e) {
-              // Not happening
-            }
-          } else {
-            sizeDelta += valueHolder.size();
-          }
-          updateUsageInBytesIfRequired(sizeDelta);
-          return valueHolder;
-        } else {
-          OnHeapValueHolder<V> holder = newCreateValueHolder(key, computedValue, now, eventSink);
-          if (holder != null) {
-            outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
-            sizeDelta += holder.size();
-          }
-          updateUsageInBytesIfRequired(sizeDelta);
-          return holder;
-        }
+        updateUsageInBytesIfRequired(delta);
+
+        return holder;
       });
+
       if (computeResult == null && valueHeld.get() != null) {
         computeResult = valueHeld.get();
       }
@@ -1152,32 +1164,37 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       AtomicReference<StoreOperationOutcomes.ComputeIfAbsentOutcome> outcome =
         new AtomicReference<>(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
       OnHeapValueHolder<V> computeResult = map.compute(key, (mappedKey, mappedValue) -> {
+        long delta = 0;
+        OnHeapValueHolder<V> holder;
+
         if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           if (mappedValue != null) {
-            updateUsageInBytesIfRequired(- mappedValue.size());
+            delta -= mappedValue.size();
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           }
           V computedValue = mappingFunction.apply(mappedKey);
           if (computedValue == null) {
-            return null;
+            holder = null;
+          } else {
+            checkValue(computedValue);
+            holder = newCreateValueHolder(key, computedValue, now, eventSink);
+            if (holder != null) {
+              outcome.set(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT);
+              delta += holder.size();
+            }
           }
-
-          checkValue(computedValue);
-          OnHeapValueHolder<V> holder = newCreateValueHolder(key, computedValue, now, eventSink);
-          if (holder != null) {
-            outcome.set(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT);
-            updateUsageInBytesIfRequired(holder.size());
-          }
-          return holder;
         } else {
           previousValue.set(mappedValue);
           outcome.set(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT);
-          OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
           if (holder == null) {
-            updateUsageInBytesIfRequired(- mappedValue.size());
+            delta -= mappedValue.size();
           }
-          return holder;
         }
+
+        updateUsageInBytesIfRequired(delta);
+
+        return holder;
       });
       OnHeapValueHolder<V> previousValueHolder = previousValue.get();
 
