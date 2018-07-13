@@ -309,6 +309,7 @@ image::Put.png[Put]
 [.left]
 .Multiple tiers using Get
 image::Get.png[Get]
+--
 
 You should then notice the following:
 

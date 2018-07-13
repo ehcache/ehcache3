@@ -648,7 +648,7 @@ p a > code:hover {
     *zoom: 1;
     position: relative;
     padding-left: .9375em;
-    padding-right: .9375em
+    padding-right: .9375em;
     background-color: #fff;
     z-index:10;
 }
@@ -1228,7 +1228,7 @@ table.pyhltable .linenodiv {
 }
 
 .verseblock pre {
-    font-family: "Open Sans", "DejaVu Sans", sans;
+    font-family: "Open Sans", "DejaVu Sans", sans-serif;
     font-size: 1.15rem;
     color: rgba(0, 0, 0, .85);
     font-weight: 300;
