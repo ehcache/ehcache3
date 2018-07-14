@@ -53,7 +53,6 @@ import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.MappedOperationStatistic;
-import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collection;
@@ -70,6 +69,8 @@ import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBuffe
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
+  private static final String STATISTICS_TAG = "OffHeap";
+
   private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
@@ -78,7 +79,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
     EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
@@ -88,11 +89,6 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
     this.sizeInBytes = sizeInBytes;
-  }
-
-  @Override
-  protected String getStatisticsTag() {
-    return "OffHeap";
   }
 
   @Override
@@ -129,18 +125,13 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider, LowerCachingTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
-    private final Map<OffHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
-
-    @Override
-    protected ResourceType<SizedResourcePool> getResourceType() {
-      return ResourceType.Core.OFFHEAP;
-    }
+    private final Map<OffHeapStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -156,12 +147,18 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
 
       return store;
+    }
+
+    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.OFFHEAP.getTierHeight(), targetName, STATISTICS_TAG);
+      StatisticsManager.associate(stat).withParent(store);
+      return stat;
     }
 
     private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
@@ -170,7 +167,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
+      SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
       }
@@ -241,7 +238,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -263,7 +260,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
-      tierOperationStatistics.put(lowerCachingTier, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(lowerCachingTier, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(lowerCachingTier, "get", TierOperationOutcomes.GET_AND_REMOVE_TRANSLATION, "getAndRemove"),
         createTranslatedStatistic(lowerCachingTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });

@@ -24,7 +24,6 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.InternalCache;
-import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
@@ -34,108 +33,27 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import static java.util.Arrays.*;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
-import static org.ehcache.config.units.EntryUnit.*;
-import static org.ehcache.config.units.MemoryUnit.*;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 
-@RunWith(Parameterized.class)
 public class DefaultCacheStatisticsTest {
-
-  /**
-   * Statistics can be disabled on the stores. However, the cache statistics should still work nicely when it's the case.
-   *
-   * @return if store statistics are enabled or disabled
-   */
-  @Parameterized.Parameters
-  public static final Object[] data() {
-    return new Object[] { Boolean.FALSE, Boolean.TRUE };
-  }
-
-  private static final String[][] KNOWN_STATISTICS = {
-    {
-      // Disabled
-      "Cache:EvictionCount",
-      "Cache:ExpirationCount",
-      "Cache:GetHitLatency#100",
-      "Cache:GetHitLatency#50",
-      "Cache:GetHitLatency#95",
-      "Cache:GetHitLatency#99",
-      "Cache:GetMissLatency#100",
-      "Cache:GetMissLatency#50",
-      "Cache:GetMissLatency#95",
-      "Cache:GetMissLatency#99",
-      "Cache:HitCount",
-      "Cache:MissCount",
-      "Cache:PutCount",
-      "Cache:PutLatency#100",
-      "Cache:PutLatency#50",
-      "Cache:PutLatency#95",
-      "Cache:PutLatency#99",
-      "Cache:RemovalCount",
-      "Cache:RemoveLatency#100",
-      "Cache:RemoveLatency#50",
-      "Cache:RemoveLatency#95",
-      "Cache:RemoveLatency#99",
-      "OnHeap:EvictionCount",
-      "OnHeap:ExpirationCount",
-      "OnHeap:MappingCount"
-    },
-    {
-      // Enabled
-      "Cache:EvictionCount",
-      "Cache:ExpirationCount",
-      "Cache:GetHitLatency#100",
-      "Cache:GetHitLatency#50",
-      "Cache:GetHitLatency#95",
-      "Cache:GetHitLatency#99",
-      "Cache:GetMissLatency#100",
-      "Cache:GetMissLatency#50",
-      "Cache:GetMissLatency#95",
-      "Cache:GetMissLatency#99",
-      "Cache:HitCount",
-      "Cache:MissCount",
-      "Cache:PutCount",
-      "Cache:PutLatency#100",
-      "Cache:PutLatency#50",
-      "Cache:PutLatency#95",
-      "Cache:PutLatency#99",
-      "Cache:RemovalCount",
-      "Cache:RemoveLatency#100",
-      "Cache:RemoveLatency#50",
-      "Cache:RemoveLatency#95",
-      "Cache:RemoveLatency#99",
-      "OnHeap:EvictionCount",
-      "OnHeap:ExpirationCount",
-      "OnHeap:HitCount",
-      "OnHeap:MappingCount",
-      "OnHeap:MissCount",
-      "OnHeap:PutCount",
-      "OnHeap:RemovalCount"
-    }
-  };
 
   private static final int TIME_TO_EXPIRATION = 100;
   private static final int HISTOGRAM_WINDOW_MILLIS = 400;
   private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
 
-  private final boolean enableStoreStatistics;
   private DefaultCacheStatistics cacheStatistics;
   private CacheManager cacheManager;
   private InternalCache<Long, String> cache;
@@ -143,10 +61,6 @@ public class DefaultCacheStatisticsTest {
   private final AtomicLong latency = new AtomicLong();
   private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
   private final Map<Long, String> sor = new HashMap<>();
-
-  public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
-    this.enableStoreStatistics = enableStoreStatistics;
-  }
 
   @Before
   public void before() {
@@ -181,7 +95,6 @@ public class DefaultCacheStatisticsTest {
         .withLoaderWriter(loaderWriter)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
         .add(cacheEventListenerConfiguration)
-        .add(new StoreStatisticsConfiguration(enableStoreStatistics))
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -204,7 +117,36 @@ public class DefaultCacheStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(KNOWN_STATISTICS[enableStoreStatistics ? 1 : 0]);
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:GetHitLatency#100",
+      "Cache:GetHitLatency#50",
+      "Cache:GetHitLatency#95",
+      "Cache:GetHitLatency#99",
+      "Cache:GetMissLatency#100",
+      "Cache:GetMissLatency#50",
+      "Cache:GetMissLatency#95",
+      "Cache:GetMissLatency#99",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:PutLatency#100",
+      "Cache:PutLatency#50",
+      "Cache:PutLatency#95",
+      "Cache:PutLatency#99",
+      "Cache:RemovalCount",
+      "Cache:RemoveLatency#100",
+      "Cache:RemoveLatency#50",
+      "Cache:RemoveLatency#95",
+      "Cache:RemoveLatency#99",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount");
   }
 
   @Test

@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -47,7 +46,6 @@ import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.impl.internal.store.basic.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
@@ -68,7 +66,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -91,12 +89,15 @@ import java.util.function.Supplier;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Supports a {@link Store} in a clustered environment.
  */
-public class ClusteredStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V> {
+public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
+  private static final String STATISTICS_TAG = "Clustered";
+  private static final int TIER_HEIGHT = ClusteredResourceType.Types.UNKNOWN.getTierHeight();  //TierHeight is the same for all ClusteredResourceType.Types
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.client.chain.compaction.threshold";
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
@@ -121,36 +122,33 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  private ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource) {
-    super(config);
-
+  private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, TimeSource timeSource) {
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
     this.timeSource = timeSource;
 
-    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
-    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
-    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, true);
-    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, true);
-    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
-    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
-    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
-    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, true);
-    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class);
+  }
+
+  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome) {
+    return operation(outcome).named(name).of(this).tag(STATISTICS_TAG).build();
   }
 
   /**
    * For tests
    */
-  ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
-    this(config, codec, resolver, timeSource);
+  ClusteredStore(OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
+    this(codec, resolver, timeSource);
     this.storeProxy = proxy;
-  }
-
-  @Override
-  protected String getStatisticsTag() {
-    return "Clustered";
   }
 
   @Override
@@ -539,7 +537,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
    * Provider of {@link ClusteredStore} instances.
    */
   @ServiceDependencies({TimeSourceService.class, ClusteringService.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
@@ -556,24 +554,24 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<ClusteredStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected ClusteredResourceType<ClusteredResourcePool> getResourceType() {
-      return ClusteredResourceType.Types.UNKNOWN;
-    }
+    private final Map<ClusteredStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
-      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
 
       return store;
+    }
+
+    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(ClusteredStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, TIER_HEIGHT, targetName, STATISTICS_TAG);
+      StatisticsManager.associate(stat).withParent(store);
+      return stat;
     }
 
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
@@ -623,7 +621,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
 
-        ClusteredStore<K, V> store = new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
+        ClusteredStore<K, V> store = new ClusteredStore<>(codec, resolver, timeSource);
 
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
         return store;
@@ -789,7 +787,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
@@ -806,7 +804,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
       initStore(resource);
     }
-
   }
 
   private static class StoreConfig {

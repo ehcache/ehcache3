@@ -629,14 +629,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The concurrency level of the dispatcher that processes events
      */
     int getDispatcherConcurrency();
-
-    /**
-     * If operation statistics (e.g. get/put count) should be enabled. It is
-     * a default method to keep the original behavior which was enabled all the time.
-     */
-    default boolean isOperationStatisticsEnabled() {
-      return true;
-    }
   }
 
   /**
