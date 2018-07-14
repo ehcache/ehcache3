@@ -59,7 +59,7 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
@@ -91,6 +91,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
 
+  private static final String STATISTICS_TAG = "Disk";
+
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
 
@@ -114,7 +116,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
                           final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -137,11 +139,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
       throw new AssertionError();
     }
-  }
-
-  @Override
-  protected String getStatisticsTag() {
-    return "Disk";
   }
 
   @Override
@@ -292,10 +289,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OffHeapDiskStore<?, ?>, MappedOperationStatistic<?, ?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
@@ -309,30 +306,31 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    protected ResourceType<SizedResourcePool> getResourceType() {
-      return ResourceType.Core.DISK;
-    }
-
-    @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
+      return resourceTypes.equals(Collections.singleton(ResourceType.Core.DISK)) ? 1 : 0;
     }
 
     @Override
     public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return authorityResource.equals(getResourceType()) ? 1 : 0;
+      return authorityResource.equals(ResourceType.Core.DISK) ? 1 : 0;
     }
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(store, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
         createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
 
       return store;
+    }
+
+    private <K, V, S extends Enum<S>, T extends Enum<T>> MappedOperationStatistic<S, T> createTranslatedStatistic(OffHeapDiskStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      MappedOperationStatistic<S, T> stat = new MappedOperationStatistic<>(store, translation, statisticName, ResourceType.Core.DISK.getTierHeight(), targetName, STATISTICS_TAG);
+      StatisticsManager.associate(stat).withParent(store);
+      return stat;
     }
 
     private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
@@ -342,7 +340,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
-      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
+      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
       }
@@ -463,7 +461,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
-      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
+      tierOperationStatistics.put(authoritativeTier, new MappedOperationStatistic<?, ?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
         createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
       });
