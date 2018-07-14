@@ -15,23 +15,18 @@
  */
 package org.ehcache.jsr107;
 
+import static java.util.Arrays.stream;
+import static java.util.Objects.requireNonNull;
+
 /**
  * @author teck
  */
 final class Unwrap {
 
   static <T> T unwrap(Class<T> clazz, Object... obj) {
-    if (clazz == null || obj == null) {
-      throw new NullPointerException();
-    }
-
-    for (Object o : obj) {
-      if (o != null && clazz.isAssignableFrom(o.getClass())) {
-        return clazz.cast(o);
-      }
-    }
-
-    throw new IllegalArgumentException("Cannot unwrap to " + clazz);
+    requireNonNull(clazz);
+    return stream(obj).filter(clazz::isInstance).map(clazz::cast).findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("Cannot unwrap to " + clazz));
   }
 
   private Unwrap() {

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107.config;
+package org.ehcache.jsr107;
 
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.spi.service.Service;
 
 /**
@@ -54,4 +56,10 @@ public interface Jsr107Service extends Service {
    */
   ConfigurationElementState isStatisticsEnabledOnAllCaches();
 
+  /**
+   * Returns the statistics service associated with this JSR107 service.
+   *
+   * @return the statistics service
+   */
+  StatisticsService getStatistics();
 }

@@ -17,6 +17,9 @@ package org.ehcache.jsr107;
 
 import org.ehcache.expiry.ExpiryPolicy;
 
+import java.time.Duration;
+import java.util.function.Supplier;
+
 /**
  * Eh107Expiry
  */
@@ -31,8 +34,18 @@ abstract class Eh107Expiry<K, V> implements ExpiryPolicy<K, V> {
     shortCircuitAccess.remove();
   }
 
-  boolean isShortCircuitAccessCalls() {
+  private boolean isShortCircuitAccessCalls() {
     return shortCircuitAccess.get() != null;
   }
 
+  @Override
+  public final Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
+    if (isShortCircuitAccessCalls()) {
+      return null;
+    } else {
+      return getExpiryForAccessInternal(key, value);
+    }
+  }
+
+  protected abstract Duration getExpiryForAccessInternal(K key, Supplier<? extends V> value);
 }

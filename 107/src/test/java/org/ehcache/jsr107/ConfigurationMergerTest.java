@@ -24,7 +24,6 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -39,6 +38,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collection;
 
+import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
@@ -237,7 +237,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
     }
   }
@@ -256,7 +256,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
       verify((Closeable) loader).close();
     }
