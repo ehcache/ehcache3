@@ -403,4 +403,8 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
   public static CacheManagerConfiguration<PersistentCacheManager> persistence(File rootDirectory) {
     return new CacheManagerPersistenceConfiguration(rootDirectory);
   }
+
+  public Set<Service> getServices() {
+    return services;
+  }
 }

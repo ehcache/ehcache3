@@ -16,12 +16,16 @@
 
 package org.ehcache.jsr107;
 
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.theInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Properties;
 
@@ -32,11 +36,26 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
+import org.junit.After;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
 
-public class EhCachingProviderTest {
+public class EhcacheCachingProviderTest {
+
+  @After
+  public void after() {
+    Caching.getCachingProvider().close();
+  }
 
   @Test
   public void testLoadsAsCachingProvider() {
@@ -54,8 +73,6 @@ public class EhCachingProviderTest {
     CacheManager cacheManager = Caching.getCachingProvider().getCacheManager(null, null, props);
 
     assertEquals(override, cacheManager.getURI());
-
-    Caching.getCachingProvider().close();
   }
 
   @Test
@@ -125,5 +142,57 @@ public class EhCachingProviderTest {
       configCount++;
       return super.getConfiguration();
     }
+  }
+
+  @Test
+  public void testCacheManagerUsingACacheManagerBuilder() throws Exception {
+    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
+    URI uri = cachingProvider.getDefaultURI();
+    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+
+    Jsr107Service jsr107Service = new DefaultJsr107Service(null);
+    DefaultStatisticsService statisticsService = new DefaultStatisticsService();
+    Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
+    SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+
+    CacheManagerBuilder<org.ehcache.CacheManager> builder =
+      newCacheManagerBuilder()
+        .using(statisticsService) // both services should be used
+        .using(jsr107Service)    // instead of the default ones
+        .using(cacheLoaderWriterFactory)
+        .using(serializationProvider);
+
+    CacheManager cacheManager = cachingProvider.getCacheManager(uri, classLoader, builder);
+    cacheManager.createCache("cache", new MutableConfiguration<String, String>());
+
+    EhcacheManager internalCacheManager = cacheManager.unwrap(EhcacheManager.class);
+    ServiceProvider<Service> serviceProvider = getServiceProvider(internalCacheManager);
+    assertThat(serviceProvider.getService(StatisticsService.class), theInstance(statisticsService));
+    assertThat(serviceProvider.getService(Jsr107Service.class), theInstance(jsr107Service));
+    assertThat(serviceProvider.getService(Eh107CacheLoaderWriterProvider.class), theInstance(cacheLoaderWriterFactory));
+    assertThat(serviceProvider.getService(SerializationProvider.class), theInstance(serializationProvider));
+  }
+
+  @SuppressWarnings("unchecked")
+  private ServiceProvider<Service> getServiceProvider(EhcacheManager cacheManager) throws Exception {
+    Field field = EhcacheManager.class.getDeclaredField("serviceLocator");
+    field.setAccessible(true);
+    return (ServiceProvider<Service>) field.get(cacheManager);
+  }
+
+  @Test
+  public void testCacheManagerUsingACacheManagerBuilder_stillHaveDefaultServices() throws Exception {
+    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
+    URI uri = cachingProvider.getDefaultURI();
+    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+
+    CacheManagerBuilder<org.ehcache.CacheManager> builder = newCacheManagerBuilder();
+
+    CacheManager cacheManager = cachingProvider.getCacheManager(uri, classLoader, builder);
+    cacheManager.createCache("cache", new MutableConfiguration<String, String>());
+
+    EhcacheManager internalCacheManager = cacheManager.unwrap(EhcacheManager.class);
+    ServiceProvider<Service> serviceProvider = getServiceProvider(internalCacheManager);
+    assertThat(serviceProvider.getService(Jsr107Service.class), notNullValue());
   }
 }
