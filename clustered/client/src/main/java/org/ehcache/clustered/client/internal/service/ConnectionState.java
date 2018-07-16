@@ -208,7 +208,11 @@ class ConnectionState {
     }
   }
 
-  public void destroyState() {
+  public void destroyState(boolean healthyConnection) {
+    if (entityFactory != null && healthyConnection) {
+      // proactively abandon any acquired read or write locks on a healthy connection
+      entityFactory.abandonMaintenanceHolds(entityIdentifier);
+    }
     entityFactory = null;
 
     clusterTierEntities.clear();
@@ -301,7 +305,7 @@ class ConnectionState {
   private void handleConnectionClosedException() {
     while (true) {
       try {
-        destroyState();
+        destroyState(false);
         reconnect();
         retrieveEntity();
         connectionRecoveryListener.run();

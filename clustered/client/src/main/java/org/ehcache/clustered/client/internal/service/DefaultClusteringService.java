@@ -135,7 +135,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
      * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
      * take care of server-side cleanup in the event the server is connected.
      */
-    connectionState.destroyState();
+    connectionState.destroyState(true);
     inMaintenance = false;
     connectionState.closeConnection();
   }
