@@ -70,7 +70,7 @@ public class StorePassThroughException extends RuntimeException {
     if(re instanceof StorePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {
-        throw   (RuntimeException) cause;
+        throw (RuntimeException) cause;
       } else {
         return new StoreAccessException(cause);
       }
