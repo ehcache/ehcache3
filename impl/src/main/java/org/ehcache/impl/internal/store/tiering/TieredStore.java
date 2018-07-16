@@ -92,10 +92,7 @@ public class TieredStore<K, V> implements Store<K, V> {
         }
       });
     } catch (StoreAccessException ce) {
-      if(ce.getCause() instanceof StorePassThroughException) {
-        throw (StoreAccessException) ce.getCause().getCause();
-      }
-      throw (RuntimeException) ce.getCause();
+      return handleStoreAccessException(ce);
     }
   }
 
@@ -246,10 +243,7 @@ public class TieredStore<K, V> implements Store<K, V> {
         }
       });
     } catch (StoreAccessException ce) {
-      if(ce.getCause() instanceof StorePassThroughException) {
-        throw (StoreAccessException) ce.getCause().getCause();
-      }
-      throw (RuntimeException) ce.getCause();
+      return handleStoreAccessException(ce);
     }
   }
 
@@ -297,6 +291,20 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   private CachingTier<K, V> cachingTier() {
     return cachingTierRef.get();
+  }
+
+  private ValueHolder<V> handleStoreAccessException(StoreAccessException ce) throws StoreAccessException {
+    Throwable cause = ce.getCause();
+    if (cause instanceof StorePassThroughException) {
+      throw (StoreAccessException) cause.getCause();
+    }
+    if (cause instanceof Error) {
+      throw (Error) cause;
+    }
+    if (cause instanceof RuntimeException) {
+      throw (RuntimeException) cause;
+    }
+    throw new RuntimeException("Unexpected checked exception wrapped in StoreAccessException", cause);
   }
 
   @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
