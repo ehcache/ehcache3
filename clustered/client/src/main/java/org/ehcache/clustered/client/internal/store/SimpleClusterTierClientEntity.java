@@ -43,13 +43,13 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
@@ -71,6 +71,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private volatile boolean initCompleted = false;
+  private final Object initLock = new Object();
 
   private ReconnectListener reconnectListener = reconnectMessage -> {
     // No op
@@ -118,6 +120,10 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
+    if (!initCompleted) {
+      // wait for init completion before processing any incoming message from server
+      waitForInitCompleted(timeouts.getReadOperationTimeout());
+    }
     @SuppressWarnings("unchecked")
     List<ResponseListener<T>> responseListeners = (List) this.responseListeners.get(response.getClass());
     if (responseListeners == null) {
@@ -170,6 +176,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
+      // validation is the first step after cluster tier entity creation. Hence assumed to be done only once
+      if (!initCompleted) {
+        synchronized (initLock) {
+          initCompleted = true;
+          initLock.notifyAll();
+        }
+      }
       invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
@@ -207,6 +220,32 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public EhcacheEntityResponse invokeAndWaitForRetired(EhcacheOperationMessage message, boolean track)
     throws ClusterException, TimeoutException {
     return invokeInternalAndWait(endpoint.beginInvoke().blockGetOnRetire(true), message, track);
+  }
+
+  private void waitForInitCompleted(Duration duration) {
+    boolean interrupted = false;
+    long deadlineTimeout = System.nanoTime() + duration.toNanos();
+    try {
+      while (true) {
+        try {
+          long timeRemainingInMillis = TimeUnit.NANOSECONDS.toMillis(deadlineTimeout - System.nanoTime());
+          if (timeRemainingInMillis <= 0 || initCompleted) {
+            return;
+          }
+          synchronized (initLock) {
+            if (!initCompleted) {
+              initLock.wait(timeRemainingInMillis);
+            }
+          }
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, EhcacheOperationMessage message, boolean track)
