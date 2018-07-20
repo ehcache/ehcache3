@@ -156,7 +156,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
-    assertFalse(factory.abandonMaintenanceHolds("testAbandonLeadershipWhenNotOwning"));
+    assertFalse(factory.abandonLeadership("testAbandonLeadershipWhenNotOwning"));
   }
 
   @Test
@@ -180,7 +180,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   public void testAcquireLeadershipAfterAbandoned() throws Exception {
     ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
-    assertTrue(factoryA.abandonMaintenanceHolds("testAcquireLeadershipAfterAbandoned"));
+    assertTrue(factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned"));
 
     try (Connection clientB = CLUSTER.newConnection()) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);

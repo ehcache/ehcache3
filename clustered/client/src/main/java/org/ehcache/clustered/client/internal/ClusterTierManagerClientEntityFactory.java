@@ -55,6 +55,7 @@ public class ClusterTierManagerClientEntityFactory {
 
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<>();
+  private final Map<String, Hold> fetchHolds = new ConcurrentHashMap<>();
 
   private final Timeouts entityTimeouts;
 
@@ -79,19 +80,30 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
+  public boolean abandonAllHolds(String entityIdentifier) {
+    return abandonLeadership(entityIdentifier) | abandonFetchHolds(entityIdentifier);
+  }
+
   /**
-   * Proactively abandon any maintenance holds (READ or WRITE) before closing connection.
+   * Proactively abandon leadership before closing connection.
    *
    * @param entityIdentifier the master entity identifier
    * @return true of abandoned false otherwise
    */
-  public boolean abandonMaintenanceHolds(String entityIdentifier) {
+  public boolean abandonLeadership(String entityIdentifier) {
     Hold hold = maintenanceHolds.remove(entityIdentifier);
-    if (hold != null) {
-      hold.unlock();
-      return true;
-    }
-    return false;
+    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
+  }
+
+  /**
+   * Proactively abandon any READ holds before closing connection.
+   *
+   * @param entityIdentifier the master entity identifier
+   * @return true of abandoned false otherwise
+   */
+  private boolean abandonFetchHolds(String entityIdentifier) {
+    Hold hold = fetchHolds.remove(entityIdentifier);
+    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
   }
 
   /**
@@ -168,6 +180,9 @@ public class ClusterTierManagerClientEntityFactory {
       if (!validated) {
         silentlyClose(entity, identifier);
         silentlyUnlock(fetchHold, identifier);
+      } else {
+        // track read holds as well so that we can explicitly abandon
+        fetchHolds.put(identifier, fetchHold);
       }
     }
   }
@@ -230,11 +245,13 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void silentlyUnlock(Hold localMaintenance, String identifier) {
+  private boolean silentlyUnlock(Hold localMaintenance, String identifier) {
     try {
       localMaintenance.unlock();
+      return true;
     } catch(Exception e) {
       LOGGER.error("Failed to unlock for id {}", identifier, e);
+      return false;
     }
   }
 

@@ -211,7 +211,7 @@ class ConnectionState {
   public void destroyState(boolean healthyConnection) {
     if (entityFactory != null && healthyConnection) {
       // proactively abandon any acquired read or write locks on a healthy connection
-      entityFactory.abandonMaintenanceHolds(entityIdentifier);
+      entityFactory.abandonAllHolds(entityIdentifier);
     }
     entityFactory = null;
 
