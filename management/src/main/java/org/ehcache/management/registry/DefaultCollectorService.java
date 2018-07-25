@@ -23,6 +23,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.internal.statistics.StatsUtils;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
@@ -31,7 +32,11 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.registry.collect.DefaultStatisticCollector;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.derived.OperationResultFilter;
 
+import java.util.EnumSet;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
@@ -42,6 +47,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private enum EhcacheNotification {
     CACHE_ADDED,
     CACHE_REMOVED,
+    CACHE_CLEARED,
     CACHE_MANAGER_AVAILABLE,
     CACHE_MANAGER_MAINTENANCE,
     CACHE_MANAGER_CLOSED,
@@ -99,6 +105,8 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
+    registerClearNotification(alias, cache);
+
     collector.onNotification(
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
@@ -111,6 +119,20 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
         EhcacheNotification.CACHE_REMOVED.name()));
+  }
+
+  private void cacheCleared(String alias) {
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext().with("cacheName", alias),
+        EhcacheNotification.CACHE_CLEARED.name()));
+  }
+
+  private void registerClearNotification(String alias, Cache<?, ?> cache) {
+    OperationStatistic<ClearOutcome> clear = StatsUtils.findOperationStatisticOnChildren(cache,
+      ClearOutcome.class, "clear");
+    clear.addDerivedStatistic(new OperationResultFilter<>(EnumSet.of(ClearOutcome.SUCCESS),
+      (time, latency) -> cacheCleared(alias)));
   }
 
   @Override

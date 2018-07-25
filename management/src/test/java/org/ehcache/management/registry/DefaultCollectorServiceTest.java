@@ -48,8 +48,8 @@ public class DefaultCollectorServiceTest {
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
     final Queue<Object> messages = new ConcurrentLinkedQueue<>();
-    final List<String> notifs = new ArrayList<>(6);
-    final CountDownLatch num = new CountDownLatch(5);
+    final List<String> notifs = new ArrayList<>(7);
+    final CountDownLatch num = new CountDownLatch(6);
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
         newResourcePoolsBuilder()
@@ -102,13 +102,14 @@ public class DefaultCollectorServiceTest {
 
     Cache<String, String> cache = cacheManager.createCache("my-cache", cacheConfiguration);
     cache.put("key", "val");
+    cache.clear();
 
     num.await();
     cacheManager.removeCache("my-cache");
     cacheManager.close();
 
-    assertThat(notifs, equalTo(Arrays.asList("CACHE_MANAGER_AVAILABLE", "CACHE_MANAGER_CLOSED", "CACHE_MANAGER_AVAILABLE", "CACHE_ADDED", "CACHE_REMOVED", "CACHE_MANAGER_CLOSED")));
-    assertThat(messages.size(), equalTo(7));
+    assertThat(notifs, equalTo(Arrays.asList("CACHE_MANAGER_AVAILABLE", "CACHE_MANAGER_CLOSED", "CACHE_MANAGER_AVAILABLE", "CACHE_ADDED", "CACHE_CLEARED", "CACHE_REMOVED", "CACHE_MANAGER_CLOSED")));
+    assertThat(messages.size(), equalTo(8));
   }
 
 }
