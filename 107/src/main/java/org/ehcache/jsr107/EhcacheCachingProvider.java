@@ -38,7 +38,6 @@ import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -186,9 +185,12 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   private Eh107CacheManager createCacheManager(URI uri, ClassLoader classLoader, CacheManagerBuilder<org.ehcache.CacheManager> builder) {
-    Set<Service> services = builder.getServices();
+    Collection<Service> services = builder.getServices();
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = builder.getServiceConfigurations();
 
-    Jsr107Service jsr107Service = findOrCreateService(services, Jsr107Service.class, () -> new DefaultJsr107Service(null));
+    Jsr107Configuration jsr107Configuration = ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations);
+
+    Jsr107Service jsr107Service = findOrCreateService(services, Jsr107Service.class, () -> new DefaultJsr107Service(jsr107Configuration));
     builder = builder.using(jsr107Service);
 
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = findOrCreateService(services, Eh107CacheLoaderWriterProvider.class, Eh107CacheLoaderWriterProvider::new);
@@ -203,7 +205,7 @@ public class EhcacheCachingProvider implements CachingProvider {
       new ConfigurationMerger(null, jsr107Service, cacheLoaderWriterFactory));
   }
 
-  private <T extends Service> T findOrCreateService(Set<Service> services, Class<T> serviceClass, Supplier<T> serviceCreator) {
+  private <T extends Service> T findOrCreateService(Collection<Service> services, Class<T> serviceClass, Supplier<T> serviceCreator) {
     T service = ServiceUtils.findSingletonAmongst(serviceClass, services);
     if(service == null) {
       return serviceCreator.get();

@@ -38,7 +38,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.emptySet;
@@ -404,7 +406,21 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     return new CacheManagerPersistenceConfiguration(rootDirectory);
   }
 
-  public Set<Service> getServices() {
-    return services;
+  /**
+   * Retrieve all the services to be used by the built {@code CacheManager}.
+   *
+   * @return immutable list of services added by calling {@link #using(Service)}}
+   */
+  public Collection<Service> getServices() {
+    return Collections.unmodifiableSet(services);
+  }
+
+  /**
+   * Retrieve all the service configurations to be used by the built {@code CacheManager}.
+   *
+   * @return immutable list of service configurations added by calling {@link #using(ServiceCreationConfiguration)}}
+   */
+  public Collection<ServiceCreationConfiguration<?>> getServiceConfigurations() {
+    return configBuilder.getServiceConfigurations();
   }
 }
