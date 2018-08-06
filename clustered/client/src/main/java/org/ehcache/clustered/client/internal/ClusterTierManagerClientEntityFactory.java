@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierUserData;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -127,7 +128,7 @@ public class ClusterTierManagerClientEntityFactory {
         throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
       }
 
-      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> ref = getEntityRef(identifier);
       try {
         ref.create(new ClusterTierManagerConfiguration(identifier, config));
       } catch (EntityConfigurationException e) {
@@ -195,7 +196,7 @@ public class ClusterTierManagerClientEntityFactory {
         throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
       }
 
-      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> ref = getEntityRef(identifier);
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -213,7 +214,8 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) {
+  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity,
+    ClusterTierManagerConfiguration, ClusterTierUserData> ref, String identifier) {
     ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity(null);
@@ -259,7 +261,7 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
+  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(ClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
@@ -271,7 +273,7 @@ public class ClusterTierManagerClientEntityFactory {
   public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
                                                                    boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -290,10 +292,7 @@ public class ClusterTierManagerClientEntityFactory {
           throw new AssertionError(e);
         }
         try {
-          InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-          entity.setStoreIdentifier(storeIdentifier);
-          entity.setTimeouts(entityTimeouts);
-          return entity;
+          return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
         } catch (EntityNotFoundException e) {
           // Ignore - will try to create again
         } catch (EntityException e) {
@@ -306,7 +305,7 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   public ClusterTierClientEntity getClusterTierClientEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -317,12 +316,10 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,
-                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef) throws EntityNotFoundException {
+                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef)
+    throws EntityNotFoundException {
     try {
-      InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-      entity.setStoreIdentifier(storeIdentifier);
-      entity.setTimeouts(entityTimeouts);
-      return entity;
+      return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
     } catch (EntityNotFoundException e) {
       throw e;
     } catch (EntityException e) {

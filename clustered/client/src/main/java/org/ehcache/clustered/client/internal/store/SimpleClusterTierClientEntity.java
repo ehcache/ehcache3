@@ -71,6 +71,9 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
+
   private volatile boolean initCompleted = false;
   private final Object initLock = new Object();
 
@@ -78,12 +81,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     // No op
   };
 
-  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
-  private String storeIdentifier;
   private volatile boolean connected = true;
 
-  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
+                                       Timeouts timeouts, String storeIdentifier) {
     this.endpoint = endpoint;
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -107,11 +111,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
         fireDisconnectionEvent();
       }
     });
-  }
-
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
   }
 
   void fireDisconnectionEvent() {
@@ -187,11 +186,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
-  }
-
-  @Override
-  public void setStoreIdentifier(String storeIdentifier) {
-    this.storeIdentifier = storeIdentifier;
   }
 
   @Override

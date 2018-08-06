@@ -13,11 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.config.Timeouts;
+
 /**
- * InternalClusterTierClientEntity : Marker interface for any extensions that is used internally
+ * ClusterTierUserData
+ *
+ * Additional information passed to client side cluster tier entity.
  */
-public interface InternalClusterTierClientEntity extends ClusterTierClientEntity {
+public class ClusterTierUserData {
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
+
+  public ClusterTierUserData(Timeouts timeouts, String storeIdentifier) {
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
+  }
+
+  public Timeouts getTimeouts() {
+    return timeouts;
+  }
+
+  public String getStoreIdentifier() {
+    return storeIdentifier;
+  }
 }
