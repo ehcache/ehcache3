@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -52,7 +53,8 @@ public class SimpleClusterTierClientEntityTest {
   @Test
   public void testFireWithInit() throws Exception {
     MockEndpointBuilder eb = new MockEndpointBuilder();
-    SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint);
+    SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint,
+      TimeoutsBuilder.timeouts().build(), "store1");
     AtomicBoolean responseRcvd = new AtomicBoolean(false);
     entity.addResponseListener(MockedEntityResponse.class, response -> responseRcvd.set(true));
     entity.validate(mock(ServerStoreConfiguration.class));
@@ -63,7 +65,8 @@ public class SimpleClusterTierClientEntityTest {
   @Test
   public void testFireWithDelayedInit() throws Exception {
     MockEndpointBuilder eb = new MockEndpointBuilder();
-    SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint);
+    SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint,
+      TimeoutsBuilder.timeouts().build(), "store1");
     AtomicBoolean responseRcvd = new AtomicBoolean(false);
     entity.addResponseListener(MockedEntityResponse.class, response -> responseRcvd.set(true));
     CountDownLatch beforeLatch = new CountDownLatch(1);
