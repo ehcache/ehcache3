@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
@@ -25,9 +26,13 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
- * @author Henri Tremblay
+ * Specialized behavior for an OnHeapStore allowing optimization depending on the expiry policy used.
+ *
+ * @param <K> type of the keys stored
+ * @param <V> type of the values stored
  */
 interface OnHeapStrategy<K, V> {
 
@@ -40,18 +45,67 @@ interface OnHeapStrategy<K, V> {
     }
     if(expiry.getClass().getName().equals("org.ehcache.config.builders.ExpiryPolicyBuilder$TimeToLiveExpiryPolicy")) {
       LOG.debug("TTL expiration strategy detected");
-      return new TTLStrategy<>(timeSource);
+      return new TTLStrategy<>(expiry, timeSource);
     }
     LOG.debug("TTI or custom expiration strategy detected");
     return new AllStrategy<>(store, expiry, timeSource);
   }
 
+  /**
+   * Tells if a given mapping is expired.
+   *
+   * @param mapping mapping to test for expiration
+   * @return if the mapping is expired
+   */
   boolean isExpired(OnHeapValueHolder<V> mapping);
 
+  /**
+   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). This action is thread-safe
+   * and doesn't require looking.
+   *
+   * @param key key of the mapping. Used to remove it form the map if needed
+   * @param valueHolder the mapping
+   * @param now the current time
+   */
   void setAccessTimeAndExpiryThenReturnMappingOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now);
 
+  /**
+   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). This action is thread-safe
+   * but is requiring a global lock to perform the removal of the entry from the store.
+   *
+   * @param key key of the mapping. Used to remove it form the map if needed
+   * @param valueHolder the mapping
+   * @param now the current time
+   * @param eventSink sink when the expiration request will be sent to do it under lock
+   * @return the mapping or null if it was removed
+   */
   OnHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMappingUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now, StoreEventSink<K, V> eventSink);
 
+  /**
+   * Get the new expiry duration as per {@link ExpiryPolicy#getExpiryForAccess(Object, Supplier)}.
+   *
+   * @param key key of the mapping
+   * @param valueHolder the mapping
+   * @return new access expiry duration
+   */
+  Duration getAccessDuration(K key, Store.ValueHolder<V> valueHolder);
+
+  /**
+   * Get the new expiry duration as per {@link ExpiryPolicy#getExpiryForUpdate(Object, Supplier, Object)}.
+   *
+   * @param key key of the mapping
+   * @param oldValue the old mapping to be updated
+   * @param newValue the new value for the mapping
+   * @return new access expiry duration
+   */
+  Duration getUpdateDuration(K key, OnHeapValueHolder<V> oldValue, V newValue);
+
+  /**
+   * All purpose strategy. Covers any case that can't be optimized due to the uncertainty of the expiry policy used.
+   *
+   * @param <K> type of the keys stored
+   * @param <V> type of the values stored
+   */
   class AllStrategy<K, V> implements OnHeapStrategy<K, V> {
     private final OnHeapStore<K, V> store;
     private final ExpiryPolicy<? super K, ? super V> expiry;
@@ -79,10 +133,24 @@ interface OnHeapStrategy<K, V> {
       }
     }
 
-    private Duration getAccessDuration(K key, OnHeapValueHolder<V> valueHolder) {
+    public Duration getAccessDuration(K key, Store.ValueHolder<V> valueHolder) {
       Duration duration;
       try {
         duration = expiry.getExpiryForAccess(key, valueHolder);
+        if (duration != null && duration.isNegative()) {
+          duration = Duration.ZERO;
+        }
+      } catch (RuntimeException re) {
+        LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+        duration = Duration.ZERO;
+      }
+      return duration;
+    }
+
+    public Duration getUpdateDuration(K key, OnHeapValueHolder<V> oldValue, V newValue) {
+      Duration duration;
+      try {
+        duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
         if (duration != null && duration.isNegative()) {
           duration = Duration.ZERO;
         }
@@ -108,6 +176,12 @@ interface OnHeapStrategy<K, V> {
 
   }
 
+  /**
+   * Strategy used when entries are never expiring.
+   *
+   * @param <K> type of the keys stored
+   * @param <V> type of the values stored
+   */
   class NoExpirationStrategy<K, V> implements OnHeapStrategy<K, V> {
 
     @Override
@@ -125,13 +199,29 @@ interface OnHeapStrategy<K, V> {
       valueHolder.accessed(now, null);
       return valueHolder;
     }
+
+    public Duration getAccessDuration(K key, Store.ValueHolder<V> valueHolder) {
+      return null;
+    }
+
+    public Duration getUpdateDuration(K key, OnHeapValueHolder<V> oldValue, V newValue) {
+      return null;
+    }
   }
 
+  /**
+   * Strategy used when entries are expiring due to TTL only.
+   *
+   * @param <K> type of the keys stored
+   * @param <V> type of the values stored
+   */
   class TTLStrategy<K, V> implements OnHeapStrategy<K, V> {
     private final TimeSource timeSource;
+    private final ExpiryPolicy<? super K, ? super V> expiry;
 
-    public TTLStrategy(TimeSource timeSource) {
+    public TTLStrategy(ExpiryPolicy<? super K, ? super V> expiry, TimeSource timeSource) {
       this.timeSource = timeSource;
+      this.expiry = expiry;
     }
 
     @Override
@@ -148,6 +238,24 @@ interface OnHeapStrategy<K, V> {
                                                                                  StoreEventSink<K, V> eventSink) {
       valueHolder.accessed(now, null);
       return valueHolder;
+    }
+
+    public Duration getAccessDuration(K key, Store.ValueHolder<V> valueHolder) {
+      return null;
+    }
+
+    public Duration getUpdateDuration(K key, OnHeapValueHolder<V> oldValue, V newValue) {
+      Duration duration;
+      try {
+        duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
+        if (duration != null && duration.isNegative()) {
+          duration = Duration.ZERO;
+        }
+      } catch (RuntimeException re) {
+        LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+        duration = Duration.ZERO;
+      }
+      return duration;
     }
   }
 

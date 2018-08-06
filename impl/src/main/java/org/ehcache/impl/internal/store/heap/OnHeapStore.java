@@ -1378,15 +1378,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     Objects.requireNonNull(oldValue);
     Objects.requireNonNull(newValue);
 
-    Duration duration = Duration.ZERO;
-    try {
-      duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
-      if (duration != null && duration.isNegative()) {
-        duration = Duration.ZERO;
-      }
-    } catch (RuntimeException re) {
-      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-    }
+    Duration duration = strategy.getUpdateDuration(key, oldValue, newValue);
+
     if (Duration.ZERO.equals(duration)) {
       eventSink.updated(key, oldValue, newValue);
       eventSink.expired(key, () -> newValue);
@@ -1436,15 +1429,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now, Backend<K, V> backEnd, Fault<V> fault) {
-    Duration expiration = Duration.ZERO;
-    try {
-      expiration = expiry.getExpiryForAccess(key, valueHolder);
-      if (expiration != null && expiration.isNegative()) {
-        expiration = Duration.ZERO;
-      }
-    } catch (RuntimeException re) {
-      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-    }
+    Duration expiration = strategy.getAccessDuration(key, valueHolder);
 
     if (Duration.ZERO.equals(expiration)) {
       invalidateInGetOrComputeIfAbsent(backEnd, key, valueHolder, fault, now, Duration.ZERO);
