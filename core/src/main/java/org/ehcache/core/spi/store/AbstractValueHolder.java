@@ -63,7 +63,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   public void setExpirationTime(long expirationTime, TimeUnit unit) {
     if (expirationTime == NO_EXPIRE) {
       updateExpirationTime(NO_EXPIRE);
-    } else if (expirationTime <= 0) {
+    } else if (expirationTime < 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
       updateExpirationTime(nativeTimeUnit().convert(expirationTime, unit));
