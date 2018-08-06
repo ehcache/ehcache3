@@ -33,7 +33,7 @@ public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHe
 
   /**
    * Creates a new configuration instance using the provided {@code diskSegments}. Other attributes are set to their default
-   * ({@code null} for {@code threadPoolAlias} and {@link #DEFAULT_DISK_SEGMENTS} for {@code threadPoolAlias})
+   * ({@code null} for {@code threadPoolAlias} and {@link #DEFAULT_WRITER_CONCURRENCY} for {@code writerConcurrency}).
    *
    * @param diskSegments number of disk segments allocated. The more disk segments there is, the more concurrency you get but
    *               the more resources you are using (mainly file pointers)
