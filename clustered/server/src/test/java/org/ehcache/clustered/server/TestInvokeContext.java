@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import java.util.Properties;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveInvokeChannel;
 import org.terracotta.entity.ActiveInvokeContext;
@@ -72,5 +73,10 @@ public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntit
   @Override
   public int getConcurrencyKey() {
     return 1;
+  }
+
+  @Override
+  public Properties getClientSourceProperties() {
+    return new Properties();
   }
 }
