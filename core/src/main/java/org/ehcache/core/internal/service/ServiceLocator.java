@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -324,7 +325,16 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     ServiceMap lookupDependenciesOf(ServiceMap resolved, Class<? extends Service> requested) throws DependencyException {
       for (Class<? extends Service> dependency : identifyImmediateDependenciesOf(requested)) {
-        resolved = lookupService(resolved, dependency);
+        try {
+          resolved = lookupService(resolved, dependency);
+        } catch (DependencyException de) {
+          OptionalServiceDependencies optionalAnnotation = requested.getAnnotation(OptionalServiceDependencies.class);
+          if (optionalAnnotation != null && Arrays.asList(optionalAnnotation.value()).contains(dependency.getName())) {
+            LOGGER.debug("Skipping optional dependency of {} that cannot be looked up: {}", requested, dependency);
+            continue;
+          }
+          throw de;
+        }
       }
       return resolved;
     }
@@ -425,9 +435,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         }
       }
     }
-    OptionalServiceDependencies optionaAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
-    if (optionaAnnotation != null) {
-      for (String className : optionaAnnotation.value()) {
+    OptionalServiceDependencies optionalAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
+    if (optionalAnnotation != null) {
+      for (String className : optionalAnnotation.value()) {
         try {
           Class<?> dependencyClass = ClassLoading.getDefaultClassLoader().loadClass(className);
           if (Service.class.isAssignableFrom(dependencyClass)) {
