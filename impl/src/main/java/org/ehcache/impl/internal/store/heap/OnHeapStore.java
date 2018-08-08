@@ -290,7 +290,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         return null;
       }
 
-      strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, mapping, timeSource.getTimeMillis());
+      strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(key, mapping, timeSource.getTimeMillis());
 
       getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
       return mapping;
@@ -456,7 +456,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           entryActuallyAdded.set(holder != null);
         } else {
           returnValue.set(mappedValue);
-          holder = strategy.setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           if (holder == null) {
             delta -= mappedValue.size();
           }
@@ -508,7 +508,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           return null;
         } else {
           outcome.set(RemoveStatus.KEY_PRESENT);
-          OnHeapValueHolder<V> holder = strategy.setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          OnHeapValueHolder<V> holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           if (holder == null) {
             updateUsageInBytesIfRequired(- mappedValue.size());
           }
@@ -612,7 +612,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           return holder;
         } else {
           outcome.set(ReplaceStatus.MISS_PRESENT);
-          OnHeapValueHolder<V> holder = strategy.setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          OnHeapValueHolder<V> holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           if (holder == null) {
             updateUsageInBytesIfRequired(- mappedValue.size());
           }
@@ -708,7 +708,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           }
         }
         else {
-          strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
+          strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(key, cachedValue, now);
         }
       }
 
@@ -1168,7 +1168,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           }
           holder = null;
         } else if (Objects.equals(existingValue, computedValue) && !replaceEqual.get() && mappedValue != null) {
-          holder = strategy.setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
           if (holder == null) {
             valueHeld.set(mappedValue);
@@ -1253,7 +1253,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         } else {
           previousValue.set(mappedValue);
           outcome.set(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT);
-          holder = strategy.setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+          holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           if (holder == null) {
             delta -= mappedValue.size();
           }

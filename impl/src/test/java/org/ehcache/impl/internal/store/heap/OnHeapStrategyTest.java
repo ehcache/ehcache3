@@ -109,7 +109,7 @@ public class OnHeapStrategyTest {
     TestOnHeapValueHolder mapping = new TestOnHeapValueHolder(10);
     when(policy.getExpiryForAccess(1, mapping)).thenReturn(null);
 
-    strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(1, mapping, timeSource.getTimeMillis());
+    strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 
     assertThat(mapping.expiration).isNull();
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
@@ -124,7 +124,7 @@ public class OnHeapStrategyTest {
     TestOnHeapValueHolder mapping = new TestOnHeapValueHolder(10);
     when(policy.getExpiryForAccess(1, mapping)).thenReturn(Duration.ZERO);
 
-    strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(1, mapping, timeSource.getTimeMillis());
+    strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 
     verify(store).expireMappingUnderLock(1, mapping);
   }
@@ -136,7 +136,7 @@ public class OnHeapStrategyTest {
     TestOnHeapValueHolder mapping = new TestOnHeapValueHolder(10);
     when(policy.getExpiryForAccess(1, mapping)).thenReturn(ExpiryPolicy.INFINITE);
 
-    strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(1, mapping, timeSource.getTimeMillis());
+    strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 
     assertThat(mapping.expiration).isEqualTo(ExpiryPolicy.INFINITE);
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
@@ -151,7 +151,7 @@ public class OnHeapStrategyTest {
     TestOnHeapValueHolder mapping = new TestOnHeapValueHolder(10);
     when(policy.getExpiryForAccess(1, mapping)).thenReturn(Duration.ofMillis(20));
 
-    strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(1, mapping, timeSource.getTimeMillis());
+    strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 
     assertThat(mapping.expiration).isEqualTo(Duration.ofMillis(20));
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
@@ -160,7 +160,7 @@ public class OnHeapStrategyTest {
 
     timeSource.advanceTime(30);
 
-    strategy.setAccessTimeAndExpiryThenReturnMappingOutsideLock(1, mapping, timeSource.getTimeMillis());
+    strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 
     assertThat(mapping.expiration).isEqualTo(Duration.ofMillis(20));
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());

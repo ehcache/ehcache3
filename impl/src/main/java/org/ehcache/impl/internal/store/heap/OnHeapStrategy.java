@@ -60,26 +60,26 @@ interface OnHeapStrategy<K, V> {
   boolean isExpired(OnHeapValueHolder<V> mapping);
 
   /**
-   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). This action is thread-safe
-   * and doesn't require looking.
+   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). We  expect this action to
+   * be called when the caller isn't holding any lock.
    *
    * @param key key of the mapping. Used to remove it form the map if needed
    * @param valueHolder the mapping
    * @param now the current time
    */
-  void setAccessTimeAndExpiryThenReturnMappingOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now);
+  void setAccessAndExpiryTimeWhenCallerOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now);
 
   /**
-   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). This action is thread-safe
-   * but is requiring a global lock to perform the removal of the entry from the store.
+   * Set the access time on the mapping and its expiry time if it is access sensitive (TTI). We  expect this action to
+   * be called when the caller is currently holding a lock.
    *
    * @param key key of the mapping. Used to remove it form the map if needed
    * @param valueHolder the mapping
    * @param now the current time
-   * @param eventSink sink when the expiration request will be sent to do it under lock
+   * @param eventSink sink where the expiration request will be sent
    * @return the mapping or null if it was removed
    */
-  OnHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMappingUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now, StoreEventSink<K, V> eventSink);
+  OnHeapValueHolder<V> setAccessAndExpiryWhenCallerlUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now, StoreEventSink<K, V> eventSink);
 
   /**
    * Get the new expiry duration as per {@link ExpiryPolicy#getExpiryForAccess(Object, Supplier)}.
@@ -123,7 +123,7 @@ interface OnHeapStrategy<K, V> {
     }
 
     @Override
-    public void setAccessTimeAndExpiryThenReturnMappingOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
+    public void setAccessAndExpiryTimeWhenCallerOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
       Duration duration = getAccessDuration(key, valueHolder);
       if (Duration.ZERO.equals(duration)) {
         // Expires mapping through computeIfPresent
@@ -161,8 +161,8 @@ interface OnHeapStrategy<K, V> {
       return duration;
     }
 
-    public OnHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMappingUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
-                                                                                  StoreEventSink<K, V> eventSink) {
+    public OnHeapValueHolder<V> setAccessAndExpiryWhenCallerlUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
+                                                                       StoreEventSink<K, V> eventSink) {
       Duration duration = getAccessDuration(key, valueHolder);
       if (Duration.ZERO.equals(duration)) {
         // Fires event, must happen under lock
@@ -190,12 +190,12 @@ interface OnHeapStrategy<K, V> {
     }
 
     @Override
-    public void setAccessTimeAndExpiryThenReturnMappingOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
+    public void setAccessAndExpiryTimeWhenCallerOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
       valueHolder.accessed(now, null);
     }
 
-    public OnHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMappingUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
-                                                                                 StoreEventSink<K, V> eventSink) {
+    public OnHeapValueHolder<V> setAccessAndExpiryWhenCallerlUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
+                                                                       StoreEventSink<K, V> eventSink) {
       valueHolder.accessed(now, null);
       return valueHolder;
     }
@@ -230,12 +230,12 @@ interface OnHeapStrategy<K, V> {
     }
 
     @Override
-    public void setAccessTimeAndExpiryThenReturnMappingOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
+    public void setAccessAndExpiryTimeWhenCallerOutsideLock(K key, OnHeapValueHolder<V> valueHolder, long now) {
       valueHolder.accessed(now, null);
     }
 
-    public OnHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMappingUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
-                                                                                 StoreEventSink<K, V> eventSink) {
+    public OnHeapValueHolder<V> setAccessAndExpiryWhenCallerlUnderLock(K key, OnHeapValueHolder<V> valueHolder, long now,
+                                                                       StoreEventSink<K, V> eventSink) {
       valueHolder.accessed(now, null);
       return valueHolder;
     }
