@@ -24,6 +24,7 @@ import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * OffHeapValueHolderPortability
@@ -52,9 +53,9 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());
-    byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
-    byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
-    byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
+    byteBuffer.putLong(valueHolder.creationTime(TimeUnit.MILLISECONDS));
+    byteBuffer.putLong(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS));
+    byteBuffer.putLong(valueHolder.expirationTime(TimeUnit.MILLISECONDS));
     byteBuffer.putLong(0L); // represent the hits on previous versions. It is kept for compatibility reasons with previously saved data
     byteBuffer.put(serialized);
     byteBuffer.flip();

@@ -1178,7 +1178,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           checkValue(computedValue);
           if (mappedValue != null) {
             outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
-            long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+            long expirationTime = mappedValue.expirationTime(TimeUnit.MILLISECONDS);
             holder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
             delta -= mappedValue.size();
             if (holder == null) {
@@ -1388,7 +1388,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     long expirationTime;
     if (duration == null) {
-      expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
+      expirationTime = oldValue.expirationTime(TimeUnit.MILLISECONDS);
     } else {
       if (isExpiryDurationInfinite(duration)) {
         expirationTime = ValueHolder.NO_EXPIRE;

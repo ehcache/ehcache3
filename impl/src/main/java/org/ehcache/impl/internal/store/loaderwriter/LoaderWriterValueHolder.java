@@ -17,11 +17,7 @@ package org.ehcache.impl.internal.store.loaderwriter;
 
 import org.ehcache.core.spi.store.AbstractValueHolder;
 
-import java.util.concurrent.TimeUnit;
-
 public class LoaderWriterValueHolder<V> extends AbstractValueHolder<V> {
-
-  private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final V value;
 
@@ -31,11 +27,6 @@ public class LoaderWriterValueHolder<V> extends AbstractValueHolder<V> {
       throw new NullPointerException("Value can not be null");
     }
     this.value = value;
-  }
-
-  @Override
-  protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
   }
 
   @Override

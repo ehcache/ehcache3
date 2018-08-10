@@ -26,15 +26,8 @@ import java.util.concurrent.TimeUnit;
 */
 public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
 
-  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
   public OffHeapValueHolder(long id, long creationTime, long expireTime) {
     super(id, creationTime, expireTime);
-  }
-
-  @Override
-  final protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
   }
 
   @Override

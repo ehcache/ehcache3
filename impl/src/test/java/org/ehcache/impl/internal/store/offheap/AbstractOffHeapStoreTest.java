@@ -610,11 +610,6 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    protected TimeUnit nativeTimeUnit() {
-      return TimeUnit.MILLISECONDS;
-    }
-
-    @Override
     public T get() {
       return value;
     }

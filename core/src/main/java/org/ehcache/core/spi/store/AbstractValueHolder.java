@@ -53,7 +53,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     this.lastAccessTime = creationTime;
   }
 
-  protected abstract TimeUnit nativeTimeUnit();
+  protected final TimeUnit nativeTimeUnit() {
+    return TimeUnit.MILLISECONDS;
+  }
 
   @Override
   public long creationTime(TimeUnit unit) {
@@ -145,9 +147,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     if (obj instanceof AbstractValueHolder) {
       AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
       return
-          other.creationTime(nativeTimeUnit()) == creationTime && creationTime(other.nativeTimeUnit()) == other.creationTime &&
-          other.expirationTime(nativeTimeUnit()) == expirationTime && expirationTime(other.nativeTimeUnit()) == other.expirationTime &&
-          other.lastAccessTime(nativeTimeUnit()) == lastAccessTime && lastAccessTime(other.nativeTimeUnit()) == other.lastAccessTime;
+          other.creationTime(nativeTimeUnit()) == creationTime &&
+          other.expirationTime(nativeTimeUnit()) == expirationTime &&
+          other.lastAccessTime(nativeTimeUnit()) == lastAccessTime;
     }
     return false;
   }

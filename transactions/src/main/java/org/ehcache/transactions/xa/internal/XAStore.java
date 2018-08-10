@@ -68,6 +68,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -357,7 +358,7 @@ public class XAStore<K, V> implements WrapperStore<K, V> {
       } else {
         V oldValue = softLock.getOldValue();
         currentContext.addCommand(key, new StorePutCommand<>(oldValue, new XAValueHolder<>(value, timeSource.getTimeMillis())));
-        return new XAValueHolder<>(oldValue, softLockValueHolder.creationTime(XAValueHolder.NATIVE_TIME_UNIT));
+        return new XAValueHolder<>(oldValue, softLockValueHolder.creationTime(TimeUnit.MILLISECONDS));
       }
     } else {
       return null;

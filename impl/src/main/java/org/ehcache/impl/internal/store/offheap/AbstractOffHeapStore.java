@@ -1086,7 +1086,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     }
 
     if (duration == null) {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(TimeUnit.MILLISECONDS));
     } else if (isExpiryDurationInfinite(duration)) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
@@ -1112,11 +1112,11 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
       return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
-        valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+        valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS),
+        valueHolder.lastAccessTime(TimeUnit.MILLISECONDS));
     } else {
-      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(TimeUnit.MILLISECONDS),
+        valueHolder.expirationTime(TimeUnit.MILLISECONDS), valueHolder.lastAccessTime(TimeUnit.MILLISECONDS));
     }
   }
 

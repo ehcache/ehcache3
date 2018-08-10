@@ -36,8 +36,6 @@ import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 @SuppressWarnings("serial") //this class has writeReplace/readResolve methods
 public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 
-  static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
-
   private final V value;
   private final byte[] valueSerialized;
 
@@ -71,7 +69,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
     super(id, creationTime, expirationTime);
-    setLastAccessTime(lastAccessTime, NATIVE_TIME_UNIT);
+    setLastAccessTime(lastAccessTime, TimeUnit.MILLISECONDS);
     this.value = value;
     this.valueSerialized = valueSerialized;
   }
@@ -83,11 +81,6 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   protected XAValueHolder<V> copyAfterDeserialization(Serializer<V> valueSerializer) throws ClassNotFoundException {
     return new XAValueHolder<>(this, valueSerializer.read(ByteBuffer.wrap(valueSerialized)));
-  }
-
-  @Override
-  protected TimeUnit nativeTimeUnit() {
-    return NATIVE_TIME_UNIT;
   }
 
   @Override
@@ -115,7 +108,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   private Object writeReplace() {
-    return new SerializedXAValueHolder<>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
+    return new SerializedXAValueHolder<>(getId(), creationTime(TimeUnit.MILLISECONDS), lastAccessTime(TimeUnit.MILLISECONDS), expirationTime(TimeUnit.MILLISECONDS),
       get(), valueSerialized);
   }
 
