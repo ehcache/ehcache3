@@ -53,10 +53,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     this.lastAccessTime = creationTime;
   }
 
-  protected final TimeUnit nativeTimeUnit() {
-    return TimeUnit.MILLISECONDS;
-  }
-
   @Override
   public long creationTime() {
     return creationTime;
@@ -68,7 +64,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     } else if (expirationTime < 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
-      updateExpirationTime(nativeTimeUnit().convert(expirationTime, unit));
+      updateExpirationTime(TimeUnit.MILLISECONDS.convert(expirationTime, unit));
     }
   }
 
@@ -85,7 +81,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   public void accessed(long now, Duration expiration) {
-    final TimeUnit timeUnit = nativeTimeUnit();
+    final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
     if (expiration != null) {
       if (isExpiryDurationInfinite(expiration)) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
@@ -121,7 +117,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-    long update = unit.convert(lastAccessTime, nativeTimeUnit());
+    long update = unit.convert(lastAccessTime, TimeUnit.MILLISECONDS);
     while (true) {
       long current = this.lastAccessTime;
       if (current >= update) {
