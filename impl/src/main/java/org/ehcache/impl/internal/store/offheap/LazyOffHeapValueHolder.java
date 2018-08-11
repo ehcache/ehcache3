@@ -72,8 +72,8 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
     if(getId() != valueFlushed.getId()) {
       throw new IllegalArgumentException("Wrong id passed in [this.id != id] : " + getId() + " != " + valueFlushed.getId());
     }
-    this.setLastAccessTime(valueFlushed.lastAccessTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-    this.setExpirationTime(valueFlushed.expirationTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+    this.setLastAccessTime(valueFlushed.lastAccessTime(), TimeUnit.MILLISECONDS);
+    this.setExpirationTime(valueFlushed.expirationTime(), TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -81,8 +81,8 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
    */
   @Override
   void writeBack() {
-    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
-    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
+    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime());
+    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime());
     writeContext.flush();
   }
 

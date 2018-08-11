@@ -119,7 +119,7 @@ interface OnHeapStrategy<K, V> {
 
     @Override
     public boolean isExpired(OnHeapValueHolder<V> mapping) {
-      return mapping.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS);
+      return mapping.isExpired(timeSource.getTimeMillis());
     }
 
     @Override
@@ -226,7 +226,7 @@ interface OnHeapStrategy<K, V> {
 
     @Override
     public boolean isExpired(OnHeapValueHolder<V> mapping) {
-      return mapping.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS);
+      return mapping.isExpired(timeSource.getTimeMillis());
     }
 
     @Override

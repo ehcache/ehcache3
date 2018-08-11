@@ -31,7 +31,6 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -102,7 +101,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.equalTo("one"));
 
     verify(numberAuthoritativeTier, times(0)).getAndFault(any(Number.class));
   }
@@ -120,7 +119,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(1)).getAndFault(any(Number.class));
@@ -561,7 +560,7 @@ public class TieredStoreTest {
     barrier.await();
     t.join();
     verify(stringCachingTier, never()).getOrComputeIfAbsent(
-      ArgumentMatchers.<String>any(), ArgumentMatchers.<Function<String, Store.ValueHolder<String>>>any());
+      ArgumentMatchers.any(), ArgumentMatchers.any());
   }
 
   @Test
@@ -580,7 +579,7 @@ public class TieredStoreTest {
     Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
-      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
+      ArgumentMatchers.any()))
         .thenReturn(stringCachingTier);
 
     SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
@@ -589,7 +588,7 @@ public class TieredStoreTest {
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(
-            any(Store.Configuration.class), ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
+            any(Store.Configuration.class), ArgumentMatchers.any()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
@@ -669,7 +668,7 @@ public class TieredStoreTest {
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     Assert.assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+        Collections.emptyList()),
         Matchers.is(expectedRank));
   }
 
@@ -686,22 +685,22 @@ public class TieredStoreTest {
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         return 0;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
+      public long lastAccessTime() {
         return 0;
       }
 

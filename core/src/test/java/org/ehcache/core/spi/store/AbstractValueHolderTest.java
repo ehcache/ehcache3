@@ -33,18 +33,14 @@ public class AbstractValueHolderTest {
   public void testCreationTime() throws Exception {
     AbstractValueHolder<String> valueHolder = newAbstractValueHolder(1000L);
 
-    assertThat(valueHolder.creationTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.creationTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.creationTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.creationTime(), is(1000L));
   }
 
   @Test
   public void testExpirationTime() throws Exception {
     AbstractValueHolder<String> valueHolder = newAbstractValueHolder(0L, 1000L);
 
-    assertThat(valueHolder.expirationTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.expirationTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.expirationTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.expirationTime(), is(1000L));
   }
 
 
@@ -53,31 +49,21 @@ public class AbstractValueHolderTest {
     // last access time defaults to create time
     AbstractValueHolder<String> valueHolder = newAbstractValueHolder(1000L);
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.lastAccessTime(), is(1000L));
 
     valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 0L, 2000L);
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.SECONDS), is(2L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(2000L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MICROSECONDS), is(2000000L));
+    assertThat(valueHolder.lastAccessTime(), is(2000L));
   }
 
 
   @Test
   public void testIsExpired() throws Exception {
-    assertThat(newAbstractValueHolder(1000L).isExpired(1L, TimeUnit.SECONDS), is(false));
-    assertThat(newAbstractValueHolder(1000L).isExpired(1000L, TimeUnit.MILLISECONDS), is(false));
-    assertThat(newAbstractValueHolder(1000L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(false));
+    assertThat(newAbstractValueHolder(1000L).isExpired(1000L), is(false));
 
-    assertThat(newAbstractValueHolder(1000L, 1001L).isExpired(1L, TimeUnit.SECONDS), is(false));
-    assertThat(newAbstractValueHolder(1000L, 1001L).isExpired(1000L, TimeUnit.MILLISECONDS), is(false));
-    assertThat(newAbstractValueHolder(1000L, 1001L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(false));
+    assertThat(newAbstractValueHolder(1000L, 1001L).isExpired(1000L), is(false));
 
-    assertThat(newAbstractValueHolder(1000L, 1000L).isExpired(1L, TimeUnit.SECONDS), is(true));
-    assertThat(newAbstractValueHolder(1000L, 1000L).isExpired(1000L, TimeUnit.MILLISECONDS), is(true));
-    assertThat(newAbstractValueHolder(1000L, 1000L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(true));
+    assertThat(newAbstractValueHolder(1000L, 1000L).isExpired(1000L), is(true));
   }
 
   @Test

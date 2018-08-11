@@ -259,7 +259,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<>();
     mutableConfiguration.setTypes(Long.class, Client.class).setStoreByValue(false);
 
-    Cache<Long, Client> myCache = null;
+    Cache<Long, Client> myCache;
     Client client1 = new Client("client1", 1);
 
     myCache = cacheManager.createCache("anotherCache", mutableConfiguration);

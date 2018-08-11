@@ -135,7 +135,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     } else if (u instanceof Fault) {
       return 1;
     } else {
-      return Long.signum(u.lastAccessTime(TimeUnit.NANOSECONDS) - t.lastAccessTime(TimeUnit.NANOSECONDS));
+      return Long.signum(u.lastAccessTime() - t.lastAccessTime());
     }
   };
 
@@ -338,7 +338,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
         long delta = 0;
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           delta -= mappedValue.size();
           mappedValue = null;
         }
@@ -399,7 +399,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
         updateUsageInBytesIfRequired(- mappedValue.size());
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           return null;
         }
@@ -443,7 +443,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
         OnHeapValueHolder<V> holder;
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             delta -= mappedValue.size();
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
@@ -497,7 +497,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           updateUsageInBytesIfRequired(- mappedValue.size());
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           return null;
@@ -550,7 +550,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       map.computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           updateUsageInBytesIfRequired(- mappedValue.size());
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           return null;
@@ -597,7 +597,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         long now = timeSource.getTimeMillis();
 
         V existingValue = mappedValue.get();
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           updateUsageInBytesIfRequired(- mappedValue.size());
           return null;
@@ -696,7 +696,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       // If we have a real value (not a fault), we make sure it is not expired
       // If yes, we remove it and ask the source just in case. If no, we return it (below)
       if (!(cachedValue instanceof Fault)) {
-        if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (cachedValue.isExpired(now)) {
           expireMappingUnderLock(key, cachedValue);
 
           // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
@@ -756,7 +756,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       ValueHolder<V> p = getValue(invalidatedValue.get());
       if (p != null) {
-        if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (p.isExpired(now)) {
           getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
           return null;
         }
@@ -1012,7 +1012,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public long creationTime(TimeUnit unit) {
+    public long creationTime() {
       throw new UnsupportedOperationException();
     }
 
@@ -1022,17 +1022,17 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public long expirationTime(TimeUnit unit) {
+    public long expirationTime() {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isExpired(long expirationTime, TimeUnit unit) {
+    public boolean isExpired(long expirationTime) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public long lastAccessTime(TimeUnit unit) {
+    public long lastAccessTime() {
       return Long.MAX_VALUE;
     }
 
@@ -1151,7 +1151,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       OnHeapValueHolder<V> computeResult = map.compute(key, (mappedKey, mappedValue) -> {
         long delta = 0L;
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           delta -= mappedValue.size();
           mappedValue = null;
@@ -1178,7 +1178,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           checkValue(computedValue);
           if (mappedValue != null) {
             outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
-            long expirationTime = mappedValue.expirationTime(TimeUnit.MILLISECONDS);
+            long expirationTime = mappedValue.expirationTime();
             holder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
             delta -= mappedValue.size();
             if (holder == null) {
@@ -1234,7 +1234,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         long delta = 0;
         OnHeapValueHolder<V> holder;
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             delta -= mappedValue.size();
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
@@ -1388,7 +1388,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     long expirationTime;
     if (duration == null) {
-      expirationTime = oldValue.expirationTime(TimeUnit.MILLISECONDS);
+      expirationTime = oldValue.expirationTime();
     } else {
       if (isExpiryDurationInfinite(duration)) {
         expirationTime = ValueHolder.NO_EXPIRE;

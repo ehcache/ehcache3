@@ -58,8 +58,8 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public long creationTime(TimeUnit unit) {
-    return unit.convert(creationTime, nativeTimeUnit());
+  public long creationTime() {
+    return creationTime;
   }
 
   public void setExpirationTime(long expirationTime, TimeUnit unit) {
@@ -98,26 +98,26 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public long expirationTime(TimeUnit unit) {
-    final long expire = this.expirationTime;
+  public long expirationTime() {
+    long expire = this.expirationTime;
     if (expire == NO_EXPIRE) {
       return NO_EXPIRE;
     }
-    return unit.convert(expire, nativeTimeUnit());
+    return expire;
   }
 
   @Override
-  public boolean isExpired(long expirationTime, TimeUnit unit) {
-    final long expire = this.expirationTime;
+  public boolean isExpired(long expirationTime) {
+    long expire = this.expirationTime;
     if (expire == NO_EXPIRE) {
       return false;
     }
-    return expire <= nativeTimeUnit().convert(expirationTime, unit);
+    return expire <= expirationTime;
   }
 
   @Override
-  public long lastAccessTime(TimeUnit unit) {
-    return unit.convert(lastAccessTime, nativeTimeUnit());
+  public long lastAccessTime() {
+    return lastAccessTime;
   }
 
   public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
@@ -147,9 +147,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     if (obj instanceof AbstractValueHolder) {
       AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
       return
-          other.creationTime(nativeTimeUnit()) == creationTime &&
-          other.expirationTime(nativeTimeUnit()) == expirationTime &&
-          other.lastAccessTime(nativeTimeUnit()) == lastAccessTime;
+          other.creationTime == creationTime &&
+          other.expirationTime == expirationTime &&
+          other.lastAccessTime == lastAccessTime;
     }
     return false;
   }

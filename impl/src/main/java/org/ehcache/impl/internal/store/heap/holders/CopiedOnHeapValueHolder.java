@@ -53,7 +53,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    * @param expiration computed expiration duration
    */
   public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, java.time.Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS), evictionAdvice);
+    super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }

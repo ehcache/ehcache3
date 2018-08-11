@@ -53,9 +53,9 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());
-    byteBuffer.putLong(valueHolder.creationTime(TimeUnit.MILLISECONDS));
-    byteBuffer.putLong(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS));
-    byteBuffer.putLong(valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    byteBuffer.putLong(valueHolder.creationTime());
+    byteBuffer.putLong(valueHolder.lastAccessTime());
+    byteBuffer.putLong(valueHolder.expirationTime());
     byteBuffer.putLong(0L); // represent the hits on previous versions. It is kept for compatibility reasons with previously saved data
     byteBuffer.put(serialized);
     byteBuffer.flip();

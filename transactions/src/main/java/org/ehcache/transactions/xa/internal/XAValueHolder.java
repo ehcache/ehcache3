@@ -40,7 +40,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   private final byte[] valueSerialized;
 
   public XAValueHolder(Store.ValueHolder<SoftLock<V>> valueHolder, V value) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = value;
     this.valueSerialized = null;
   }
@@ -55,14 +55,14 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   private XAValueHolder(XAValueHolder<V> valueHolder, ByteBuffer serializedValue) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = null;
     this.valueSerialized = new byte[serializedValue.remaining()];
     serializedValue.get(this.valueSerialized);
   }
 
   public XAValueHolder(XAValueHolder<V> valueHolder, V value) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = value;
     this.valueSerialized = null;
   }
@@ -108,7 +108,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   private Object writeReplace() {
-    return new SerializedXAValueHolder<>(getId(), creationTime(TimeUnit.MILLISECONDS), lastAccessTime(TimeUnit.MILLISECONDS), expirationTime(TimeUnit.MILLISECONDS),
+    return new SerializedXAValueHolder<>(getId(), creationTime(), lastAccessTime(), expirationTime(),
       get(), valueSerialized);
   }
 

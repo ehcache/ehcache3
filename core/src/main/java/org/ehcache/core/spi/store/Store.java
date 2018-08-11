@@ -470,35 +470,31 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * Accessor to the creation time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the given unit
+     * @return the creation time in milliseconds
      */
-    long creationTime(TimeUnit unit);
+    long creationTime();
 
     /**
      * Accessor to the expiration time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the expiration time in the given unit. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
+     * @return the expiration time in milliseconds. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
      */
-    long expirationTime(TimeUnit unit);
+    long expirationTime();
 
     /**
      * Check if the ValueHolder is expired relative to the specified time
      *
-     * @param expirationTime the expiration time relative to which the expiry check must be made
-     * @param unit the unit of the expiration time
+     * @param expirationTime the expiration time (in ms) relative to which the expiry check must be made
      * @return true if the ValueHolder expired relative to the given expiration time
      */
-    boolean isExpired(long expirationTime, TimeUnit unit);
+    boolean isExpired(long expirationTime);
 
     /**
      * Accessor to the last access time of the Value held in this ValueHolder
      *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the given unit
+     * @return the last access time in milliseconds
      */
-    long lastAccessTime(TimeUnit unit);
+    long lastAccessTime();
 
     /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be

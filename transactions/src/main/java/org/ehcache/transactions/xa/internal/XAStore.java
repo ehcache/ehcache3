@@ -358,7 +358,7 @@ public class XAStore<K, V> implements WrapperStore<K, V> {
       } else {
         V oldValue = softLock.getOldValue();
         currentContext.addCommand(key, new StorePutCommand<>(oldValue, new XAValueHolder<>(value, timeSource.getTimeMillis())));
-        return new XAValueHolder<>(oldValue, softLockValueHolder.creationTime(TimeUnit.MILLISECONDS));
+        return new XAValueHolder<>(oldValue, softLockValueHolder.creationTime());
       }
     } else {
       return null;

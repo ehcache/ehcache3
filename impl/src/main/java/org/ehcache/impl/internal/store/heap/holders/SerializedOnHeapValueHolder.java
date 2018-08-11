@@ -22,7 +22,6 @@ import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> implements BinaryValueHolder {
   private final ByteBuffer buffer;
@@ -50,12 +49,12 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
   }
 
   public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
-    this(valueHolder.getId(), value, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS), evictionAdvice, serializer);
+    this(valueHolder.getId(), value, valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice, serializer);
     this.accessed(now, expiration);
   }
 
   public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS), evictionAdvice);
+    super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     this.buffer = binaryValue;
     this.serializer = serializer;
     this.accessed(now, expiration);
