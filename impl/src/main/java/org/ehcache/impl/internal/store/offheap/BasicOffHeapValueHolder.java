@@ -33,7 +33,7 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
 
   public BasicOffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime) {
     super(id, creationTime, expireTime);
-    setLastAccessTime(lastAccessTime, TimeUnit.MILLISECONDS);
+    setLastAccessTime(lastAccessTime);
     this.value = value;
   }
 

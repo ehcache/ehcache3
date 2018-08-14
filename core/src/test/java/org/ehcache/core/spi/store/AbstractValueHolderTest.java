@@ -51,7 +51,7 @@ public class AbstractValueHolderTest {
 
     assertThat(valueHolder.lastAccessTime(), is(1000L));
 
-    valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 0L, 2000L);
+    valueHolder = newAbstractValueHolder(1000L, 0L, 2000L);
 
     assertThat(valueHolder.lastAccessTime(), is(2000L));
   }
@@ -75,11 +75,11 @@ public class AbstractValueHolderTest {
     assertThat(newAbstractValueHolder(2L, 0L).equals(newAbstractValueHolder(2L, 1L)), is(false));
     assertThat(newAbstractValueHolder(2L, 0L).equals(newAbstractValueHolder(3L, 0L)), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1L, 2L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(0L, 2L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(true));
+    assertThat(newAbstractValueHolder(1L, 2L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 3L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 3L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(0L, 3L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(0L, 2L, 3L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
   }
 
   @Test
@@ -142,14 +142,15 @@ public class AbstractValueHolderTest {
       }
     };
   }
-  private AbstractValueHolder<String> newAbstractValueHolder(TimeUnit timeUnit, long creationTime, long expirationTime, long lastAccessTime) {
+
+  private AbstractValueHolder<String> newAbstractValueHolder(long creationTime, long expirationTime, long lastAccessTime) {
     final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
       @Override
       public String get() {
         throw new UnsupportedOperationException();
       }
     };
-    abstractValueHolder.setLastAccessTime(lastAccessTime, timeUnit);
+    abstractValueHolder.setLastAccessTime(lastAccessTime);
     return abstractValueHolder;
   }
 

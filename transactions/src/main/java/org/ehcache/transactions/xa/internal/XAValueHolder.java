@@ -23,7 +23,6 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 
@@ -69,7 +68,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
     super(id, creationTime, expirationTime);
-    setLastAccessTime(lastAccessTime, TimeUnit.MILLISECONDS);
+    setLastAccessTime(lastAccessTime);
     this.value = value;
     this.valueSerialized = valueSerialized;
   }

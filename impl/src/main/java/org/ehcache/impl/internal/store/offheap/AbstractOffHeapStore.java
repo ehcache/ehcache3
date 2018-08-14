@@ -533,7 +533,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
       V existingValue = null;
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }

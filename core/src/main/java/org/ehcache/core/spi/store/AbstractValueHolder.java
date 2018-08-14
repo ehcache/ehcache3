@@ -58,13 +58,19 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     return creationTime;
   }
 
-  public void setExpirationTime(long expirationTime, TimeUnit unit) {
+  /**
+   * Set the new expiration time in milliseconds. Can be {@link #NO_EXPIRE} if the entry
+   * shouldn't expire.
+   *
+   * @param expirationTime new expiration time
+   */
+  public void setExpirationTime(long expirationTime) {
     if (expirationTime == NO_EXPIRE) {
       updateExpirationTime(NO_EXPIRE);
     } else if (expirationTime < 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
-      updateExpirationTime(TimeUnit.MILLISECONDS.convert(expirationTime, unit));
+      updateExpirationTime(expirationTime);
     }
   }
 
@@ -81,25 +87,20 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   public void accessed(long now, Duration expiration) {
-    final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
     if (expiration != null) {
       if (isExpiryDurationInfinite(expiration)) {
-        setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
+        setExpirationTime(Store.ValueHolder.NO_EXPIRE);
       } else {
         long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);
-        setExpirationTime(newExpirationTime, timeUnit);
+        setExpirationTime(newExpirationTime);
       }
     }
-    setLastAccessTime(now, timeUnit);
+    setLastAccessTime(now);
   }
 
   @Override
   public long expirationTime() {
-    long expire = this.expirationTime;
-    if (expire == NO_EXPIRE) {
-      return NO_EXPIRE;
-    }
-    return expire;
+    return this.expirationTime;
   }
 
   @Override
@@ -116,14 +117,18 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     return lastAccessTime;
   }
 
-  public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-    long update = unit.convert(lastAccessTime, TimeUnit.MILLISECONDS);
+  /**
+   * Set the last time this entry was accessed in milliseconds.
+   *
+   * @param lastAccessTime last time the entry was accessed
+   */
+  public void setLastAccessTime(long lastAccessTime) {
     while (true) {
       long current = this.lastAccessTime;
-      if (current >= update) {
+      if (current >= lastAccessTime) {
         break;
       }
-      if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
+      if (ACCESSTIME_UPDATER.compareAndSet(this, current, lastAccessTime)) {
         break;
       }
     }

@@ -1017,7 +1017,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public void setExpirationTime(long expirationTime, TimeUnit unit) {
+    public void setExpirationTime(long expirationTime) {
       throw new UnsupportedOperationException();
     }
 
@@ -1037,7 +1037,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
+    public void setLastAccessTime(long lastAccessTime) {
       throw new UnsupportedOperationException();
     }
 
@@ -1083,7 +1083,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       map.compute(key, (mappedKey, mappedValue) -> {
         long delta = 0L;
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
           delta -= mappedValue.size();
           mappedValue = null;
