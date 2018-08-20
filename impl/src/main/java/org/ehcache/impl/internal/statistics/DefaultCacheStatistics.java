@@ -79,7 +79,7 @@ class DefaultCacheStatistics implements CacheStatistics {
 
   private final Map<String, DefaultLatencyHistogramStatistic> cacheLatencies;
 
-  public DefaultCacheStatistics(InternalCache<?, ?> cache, StatisticsServiceConfiguration configuration, TimeSource timeSource) {
+  public DefaultCacheStatistics(InternalCache<?, ?> cache, StatisticsServiceConfiguration configuration) {
     bulkMethodEntries = cache.getBulkMethodEntries();
 
     get = findOperationStatisticOnChildren(cache, GetOutcome.class, "get");

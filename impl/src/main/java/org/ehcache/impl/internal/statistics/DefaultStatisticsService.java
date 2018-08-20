@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@ServiceDependencies({CacheManagerProviderService.class, TimeSourceService.class})
+@ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
@@ -51,7 +51,6 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   private final ConcurrentMap<String, CacheStatistics> cacheStatistics = new ConcurrentHashMap<>();
 
   private volatile InternalCacheManager cacheManager;
-  private volatile TimeSource timeSource;
   private volatile boolean started = false;
 
   public DefaultStatisticsService() {
@@ -82,9 +81,6 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     LOGGER.debug("Starting service");
-
-    TimeSourceService timeSourceService = serviceProvider.getService(TimeSourceService.class);
-    timeSource = timeSourceService.getTimeSource();
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
     cacheManager = cacheManagerProviderService.getCacheManager();
@@ -131,7 +127,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     LOGGER.debug("Cache added " + alias);
-    cacheStatistics.put(alias, new DefaultCacheStatistics((InternalCache<?, ?>) cache, configuration, timeSource));
+    cacheStatistics.put(alias, new DefaultCacheStatistics((InternalCache<?, ?>) cache, configuration));
   }
 
   @Override

@@ -192,7 +192,7 @@ public class DefaultCacheStatisticsTest {
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
 
     cacheStatistics = new DefaultCacheStatistics(cache, new DefaultStatisticsServiceConfiguration()
-      .withDefaultHistogramWindow(Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)), timeSource);
+      .withDefaultHistogramWindow(Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)));
   }
 
   @After
