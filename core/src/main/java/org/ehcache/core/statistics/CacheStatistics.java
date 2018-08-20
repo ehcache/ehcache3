@@ -16,9 +16,8 @@
 
 package org.ehcache.core.statistics;
 
-import org.ehcache.Cache;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Map;
 
@@ -40,6 +39,16 @@ public interface CacheStatistics {
    * @return tier statistics per tier name
    */
   Map<String, TierStatistics> getTierStatistics();
+
+  /**
+   * Register a derived statistic to one of the existing statistic.
+   *
+   * @param outcomeClass the enum of the possible outcomes
+   * @param statName name of the statistic we are looking for
+   * @param derivedStatistics derived statistic to register
+   * @param <T> type of the outcome
+   */
+  <T extends Enum<T>> void registerDerivedStatistics(Class<T> outcomeClass, String statName, ChainedOperationObserver<? super T> derivedStatistics);
 
   /**
    * Reset the values for this cache and its underlying tiers.
@@ -132,33 +141,5 @@ public interface CacheStatistics {
    * @return average remove response time
    */
   float getCacheAverageRemoveTime();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a HIT.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheGetHitLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a MISS.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheGetMissLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#put(Object, Object)} operations when the outcome is a PUT.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCachePutLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#remove(Object)} operations when the outcome is a SUCCESS.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheRemoveLatencies();
 
 }

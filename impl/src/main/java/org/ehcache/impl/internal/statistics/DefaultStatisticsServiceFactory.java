@@ -18,21 +18,13 @@ package org.ehcache.impl.internal.statistics;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.spi.service.StatisticsServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
 
   @Override
-  public StatisticsService create(ServiceCreationConfiguration<StatisticsService> configuration) {
-    if (configuration != null && !(configuration instanceof StatisticsServiceConfiguration)) {
-      throw new IllegalArgumentException("Expected a configuration of type StatisticsServiceConfiguration but got " + configuration.getClass().getSimpleName());
-    }
-    if (configuration == null) {
-      // configuring this service is optional
-      configuration = new DefaultStatisticsServiceConfiguration();
-    }
-    return new DefaultStatisticsService((StatisticsServiceConfiguration) configuration);
+  public StatisticsService create(ServiceCreationConfiguration<StatisticsService> serviceConfiguration) {
+    return new DefaultStatisticsService();
   }
 
   @Override

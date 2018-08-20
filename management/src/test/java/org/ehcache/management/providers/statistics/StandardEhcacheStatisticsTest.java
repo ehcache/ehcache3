@@ -35,7 +35,7 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class StandardEhcacheStatisticsTest {
 
@@ -51,14 +51,10 @@ public class StandardEhcacheStatisticsTest {
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager3");
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
-    CacheManager cacheManager = null;
-
-    try {
-      cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cCache", cacheConfiguration)
-        .using(managementRegistry)
-        .build(true);
-
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache("cCache", cacheConfiguration)
+      .using(managementRegistry)
+      .build(true)) {
       Cache<Long, String> aCache = cacheManager.getCache("cCache", Long.class, String.class);
       aCache.put(1L, "one");
       aCache.get(1L);
@@ -72,15 +68,21 @@ public class StandardEhcacheStatisticsTest {
         .execute()
         .getSingleResult();
 
-      assertThat(counter.size(), Matchers.is(1));
-      Long count = counter. <Long>getLatestSampleValue("Cache:HitCount").get();
+      assertThat(counter.size()).isEqualTo(1);
+      long count = counter.<Long>getLatestSampleValue("Cache:HitCount").get();
+      assertThat(count).isEqualTo(1L);
 
-      assertThat(count.longValue(), Matchers.equalTo(1L));
+      ContextualStatistics latency = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics(Arrays.asList("Cache:GetHitLatency#50"))
+        .on(context)
+        .build()
+        .execute()
+        .getSingleResult();
+
+      assertThat(latency.size()).isEqualTo(1);
+      long time = latency.<Long>getLatestSampleValue("Cache:GetHitLatency#50").get();
+      assertThat(time).isGreaterThan(0);
     }
-    finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
-    }
+
   }
 }
