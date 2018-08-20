@@ -120,26 +120,4 @@ public interface CacheStatistics {
    * @return expiration count
    */
   long getCacheExpirations();
-
-  /**
-   * The average response time of a get on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average get response time
-   */
-  float getCacheAverageGetTime();
-
-  /**
-   * The average response time of a put on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average put response time
-   */
-  float getCacheAveragePutTime();
-
-  /**
-   * The average response time of a remove on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average remove response time
-   */
-  float getCacheAverageRemoveTime();
-
 }

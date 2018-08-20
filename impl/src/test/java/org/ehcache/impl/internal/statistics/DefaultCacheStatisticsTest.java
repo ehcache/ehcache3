@@ -37,29 +37,20 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.terracotta.statistics.derived.OperationResultFilter;
-import org.terracotta.statistics.derived.latency.DefaultLatencyHistogramStatistic;
-import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
-import static java.util.Arrays.*;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
-import static org.ehcache.config.units.EntryUnit.*;
-import static org.ehcache.config.units.MemoryUnit.*;
 
 @RunWith(Parameterized.class)
 public class DefaultCacheStatisticsTest {
@@ -70,7 +61,7 @@ public class DefaultCacheStatisticsTest {
    * @return if store statistics are enabled or disabled
    */
   @Parameterized.Parameters
-  public static final Object[] data() {
+  public static Object[] data() {
     return new Object[] { Boolean.FALSE, Boolean.TRUE };
   }
 
@@ -106,7 +97,6 @@ public class DefaultCacheStatisticsTest {
   };
 
   private static final int TIME_TO_EXPIRATION = 100;
-  private static final int HISTOGRAM_WINDOW_MILLIS = 400;
 
   private final boolean enableStoreStatistics;
   private DefaultCacheStatistics cacheStatistics;
@@ -247,24 +237,6 @@ public class DefaultCacheStatisticsTest {
     assertThat(expirations.get(0).getKey()).isEqualTo(1L);
     assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
     assertStat("Cache:ExpirationCount").isEqualTo(1L);
-  }
-
-  @Test
-  public void getCacheAverageGetTime() throws Exception {
-    cache.get(1L);
-    assertThat(cacheStatistics.getCacheAverageGetTime()).isGreaterThan(0);
-  }
-
-  @Test
-  public void getCacheAveragePutTime() throws Exception {
-    cache.put(1L, "a");
-    assertThat(cacheStatistics.getCacheAveragePutTime()).isGreaterThan(0);
-  }
-
-  @Test
-  public void getCacheAverageRemoveTime() throws Exception {
-    cache.remove(1L);
-    assertThat(cacheStatistics.getCacheAverageRemoveTime()).isGreaterThan(0);
   }
 
   @Test

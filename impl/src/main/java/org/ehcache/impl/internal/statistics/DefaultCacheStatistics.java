@@ -24,7 +24,6 @@ import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.core.statistics.TierStatistics;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Collections;
@@ -32,7 +31,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.EnumSet.allOf;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
@@ -56,10 +54,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final OperationStatistic<ReplaceOutcome> replace;
   private final OperationStatistic<ConditionalRemoveOutcome> conditionalRemove;
 
-  private final Jsr107LatencyMonitor<GetOutcome> averageGetTime;
-  private final Jsr107LatencyMonitor<PutOutcome> averagePutTime;
-  private final Jsr107LatencyMonitor<RemoveOutcome> averageRemoveTime;
-
   private final InternalCache<?, ?> cache;
 
   private final Map<String, TierStatistics> tierStatistics;
@@ -76,13 +70,6 @@ class DefaultCacheStatistics implements CacheStatistics {
     putIfAbsent = findOperationStatisticOnChildren(cache, PutIfAbsentOutcome.class, "putIfAbsent");
     replace = findOperationStatisticOnChildren(cache, ReplaceOutcome.class, "replace");
     conditionalRemove = findOperationStatisticOnChildren(cache, ConditionalRemoveOutcome.class, "conditionalRemove");
-
-    averageGetTime = new Jsr107LatencyMonitor<>(allOf(GetOutcome.class), 1.0);
-    get.addDerivedStatistic(averageGetTime);
-    averagePutTime = new Jsr107LatencyMonitor<>(allOf(PutOutcome.class), 1.0);
-    put.addDerivedStatistic(averagePutTime);
-    averageRemoveTime = new Jsr107LatencyMonitor<>(allOf(RemoveOutcome.class), 1.0);
-    remove.addDerivedStatistic(averageRemoveTime);
 
     String[] tierNames = findTiers(cache);
 
@@ -136,9 +123,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   @Override
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
-    averageGetTime.clear();
-    averagePutTime.clear();
-    averageRemoveTime.clear();
     for (TierStatistics t : tierStatistics.values()) {
       t.clear();
     }
@@ -196,21 +180,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   @Override
   public long getCacheExpirations() {
     return normalize(lowestTier.getExpirations());
-  }
-
-  @Override
-  public float getCacheAverageGetTime() {
-    return (float) averageGetTime.average();
-  }
-
-  @Override
-  public float getCacheAveragePutTime() {
-    return (float) averagePutTime.average();
-  }
-
-  @Override
-  public float getCacheAverageRemoveTime() {
-    return (float) averageRemoveTime.average();
   }
 
   private long getMisses() {
