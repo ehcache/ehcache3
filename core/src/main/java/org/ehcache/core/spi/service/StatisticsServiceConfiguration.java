@@ -22,6 +22,16 @@ import java.time.Duration;
 public interface StatisticsServiceConfiguration extends ServiceCreationConfiguration<StatisticsService> {
 
   /**
+   * When {@code true}, latencies will be calculated for the cache. If {@code null} (the default), latencies will only
+   * be calculated if the management module is used.
+   * <p>
+   * Note: Calculating latencies has a performance impact. Especially in a concurrent environment.
+   *
+   * @return if latencies should be calculated
+   */
+  Boolean getCalculateLatencies();
+
+  /**
    * @return the default histogram window size
    */
   Duration getDefaultHistogramWindow();

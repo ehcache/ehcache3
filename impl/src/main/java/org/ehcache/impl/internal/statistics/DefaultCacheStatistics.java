@@ -16,21 +16,25 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import org.ehcache.Cache;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.spi.service.StatisticsServiceConfiguration;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.core.statistics.TierStatistics;
 import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.SourceStatistic;
 import org.terracotta.statistics.ValueStatistic;
 import org.terracotta.statistics.derived.OperationResultFilter;
 import org.terracotta.statistics.derived.latency.DefaultLatencyHistogramStatistic;
 import org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor;
 import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -72,6 +76,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final Jsr107LatencyMonitor<PutOutcome> averagePutTime;
   private final Jsr107LatencyMonitor<RemoveOutcome> averageRemoveTime;
 
+  private final Cache<?, ?>
   private final Map<String, TierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
@@ -120,6 +125,10 @@ class DefaultCacheStatistics implements CacheStatistics {
     this.lowestTier = lowestTier;
 
     knownStatistics = createKnownStatistics();
+  }
+
+  public <T extends Enum<T>> void registerDerivedStatistics(ChainedOperationObserver<T> derivedStatistics) {
+
   }
 
   private Map<String, ValueStatistic<?>> createKnownStatistics() {

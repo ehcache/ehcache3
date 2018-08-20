@@ -36,6 +36,9 @@ public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
     String cacheName = cacheBinding.getAlias();
     CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
+
+    // TODO: Add derived statistics for latency
+
     cacheStatistics.getKnownStatistics().forEach(statisticRegistry::registerStatistic);
   }
 

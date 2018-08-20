@@ -28,6 +28,7 @@ import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;

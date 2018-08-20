@@ -22,11 +22,17 @@ import java.time.Duration;
 
 public class DefaultStatisticsServiceConfiguration implements StatisticsServiceConfiguration {
 
+  private Boolean calculateLatencies;
   private Duration defaultHistogramWindow = Duration.ofMinutes(1);
 
   @Override
   public Duration getDefaultHistogramWindow() {
     return defaultHistogramWindow;
+  }
+
+  @Override
+  public Boolean getCalculateLatencies() {
+    return calculateLatencies;
   }
 
   /**
@@ -35,6 +41,15 @@ public class DefaultStatisticsServiceConfiguration implements StatisticsServiceC
    */
   public DefaultStatisticsServiceConfiguration withDefaultHistogramWindow(Duration duration) {
     this.defaultHistogramWindow = duration;
+    return this;
+  }
+
+  /**
+   * @param calculate if latencies should be calculated. Null means that default behavior will be used.
+   * @return this
+   */
+  public DefaultStatisticsServiceConfiguration withCalculateLatencies(Boolean calculate) {
+    this.calculateLatencies = calculate;
     return this;
   }
 
