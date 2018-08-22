@@ -39,7 +39,7 @@ You can use the JCache API to develop a complete application, without the need t
 
 === Setting up Ehcache as the Caching Provider for JCache
 
-To use Ehcache as the caching provider for your application, add the file `javax.cache:cache-api:1.y.y.jar` (where `y.y` is a version-dependent string) to your application's classpath.
+To use Ehcache as the caching provider for your application, add the file `javax.cache:cache-api:1.x.y.jar` (where `x.y` is a version-dependent string) to your application's classpath.
 This is of course assuming Ehcache is already on that same classpath.
 No other setup steps are required.
 
