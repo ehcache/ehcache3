@@ -97,6 +97,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -148,7 +149,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final String managerIdentifier;
   private final Object inflightInvalidationsMutex = new Object();
   private volatile List<InvalidationTuple> inflightInvalidations;
-  private final Set<ClientDescriptor> connectedClients = ConcurrentHashMap.newKeySet();
+  private final Map<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
   private final int chainCompactionLimit;
 
   private final long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
@@ -226,7 +227,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   private void invalidateHashAfterEviction(long key) {
-    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getConnectedClients());
+    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getValidatedClients());
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
       LOGGER.debug("SERVER: eviction happened; asking client {} to invalidate hash {} from cache {}", clientDescriptorThatHasToInvalidate, key, storeIdentifier);
       try {
@@ -239,7 +240,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    connectedClients.add(clientDescriptor);
+    connectedClients.put(clientDescriptor, Boolean.FALSE);
   }
 
   @Override
@@ -316,6 +317,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     ServerSideServerStore store = stateService.getStore(storeIdentifier);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
+      connectedClients.put(clientDescriptor, Boolean.TRUE);
     } else {
       throw new InvalidStoreException("cluster tier '" + storeIdentifier + "' does not exist");
     }
@@ -446,7 +448,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   private void invalidateAll(ClientDescriptor originatingClientDescriptor) {
     int invalidationId = invalidationIdGenerator.getAndIncrement();
-    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getConnectedClients());
+    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getValidatedClients());
     if (originatingClientDescriptor != null) {
       clientsToInvalidate.remove(originatingClientDescriptor);
     }
@@ -517,7 +519,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   private void invalidateHashForClient(ClientDescriptor originatingClientDescriptor, long key) {
     int invalidationId = invalidationIdGenerator.getAndIncrement();
-    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getConnectedClients());
+    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getValidatedClients());
     if (originatingClientDescriptor != null) {
       clientsToInvalidate.remove(originatingClientDescriptor);
     }
@@ -593,7 +595,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
       LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
-      connectedClients.add(clientDescriptor);
+      connectedClients.put(clientDescriptor, Boolean.TRUE);
     };
   }
 
@@ -799,7 +801,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   Set<ClientDescriptor> getConnectedClients() {
-    return connectedClients;
+    return connectedClients.keySet();
+  }
+
+  Set<ClientDescriptor> getValidatedClients() {
+    return connectedClients.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(toSet());
   }
 
   ConcurrentMap<Integer, InvalidationHolder> getClientsWaitingForInvalidation() {
