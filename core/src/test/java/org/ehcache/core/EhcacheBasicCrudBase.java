@@ -619,16 +619,6 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public float hitRate(long now, final TimeUnit unit) {
-        return 0;
-      }
-
-      @Override
-      public long hits() {
-        return 0;
-      }
-
-      @Override
       public long getId() {
         throw new UnsupportedOperationException("Implement me!");
       }

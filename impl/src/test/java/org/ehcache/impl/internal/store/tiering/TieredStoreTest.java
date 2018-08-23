@@ -685,16 +685,6 @@ public class TieredStoreTest {
       }
 
       @Override
-      public float hitRate(long now, TimeUnit unit) {
-        return 0;
-      }
-
-      @Override
-      public long hits() {
-        throw new UnsupportedOperationException("Implement me!");
-      }
-
-      @Override
       public long getId() {
         throw new UnsupportedOperationException("Implement me!");
       }

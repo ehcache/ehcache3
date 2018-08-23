@@ -125,13 +125,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testValueHolderHitRate() throws Exception {
-    StoreValueHolderHitRateTest<K, V> testSuite =
-      new StoreValueHolderHitRateTest<>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testIteratorHasNext() throws Exception {
     StoreIteratorHasNextTest<K, V> testSuite =
       new StoreIteratorHasNextTest<>(getStoreFactory());

@@ -69,10 +69,9 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     this.valueSerialized = null;
   }
 
-  private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+  private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
     super(id, creationTime, expirationTime);
     setLastAccessTime(lastAccessTime, NATIVE_TIME_UNIT);
-    setHits(hits);
     this.value = value;
     this.valueSerialized = valueSerialized;
   }
@@ -117,7 +116,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   private Object writeReplace() {
     return new SerializedXAValueHolder<>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
-      hits(), get(), valueSerialized);
+      get(), valueSerialized);
   }
 
   /**
@@ -131,22 +130,20 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     private final long creationTime;
     private final long lastAccessTime;
     private final long expirationTime;
-    private final long hits;
     private final V value;
     private final byte[] valueSerialized;
 
-    SerializedXAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+    SerializedXAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
       this.id = id;
       this.creationTime = creationTime;
       this.lastAccessTime = lastAccessTime;
       this.expirationTime = expirationTime;
-      this.hits = hits;
       this.value = value;
       this.valueSerialized = valueSerialized;
     }
 
     private Object readResolve() {
-      return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
+      return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, value, valueSerialized);
     }
   }
 

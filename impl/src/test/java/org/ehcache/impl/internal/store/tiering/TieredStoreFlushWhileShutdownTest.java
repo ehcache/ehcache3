@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
@@ -127,6 +128,12 @@ public class TieredStoreFlushWhileShutdownTest {
       }
     }
 
+    // Keep the creation time to make sure we have them at restart
+    long[] creationTimes = new long[20];
+    for (int i = 0; i < 20; i++) {
+      creationTimes[i] = tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS);
+    }
+
     tieredStoreProvider.releaseStore(tieredStore);
     tieredStoreProvider.stop();
 
@@ -142,7 +149,7 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(tieredStore.get(i).hits(), is(21L));
+      assertThat(tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS), is(creationTimes[i]));
     }
   }
 

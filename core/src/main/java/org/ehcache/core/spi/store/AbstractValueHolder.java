@@ -30,15 +30,12 @@ import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
-  @SuppressWarnings("rawtypes")
-  private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
   @SuppressWarnings("CanBeFinal")
   private volatile long lastAccessTime;
   @SuppressWarnings("CanBeFinal")
   private volatile long expirationTime;
-  private volatile long hits;
 
   @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> ACCESSTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "lastAccessTime");
@@ -96,7 +93,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       }
     }
     setLastAccessTime(now, timeUnit);
-    HITS_UPDATER.getAndIncrement(this);
   }
 
   @Override
@@ -154,23 +150,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
           other.lastAccessTime(nativeTimeUnit()) == lastAccessTime && lastAccessTime(other.nativeTimeUnit()) == other.lastAccessTime;
     }
     return false;
-  }
-
-  @Override
-  public float hitRate(long now, TimeUnit unit) {
-    final long endTime = TimeUnit.NANOSECONDS.convert(now, TimeUnit.MILLISECONDS);
-    final long startTime = TimeUnit.NANOSECONDS.convert(creationTime, nativeTimeUnit());
-    float duration = (endTime - startTime)/(float)TimeUnit.NANOSECONDS.convert(1, unit);
-    return (hits/duration);
-  }
-
-  @Override
-  public long hits() {
-    return this.hits;
-  }
-
-  protected void setHits(long hits) {
-    HITS_UPDATER.set(this, hits);
   }
 
   @Override
