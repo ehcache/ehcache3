@@ -29,8 +29,13 @@ dependencies {
   testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   testImplementation project(':management')
-  testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
+  testImplementation("org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'statistics'
+  }
+  testImplementation("org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'statistics'
+  }
+  testImplementation "org.terracotta:statistics:$parent.statisticVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
   testRuntimeOnly project(':clustered:clustered-dist')
   testRuntimeOnly project(':dist')
