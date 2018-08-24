@@ -211,6 +211,8 @@ subprojects {
   configurations.all {
     resolutionStrategy {
       failOnVersionConflict()
+      // If you want to override a dependency, instead of changing gradle.properties, use something like below
+      // force 'org.terracotta:statistics:2.0-SNAPSHOT'
     }
   }
 }
