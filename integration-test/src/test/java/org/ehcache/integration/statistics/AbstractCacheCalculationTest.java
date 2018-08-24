@@ -18,13 +18,13 @@ package org.ehcache.integration.statistics;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.assertj.core.api.SoftAssertions;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.statistics.CacheStatistics;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
@@ -79,10 +79,13 @@ public abstract class AbstractCacheCalculationTest extends AbstractCalculationTe
    * @param remove how many removes should have happened
    */
   protected void changesOf(long hit, long miss, long put, long remove) {
-    assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits").isEqualTo(hit);
-    assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses").isEqualTo(miss);
-    assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts").isEqualTo(put);
-    assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals").isEqualTo(remove);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits").isEqualTo(hit);
+    softly.assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses").isEqualTo(miss);
+    softly.assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts").isEqualTo(put);
+    softly.assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals").isEqualTo(remove);
+    softly.assertAll();
+
     hitCount += hit;
     missCount += miss;
     putCount += put;

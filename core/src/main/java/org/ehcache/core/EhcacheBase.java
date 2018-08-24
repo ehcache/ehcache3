@@ -297,9 +297,6 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         if (put[0]) {
           putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
           return null;
-        } else if (inCache == null) {
-          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-          return null;
         } else {
           putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
           return inCache.get();
