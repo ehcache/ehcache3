@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -81,7 +82,8 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private static final int NUM_THREADS = 8;
   private static final int MAX_WAIT_TIME_SECONDS = 30;
 
-  private AtomicReference<Throwable> exception = new AtomicReference<>();
+  private final AtomicReference<Throwable> exception = new AtomicReference<>();
+  private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
   public void testMulipleClients() throws Throwable {
@@ -131,15 +133,13 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     String customValue = "value";
     Cache<String, Boolean> synCache = cacheManager.getCache(SYN_CACHE_NAME, String.class, Boolean.class);
     Cache<Long, String> customValueCache = cacheManager.getCache(CLUSTERED_CACHE_NAME, Long.class, String.class);
+    parallelPuts(customValueCache);
     String firstClientStartKey = "first_client_start", firstClientEndKey = "first_client_end";
     if (synCache.putIfAbsent(firstClientStartKey, true) == null) {
-      silentPuts(customValueCache);
       customValueCache.put(1L, customValue);
       assertThat(customValueCache.get(1L), is(customValue));
       synCache.put(firstClientEndKey, true);
     } else {
-      //wait for the first client to finish
-      silentPuts(customValueCache);
       int retry = 0, maxRetryCount = 30;
       while (++retry <= maxRetryCount && synCache.get(firstClientEndKey) == null) {
         Thread.sleep(1000L);
@@ -181,11 +181,17 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     return clusteredCacheManagerBuilder.build(false);
   }
 
-  private void silentPuts(Cache<Long, String> customValueCache) {
-    customValueCache.put(2L, "value2");
-    customValueCache.put(2L, "value21");
-    customValueCache.put(3L, "value3");
-    customValueCache.put(4L, "value4");
-    customValueCache.put(2L, "value22");
+  private void parallelPuts(Cache<Long, String> customValueCache) {
+    // make sure each thread gets its own id
+    long startingId = idGenerator.getAndAdd(10L);
+    customValueCache.put(startingId + 1, "value1");
+    customValueCache.put(startingId + 1, "value11");
+    customValueCache.put(startingId + 2, "value2");
+    customValueCache.put(startingId + 3, "value3");
+    customValueCache.put(startingId + 4, "value4");
+    assertThat(customValueCache.get(startingId + 1), is("value11"));
+    assertThat(customValueCache.get(startingId + 2), is("value2"));
+    assertThat(customValueCache.get(startingId + 3), is("value3"));
+    assertThat(customValueCache.get(startingId + 4), is("value4"));
   }
 }
