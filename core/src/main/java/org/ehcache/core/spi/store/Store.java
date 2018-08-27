@@ -38,6 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+
 /**
  * The {@code Store} interface represents the backing storage of a {@link Cache}. It abstracts the support for multiple
  * tiers, eventing, eviction and expiry.
@@ -505,6 +507,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     long getId();
 
+    /**
+     * Returns the value held by this value holder. This value can't be {@code null}.
+     *
+     * @return the value held
+     */
+    @Nonnull
+    @Override
+    V get();
   }
 
   /**
