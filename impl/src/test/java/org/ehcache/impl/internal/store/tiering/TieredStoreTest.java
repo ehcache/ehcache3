@@ -56,6 +56,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -222,22 +223,24 @@ public class TieredStoreTest {
   public void testPutIfAbsent_whenAbsent() throws Exception {
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.putIfAbsent(1, "one"), is(nullValue()));
+    assertThat(tieredStore.putIfAbsent(1, "one", b -> {}), is(nullValue()));
 
     verify(numberCachingTier, times(1)).invalidate(eq(1));
-    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"), any());
   }
 
   @Test
   public void testPutIfAbsent_whenPresent() throws Exception {
-    when(numberAuthoritativeTier.putIfAbsent(1, "one")).thenReturn(newValueHolder("un"));
+    Consumer<Boolean> booleanConsumer = b -> {
+    };
+    when(numberAuthoritativeTier.putIfAbsent(1, "one", booleanConsumer)).thenReturn(newValueHolder("un"));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.putIfAbsent(1, "one").get(), Matchers.<CharSequence>equalTo("un"));
+    assertThat(tieredStore.putIfAbsent(1, "one", booleanConsumer).get(), Matchers.<CharSequence>equalTo("un"));
 
     verify(numberCachingTier, times(1)).invalidate(1);
-    verify(numberAuthoritativeTier, times(1)).putIfAbsent(1, "one");
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(1, "one", booleanConsumer);
   }
 
   @Test
@@ -603,7 +606,7 @@ public class TieredStoreTest {
     when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
     tieredStoreProvider.start(serviceProvider);
 
-    final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
+    final Store<String, String> tieredStore = tieredStoreProvider.createStore(true, configuration);
     tieredStoreProvider.initStore(tieredStore);
     tieredStoreProvider.releaseStore(tieredStore);
     verify(onHeapStoreProvider, times(1)).releaseCachingTier(any(CachingTier.class));

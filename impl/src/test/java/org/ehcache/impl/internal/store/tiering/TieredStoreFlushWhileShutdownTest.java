@@ -32,6 +32,7 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
@@ -103,6 +104,11 @@ public class TieredStoreFlushWhileShutdownTest {
       public int getDispatcherConcurrency() {
         return 1;
       }
+
+      @Override
+      public CacheLoaderWriter<? super Number, String> getCacheLoaderWriter() {
+        return null;
+      }
     };
 
     ServiceLocator serviceLocator = getServiceLocator(persistenceLocation);
@@ -116,7 +122,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
     PersistenceSpaceIdentifier<?> persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
-    Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace);
+    Store<Number, String> tieredStore = tieredStoreProvider.createStore(true, configuration, persistenceSpace);
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
       tieredStore.put(i, "hello");
@@ -145,7 +151,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
     DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
     PersistenceSpaceIdentifier<?> persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
-    tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace1);
+    tieredStore = tieredStoreProvider.createStore(true, configuration, persistenceSpace1);
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {

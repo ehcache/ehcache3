@@ -22,6 +22,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
+import org.junit.Ignore;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
@@ -31,6 +32,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
  *
  * @author cdennis
  */
+@Ignore
 public class PooledExecutorWriteBehindTest extends AbstractWriteBehindTestBase {
 
   @Override

@@ -32,6 +32,7 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -68,7 +69,7 @@ public class OffHeapDiskStoreProviderTest {
       .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
-    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
+    OffHeapDiskStore<Long, String> store = provider.createStore(true, getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
     @SuppressWarnings("unchecked")
     Query storeQuery = queryBuilder()
@@ -180,6 +181,11 @@ public class OffHeapDiskStoreProviderTest {
        @Override
        public int getDispatcherConcurrency() {
          return 1;
+       }
+
+       @Override
+       public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+         return null;
        }
 
      };

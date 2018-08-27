@@ -92,6 +92,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -422,7 +423,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
 
@@ -1582,7 +1583,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OnHeapStore<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {

@@ -22,6 +22,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -131,6 +133,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
+   * @param put lambda to be consumed if value has been put
    * @return the {@link Store.ValueHolder ValueHolder} to
    * which the specified key was previously mapped, or {@code null} if no such mapping existed or the mapping was expired
    *
@@ -140,7 +143,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @see #replace(Object, Object)
    */
-  ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException;
+  ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException;
 
   /**
    * Removes the key (and its corresponding value) from this store.
@@ -526,7 +529,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @return the Store honoring the configurations passed in
      */
-    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
     /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
@@ -623,6 +626,13 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     default boolean isOperationStatisticsEnabled() {
       return true;
     }
+
+    /**
+     *
+     * Cache Loader-Writer for the store
+     *
+     */
+    CacheLoaderWriter<? super K, V> getCacheLoaderWriter();
   }
 
   /**

@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -111,9 +112,9 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     try {
-      return authoritativeTier.putIfAbsent(key, value);
+      return authoritativeTier.putIfAbsent(key, value, put);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -357,7 +358,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       final List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
 
       final ResourcePools resourcePools = storeConfig.getResourcePools();

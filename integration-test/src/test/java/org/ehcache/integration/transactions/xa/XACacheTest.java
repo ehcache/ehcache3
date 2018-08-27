@@ -38,6 +38,7 @@ import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -518,6 +519,7 @@ public class XACacheTest {
     txCache1.clear();
   }
 
+  @Ignore
   @Test
   public void testAtomicsWithLoaderWriter() throws Exception {
     SampleLoaderWriter<Long, String> loaderWriter = new SampleLoaderWriter<>();

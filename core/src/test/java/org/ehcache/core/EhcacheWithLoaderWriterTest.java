@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -131,7 +132,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(String key, String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(String key, String value, Consumer<Boolean> put) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

@@ -30,6 +30,7 @@ import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
@@ -41,7 +42,6 @@ import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.*;
@@ -88,7 +88,7 @@ public class CacheConfigurationBuilderTest {
         .withLoaderWriter(loaderWriter)
         .build();
 
-    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
     assertThat(instance, Matchers.sameInstance(loaderWriter));
   }

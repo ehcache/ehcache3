@@ -3,6 +3,7 @@ org.ehcache.impl.internal.store.offheap.OffHeapStoreProviderFactory
 org.ehcache.impl.internal.store.disk.OffHeapDiskStoreProviderFactory
 org.ehcache.impl.internal.store.tiering.TieredStoreProviderFactory
 org.ehcache.impl.internal.store.tiering.CompoundCachingTierProviderFactory
+org.ehcache.impl.internal.store.loaderwriter.LoaderWriterStoreProviderFactory
 
 org.ehcache.impl.internal.TimeSourceServiceFactory
 org.ehcache.impl.internal.spi.serialization.DefaultSerializationProviderFactory

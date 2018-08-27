@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -260,7 +261,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, StoreAccessException {
+  public Store.ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws NullPointerException, StoreAccessException {
     checkKey(key);
     checkValue(value);
 

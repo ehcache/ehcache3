@@ -415,9 +415,9 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.putIfAbsent(1L, "one"), is(nullValue()));
+      assertThat(xaStore.putIfAbsent(1L, "one", b -> {}), is(nullValue()));
       assertThat(xaStore.get(1L).get(), equalTo("one"));
-      assertThat(xaStore.putIfAbsent(1L, "un").get(), equalTo("one"));
+      assertThat(xaStore.putIfAbsent(1L, "un", b -> {}).get(), equalTo("one"));
       assertThat(xaStore.get(1L).get(), equalTo("one"));
     }
     testTransactionManager.commit();
@@ -426,10 +426,10 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.putIfAbsent(1L, "un").get(), equalTo("one"));
+      assertThat(xaStore.putIfAbsent(1L, "un", b -> {}).get(), equalTo("one"));
       assertThat(xaStore.get(1L).get(), equalTo("one"));
       assertThat(xaStore.remove(1L), equalTo(true));
-      assertThat(xaStore.putIfAbsent(1L, "uno"), is(nullValue()));
+      assertThat(xaStore.putIfAbsent(1L, "uno", b -> {}), is(nullValue()));
     }
     testTransactionManager.commit();
 
@@ -441,7 +441,7 @@ public class XAStoreTest {
       executeWhileIn2PC(exception, () -> {
         testTransactionManager.begin();
 
-        assertThat(xaStore.putIfAbsent(1L, "un"), is(nullValue()));
+        assertThat(xaStore.putIfAbsent(1L, "un", b -> {}), is(nullValue()));
 
         testTransactionManager.commit();
         return null;

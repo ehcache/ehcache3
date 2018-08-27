@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -116,7 +117,7 @@ public class TieredStoreMutatorTest {
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(String key, String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(String key, String value, Consumer<Boolean> put) throws StoreAccessException {
       return createValueHolder(map.putIfAbsent(key, value));
     }
 
@@ -343,7 +344,7 @@ public class TieredStoreMutatorTest {
 
   private Store.ValueHolder<String> putIfAbsentToTieredStore() {
     try {
-      return tieredStore.putIfAbsent(KEY, VALUE);
+      return tieredStore.putIfAbsent(KEY, VALUE, b -> {});
     } catch (StoreAccessException e) {
       throw new RuntimeException(e);
     }

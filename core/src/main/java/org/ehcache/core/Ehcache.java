@@ -130,7 +130,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   @Override
   public ValueHolder<V> doPutIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
-    ValueHolder<V> result = store.putIfAbsent(key, value);
+    ValueHolder<V> result = store.putIfAbsent(key, value, put);
     if(result == null) {
       put.accept(true);
     }

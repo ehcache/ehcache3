@@ -21,6 +21,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
@@ -39,6 +40,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final Serializer<V> valueSerializer;
   private final int dispatcherConcurrency;
   private final boolean operationStatisticsEnabled;
+  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   /**
    * Creates a new {@code StoreConfigurationImpl} based on the provided parameters.
@@ -52,7 +54,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
         cacheConfig.getClassLoader(), cacheConfig.getExpiryPolicy(), cacheConfig.getResourcePools(),
-        dispatcherConcurrency, true, keySerializer, valueSerializer);
+        dispatcherConcurrency, true, keySerializer, valueSerializer, null);
   }
 
   /**
@@ -65,10 +67,10 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * @param valueSerializer the value serializer
    */
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, int dispatcherConcurrency, boolean operationStatisticsEnabled,
-                                Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
       cacheConfig.getClassLoader(), cacheConfig.getExpiryPolicy(), cacheConfig.getResourcePools(),
-      dispatcherConcurrency, operationStatisticsEnabled, keySerializer, valueSerializer);
+      dispatcherConcurrency, operationStatisticsEnabled, keySerializer, valueSerializer, cacheLoaderWriter);
   }
 
   /**
@@ -90,7 +92,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 ResourcePools resourcePools, int dispatcherConcurrency,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, dispatcherConcurrency,
-      true, keySerializer, valueSerializer);
+      true, keySerializer, valueSerializer, null);
   }
 
   /**
@@ -111,7 +113,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 EvictionAdvisor<? super K, ? super V> evictionAdvisor,
                                 ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
                                 ResourcePools resourcePools, int dispatcherConcurrency, boolean operationStatisticsEnabled,
-                                Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionAdvisor = evictionAdvisor;
@@ -122,6 +124,8 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
     this.valueSerializer = valueSerializer;
     this.dispatcherConcurrency = dispatcherConcurrency;
     this.operationStatisticsEnabled = operationStatisticsEnabled;
+    this.cacheLoaderWriter = cacheLoaderWriter;
+
   }
 
   /**
@@ -202,5 +206,13 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public boolean isOperationStatisticsEnabled() {
     return operationStatisticsEnabled;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+    return this.cacheLoaderWriter;
   }
 }

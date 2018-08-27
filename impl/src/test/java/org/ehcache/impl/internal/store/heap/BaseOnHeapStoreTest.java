@@ -315,7 +315,7 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
-    ValueHolder<String> prev = store.putIfAbsent("key", "value");
+    ValueHolder<String> prev = store.putIfAbsent("key", "value", b -> {});
 
     assertThat(prev, nullValue());
     verify(eventSink).created(eq("key"), eq("value"));
@@ -328,7 +328,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testPutIfAbsentValuePresent() throws Exception {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
-    ValueHolder<String> prev = store.putIfAbsent("key", "value2");
+    ValueHolder<String> prev = store.putIfAbsent("key", "value2", b -> {});
     assertThat(prev.get(), equalTo("value"));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
@@ -338,10 +338,10 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.noExpiration());
     assertThat(store.get("key"), nullValue());
-    store.putIfAbsent("key", "value");
+    store.putIfAbsent("key", "value", b -> {});
     long first = store.get("key").lastAccessTime(TimeUnit.MILLISECONDS);
     timeSource.advanceTime(1);
-    long next = store.putIfAbsent("key", "value2").lastAccessTime(TimeUnit.MILLISECONDS);
+    long next = store.putIfAbsent("key", "value2", b -> {}).lastAccessTime(TimeUnit.MILLISECONDS);
     assertThat(next - first, equalTo(1L));
   }
 
@@ -352,7 +352,7 @@ public abstract class BaseOnHeapStoreTest {
       ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
     store.put("key", "value");
     timeSource.advanceTime(1);
-    ValueHolder<String> prev = store.putIfAbsent("key", "value2");
+    ValueHolder<String> prev = store.putIfAbsent("key", "value2", b -> {});
     assertThat(prev, nullValue());
     assertThat(store.get("key").get(), equalTo("value2"));
     checkExpiryEvent(getStoreEventSink(), "key", "value");

@@ -22,6 +22,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -139,6 +140,11 @@ public class ByteAccountingTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
   }
@@ -330,11 +336,11 @@ public class ByteAccountingTest {
   public void testPutIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     long current = store.getCurrentUsageInBytes();
     assertThat(current, is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.putIfAbsent(KEY, "New Value to Put");
+    store.putIfAbsent(KEY, "New Value to Put", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(current));
   }
 
@@ -345,7 +351,7 @@ public class ByteAccountingTest {
 
     store.put(KEY, "an expired value");
     timeSource.advanceTime(1000L);
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
   }
 
@@ -355,7 +361,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.putIfAbsent(KEY, "another value ... whatever");
+    store.putIfAbsent(KEY, "another value ... whatever", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 

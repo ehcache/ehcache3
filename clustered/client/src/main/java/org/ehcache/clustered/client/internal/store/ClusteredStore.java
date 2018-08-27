@@ -48,6 +48,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.impl.internal.store.basic.BaseStore;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
@@ -86,6 +87,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -244,7 +246,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
     putIfAbsentObserver.begin();
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<>(key, value, timeSource.getTimeMillis());
@@ -565,7 +567,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> ClusteredStore<K, V> createStore(boolean useLoaderInAtomics, final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -579,7 +581,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-        DefaultCacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, serviceConfigs);
+        CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, serviceConfigs);
         if (loaderWriterConfiguration != null) {
           throw new IllegalStateException("CacheLoaderWriter is not supported with clustered tiers");
         }

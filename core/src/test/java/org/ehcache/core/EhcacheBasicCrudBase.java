@@ -41,7 +41,6 @@ import org.terracotta.context.TreeNode;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 
-import java.lang.reflect.Field;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -276,7 +276,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(final String key, final String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(final String key, final String value, Consumer<Boolean> put) throws StoreAccessException {
       this.checkFailingKey(key);
       final FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {

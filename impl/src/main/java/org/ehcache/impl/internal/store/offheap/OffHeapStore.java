@@ -52,7 +52,6 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
@@ -153,7 +152,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OffHeapStore<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {

@@ -69,6 +69,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -264,7 +265,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -732,7 +733,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       Set<ResourceType.Core> supportedTypes = EnumSet.allOf(ResourceType.Core.class);
 
       Set<ResourceType<?>> configuredTypes = storeConfig.getResourcePools().getResourceTypeSet();
@@ -893,7 +894,7 @@ public class XAStore<K, V> implements Store<K, V> {
       Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
         storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig
         .getKeySerializer(), softLockValueCombinedSerializer);
-      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(useLoaderInAtomics, underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
 
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();

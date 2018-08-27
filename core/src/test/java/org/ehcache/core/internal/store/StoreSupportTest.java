@@ -214,7 +214,7 @@ public class StoreSupportTest {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       throw new UnsupportedOperationException("TestBaseProvider.createStore not implemented");
     }
 

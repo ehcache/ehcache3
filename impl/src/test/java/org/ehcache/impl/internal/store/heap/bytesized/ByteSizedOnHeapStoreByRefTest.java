@@ -30,6 +30,7 @@ import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByRefTest;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -96,6 +97,11 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher);
   }

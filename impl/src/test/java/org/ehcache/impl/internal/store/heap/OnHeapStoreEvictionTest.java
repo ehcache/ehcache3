@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -169,6 +170,11 @@ public class OnHeapStoreEvictionTest {
       @Override
       public int getDispatcherConcurrency() {
         return 1;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource);
   }
