@@ -30,6 +30,7 @@ import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Disk;
 import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryType;
 import org.ehcache.xml.model.ResourceType;
@@ -46,39 +47,59 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 
-import static org.ehcache.xml.ConfigurationParser.CORE_SCHEMA_JAXB_MODEL_PACKAGE;
-import static org.ehcache.xml.ConfigurationParser.CORE_SCHEMA_NAMESPACE;
+import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 
 public class ResourceConfigurationParser {
 
-  private final JAXBContext jaxbContext = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE);
-  private final Set<CacheResourceConfigurationParser> extensionParsers;
-  private final Schema schema;
+  private static final Schema CORE_SCHEMA;
+  static {
+    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    try {
+      CORE_SCHEMA = schemaFactory.newSchema(CORE_SCHEMA_URL);
+    } catch (Exception e) {
+      throw new AssertionError(e);
+    }
+  }
+  private static final String CORE_SCHEMA_NS;
+  static {
+    ObjectFactory factory = new ObjectFactory();
+    CORE_SCHEMA_NS = factory.createResource(factory.createResourceType()).getName().getNamespaceURI();
+  }
 
-  public ResourceConfigurationParser(Schema schema, Set<CacheResourceConfigurationParser> extensionParsers) throws JAXBException {
-    this.schema = schema;
+  private final JAXBContext jaxbContext;
+  private final Set<CacheResourceConfigurationParser> extensionParsers;
+
+  public ResourceConfigurationParser(Set<CacheResourceConfigurationParser> extensionParsers) {
     this.extensionParsers = extensionParsers;
+    try {
+      this.jaxbContext = JAXBContext.newInstance(ResourcesType.class);
+    } catch (JAXBException e) {
+      throw new AssertionError(e);
+    }
   }
 
   public ResourcePools parseResourceConfiguration(CacheTemplate cacheTemplate, ResourcePoolsBuilder resourcePoolsBuilder) {
+
     if (cacheTemplate.getHeap() != null) {
       resourcePoolsBuilder = resourcePoolsBuilder.with(parseHeapConfiguration(cacheTemplate.getHeap()));
     } else if (!cacheTemplate.getResources().isEmpty()) {
       for (Element element : cacheTemplate.getResources()) {
         ResourcePool resourcePool;
-        if (!CORE_SCHEMA_NAMESPACE.equals(element.getNamespaceURI())) {
+        if (!CORE_SCHEMA_NS.equals(element.getNamespaceURI())) {
           resourcePool = parseResourceExtension(element);
         } else {
           try {
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            unmarshaller.setSchema(schema);
+            unmarshaller.setSchema(CORE_SCHEMA);
             Object resource = unmarshaller.unmarshal(element);
             if (resource instanceof Heap) {
               resourcePool = parseHeapConfiguration((Heap) resource);
@@ -127,9 +148,8 @@ public class ResourceConfigurationParser {
   }
 
   ResourcePool parseResourceExtension(final Element element) {
-    ResourcePool resourcePool = null;
     for (CacheResourceConfigurationParser parser : extensionParsers) {
-      resourcePool = parser.parseResourceConfiguration(element);
+      ResourcePool resourcePool = parser.parseResourceConfiguration(element);
       if (resourcePool != null) {
         return resourcePool;
       }
@@ -168,7 +188,7 @@ public class ResourceConfigurationParser {
         try {
           Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
           Marshaller marshaller = jaxbContext.createMarshaller();
-          marshaller.setSchema(schema);
+          marshaller.setSchema(CORE_SCHEMA);
           marshaller.marshal(resource, document);
           element = document.getDocumentElement();
         } catch (SAXException | ParserConfigurationException | IOException | JAXBException e) {

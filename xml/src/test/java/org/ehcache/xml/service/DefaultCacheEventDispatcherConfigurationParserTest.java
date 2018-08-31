@@ -18,28 +18,20 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-public class DefaultCacheEventDispatcherConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultCacheEventDispatcherConfigurationParserTest() {
-    super(new DefaultCacheEventDispatcherConfigurationParser());
-  }
+public class DefaultCacheEventDispatcherConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration =
-      getCacheDefinitionFrom("/configs/ehcache-cacheEventListener.xml", "template1");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/ehcache-cacheEventListener.xml")).getCacheConfigurations().get("template1");
 
     DefaultCacheEventDispatcherConfiguration eventDispatcherConfig =
       findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -51,9 +43,9 @@ public class DefaultCacheEventDispatcherConfigurationParserTest extends ServiceC
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      buildCacheConfigWithServiceConfig(new DefaultCacheEventDispatcherConfiguration("foo"));
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheEventDispatcherConfiguration("foo")).build();
     CacheType cacheType = new CacheType();
-    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+    cacheType = new DefaultCacheEventDispatcherConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 
     assertThat(cacheType.getListeners().getDispatcherThreadPool()).isEqualTo("foo");
   }

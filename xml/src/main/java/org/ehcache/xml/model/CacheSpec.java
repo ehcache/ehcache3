@@ -16,36 +16,20 @@
 
 package org.ehcache.xml.model;
 
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.config.SizedResourcePoolImpl;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.JaxbHelper;
-import org.ehcache.xml.ResourceConfigurationParser;
-import org.ehcache.xml.ServiceConfigurationParser;
 import org.w3c.dom.Element;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toList;
 
 public class CacheSpec implements CacheTemplate {
 
