@@ -212,6 +212,7 @@ public abstract class EhcacheBasicCrudBase {
     };
 
     private static final Supplier<Boolean> REPLACE_EQUAL_TRUE = () -> true;
+    private static final Supplier<Boolean> INVOKE_WRITER_FALSE = () -> false;
 
     /**
      * The key:value pairs served by this {@code Store}.  This map may be empty.
@@ -391,16 +392,16 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p>
      * This method is implemented as
-     * <code>this.{@link #compute(String, BiFunction, Supplier) compute}(keys, mappingFunction, () -> { returns true; })</code>
+     * <code>this.{@link Store#compute(Object, BiFunction, Supplier, Supplier) getAndCompute}(keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
-    public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
+    public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
         throws StoreAccessException {
-      return this.compute(key, mappingFunction, REPLACE_EQUAL_TRUE);
+      return this.compute(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
     }
 
     /**
-     * Common core for the {@link #compute(String, BiFunction, Supplier)} method.
+     * Common core for the {@link Store#compute(Object, BiFunction, Supplier, Supplier)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -457,9 +458,9 @@ public abstract class EhcacheBasicCrudBase {
 
     @Override
     public ValueHolder<String> compute(
-        final String key,
-        final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final Supplier<Boolean> replaceEqual)
+            final String key,
+            final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+            final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter)
         throws StoreAccessException {
       this.checkFailingKey(key);
 
@@ -514,8 +515,8 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * {@inheritDoc}
      * <p>
-     * This implementation calls {@link #compute(String, BiFunction, Supplier)
-     *    compute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
+     * This implementation calls {@link Store#compute(Object, BiFunction, Supplier, Supplier)
+     *    getAndCompute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
      */
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
@@ -533,7 +534,7 @@ public abstract class EhcacheBasicCrudBase {
                 remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
             return remappedEntry.getValue();
           },
-            replaceEqual);
+            replaceEqual, INVOKE_WRITER_FALSE);
 
         resultMap.put(key, newValue);
       }

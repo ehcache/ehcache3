@@ -217,18 +217,18 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     try {
-      return authoritativeTier.compute(key, mappingFunction);
+      return authoritativeTier.getAndCompute(key, mappingFunction);
     } finally {
       cachingTier().invalidate(key);
     }
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     try {
-      return authoritativeTier.compute(key, mappingFunction, replaceEqual);
+      return authoritativeTier.compute(key, mappingFunction, replaceEqual, () -> false);
     } finally {
       cachingTier().invalidate(key);
     }

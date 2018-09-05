@@ -27,7 +27,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -51,6 +50,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -274,10 +274,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     }
 
-    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    if (cacheLoaderWriter != null) {
+      serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
+    }
+
+    Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
-      expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
+      expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
     Store<K, V> store = storeProvider.createStore(true, storeConfig, serviceConfigs);
 
     lifeCycledList.add(new LifeCycled() {
@@ -301,7 +305,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (cacheLoaderWriter == null) {
       resilienceStrategy = new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(store));
     } else {
-      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<K, V>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
+      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
     }
 
     if (persistent) {
@@ -318,12 +322,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
       return cast(cache);
     } else {
-      final InternalCache<K, V> cache;
-      if (cacheLoaderWriter == null) {
-        cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
-      } else {
-        cache = new EhcacheWithLoaderWriter<>(cacheConfig, store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
-      }
+      InternalCache<K, V> cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         (cache).addHook(lifeCycled);

@@ -418,13 +418,13 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -461,7 +461,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
       }
     } else {
-      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This getAndCompute method is not yet capable of handling generic computation functions");
     }
     return valueHolderMap;
   }
@@ -492,7 +492,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
       return map;
     } else {
-      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This getAndCompute method is not yet capable of handling generic computation functions");
     }
   }
 

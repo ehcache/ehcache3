@@ -97,7 +97,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.compute(k2, (mappedKey, mappedValue) -> v2);
+    kvStore.getAndCompute(k2, (mappedKey, mappedValue) -> v2);
     verifyListenerInteractions(listener);
   }
 

@@ -243,7 +243,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
     replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
     conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
-    computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    computeObserver = createObserver("getAndCompute", StoreOperationOutcomes.ComputeOutcome.class, true);
     computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
     evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
     expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
@@ -1065,12 +1065,75 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+
+    computeObserver.begin();
+
+    long now = timeSource.getTimeMillis();
+    StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    try {
+      AtomicReference<OnHeapValueHolder<V>> oldValue = new AtomicReference<>();
+      AtomicReference<StoreOperationOutcomes.ComputeOutcome> outcome =
+              new AtomicReference<>(StoreOperationOutcomes.ComputeOutcome.MISS);
+
+      map.compute(key, (mappedKey, mappedValue) -> {
+        long delta = 0L;
+
+        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+          fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
+          delta -= mappedValue.size();
+          mappedValue = null;
+        }
+
+        OnHeapValueHolder<V> holder;
+        V existingValue = mappedValue == null ? null : mappedValue.get();
+        if (mappedValue != null) {
+          oldValue.set(mappedValue);
+        }
+        V computedValue = mappingFunction.apply(mappedKey, existingValue);
+        if (computedValue == null) {
+          if (existingValue != null) {
+            eventSink.removed(mappedKey, mappedValue);
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+            delta -= mappedValue.size();
+          }
+          holder = null;
+        } else {
+          checkValue(computedValue);
+          if (mappedValue != null) {
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+            holder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
+            delta -= mappedValue.size();
+            if (holder != null) {
+              delta += holder.size();
+            }
+          } else {
+            holder = newCreateValueHolder(key, computedValue, now, eventSink);
+            if (holder != null) {
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+              delta += holder.size();
+            }
+          }
+        }
+
+        updateUsageInBytesIfRequired(delta);
+
+        return holder;
+      });
+
+      storeEventDispatcher.releaseEventSink(eventSink);
+      enforceCapacity();
+      computeObserver.end(outcome.get());
+      return oldValue.get();
+    } catch (RuntimeException re) {
+      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      throw handleException(re);
+    }
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -1278,7 +1341,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           checkValue(value);
         }
         return value;
-      }, replaceEqual);
+      }, replaceEqual, () -> false);
       result.put(key, newValue);
     }
     return result;

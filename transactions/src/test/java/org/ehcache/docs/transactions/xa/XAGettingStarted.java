@@ -35,6 +35,7 @@ import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -130,6 +131,7 @@ public class XAGettingStarted {
     // end::testNonTransactionalAccess[]
   }
 
+  @Ignore
   @Test
   @SuppressWarnings("unchecked")
   public void testXACacheWithWriteThrough() throws Exception {

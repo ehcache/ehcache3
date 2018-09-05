@@ -61,7 +61,7 @@ public class OnHeapStoreEvictionTest {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put("key", "value");
-    store.compute("key", (mappedKey, mappedValue) -> "value2");
+    store.getAndCompute("key", (mappedKey, mappedValue) -> "value2");
 
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }

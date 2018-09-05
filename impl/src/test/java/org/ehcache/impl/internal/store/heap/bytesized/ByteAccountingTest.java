@@ -393,11 +393,11 @@ public class ByteAccountingTest {
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute("another", (a, b) -> null);
+    store.getAndCompute("another", (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute(KEY, (a, b) -> null);
+    store.getAndCompute(KEY, (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -406,14 +406,14 @@ public class ByteAccountingTest {
   public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.compute(KEY, (a, b) -> VALUE);
+    store.getAndCompute(KEY, (a, b) -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     final String replace = "Replace the original value";
     long delta = SIZEOF.deepSizeOf(replace) - SIZEOF.deepSizeOf(VALUE);
 
-    store.compute(KEY, (a, b) -> replace);
+    store.getAndCompute(KEY, (a, b) -> replace);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
   }
@@ -424,18 +424,18 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2, () -> false);
+    store.compute(KEY, (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testComputeExpiryOnUpdate() throws StoreAccessException {
+  public void testGetAndComputeExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2);
+    store.getAndCompute(KEY, (s, s2) -> s2);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }

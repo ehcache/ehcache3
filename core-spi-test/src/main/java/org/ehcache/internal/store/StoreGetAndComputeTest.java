@@ -22,6 +22,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
@@ -35,9 +36,9 @@ import org.junit.Assert;
 import java.time.Duration;
 import java.util.function.BiFunction;
 
-public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
+public class StoreGetAndComputeTest<K, V> extends SPIStoreTester<K, V> {
 
-  public StoreComputeTest(StoreFactory<K, V> factory) {
+  public StoreGetAndComputeTest(StoreFactory<K, V> factory) {
     super(factory);
   }
 
@@ -69,7 +70,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     final K key = factory.createKey(13);
     try {
-      kvStore.compute(key, (BiFunction) (key1, oldValue) -> {
+      kvStore.getAndCompute(key, (BiFunction) (key1, oldValue) -> {
         return value; // returning wrong value type from function
       });
       throw new AssertionError();
@@ -99,7 +100,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       // wrong key type
-      kvStore.compute((K) key, (key1, oldValue) -> {
+      kvStore.getAndCompute((K) key, (key1, oldValue) -> {
         throw new AssertionError();
       });
       throw new AssertionError();
@@ -118,15 +119,16 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     final V value = factory.createValue(153);
 
     try {
-      kvStore.compute(key, (keyParam, oldValue) -> value);
+      Store.ValueHolder<V> compute = kvStore.getAndCompute(key, (keyParam, oldValue) -> value);
       assertThat(kvStore.get(key).get(), is(value));
+      assertThat(compute, nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
-  public void testOverwriteExitingValue() throws Exception {
+  public void testOverwriteExistingValue() throws Exception {
     kvStore = factory.newStore();
 
     final K key = factory.createKey(151);
@@ -137,8 +139,9 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      kvStore.compute(key, (keyParam, oldValue) -> value2);
+      Store.ValueHolder<V> compute = kvStore.getAndCompute(key, (keyParam, oldValue) -> value2);
       assertThat(kvStore.get(key).get(), is(value2));
+      assertThat(compute.get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -153,8 +156,9 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      kvStore.compute(key, (keyParam, oldValue) -> null);
+      Store.ValueHolder<V> compute = kvStore.getAndCompute(key, (keyParam, oldValue) -> null);
       assertThat(kvStore.get(key), nullValue());
+      assertThat(compute.get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -173,7 +177,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.compute(key, (keyParam, oldValue) -> {
+      kvStore.getAndCompute(key, (keyParam, oldValue) -> {
         throw re;
       });
     } catch (RuntimeException e) {
@@ -199,7 +203,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.compute(key, (keyParam, oldValue) -> {
+      kvStore.getAndCompute(key, (keyParam, oldValue) -> {
         throw re;
       });
     } catch (RuntimeException e) {
@@ -222,7 +226,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; });
+      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; }, () -> false);
     } catch (StoreAccessException e) {
       assertThat(e.getCause(), is(re));
     }
@@ -244,7 +248,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; });
+      kvStore.compute(key, (keyParam, oldValue) -> oldValue, () -> { throw re; }, () -> false);
     } catch (RuntimeException e) {
       assertThat(e, is(exception));
     }
@@ -252,6 +256,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.get(key).get(), is(value));
   }
 
+  @Ignore
   @SPITest
   public void testComputeExpiresOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
@@ -263,8 +268,9 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
 
-      Store.ValueHolder<V> result = kvStore.compute(key, (k, v) -> v, () -> false);
+      Store.ValueHolder<V> result = kvStore.getAndCompute(key, (k, v) -> v);
       assertThat(result.get(), is(value));
+      assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -282,8 +288,9 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
 
-      Store.ValueHolder<V> result = kvStore.compute(key, (k, v) -> newValue, () -> false);
-      assertThat(result.get(), is(newValue));
+      Store.ValueHolder<V> result = kvStore.getAndCompute(key, (k, v) -> newValue);
+      assertThat(result.get(), is(value));
+      assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

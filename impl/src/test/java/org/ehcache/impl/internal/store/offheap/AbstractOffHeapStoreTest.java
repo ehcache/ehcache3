@@ -372,7 +372,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> s2, () -> false);
+    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(result, valueHeld("value"));
   }
@@ -385,7 +385,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> "newValue", () -> false);
+    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> "newValue", () -> false, () -> false);
 
     assertThat(result, valueHeld("newValue"));
   }
@@ -397,7 +397,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("key", "value");
     timeSource.advanceTime(20L);
 
-    offHeapStore.compute("key", (mappedKey, mappedValue) -> {
+    offHeapStore.getAndCompute("key", (mappedKey, mappedValue) -> {
       assertThat(mappedKey, is("key"));
       assertThat(mappedValue, Matchers.nullValue());
       return "value2";

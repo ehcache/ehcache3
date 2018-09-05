@@ -338,7 +338,7 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute2Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+    when(numberAuthoritativeTier.getAndCompute(any(Number.class), any(BiFunction.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
       Number key = (Number) invocation.getArguments()[0];
       BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
       return newValueHolder(function.apply(key, null));
@@ -346,16 +346,16 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, (number, charSequence) -> "one").get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.getAndCompute(1, (number, charSequence) -> "one").get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
+    verify(numberAuthoritativeTier, times(1)).getAndCompute(eq(1), any(BiFunction.class));
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(Supplier.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(Supplier.class), any(Supplier.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
       Number key = (Number) invocation.getArguments()[0];
       BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
       return newValueHolder(function.apply(key, null));
@@ -363,10 +363,10 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true, () -> false).get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class));
+    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class), any(Supplier.class));
   }
 
   @Test

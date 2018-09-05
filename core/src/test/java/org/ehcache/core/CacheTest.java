@@ -318,7 +318,7 @@ public abstract class CacheTest {
       if (ehcache instanceof Ehcache) {
         ((Ehcache)ehcache).removeHook(hook);
       } else {
-        ((EhcacheWithLoaderWriter)ehcache).removeHook(hook);
+        ((Ehcache)ehcache).removeHook(hook);
       }
       fail();
     } catch (IllegalStateException e) {

@@ -105,9 +105,33 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * @param expiry the expiry policy
    * @param resourcePools the resource pools
    * @param dispatcherConcurrency the level of concurrency for ordered events
+   * @param keySerializer the key serializer
+   * @param valueSerializer the value serializer
+   * @param cacheLoaderWriter the loader-writer
+   */
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
+                                EvictionAdvisor<? super K, ? super V> evictionAdvisor,
+                                ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
+                                ResourcePools resourcePools, int dispatcherConcurrency,
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+    this(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, dispatcherConcurrency,
+            true, keySerializer, valueSerializer, cacheLoaderWriter);
+  }
+
+  /**
+   * Creates a new {@code StoreConfigurationImpl} based on the provided parameters.
+   *
+   * @param keyType the key type
+   * @param valueType the value type
+   * @param evictionAdvisor the eviction advisor
+   * @param classLoader the class loader
+   * @param expiry the expiry policy
+   * @param resourcePools the resource pools
+   * @param dispatcherConcurrency the level of concurrency for ordered events
    * @param operationStatisticsEnabled if operation statistics should be enabled
    * @param keySerializer the key serializer
    * @param valueSerializer the value serializer
+   * @param cacheLoaderWriter the loader-writer
    */
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
                                 EvictionAdvisor<? super K, ? super V> evictionAdvisor,

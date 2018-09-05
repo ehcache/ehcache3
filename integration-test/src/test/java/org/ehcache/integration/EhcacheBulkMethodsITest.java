@@ -535,12 +535,12 @@ public class EhcacheBulkMethodsITest {
       return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher()) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
-          throw new StoreAccessException("Problem trying to bulk compute");
+          throw new StoreAccessException("Problem trying to bulk getAndCompute");
         }
 
         @Override
         public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
-          throw new StoreAccessException("Problem trying to bulk compute");
+          throw new StoreAccessException("Problem trying to bulk getAndCompute");
         }
       };
     }

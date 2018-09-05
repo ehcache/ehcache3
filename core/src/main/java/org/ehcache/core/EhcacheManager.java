@@ -319,14 +319,14 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
     CacheLoaderWriter<? super K, V> decorator ;
     if(cacheLoaderWriterProvider != null) {
-      final CacheLoaderWriter<? super K, V> loaderWriter;
+      CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
           ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {
-        final WriteBehindProvider factory = serviceLocator.getService(WriteBehindProvider.class);
+        WriteBehindProvider factory = serviceLocator.getService(WriteBehindProvider.class);
         decorator = factory.createWriteBehindLoaderWriter(loaderWriter, writeBehindConfiguration);
         if(decorator != null) {
           lifeCycledList.add(new LifeCycledAdapter() {
@@ -368,10 +368,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     ResilienceStrategy<K, V> resilienceStrategy;
     if (decorator == null) {
       resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
-    } else { //TODO :  fix this
+    } else {
       resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), decorator);
     }
-    InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+    InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias), decorator);
 
     CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {

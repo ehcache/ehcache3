@@ -516,7 +516,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -552,8 +552,67 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V computed = mappingFunction.apply(key, currentContext.newValueOf(key));
+      XAValueHolder<V> returnValueholder = null;
+      if (computed != null) {
+        checkValue(computed);
+        XAValueHolder<V> xaValueHolder = new XAValueHolder<>(computed, timeSource.getTimeMillis());
+        V returnValue = currentContext.newValueOf(key);
+        V oldValue = currentContext.oldValueOf(key);
+        if (returnValue != null) {
+          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+        }
+        currentContext.addCommand(key, new StorePutCommand<>(oldValue, xaValueHolder));
+      } else {
+        V returnValue = currentContext.newValueOf(key);
+        V oldValue = currentContext.oldValueOf(key);
+        if (returnValue != null) {
+          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+        }
+        if (oldValue != null) {
+          currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
+        } else {
+          currentContext.removeCommand(key);
+        }
+      }
+      return returnValueholder;
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+
+    XAValueHolder<V> oldValueHolder = null;
+    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.get();
+    V oldValue = softLock == null ? null : softLock.getOldValue();
+    V newValue = mappingFunction.apply(key, oldValue);
+    XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<>(newValue, timeSource.getTimeMillis());
+//    if (Objects.equals(oldValue, newValue) && !replaceEqual.get()) {
+//      return xaValueHolder;
+//    }
+    if (newValue != null) {
+      checkValue(newValue);
+    }
+
+    if (softLock != null && isInDoubt(softLock)) {
+      currentContext.addCommand(key, new StoreEvictCommand<>(oldValue));
+    } else {
+      if (xaValueHolder == null) {
+        if (oldValue != null) {
+          currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
+        }
+      } else {
+        currentContext.addCommand(key, new StorePutCommand<>(oldValue, xaValueHolder));
+      }
+    }
+
+    if (oldValue != null) {
+      oldValueHolder = new XAValueHolder<>(oldValue, timeSource.getTimeMillis());
+    }
+
+    return oldValueHolder;
   }
 
   @Override
@@ -652,7 +711,7 @@ public class XAStore<K, V> implements Store<K, V> {
           checkValue(value);
         }
         return value;
-      }, replaceEqual);
+      }, replaceEqual, () -> false);
       result.put(key, newValue);
     }
     return result;

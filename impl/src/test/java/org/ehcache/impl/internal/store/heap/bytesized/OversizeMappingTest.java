@@ -158,15 +158,15 @@ public class OversizeMappingTest {
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
+    store.getAndCompute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
 
-    store.compute(KEY, (a, b) -> VALUE);
+    store.getAndCompute(KEY, (a, b) -> VALUE);
 
     assertNotNullMapping(store);
 
-    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
+    store.getAndCompute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
   }
