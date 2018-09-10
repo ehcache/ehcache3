@@ -17,7 +17,7 @@
 plugins {
   id 'org.asciidoctor.convert' version '1.5.3'
   id 'org.kordamp.gradle.livereload' version '0.2.1'
-  id 'com.github.jruby-gradle.base' version '1.4.0'
+  id 'com.github.jruby-gradle.base' version '1.5.0'
 }
 
 dependencies {
