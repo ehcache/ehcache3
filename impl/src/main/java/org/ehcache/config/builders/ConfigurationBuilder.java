@@ -21,11 +21,18 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfigurationProvider;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -73,7 +80,7 @@ public class ConfigurationBuilder implements Builder<Configuration> {
 
   @Override
   public Configuration build() {
-    return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
+    return new DefaultConfiguration(caches, classLoader, addedAndDiscoveredServiceConfigurations());
   }
 
   public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
@@ -122,4 +129,16 @@ public class ConfigurationBuilder implements Builder<Configuration> {
   public boolean containsCache(String alias) {
     return caches.containsKey(alias);
   }
+
+  private ServiceCreationConfiguration<?>[] addedAndDiscoveredServiceConfigurations() {
+    Collection<Class<?>> configuredServices = serviceConfigurations.stream().map(ServiceCreationConfiguration::getServiceType).collect(Collectors.toSet());
+    return Stream.concat(
+      serviceConfigurations.stream(),
+      StreamSupport.stream(ServiceLoader.load(ServiceCreationConfigurationProvider.class, classLoader).spliterator(), true)
+        .filter(provider -> !configuredServices.contains(provider.getServiceType()))
+        .map(Supplier::get)
+        .map(ServiceCreationConfiguration.class::cast)
+    ).toArray(ServiceCreationConfiguration[]::new);
+  }
+
 }

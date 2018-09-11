@@ -140,10 +140,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
         .resourcePool("resource-pool-b", 8, MemoryUnit.MB)) // will take from primary-server-resource
-      // management config
-      .using(new DefaultManagementRegistryConfiguration()
-        .addTags("webapp-1", "server-node-1")
-        .setCacheManagerAlias("my-super-cache-manager"))
       // cache config
       .withCache("dedicated-cache-1", newCacheConfigurationBuilder(
         String.class, String.class,
