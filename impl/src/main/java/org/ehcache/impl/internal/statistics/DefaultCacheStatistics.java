@@ -89,9 +89,9 @@ class DefaultCacheStatistics implements CacheStatistics {
     knownStatistics = createKnownStatistics();
   }
 
-  public <T extends Enum<T>> void registerDerivedStatistics(Class<T> outcomeClass, String statName, ChainedOperationObserver<? super T> derivedStatistics) {
+  public <T extends Enum<T>, S extends ChainedOperationObserver<? super T>> void registerDerivedStatistic(Class<T> outcomeClass, String statName, S derivedStatistic) {
     OperationStatistic<T> stat = findOperationStatisticOnChildren(cache, outcomeClass, statName);
-    stat.addDerivedStatistic(derivedStatistics);
+    stat.addDerivedStatistic(derivedStatistic);
   }
 
   private Map<String, ValueStatistic<?>> createKnownStatistics() {

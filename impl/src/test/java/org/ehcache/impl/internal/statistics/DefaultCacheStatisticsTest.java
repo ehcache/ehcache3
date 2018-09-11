@@ -242,7 +242,7 @@ public class DefaultCacheStatisticsTest {
   @Test
   public void registerDerivedStatistics() {
     AtomicBoolean endCalled = new AtomicBoolean();
-    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistics = new ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
+    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
 
       @Override
       public void begin(long time) {
@@ -256,7 +256,7 @@ public class DefaultCacheStatisticsTest {
       }
     };
 
-    cacheStatistics.registerDerivedStatistics(CacheOperationOutcomes.PutOutcome.class, "put", derivedStatistics);
+    cacheStatistics.registerDerivedStatistic(CacheOperationOutcomes.PutOutcome.class, "put", derivedStatistic);
 
     cache.put(1L, "a");
 

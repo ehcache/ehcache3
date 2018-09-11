@@ -47,7 +47,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   private <T extends Enum<T>> Jsr107LatencyMonitor<T> registerDerivedStatistics(Class<T> outcome, String name) {
     Jsr107LatencyMonitor<T> monitor = new Jsr107LatencyMonitor<>(EnumSet.allOf(outcome), 1.0);
     CacheStatistics cacheStatistics = this.cacheStatistics;
-    cacheStatistics.registerDerivedStatistics(outcome, name, monitor);
+    cacheStatistics.registerDerivedStatistic(outcome, name, monitor);
     return monitor;
   }
 

@@ -45,10 +45,11 @@ public interface CacheStatistics {
    *
    * @param outcomeClass the enum of the possible outcomes
    * @param statName name of the statistic we are looking for
-   * @param derivedStatistics derived statistic to register
+   * @param derivedStatistic derived statistic to register
    * @param <T> type of the outcome
+   * @param <S> type of the derived statistic
    */
-  <T extends Enum<T>> void registerDerivedStatistics(Class<T> outcomeClass, String statName, ChainedOperationObserver<? super T> derivedStatistics);
+  <T extends Enum<T>, S extends ChainedOperationObserver<? super T>> void registerDerivedStatistic(Class<T> outcomeClass, String statName, S derivedStatistic);
 
   /**
    * Reset the values for this cache and its underlying tiers.

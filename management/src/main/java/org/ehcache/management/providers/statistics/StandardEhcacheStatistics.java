@@ -55,7 +55,7 @@ public class StandardEhcacheStatistics extends ExposedCacheBinding {
     @SuppressWarnings("unchecked")
     Class<T> outcomeClass = (Class<T>) outcome.getClass();
     DefaultLatencyHistogramStatistic histogram = new DefaultLatencyHistogramStatistic(0.63, 20, Duration.ofMinutes(1));
-    cacheStatistics.registerDerivedStatistics(outcomeClass, statName, new OperationResultFilter<>(EnumSet.of(outcome), histogram));
+    cacheStatistics.registerDerivedStatistic(outcomeClass, statName, new OperationResultFilter<>(EnumSet.of(outcome), histogram));
 
     statisticRegistry.registerStatistic(derivedName + "#50", histogram.medianStatistic());
     statisticRegistry.registerStatistic(derivedName + "#95", histogram.percentileStatistic(0.95));
