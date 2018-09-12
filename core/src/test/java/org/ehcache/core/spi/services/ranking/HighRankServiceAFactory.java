@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.service;
+package org.ehcache.core.spi.services.ranking;
 
-import java.util.function.Supplier;
+import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-/**
- * Implementations can be discovered in the classpath and be called to load additional
- * configuration for services, in case they have not already been added programmatically
- * or through XML configuration.
- *
- * @param <T> Service type
- */
-public interface ServiceCreationConfigurationProvider<T extends Service> extends Supplier<ServiceCreationConfiguration<T>> {
+public class HighRankServiceAFactory implements ServiceFactory<RankServiceA> {
 
-  /**
-   * Indicates which service will consume the configuration at creation.
-   *
-   * @return the service type
-   */
-  Class<T> getServiceType();
+  @Override
+  public int rank() {
+    return 2;
+  }
 
+  @Override
+  public RankServiceA create(ServiceCreationConfiguration<RankServiceA> configuration) {
+    return new RankServiceA("high-rank");
+  }
+
+  @Override
+  public Class<? extends RankServiceA> getServiceType() {
+    return RankServiceA.class;
+  }
 }

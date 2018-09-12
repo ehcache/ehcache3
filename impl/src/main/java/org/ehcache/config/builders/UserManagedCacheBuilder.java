@@ -395,7 +395,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(dependencySet().with(services));
+    final T build = build(dependencySet().withoutMandatoryServices().with(services));
     if (init) {
       build.init();
     }
