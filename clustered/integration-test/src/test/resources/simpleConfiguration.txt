@@ -21,5 +21,3 @@ caches:
 services:
     - org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration:
         rootDirectory: build/tmp/EhcacheManagerToStringTest
-    -org.ehcache.management.registry.DefaultManagementRegistryConfiguration
-
