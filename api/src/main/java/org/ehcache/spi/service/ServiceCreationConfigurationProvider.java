@@ -21,6 +21,8 @@ import java.util.function.Supplier;
  * Implementations can be discovered in the classpath and be called to load additional
  * configuration for services, in case they have not already been added programmatically
  * or through XML configuration.
+ *
+ * @param <T> Service type
  */
 public interface ServiceCreationConfigurationProvider<T extends Service> extends Supplier<ServiceCreationConfiguration<T>> {
 
