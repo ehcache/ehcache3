@@ -41,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +49,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.newSetFromMap;
+import static java.util.Collections.singleton;
+import static java.util.Collections.unmodifiableSet;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Provides discovery and tracking services for {@link Service} implementations.
@@ -226,6 +233,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     private final ServiceMap provided = new ServiceMap();
     private final Set<Class<? extends Service>> requested = new HashSet<>();
+    private boolean includeMandatoryServices = true;
 
     public DependencySet with(Service service) {
       provided.add(service);
@@ -247,18 +255,15 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         return this;
       }
 
-      Iterable<ServiceFactory<Service>> serviceFactories = ServiceLocator.getServiceFactories(serviceLoader);
-      boolean success = false;
-      for (ServiceFactory<?> factory : serviceFactories) {
-        final Class<?> factoryServiceType = factory.getServiceType();
-        if (serviceType.isAssignableFrom(factoryServiceType)) {
-          @SuppressWarnings("unchecked")
-          ServiceFactory<T> serviceFactory = (ServiceFactory<T>) factory;
-          with(serviceFactory.create(config));
-          success = true;
-        }
-      }
-      if (success) {
+      @SuppressWarnings("unchecked")
+      Collection<ServiceFactory<T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+        .filter(f -> serviceType.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<T>) f)
+        .collect(toList());
+
+      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+
+      if (highestRank.isPresent()) {
+        serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
         return this;
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);
@@ -267,6 +272,12 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     public DependencySet with(Class<? extends Service> clazz) {
       requested.add(clazz);
+      return this;
+    }
+
+
+    public DependencySet withoutMandatoryServices() {
+      includeMandatoryServices = false;
       return this;
     }
 
@@ -314,6 +325,21 @@ public final class ServiceLocator implements ServiceProvider<Service> {
             }
           } else if (!resolvedServices.contains(request)) {
             resolvedServices = lookupService(resolvedServices, request);
+          }
+        }
+
+        if (includeMandatoryServices) {
+          for (List<ServiceFactory<Service>> factories : getServiceFactories(serviceLoader).stream().collect(groupingBy(ServiceFactory::getServiceType)).values()) {
+            OptionalInt highestRank = factories.stream().mapToInt(ServiceFactory::rank).max();
+
+            if (highestRank.isPresent()) {
+              for (ServiceFactory<?> manadatory : factories.stream().filter(ServiceFactory::isMandatory).filter(f -> highestRank.getAsInt() == f.rank()).collect(toList())) {
+                if (!resolvedServices.contains(manadatory.getServiceType())) {
+                  Service service = manadatory.create(null);
+                  resolvedServices = lookupDependenciesOf(resolvedServices, service.getClass()).add(service);
+                }
+              }
+            }
           }
         }
 
@@ -387,21 +413,22 @@ public final class ServiceLocator implements ServiceProvider<Service> {
      *        implements a {@code Service} subtype that is not marked with the {@link PluralService} annotation
      *        but is already registered
      */
-    private <T> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
-      Collection<ServiceFactory<? extends T>> serviceFactories = new ArrayList<>();
-      for (ServiceFactory<?> factory : ServiceLocator.getServiceFactories(serviceLoader)) {
-        final Class<? extends Service> factoryServiceType = factory.getServiceType();
-        if (serviceClass.isAssignableFrom(factoryServiceType) && !factory.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class)) {
-          if (provided.contains(factoryServiceType) || resolved.contains(factoryServiceType)) {
-            // Can have only one service registered under a concrete type
-            continue;
-          }
-          @SuppressWarnings("unchecked")
-          ServiceFactory<? extends T> serviceFactory = (ServiceFactory<? extends T>) factory;
-          serviceFactories.add(serviceFactory);
-        }
+    private <T, V> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
+      @SuppressWarnings("unchecked")
+      Collection<ServiceFactory<? extends T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+        .filter(f -> serviceClass.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<? extends T>) f)
+        .filter(f -> !f.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class))
+        .filter(f -> !provided.contains(f.getServiceType()))
+        .filter(f -> !resolved.contains(f.getServiceType()))
+        .collect(toList());
+
+      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+
+      if (highestRank.isPresent()) {
+        return serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).collect(toList());
+      } else {
+        return emptyList();
       }
-      return serviceFactories;
     }
   }
 
@@ -489,7 +516,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Service> Iterable<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
+  private static <T extends Service> Collection<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
     List<ServiceFactory<T>> list = new ArrayList<>();
     for (ServiceFactory<?> factory : serviceFactory) {
       list.add((ServiceFactory<T>)factory);

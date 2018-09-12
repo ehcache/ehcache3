@@ -25,6 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.spi.services.TestMandatoryServiceFactory;
+import org.ehcache.core.spi.services.ranking.RankServiceB;
+import org.ehcache.core.spi.services.ranking.RankServiceA;
 import org.ehcache.core.spi.store.CacheProvider;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
@@ -385,6 +388,77 @@ public class ServiceLocatorTest {
     assertThat(serviceLocator.getService(TestService.class), is(notNullValue()));
     assertThat(serviceLocator.getService(OptService2.class), is(notNullValue()));
   }
+
+  @Test
+  public void testManadatoryDependencyIsAddedToEmptySet() {
+    ServiceLocator serviceLocator = dependencySet().build();
+
+    TestMandatoryServiceFactory.TestMandatoryService service = serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class);
+    assertThat(service, notNullValue());
+    assertThat(service.getConfig(), nullValue());
+  }
+
+  @Test
+  public void testManadatoryDependenciesCanBeDisabled() {
+    ServiceLocator serviceLocator = dependencySet().withoutMandatoryServices().build();
+
+    assertThat(serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class), nullValue());
+  }
+
+  @Test
+  public void testMandatoryDependencyIsAddedToNonEmptySet() {
+    ServiceLocator serviceLocator = dependencySet().with(new DefaultTestService()).build();
+
+    TestMandatoryServiceFactory.TestMandatoryService service = serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class);
+    assertThat(service, notNullValue());
+    assertThat(service.getConfig(), nullValue());
+  }
+
+  @Test
+  public void testMandatoryDependencyCanStillBeRequested() {
+    ServiceLocator serviceLocator = dependencySet().with(TestMandatoryServiceFactory.TestMandatoryService.class).build();
+
+    TestMandatoryServiceFactory.TestMandatoryService service = serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class);
+    assertThat(service, notNullValue());
+    assertThat(service.getConfig(), nullValue());
+  }
+
+  @Test
+  public void testMandatoryDependencyWithProvidedConfigIsHonored() {
+    ServiceLocator serviceLocator = dependencySet().with(new TestMandatoryServiceFactory.TestMandatoryServiceConfiguration("apple")).build();
+
+    TestMandatoryServiceFactory.TestMandatoryService service = serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class);
+    assertThat(service, notNullValue());
+    assertThat(service.getConfig(), is("apple"));
+  }
+
+  @Test
+  public void testMandatoryDependencyCanBeDependedOn() {
+    ServiceLocator serviceLocator = dependencySet().with(new NeedsMandatoryService()).build();
+
+    TestMandatoryServiceFactory.TestMandatoryService service = serviceLocator.getService(TestMandatoryServiceFactory.TestMandatoryService.class);
+    assertThat(service, notNullValue());
+    assertThat(service.getConfig(), nullValue());
+    assertThat(serviceLocator.getService(NeedsMandatoryService.class), notNullValue());
+  }
+
+  @Test
+  public void testRankedServiceOverrides() {
+    ServiceLocator serviceLocator = dependencySet().with(RankServiceA.class).build();
+    assertThat(serviceLocator.getService(RankServiceA.class).getSource(), is("high-rank"));
+  }
+
+  @Test
+  public void testRankedServiceOverridesMandatory() {
+    ServiceLocator serviceLocator = dependencySet().build();
+    assertThat(serviceLocator.getService(RankServiceA.class), nullValue());
+  }
+
+  @Test
+  public void testRankedServiceBecomesMandatory() {
+    ServiceLocator serviceLocator = dependencySet().build();
+    assertThat(serviceLocator.getService(RankServiceB.class), notNullValue());
+  }
 }
 
 @ServiceDependencies(TestService.class)
@@ -503,5 +577,19 @@ class ChildTestService extends ParentTestService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
+  }
+}
+
+@ServiceDependencies(TestMandatoryServiceFactory.TestMandatoryService.class)
+class NeedsMandatoryService implements TestService {
+
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+
+  }
+
+  @Override
+  public void stop() {
+
   }
 }
