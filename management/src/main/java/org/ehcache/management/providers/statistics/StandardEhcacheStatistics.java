@@ -27,7 +27,6 @@ import org.terracotta.management.registry.collect.StatisticRegistry;
 import org.terracotta.statistics.derived.OperationResultFilter;
 import org.terracotta.statistics.derived.latency.DefaultLatencyHistogramStatistic;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 
@@ -44,17 +43,19 @@ public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
     cacheStatistics.getKnownStatistics().forEach(statisticRegistry::registerStatistic);
 
+    LatencyHistogramConfiguration latencyHistogramConfiguration = registryConfiguration.getLatencyHistogramConfiguration();
+
     // We want some latency statistics as well, so let's register them
-    registerDerivedStatistics(cacheStatistics, "get", CacheOperationOutcomes.GetOutcome.HIT, "Cache:GetHitLatency");
-    registerDerivedStatistics(cacheStatistics, "get", CacheOperationOutcomes.GetOutcome.MISS, "Cache:GetMissLatency");
-    registerDerivedStatistics(cacheStatistics, "put", CacheOperationOutcomes.PutOutcome.PUT, "Cache:PutLatency");
-    registerDerivedStatistics(cacheStatistics, "remove", CacheOperationOutcomes.RemoveOutcome.SUCCESS, "Cache:RemoveLatency");
+    registerDerivedStatistics(cacheStatistics, "get", CacheOperationOutcomes.GetOutcome.HIT, "Cache:GetHitLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheStatistics, "get", CacheOperationOutcomes.GetOutcome.MISS, "Cache:GetMissLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheStatistics, "put", CacheOperationOutcomes.PutOutcome.PUT, "Cache:PutLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheStatistics, "remove", CacheOperationOutcomes.RemoveOutcome.SUCCESS, "Cache:RemoveLatency", latencyHistogramConfiguration);
   }
 
-  private <T extends Enum<T>> void registerDerivedStatistics(CacheStatistics cacheStatistics, String statName, T outcome, String derivedName) {
+  private <T extends Enum<T>> void registerDerivedStatistics(CacheStatistics cacheStatistics, String statName, T outcome, String derivedName, LatencyHistogramConfiguration configuration) {
     @SuppressWarnings("unchecked")
     Class<T> outcomeClass = (Class<T>) outcome.getClass();
-    DefaultLatencyHistogramStatistic histogram = new DefaultLatencyHistogramStatistic(0.63, 20, Duration.ofMinutes(1));
+    DefaultLatencyHistogramStatistic histogram = new DefaultLatencyHistogramStatistic(configuration.getPhi(), configuration.getBucketCount(), configuration.getWindow());
     cacheStatistics.registerDerivedStatistic(outcomeClass, statName, new OperationResultFilter<>(EnumSet.of(outcome), histogram));
 
     statisticRegistry.registerStatistic(derivedName + "#50", histogram.medianStatistic());

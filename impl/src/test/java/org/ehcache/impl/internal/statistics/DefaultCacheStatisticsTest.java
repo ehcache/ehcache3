@@ -31,7 +31,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,14 +40,9 @@ import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
 
@@ -103,9 +97,7 @@ public class DefaultCacheStatisticsTest {
   private CacheManager cacheManager;
   private InternalCache<Long, String> cache;
   private final TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
-  private final AtomicLong latency = new AtomicLong();
   private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
-  private final Map<Long, String> sor = new HashMap<>();
 
   public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
     this.enableStoreStatistics = enableStoreStatistics;
@@ -118,30 +110,8 @@ public class DefaultCacheStatisticsTest {
       .unordered()
       .synchronous();
 
-    // We need a loaderWriter to easily test latencies, to simulate a latency when loading from a SOR.
-    CacheLoaderWriter<Long, String> loaderWriter = new CacheLoaderWriter<Long, String>() {
-      @Override
-      public String load(Long key) throws Exception {
-        minimumSleep(latency.get()); // latency simulation
-        return sor.get(key);
-      }
-
-      @Override
-      public void write(Long key, String value) {
-        minimumSleep(latency.get()); // latency simulation
-        sor.put(key, value);
-      }
-
-      @Override
-      public void delete(Long key) {
-        minimumSleep(latency.get()); // latency simulation
-        sor.remove(key);
-      }
-    };
-
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .withLoaderWriter(loaderWriter)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
         .add(cacheEventListenerConfiguration)
         .add(new StoreStatisticsConfiguration(enableStoreStatistics))
@@ -232,7 +202,7 @@ public class DefaultCacheStatisticsTest {
     cache.put(1L, "a");
     assertThat(expirations).isEmpty();
     timeSource.advanceTime(TIME_TO_EXPIRATION);
-    assertThat(cache.get(1L)).isEqualTo("a");
+    assertThat(cache.get(1L)).isNull();
     assertThat(expirations).hasSize(1);
     assertThat(expirations.get(0).getKey()).isEqualTo(1L);
     assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
@@ -265,31 +235,5 @@ public class DefaultCacheStatisticsTest {
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
     return assertThat((Number) cacheStatistics.getKnownStatistics().get(key).value());
-  }
-
-  // Java does not provide a guarantee that Thread.sleep will actually sleep long enough
-  // In fact, on Windows, it does not sleep for long enough.
-  // This method keeps sleeping until the full time has passed.
-  private void minimumSleep(long millis) {
-    long start = System.nanoTime();
-    long nanos = NANOSECONDS.convert(millis, MILLISECONDS);
-
-    while (true) {
-      long now = System.nanoTime();
-      long elapsed = now - start;
-      long nanosLeft = nanos - elapsed;
-
-      if (nanosLeft <= 0) {
-        break;
-      }
-
-      long millisLeft = MILLISECONDS.convert(nanosLeft, NANOSECONDS);
-      try {
-        Thread.sleep(millisLeft);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        return;
-      }
-    }
   }
 }
