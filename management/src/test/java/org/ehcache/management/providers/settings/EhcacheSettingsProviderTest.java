@@ -106,7 +106,7 @@ public class EhcacheSettingsProviderTest {
     String expected = read("/settings-capability.json")
       .replaceAll("instance-id", serviceConfiguration.getInstanceId());
     String actual = mapper.writeValueAsString(getSettingsCapability())
-      .replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"status\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"status\\\"");
+      .replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"instanceId\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"instanceId\\\"");
 
     // assertThat for formatted string comparison: ide support is bad
     assertEquals(expected, actual);
