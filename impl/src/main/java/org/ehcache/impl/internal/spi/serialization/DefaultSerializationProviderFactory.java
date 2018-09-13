@@ -16,15 +16,16 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class DefaultSerializationProviderFactory implements ServiceFactory<SerializationProvider> {
 
   @Override

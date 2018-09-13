@@ -42,7 +42,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
@@ -56,6 +55,9 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
+import static org.ehcache.core.internal.util.ClassLoading.delegationChain;
+import static org.ehcache.core.internal.util.ClassLoading.getDefaultClassLoader;
 
 /**
  * Provides discovery and tracking services for {@link Service} implementations.
@@ -228,8 +230,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
   public static class DependencySet implements Builder<ServiceLocator> {
 
-    @SuppressWarnings("rawtypes")
-    private final ServiceLoader<ServiceFactory> serviceLoader = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private final Iterable<ServiceFactory<?>> serviceFactories = (Iterable) ClassLoading.servicesOfType(ServiceFactory.class);
 
     private final ServiceMap provided = new ServiceMap();
     private final Set<Class<? extends Service>> requested = new HashSet<>();
@@ -256,14 +258,14 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       }
 
       @SuppressWarnings("unchecked")
-      Collection<ServiceFactory<T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+      Collection<ServiceFactory<T>> typedServiceFactories = stream(serviceFactories.spliterator(), false)
         .filter(f -> serviceType.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<T>) f)
         .collect(toList());
 
-      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+      OptionalInt highestRank = typedServiceFactories.stream().mapToInt(ServiceFactory::rank).max();
 
       if (highestRank.isPresent()) {
-        serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
+        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
         return this;
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);
@@ -329,7 +331,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         }
 
         if (includeMandatoryServices) {
-          for (List<ServiceFactory<Service>> factories : getServiceFactories(serviceLoader).stream().collect(groupingBy(ServiceFactory::getServiceType)).values()) {
+          for (List<ServiceFactory<?>> factories : stream(serviceFactories.spliterator(), false).collect(groupingBy(ServiceFactory::getServiceType)).values()) {
             OptionalInt highestRank = factories.stream().mapToInt(ServiceFactory::rank).max();
 
             if (highestRank.isPresent()) {
@@ -415,17 +417,17 @@ public final class ServiceLocator implements ServiceProvider<Service> {
      */
     private <T, V> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
       @SuppressWarnings("unchecked")
-      Collection<ServiceFactory<? extends T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+      Collection<ServiceFactory<? extends T>> typedServiceFactories = stream(serviceFactories.spliterator(), false)
         .filter(f -> serviceClass.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<? extends T>) f)
         .filter(f -> !f.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class))
         .filter(f -> !provided.contains(f.getServiceType()))
         .filter(f -> !resolved.contains(f.getServiceType()))
         .collect(toList());
 
-      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+      OptionalInt highestRank = typedServiceFactories.stream().mapToInt(ServiceFactory::rank).max();
 
       if (highestRank.isPresent()) {
-        return serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).collect(toList());
+        return typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).collect(toList());
       } else {
         return emptyList();
       }
@@ -466,7 +468,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     if (optionalAnnotation != null) {
       for (String className : optionalAnnotation.value()) {
         try {
-          Class<?> dependencyClass = ClassLoading.getDefaultClassLoader().loadClass(className);
+          Class<?> dependencyClass = delegationChain(getDefaultClassLoader(), clazz.getClassLoader()).loadClass(className);
           if (Service.class.isAssignableFrom(dependencyClass)) {
             @SuppressWarnings("unchecked")
             Class<? extends Service> serviceDependency = (Class<? extends Service>) dependencyClass;
@@ -513,15 +515,6 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     return transitive;
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T extends Service> Collection<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
-    List<ServiceFactory<T>> list = new ArrayList<>();
-    for (ServiceFactory<?> factory : serviceFactory) {
-      list.add((ServiceFactory<T>)factory);
-    }
-    return list;
   }
 
   private static class DependencyException extends Exception {

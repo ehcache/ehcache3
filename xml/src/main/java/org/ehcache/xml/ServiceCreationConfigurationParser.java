@@ -73,7 +73,7 @@ public class ServiceCreationConfigurationParser {
       if(cacheManagerServiceConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      ServiceCreationConfiguration<?> serviceConfiguration = cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element);
+      ServiceCreationConfiguration<?> serviceConfiguration = cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element, classLoader);
       managerBuilder = managerBuilder.addService(serviceConfiguration);
     }
 

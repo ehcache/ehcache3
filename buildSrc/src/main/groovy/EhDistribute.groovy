@@ -1,6 +1,7 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.plugins.osgi.OsgiPluginConvention
 import scripts.Utils
 
 /*
@@ -33,12 +34,9 @@ class EhDistribute implements Plugin<Project> {
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
     project.plugins.apply 'com.github.johnrengelman.shadow'
-    project.plugins.apply EhOsgi
     project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
     project.plugins.apply EhPomGenerate
-
-    def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
     project.configurations {
         shadowCompile
@@ -63,6 +61,21 @@ class EhDistribute implements Plugin<Project> {
       // LICENSE is included in root gradle build
       from "$project.rootDir/NOTICE"
       duplicatesStrategy = 'exclude'
+
+      def osgiConvention = new OsgiPluginConvention(project)
+      manifest = osgiConvention.osgiManifest {
+        classesDir = project.shadowJar.archivePath
+        classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
+
+        // Metadata
+        instruction 'Bundle-DocURL', 'http://ehcache.org'
+        instruction 'Bundle-License', 'LICENSE'
+        instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.8'
+        instruction 'Service-Component', 'OSGI-INF/*.xml'
+      }
+
+      utils.fillManifest(manifest, project.archivesBaseName)
     }
 
 
@@ -71,7 +84,6 @@ class EhDistribute implements Plugin<Project> {
         it.sourceSets.main.allSource
       }
     }
-
 
     project.signing {
       required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }

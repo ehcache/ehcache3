@@ -24,7 +24,6 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -52,13 +51,15 @@ import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
@@ -67,6 +68,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -84,17 +86,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    */
   @Test
   public void testServiceLocator() throws Exception {
-    String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    ServiceLoader<CacheManagerServiceConfigurationParser<? extends Service>> parsers = (ServiceLoader)
-      ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
-
-    for (CacheManagerServiceConfigurationParser<?> parser : parsers) {
-      if (parser.getClass().getName().equals(expectedParser)) {
-        return;
-      }
-    }
-    fail("Expected parser not found");
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(CacheManagerServiceConfigurationParser.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
+      hasItem(ClusteringCacheManagerServiceConfigurationParser.class));
   }
 
   /**

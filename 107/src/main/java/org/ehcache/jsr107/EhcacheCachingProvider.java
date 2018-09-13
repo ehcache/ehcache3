@@ -26,6 +26,7 @@ import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -47,6 +48,7 @@ import static org.ehcache.jsr107.CloseUtil.chain;
 /**
  * {@link CachingProvider} implementation for Ehcache.
  */
+@Component
 public class EhcacheCachingProvider implements CachingProvider {
 
   private static final String DEFAULT_URI_STRING = "urn:X-ehcache:jsr107-default-config";

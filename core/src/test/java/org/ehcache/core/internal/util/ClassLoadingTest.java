@@ -16,6 +16,9 @@
 
 package org.ehcache.core.internal.util;
 
+import static java.util.Collections.list;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
@@ -25,7 +28,6 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.Vector;
 
-import org.ehcache.core.internal.util.ClassLoading;
 import org.junit.Test;
 
 public class ClassLoadingTest {
@@ -39,12 +41,12 @@ public class ClassLoadingTest {
     Thread.currentThread().setContextClassLoader(null);
     assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
     assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
-    assertEqualEnumeration(thisLoader.getResources(resource), defaultClassLoader.getResources(resource));
+    assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
 
     Thread.currentThread().setContextClassLoader(new FindNothingLoader());
     assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
     assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
-    assertEqualEnumeration(thisLoader.getResources(resource), defaultClassLoader.getResources(resource));
+    assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
 
     URL url = new URL("file:///tmp");
     ClassLoader tc = new TestClassLoader(url);
@@ -53,7 +55,7 @@ public class ClassLoadingTest {
     assertNotSame(getClass(), c);
     assertSame(tc, c.getClassLoader());
     assertEquals(url, defaultClassLoader.getResource(resource));
-    assertEqualEnumeration(enumerationOf(url), defaultClassLoader.getResources(resource));
+    assertThat(list(defaultClassLoader.getResources(resource)), contains(url, thisLoader.getResource(resource)));
   }
 
   @SafeVarargs
@@ -120,28 +122,4 @@ public class ClassLoadingTest {
       return new Vector<URL>().elements();
     }
   }
-
-  private void assertEqualEnumeration(Enumeration<?> e1, Enumeration<?> e2) {
-    while (e1.hasMoreElements()) {
-      if (!e2.hasMoreElements()) {
-        throw new AssertionError();
-      }
-
-      Object o1 = e1.nextElement();
-      Object o2 = e2.nextElement();
-
-      if (o1 == null || o2 == null) {
-        throw new AssertionError();
-      }
-
-      if ((!o1.equals(o2)) || (!o2.equals(o1))) {
-        throw new AssertionError();
-      }
-    }
-
-    if (e2.hasMoreElements()) {
-      throw new AssertionError();
-    }
-  }
-
 }

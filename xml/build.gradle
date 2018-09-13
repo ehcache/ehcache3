@@ -20,6 +20,7 @@ plugins {
 }
 
 apply plugin: EhDeploy
+apply plugin: 'osgi'
 apply plugin: 'com.github.hauner.jarTest'
 
 dependencies {
@@ -34,6 +35,13 @@ dependencies {
 test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
+}
+
+jar {
+  manifest {
+    instruction 'Export-Package', 'org.ehcache.xml.*'
+    instruction 'Import-Package', '!sun.misc.*', '*'
   }
 }
 

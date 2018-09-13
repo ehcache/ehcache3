@@ -19,7 +19,9 @@ package org.ehcache.impl.internal.statistics;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
 
   @Override

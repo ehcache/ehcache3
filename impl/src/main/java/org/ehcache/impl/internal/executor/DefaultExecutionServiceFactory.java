@@ -15,15 +15,17 @@
  */
 package org.ehcache.impl.internal.executor;
 
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  *
  * @author cdennis
  */
+@Component
 public class DefaultExecutionServiceFactory implements ServiceFactory<ExecutionService> {
 
   @Override

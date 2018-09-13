@@ -92,7 +92,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.util.ClassLoading.libraryServiceLoaderFor;
+import static org.ehcache.core.internal.util.ClassLoading.servicesOfType;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
@@ -150,16 +150,16 @@ public class ConfigurationParser {
 
   ConfigurationParser() throws IOException, SAXException, JAXBException, ParserConfigurationException {
     serviceCreationConfigurationParser = ConfigurationParser.<CacheManagerServiceConfigurationParser<?>>stream(
-      libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class))
+      servicesOfType(CacheManagerServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceCreationConfigurationParser::new));
 
     serviceConfigurationParser = ConfigurationParser.<CacheServiceConfigurationParser<?>>stream(
-      libraryServiceLoaderFor(CacheServiceConfigurationParser.class))
+      servicesOfType(CacheServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceConfigurationParser::new));
 
-    resourceConfigurationParser = stream(libraryServiceLoaderFor(CacheResourceConfigurationParser.class))
+    resourceConfigurationParser = stream(servicesOfType(CacheResourceConfigurationParser.class))
       .flatMap(p -> p.getResourceTypes().stream().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, p)))
       .collect(collectingAndThen(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a.getClass().isInstance(b) ? b : a),
         m -> new ResourceConfigurationParser(new HashSet<>(m.values()))));
@@ -245,8 +245,8 @@ public class ConfigurationParser {
     return new XmlConfiguration.Template() {
       @Override
       public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-        checkTemplateTypeConsistency("key", keyType, template);
-        checkTemplateTypeConsistency("value", valueType, template);
+        checkTemplateTypeConsistency("key", classLoader, keyType, template);
+        checkTemplateTypeConsistency("value", classLoader, valueType, template);
 
         if ((resources == null || resources.getResourceTypeSet().isEmpty()) && template.getHeap() == null && template.getResources().isEmpty()) {
           throw new IllegalStateException("Template defines no resources, and none were provided");
@@ -261,13 +261,12 @@ public class ConfigurationParser {
     };
   }
 
-  private static <T> void checkTemplateTypeConsistency(String type, Class<T> providedType, CacheTemplate template) throws ClassNotFoundException {
-    ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
+  private static <T> void checkTemplateTypeConsistency(String type, ClassLoader classLoader, Class<T> providedType, CacheTemplate template) throws ClassNotFoundException {
     Class<?> templateType;
     if (type.equals("key")) {
-      templateType = getClassForName(template.keyType(), defaultClassLoader);
+      templateType = getClassForName(template.keyType(), classLoader);
     } else {
-      templateType = getClassForName(template.valueType(), defaultClassLoader);
+      templateType = getClassForName(template.valueType(), classLoader);
     }
 
     if(providedType == null || !templateType.isAssignableFrom(providedType)) {
@@ -425,13 +424,13 @@ public class ConfigurationParser {
 
   public static Schema discoverSchema(Source ... fixedSources) throws SAXException, IOException {
     ArrayList<Source> schemaSources = new ArrayList<>(asList(fixedSources));
-    for (CacheManagerServiceConfigurationParser<?> p : libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
+    for (CacheManagerServiceConfigurationParser<?> p : servicesOfType(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
-    for (CacheServiceConfigurationParser<?> p : libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
+    for (CacheServiceConfigurationParser<?> p : servicesOfType(CacheServiceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
-    for (CacheResourceConfigurationParser p : libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
+    for (CacheResourceConfigurationParser p : servicesOfType(CacheResourceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
     return newSchema(schemaSources.toArray(new Source[0]));
