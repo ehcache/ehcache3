@@ -23,10 +23,7 @@ import org.ehcache.core.InternalCache;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.spi.service.StatisticsServiceConfiguration;
 import org.ehcache.core.spi.store.InternalCacheManager;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -35,37 +32,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@ServiceDependencies({CacheManagerProviderService.class, TimeSourceService.class})
+@ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
 
-  private final StatisticsServiceConfiguration configuration;
   private final ConcurrentMap<String, CacheStatistics> cacheStatistics = new ConcurrentHashMap<>();
 
   private volatile InternalCacheManager cacheManager;
-  private volatile TimeSource timeSource;
   private volatile boolean started = false;
-
-  public DefaultStatisticsService() {
-    this(new DefaultStatisticsServiceConfiguration());
-  }
-
-  public DefaultStatisticsService(StatisticsServiceConfiguration configuration) {
-    this.configuration = Objects.requireNonNull(configuration);
-  }
-
-  @Override
-  public StatisticsServiceConfiguration getConfiguration() {
-        return configuration;
-  }
 
   public CacheStatistics getCacheStatistics(String cacheName) {
     CacheStatistics stats = cacheStatistics.get(cacheName);
@@ -82,9 +63,6 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     LOGGER.debug("Starting service");
-
-    TimeSourceService timeSourceService = serviceProvider.getService(TimeSourceService.class);
-    timeSource = timeSourceService.getTimeSource();
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
     cacheManager = cacheManagerProviderService.getCacheManager();
@@ -131,7 +109,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     LOGGER.debug("Cache added " + alias);
-    cacheStatistics.put(alias, new DefaultCacheStatistics((InternalCache<?, ?>) cache, configuration, timeSource));
+    cacheStatistics.put(alias, new DefaultCacheStatistics((InternalCache<?, ?>) cache));
   }
 
   @Override

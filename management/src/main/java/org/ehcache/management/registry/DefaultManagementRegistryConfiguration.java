@@ -17,6 +17,7 @@ package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
+import org.ehcache.management.providers.statistics.LatencyHistogramConfiguration;
 import org.terracotta.management.model.context.Context;
 
 import java.util.Arrays;
@@ -34,6 +35,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   private final String instanceId = UUID.randomUUID().toString();
   private Context context = Context.empty();
   private String collectorExecutorAlias = "collectorExecutor";
+  private LatencyHistogramConfiguration latencyHistogramConfiguration = LatencyHistogramConfiguration.DEFAULT;
 
   public DefaultManagementRegistryConfiguration() {
     setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
@@ -90,6 +92,16 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
+  public LatencyHistogramConfiguration getLatencyHistogramConfiguration() {
+    return latencyHistogramConfiguration;
+  }
+
+  public DefaultManagementRegistryConfiguration setLatencyHistogramConfiguration(LatencyHistogramConfiguration latencyHistogramConfiguration) {
+    this.latencyHistogramConfiguration = Objects.requireNonNull(latencyHistogramConfiguration);
+    return this;
+  }
+
+  @Override
   public Class<ManagementRegistryService> getServiceType() {
     return ManagementRegistryService.class;
   }
@@ -100,6 +112,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
       ", tags=" + tags +
       ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
       ", instanceId='" + instanceId + '\'' +
+      ", latencyHistogramConfiguration='" + latencyHistogramConfiguration + '\'' +
       '}';
   }
 
@@ -111,7 +124,8 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return Objects.equals(tags, that.tags) &&
       Objects.equals(instanceId, that.instanceId) &&
       Objects.equals(context, that.context) &&
-      Objects.equals(collectorExecutorAlias, that.collectorExecutorAlias);
+      Objects.equals(collectorExecutorAlias, that.collectorExecutorAlias) &&
+      Objects.equals(latencyHistogramConfiguration, that.latencyHistogramConfiguration);
   }
 
   @Override

@@ -16,9 +16,8 @@
 
 package org.ehcache.core.statistics;
 
-import org.ehcache.Cache;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Map;
 
@@ -40,6 +39,17 @@ public interface CacheStatistics {
    * @return tier statistics per tier name
    */
   Map<String, TierStatistics> getTierStatistics();
+
+  /**
+   * Register a derived statistic to one of the existing statistic.
+   *
+   * @param outcomeClass the enum of the possible outcomes
+   * @param statName name of the statistic we are looking for
+   * @param derivedStatistic derived statistic to register
+   * @param <T> type of the outcome
+   * @param <S> type of the derived statistic
+   */
+  <T extends Enum<T>, S extends ChainedOperationObserver<? super T>> void registerDerivedStatistic(Class<T> outcomeClass, String statName, S derivedStatistic);
 
   /**
    * Reset the values for this cache and its underlying tiers.
@@ -111,54 +121,4 @@ public interface CacheStatistics {
    * @return expiration count
    */
   long getCacheExpirations();
-
-  /**
-   * The average response time of a get on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average get response time
-   */
-  float getCacheAverageGetTime();
-
-  /**
-   * The average response time of a put on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average put response time
-   */
-  float getCacheAveragePutTime();
-
-  /**
-   * The average response time of a remove on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return average remove response time
-   */
-  float getCacheAverageRemoveTime();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a HIT.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheGetHitLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a MISS.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheGetMissLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#put(Object, Object)} operations when the outcome is a PUT.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCachePutLatencies();
-
-  /**
-   * The histogram representing the current latencies for {@link org.ehcache.Cache#remove(Object)} operations when the outcome is a SUCCESS.
-   *
-   * @return the histogram statistic
-   */
-  LatencyHistogramStatistic getCacheRemoveLatencies();
-
 }

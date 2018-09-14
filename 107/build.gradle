@@ -35,6 +35,7 @@ dependencies {
 
   implementation project(':impl')
   implementation project(':xml')
+  implementation "org.terracotta:statistics:$parent.statisticVersion"
 
   tckTestRuntime "javax.cache:cache-tests:$jcacheTckVersion"
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {

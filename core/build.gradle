@@ -18,6 +18,6 @@ apply plugin: EhDeploy
 
 dependencies {
   api project(':api')
-  implementation "org.terracotta:statistics:$parent.statisticVersion"
+  api "org.terracotta:statistics:$parent.statisticVersion"
   testImplementation project(':spi-tester')
 }

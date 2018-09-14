@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.spi.service;
+package org.ehcache.management.providers.statistics;
 
-import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.junit.Test;
 
-import java.time.Duration;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public interface StatisticsServiceConfiguration extends ServiceCreationConfiguration<StatisticsService> {
+public class LatencyHistogramConfigurationTest {
 
-  /**
-   * @return the default histogram window size
-   */
-  Duration getDefaultHistogramWindow();
-
+  @Test
+  public void test() {
+    LatencyHistogramConfiguration conf = LatencyHistogramConfiguration.DEFAULT;
+    assertThat(conf.getPhi()).isEqualTo(LatencyHistogramConfiguration.DEFAULT_PHI);
+    assertThat(conf.getBucketCount()).isEqualTo(LatencyHistogramConfiguration.DEFAULT_BUCKET_COUNT);
+    assertThat(conf.getWindow()).isEqualTo(LatencyHistogramConfiguration.DEFAULT_WINDOW);
+  }
 }
