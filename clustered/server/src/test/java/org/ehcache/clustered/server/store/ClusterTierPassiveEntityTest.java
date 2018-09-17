@@ -45,10 +45,8 @@ import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
-import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -258,7 +256,7 @@ public class ClusterTierPassiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
+        keySerializerType, valueSerializerType, consistency, false);
     }
   }
 

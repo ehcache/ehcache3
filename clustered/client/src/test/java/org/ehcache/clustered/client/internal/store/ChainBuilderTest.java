@@ -20,7 +20,11 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -47,6 +51,25 @@ public class ChainBuilderTest {
     assertChainHas(chain2, 1L, 3L, 4L);
     assertChainHas(chain3, 1L, 3L, 4L, 2L);
 
+  }
+
+  @Test
+  public void testChainBuilderWithInitialChain() {
+    ByteBuffer[] buffers = new ByteBuffer[3];
+    for (int i = 1; i <= 3; i++) {
+      buffers[i-1] = Util.createPayload(i);
+    }
+
+    Chain intial = Util.getChain(false, buffers);
+
+    ChainBuilder builder = new ChainBuilder(intial);
+
+    builder = builder.add(Util.createPayload(4L));
+
+    Chain finalChain = builder.build();
+
+    assertThat(finalChain.length(), is(4));
+    assertChainHas(finalChain, 1L, 2L, 3L, 4L);
   }
 
   private static void assertChainHas(Chain chain, long... payLoads) {

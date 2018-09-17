@@ -128,6 +128,9 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
+  public void remove(long key) {
+    segmentFor(key).remove(key);
+  }
 
   @Override
   public void clear() {

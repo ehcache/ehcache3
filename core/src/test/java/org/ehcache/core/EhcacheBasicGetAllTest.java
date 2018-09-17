@@ -93,7 +93,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
    *    <li>no {@code CacheLoaderWriter}</li>
@@ -118,7 +118,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -145,7 +145,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -177,7 +177,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -206,7 +206,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -238,7 +238,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -267,7 +267,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>

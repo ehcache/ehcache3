@@ -16,10 +16,12 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -30,6 +32,14 @@ public class ChainBuilder {
   private List<ByteBuffer> buffers = new ArrayList<>();
 
   public ChainBuilder() {
+  }
+
+  public ChainBuilder(Chain original) {
+    int chainLength = original.length();
+    buffers = new ArrayList<>(chainLength);
+    for (Element element : original) {
+      buffers.add(element.getPayload());
+    }
   }
 
   private ChainBuilder(List<ByteBuffer> buffers) {

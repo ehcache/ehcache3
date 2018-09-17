@@ -166,4 +166,26 @@ public class Util {
     }
     return out.toByteArray();
   }
+
+  public static final Chain EMPTY_CHAIN = new Chain() {
+    @Override
+    public Iterator<Element> reverseIterator() {
+      return Collections.<Element>emptyList().iterator();
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return true;
+    }
+
+    @Override
+    public int length() {
+      return 0;
+    }
+
+    @Override
+    public Iterator<Element> iterator() {
+      return Collections.<Element>emptyList().iterator();
+    }
+  };
 }

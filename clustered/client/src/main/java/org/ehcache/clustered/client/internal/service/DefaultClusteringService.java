@@ -25,6 +25,9 @@ import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.lock.LockManager;
+import org.ehcache.clustered.client.internal.store.lock.LockManagerImpl;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
@@ -217,8 +220,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                     final Store.Configuration<K, V> storeConfig,
+  public <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier,
+                                                     Store.Configuration<K, V> storeConfig,
                                                      Consistency configuredConsistency,
                                                      ServerCallback invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
@@ -244,14 +247,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
-    final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
-        clusteredResourcePool.getPoolAllocation(),
-        storeConfig.getKeyType().getName(),
-        storeConfig.getValueType().getName(),
-        (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
-        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-        configuredConsistency
-    );
+    ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
+      clusteredResourcePool.getPoolAllocation(),
+      storeConfig.getKeyType().getName(),
+      storeConfig.getValueType().getName(),
+      (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
+      (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
+      configuredConsistency, storeConfig.getCacheLoaderWriter() != null);
 
     ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 
@@ -277,6 +279,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
                                           + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
+    }
+
+    if (storeConfig.getCacheLoaderWriter() != null) {
+      LockManager lockManager = new LockManagerImpl(storeClientEntity);
+      serverStoreProxy = new LockingServerStoreProxy(serverStoreProxy, lockManager);
     }
 
     return serverStoreProxy;

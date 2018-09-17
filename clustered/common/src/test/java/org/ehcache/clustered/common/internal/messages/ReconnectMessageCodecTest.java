@@ -46,13 +46,20 @@ public class ReconnectMessageCodecTest {
     setToInvalidate.add(11L);
     setToInvalidate.add(111L);
 
+    Set<Long> locks = new HashSet<>();
+    locks.add(20L);
+    locks.add(200L);
+    locks.add(2000L);
+
     reconnectMessage.addInvalidationsInProgress(setToInvalidate);
     reconnectMessage.clearInProgress();
+    reconnectMessage.addLocksHeld(locks);
 
     ClusterTierReconnectMessage decoded = reconnectMessageCodec.decode(reconnectMessageCodec.encode(reconnectMessage));
     assertThat(decoded, notNullValue());
     assertThat(decoded.getInvalidationsInProgress(), containsInAnyOrder(setToInvalidate.toArray()));
     assertThat(decoded.isClearInProgress(), is(true));
+    assertThat(decoded.getLocksHeld(), containsInAnyOrder(locks.toArray()));
   }
 
 }

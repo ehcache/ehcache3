@@ -378,7 +378,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       final ServiceConfiguration<?>[] configurations =
           enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[enhancedServiceConfigs.size()]);
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
-      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
+      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(useLoaderInAtomics, storeConfig, configurations);
 
       TieredStore<K, V> store = new TieredStore<>(cachingTier, authoritativeTier);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);

@@ -54,6 +54,7 @@ public class CommonConfigCodec implements ConfigCodec {
   private static final String DEFAULT_RESOURCE_FIELD = "defaultResource";
   private static final String POOLS_SUB_STRUCT = "pools";
   private static final String POOL_NAME_FIELD = "poolName";
+  private static final String LOADER_WRITER_CONFIGURED_FIELD = "loaderWriterConfigured";
 
   private static final EnumMapping<Consistency> CONSISTENCY_ENUM_MAPPING = newEnumMappingBuilder(Consistency.class)
     .mapping(Consistency.EVENTUAL, 1)
@@ -73,7 +74,8 @@ public class CommonConfigCodec implements ConfigCodec {
       .string(STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD, index + 15)
       .enm(STORE_CONFIG_CONSISTENCY_FIELD, index + 16, CONSISTENCY_ENUM_MAPPING)
       .int64(POOL_SIZE_FIELD, index + 20)
-      .string(POOL_RESOURCE_NAME_FIELD, index + 30);
+      .string(POOL_RESOURCE_NAME_FIELD, index + 30)
+      .bool(LOADER_WRITER_CONFIGURED_FIELD, index + 40);
 
     return new InjectTuple() {
       @Override
@@ -126,6 +128,7 @@ public class CommonConfigCodec implements ConfigCodec {
     } else if (poolAllocation instanceof PoolAllocation.Shared) {
       encoder.string(POOL_RESOURCE_NAME_FIELD, ((PoolAllocation.Shared) poolAllocation).getResourcePoolName());
     }
+    encoder.bool(LOADER_WRITER_CONFIGURED_FIELD, configuration.isLoaderWriterConfigured());
   }
 
   @Override
@@ -147,7 +150,8 @@ public class CommonConfigCodec implements ConfigCodec {
     } else if (poolResource != null) {
       poolAllocation = new PoolAllocation.Shared(poolResource);
     }
-    return new ServerStoreConfiguration(poolAllocation, keyType, valueType, keySerializer, valueSerializer, consistency);
+
+    return new ServerStoreConfiguration(poolAllocation, keyType, valueType, keySerializer, valueSerializer, consistency, decoder.bool(LOADER_WRITER_CONFIGURED_FIELD));
   }
 
   @Override

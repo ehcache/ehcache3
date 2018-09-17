@@ -95,6 +95,11 @@ public class ServerStoreImpl implements ServerSideServerStore {
   }
 
   @Override
+  public void remove(long key) {
+    store.remove(key);
+  }
+
+  @Override
   public void clear() {
     store.clear();
   }

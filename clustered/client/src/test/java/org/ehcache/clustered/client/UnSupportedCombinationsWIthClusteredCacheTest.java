@@ -41,6 +41,7 @@ import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URI;
@@ -69,6 +70,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
     UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
+  @Ignore
   @Test
   public void testClusteredCacheWithLoaderWriter() {
 

@@ -48,7 +48,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.EVENTUAL);
+        .getName(), Consistency.EVENTUAL, false);
 
     return createClientEntity(name, serverStoreConfiguration, create);
   }

@@ -50,7 +50,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
 
     return new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-      .getName(), Consistency.STRONG);
+      .getName(), Consistency.STRONG, false);
   }
 
   @Test

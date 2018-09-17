@@ -68,6 +68,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -588,8 +589,8 @@ public class TieredStoreTest {
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
-    when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
-      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
+    when(offHeapStoreProvider.createAuthoritativeTier(anyBoolean(),
+            any(Store.Configuration.class), ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);

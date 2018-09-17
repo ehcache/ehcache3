@@ -37,20 +37,21 @@ public class ServerStoreConfiguration implements Serializable {
   private final String keySerializerType;
   private final String valueSerializerType;
   private final Consistency consistency;
-  // TODO: Loader/Writer configuration ...
+  private final boolean loaderWriterConfigured;
 
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
                                   String storedKeyType,
                                   String storedValueType,
                                   String keySerializerType,
                                   String valueSerializerType,
-                                  Consistency consistency) {
+                                  Consistency consistency, boolean loaderWriterConfigured) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
     this.keySerializerType = keySerializerType;
     this.valueSerializerType = valueSerializerType;
     this.consistency = consistency;
+    this.loaderWriterConfigured = loaderWriterConfigured;
   }
 
   public PoolAllocation getPoolAllocation() {
@@ -77,6 +78,10 @@ public class ServerStoreConfiguration implements Serializable {
     return consistency;
   }
 
+  public boolean isLoaderWriterConfigured() {
+    return loaderWriterConfigured;
+  }
+
   public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
     boolean isCompatible = true;
 
@@ -86,6 +91,7 @@ public class ServerStoreConfiguration implements Serializable {
     isCompatible = isCompatible && compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
     isCompatible = isCompatible && compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
     isCompatible = isCompatible && comparePoolAllocation(sb, otherConfiguration.getPoolAllocation());
+    isCompatible = isCompatible && (otherConfiguration.isLoaderWriterConfigured() == loaderWriterConfigured);
 
     return isCompatible;
   }

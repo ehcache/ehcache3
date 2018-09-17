@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
+package org.ehcache.clustered.client.internal.store.lock;
 
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.terracotta.offheapstore.MapInternals;
 
-import com.tc.classloader.CommonComponent;
+import java.util.concurrent.TimeoutException;
 
-import java.util.List;
-import java.util.Set;
+public interface LockManager {
+  /**
+   *
+   * @param hash
+   */
+  Chain lock(long hash) throws TimeoutException;
 
-@CommonComponent
-public interface ServerSideServerStore extends ServerStore, MapInternals {
-  void setEvictionListener(ServerStoreEvictionListener listener);
-  ServerStoreConfiguration getStoreConfiguration();
-  List<Set<Long>> getSegmentKeySets();
-  void put(long key, Chain chain);
-  void remove(long key);
+  /**
+   *
+   * @param hash
+   */
+  void unlock(long hash) throws TimeoutException;
+
 }

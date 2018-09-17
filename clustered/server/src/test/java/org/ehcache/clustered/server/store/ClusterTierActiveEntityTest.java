@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
@@ -1142,7 +1141,7 @@ public class ClusterTierActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
+        keySerializerType, valueSerializerType, consistency, false);
     }
   }
 

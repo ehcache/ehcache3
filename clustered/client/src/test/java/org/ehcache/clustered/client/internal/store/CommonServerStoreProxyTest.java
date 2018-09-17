@@ -19,7 +19,6 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
@@ -27,13 +26,11 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Iterator;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
-import static org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,7 +47,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-      .getName(), null);
+      .getName(), null, false);
 
     return createClientEntity(name, serverStoreConfiguration, true);
 

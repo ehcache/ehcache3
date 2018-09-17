@@ -13,23 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
+package org.ehcache.clustered.server.store;
 
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.terracotta.offheapstore.MapInternals;
-
-import com.tc.classloader.CommonComponent;
+import org.terracotta.entity.ClientDescriptor;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
-@CommonComponent
-public interface ServerSideServerStore extends ServerStore, MapInternals {
-  void setEvictionListener(ServerStoreEvictionListener listener);
-  ServerStoreConfiguration getStoreConfiguration();
-  List<Set<Long>> getSegmentKeySets();
-  void put(long key, Chain chain);
-  void remove(long key);
+public class NoopLockManager implements ServerLockManager {
+  @Override
+  public boolean lock(long key, ClientDescriptor client) {
+    return false;
+  }
+
+  @Override
+  public void unlock(long key) {
+  }
+
+  @Override
+  public void createLockStateAfterFailover(ClientDescriptor client, Set<Long> locksHeld) {
+
+  }
+
+  @Override
+  public void sweepLocksForClient(ClientDescriptor client, Consumer<List<Long>> removeHeldKeys) {
+
+  }
 }

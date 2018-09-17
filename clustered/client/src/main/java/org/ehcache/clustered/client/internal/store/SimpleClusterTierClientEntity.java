@@ -72,9 +72,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Timeouts timeouts;
   private final String storeIdentifier;
 
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean connected = true;
 
@@ -95,7 +93,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
           ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
@@ -129,7 +127,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void close() {
     endpoint.close();
-    reconnectListener = null;
+    reconnectListeners.clear();
     disconnectionListeners.clear();
   }
 
@@ -139,8 +137,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
   }
 
   @Override
