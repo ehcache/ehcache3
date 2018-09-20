@@ -15,9 +15,7 @@
  */
 package org.ehcache.core.internal.util;
 
-import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,19 +39,6 @@ public final class CollectionUtil {
   }
 
   /**
-   * Return a map entry for the key and value provided.
-   *
-   * @param key the key of the entry
-   * @param value the value of the entry
-   * @param <K> type of the key
-   * @param <V> type of the value
-   * @return the map entry for the key and value
-   */
-  public static <K, V> Map.Entry<K, V> entry(K key, V value) {
-    return new AbstractMap.SimpleImmutableEntry<>(key, value);
-  }
-
-  /**
    * Copy each map entry to a new map but check that each key and value isn't null. Throw
    * a {@code NullPointerException} if it's the case.
    *
@@ -73,57 +58,5 @@ public final class CollectionUtil {
       entriesToRemap.put(k, v);
     });
     return entriesToRemap;
-  }
-
-  /**
-   * Create a map with one key and a corresponding value.
-   *
-   * @param key0 the key
-   * @param value0 the value
-   * @param <K> key type
-   * @param <V> value type
-   * @return map with one entry
-   */
-  public static <K, V> Map<K, V> map(K key0, V value0) {
-    return Collections.singletonMap(key0, value0);
-  }
-
-  /**
-   * Create a map with two key/value pairs.
-   *
-   * @param key0 first key
-   * @param value0 first value
-   * @param key1 second key
-   * @param value1 second value
-   * @param <K> key type
-   * @param <V> value type
-   * @return map with two entries
-   */
-  public static <K, V> Map<K, V> map(K key0, V value0, K key1, V value1) {
-    Map<K, V> map = new HashMap<>(2);
-    map.put(key0, value0);
-    map.put(key1, value1);
-    return map;
-  }
-
-  /**
-   * Create a map with three key/value pairs.
-   *
-   * @param key0 first key
-   * @param value0 first value
-   * @param key1 second key
-   * @param value1 second value
-   * @param key2 third key
-   * @param value2 third value
-   * @param <K> key type
-   * @param <V> value type
-   * @return map with three entries
-   */
-  public static <K, V> Map<K, V> map(K key0, V value0, K key1, V value1, K key2, V value2) {
-    Map<K, V> map = new HashMap<>(2);
-    map.put(key0, value0);
-    map.put(key1, value1);
-    map.put(key2, value2);
-    return map;
   }
 }

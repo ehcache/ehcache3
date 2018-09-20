@@ -16,6 +16,7 @@
 
 package org.ehcache.core;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -350,7 +351,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       List<Map.Entry<K, V>> computeResult = new ArrayList<>(size);
 
       for (K key : keys) {
-        computeResult.add(CollectionUtil.entry(key, null));
+        computeResult.add(new AbstractMap.SimpleImmutableEntry<>(key, null));
       }
 
       return computeResult;
