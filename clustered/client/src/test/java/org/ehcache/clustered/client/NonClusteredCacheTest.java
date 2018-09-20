@@ -25,8 +25,8 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.core.util.ClassLoading;
 import org.junit.Test;
 
 import java.util.stream.Collectors;

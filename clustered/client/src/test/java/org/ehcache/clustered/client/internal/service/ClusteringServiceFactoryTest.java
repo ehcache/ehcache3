@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.junit.Test;
 
 import java.util.stream.Collectors;

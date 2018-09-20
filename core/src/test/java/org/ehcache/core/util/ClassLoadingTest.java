@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.util;
+package org.ehcache.core.util;
 
 import static java.util.Collections.list;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;

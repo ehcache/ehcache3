@@ -25,7 +25,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +55,9 @@ import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
-import static org.ehcache.core.internal.util.ClassLoading.delegationChain;
-import static org.ehcache.core.internal.util.ClassLoading.getDefaultClassLoader;
+import static org.ehcache.core.util.ClassLoading.delegationChain;
+import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
+import static org.ehcache.core.util.ClassLoading.servicesOfType;
 
 /**
  * Provides discovery and tracking services for {@link Service} implementations.
@@ -231,7 +231,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   public static class DependencySet implements Builder<ServiceLocator> {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private final Iterable<ServiceFactory<?>> serviceFactories = (Iterable) ClassLoading.servicesOfType(ServiceFactory.class);
+    private final Iterable<ServiceFactory<?>> serviceFactories = (Iterable) servicesOfType(ServiceFactory.class);
 
     private final ServiceMap provided = new ServiceMap();
     private final Set<Class<? extends Service>> requested = new HashSet<>();

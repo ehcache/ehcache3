@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.util;
+package org.ehcache.core.util;
 
 import org.ehcache.core.osgi.SafeOsgi;
 import org.ehcache.core.osgi.OsgiServiceLoader;
