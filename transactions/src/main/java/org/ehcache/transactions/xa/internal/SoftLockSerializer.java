@@ -31,7 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * The stateless {@link Serializer} used to serialize {@link SoftLock}s.

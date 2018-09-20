@@ -15,6 +15,7 @@
  */
 package org.ehcache.core.internal.util;
 
+import org.ehcache.core.util.CollectionUtil;
 import org.junit.Test;
 
 import java.util.Arrays;

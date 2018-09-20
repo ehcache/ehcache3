@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.resilience.ResilienceStrategy;

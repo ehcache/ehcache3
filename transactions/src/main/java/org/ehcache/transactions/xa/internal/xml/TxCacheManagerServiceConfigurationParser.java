@@ -34,8 +34,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 import static org.ehcache.core.util.ClassLoading.delegationChain;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * @author Ludovic Orban
