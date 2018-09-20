@@ -39,7 +39,7 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * This factory instantiates a CachingTier

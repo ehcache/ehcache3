@@ -19,12 +19,10 @@ package org.ehcache.impl.internal;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.core.spi.ServiceLocator;
 import org.junit.Test;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;

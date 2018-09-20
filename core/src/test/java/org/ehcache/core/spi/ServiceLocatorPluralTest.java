@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.service;
+package org.ehcache.core.spi;
 
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.PluralService;
@@ -23,16 +23,14 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 

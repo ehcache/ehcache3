@@ -17,7 +17,7 @@
 package org.ehcache.core.internal.store;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.spi.service.ServiceProvider;

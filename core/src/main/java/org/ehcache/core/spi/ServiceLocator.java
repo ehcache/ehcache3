@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.service;
+package org.ehcache.core.spi;
 
 import org.ehcache.config.Builder;
 import org.ehcache.spi.service.OptionalServiceDependencies;

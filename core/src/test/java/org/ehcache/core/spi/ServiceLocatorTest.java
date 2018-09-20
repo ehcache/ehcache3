@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.service;
+package org.ehcache.core.spi;
 
 import java.io.IOException;
 import java.net.URL;
@@ -43,7 +43,7 @@ import org.ehcache.core.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -463,8 +463,8 @@ public class ServiceLocatorTest {
 
 @ServiceDependencies(TestService.class)
 @OptionalServiceDependencies({
-  "org.ehcache.core.internal.service.OptService1",
-  "org.ehcache.core.internal.service.OptService2"})
+  "org.ehcache.core.spi.OptService1",
+  "org.ehcache.core.spi.OptService2"})
 class ServiceWithOptionalDeps implements Service {
 
   @Override
@@ -481,7 +481,7 @@ class ServiceWithOptionalDeps implements Service {
 @ServiceDependencies(TestService.class)
 @OptionalServiceDependencies({
   "org.ehcache.core.internal.service.ServiceThatDoesNotExist",
-  "org.ehcache.core.internal.service.OptService2"})
+  "org.ehcache.core.spi.OptService2"})
 class ServiceWithOptionalNonExistentDeps implements Service {
 
   @Override

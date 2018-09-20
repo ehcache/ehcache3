@@ -31,7 +31,7 @@ import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
@@ -41,7 +41,7 @@ import org.junit.Before;
 import java.util.Arrays;
 
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * OffHeapStoreSPITest

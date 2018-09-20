@@ -34,10 +34,10 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
@@ -79,7 +79,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findOptionalAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
