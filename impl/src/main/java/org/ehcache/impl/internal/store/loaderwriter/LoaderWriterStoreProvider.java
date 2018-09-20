@@ -16,11 +16,11 @@
 package org.ehcache.impl.internal.store.loaderwriter;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
+import org.ehcache.core.store.StoreSupport;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;

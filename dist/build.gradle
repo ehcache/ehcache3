@@ -41,7 +41,6 @@ jar {
     instruction 'Export-Package',
       '!org.ehcache.jsr107.tck', '!org.ehcache.*.internal.*', 'org.ehcache.*',
       'org.terracotta.statistics.*', 'org.terracotta.context',
-      'org.ehcache.core.internal.store',
       'org.ehcache.impl.internal.concurrent',
       'org.ehcache.impl.internal.events',
       'org.ehcache.impl.internal.store.basic',

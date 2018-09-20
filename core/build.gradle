@@ -29,7 +29,6 @@ jar {
     instruction 'Bundle-Activator', 'org.ehcache.core.osgi.EhcacheActivator'
     instruction 'Export-Package',
       'org.ehcache.core.internal.events',
-      'org.ehcache.core.internal.store',
       '!org.ehcache.core.internal.*', 'org.ehcache.core.*'
   }
 }

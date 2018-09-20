@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.store;
+package org.ehcache.core.store;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
