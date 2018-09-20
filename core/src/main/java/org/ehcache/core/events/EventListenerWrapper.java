@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.internal.events;
+package org.ehcache.core.events;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
