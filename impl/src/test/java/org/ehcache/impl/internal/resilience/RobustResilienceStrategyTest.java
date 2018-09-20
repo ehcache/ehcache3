@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.resilience;
+package org.ehcache.impl.internal.resilience;
 
-import org.ehcache.core.internal.util.CollectionUtil;
-import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.After;
@@ -31,6 +29,10 @@ import org.mockito.junit.MockitoRule;
 import java.util.Arrays;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.of;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -118,7 +120,7 @@ public class RobustResilienceStrategyTest {
 
   @Test
   public void putAllFailure() throws StoreAccessException {
-    strategy.putAllFailure(CollectionUtil.map(1, 2L, 2, 2L), accessException);
+    strategy.putAllFailure(of(1, 2).collect(toMap(identity(), k -> (long) k)), accessException);
     @SuppressWarnings("unchecked")
     ArgumentCaptor<Iterable<Integer>> captor = ArgumentCaptor.forClass(Iterable.class);
     verify(store).obliterate(captor.capture());

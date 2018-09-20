@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.config.resilience;
 
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;

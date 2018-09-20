@@ -39,8 +39,6 @@ import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.DiskResourceService;
@@ -56,6 +54,8 @@ import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfigurati
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;

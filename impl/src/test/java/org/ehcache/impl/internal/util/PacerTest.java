@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.util;
+package org.ehcache.impl.internal.util;
 
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Before;

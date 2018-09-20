@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.resilience;
+package org.ehcache.impl.internal.resilience;
 
 import org.assertj.core.data.MapEntry;
-import org.ehcache.core.internal.util.CollectionUtil;
-import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -37,9 +35,15 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collector;
 
+import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
@@ -68,10 +72,10 @@ public class RobustLoaderWriterResilienceStrategyTest {
   private final Exception exception = new Exception("failed");
 
   private final BulkCacheLoadingException bulkLoadingException = new BulkCacheLoadingException(
-    CollectionUtil.map(1, exception), CollectionUtil.map(2, 2L));
+    singletonMap(1, exception), singletonMap(2, 2L));
 
   private final BulkCacheWritingException bulkWritingException = new BulkCacheWritingException(
-    CollectionUtil.map(1, exception), Collections.singleton(2));
+    singletonMap(1, exception), Collections.singleton(2));
 
   @After
   public void noMoreInteractions() {
@@ -360,7 +364,8 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void getAllFailure_nothingFound() throws Exception {
     List<Integer> keys = Arrays.asList(1, 2);
-    Map<Integer, Long> entries = CollectionUtil.map(1, null, 2, null);
+    Map<Integer, Long> entries = new HashMap<>();
+    keys.forEach(k -> entries.put(k, null));
 
     when(loaderWriter.loadAll(keys)).thenReturn(entries);
 
@@ -376,7 +381,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void getAllFailure_allFound() throws Exception {
     List<Integer> keys = Arrays.asList(1, 2);
-    Map<Integer, Long> entries = CollectionUtil.map(1, 1L, 2, 2L);
+    Map<Integer, Long> entries = keys.stream().collect(toMap(identity(), k -> (long) k));
 
     when(loaderWriter.loadAll(keys)).thenReturn(entries);
 
@@ -392,7 +397,8 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void getAllFailure_partialFound() throws Exception {
     List<Integer> keys = Arrays.asList(1, 2);
-    Map<Integer, Long> entries = CollectionUtil.map(1, 1L, 2, null);
+    Map<Integer, Long> entries = new HashMap<>();
+    keys.forEach(k -> entries.put(k, k == 2 ? null : (long) k));
 
     when(loaderWriter.loadAll(keys)).thenReturn(entries);
 
@@ -441,7 +447,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void putAllFailure() throws Exception {
     List<MapEntry<Integer, Long>> entryList = Arrays.asList(entry(1, 1L), entry(2, 2L));
-    Map<Integer, Long> entryMap = CollectionUtil.map(1, 1L, 2, 2L);
+    Map<Integer, Long> entryMap = entryList.stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     doNothing().when(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
 
@@ -457,7 +463,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void putAllFailure_writeAllFailsWithException() throws Exception {
     List<MapEntry<Integer, Long>> entryList = Arrays.asList(entry(1, 1L), entry(2, 2L));
-    Map<Integer, Long> entryMap = CollectionUtil.map(1, 1L, 2, 2L);
+    Map<Integer, Long> entryMap = entryList.stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     doThrow(exception).when(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
 
@@ -475,7 +481,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   @Test
   public void putAllFailure_writeAllFailsWithBulkException() throws Exception {
     List<MapEntry<Integer, Long>> entryList = Arrays.asList(entry(1, 1L), entry(2, 2L));
-    Map<Integer, Long> entryMap = CollectionUtil.map(1, 1L, 2, 2L);
+    Map<Integer, Long> entryMap = entryList.stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     doThrow(bulkWritingException).when(loaderWriter).writeAll(argThat(containsAllMatcher(entryList)));
 

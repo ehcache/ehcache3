@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.resilience;
+package org.ehcache.impl.internal.resilience;
 
-import org.ehcache.core.internal.util.CollectionUtil;
-import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Default resilience strategy used by a {@link org.ehcache.Cache} without {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter}.
@@ -173,8 +171,7 @@ public class RobustResilienceStrategy<K, V> extends AbstractResilienceStrategy<K
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
     cleanup(keys, e);
 
-    int size = CollectionUtil.findBestCollectionSize(keys, 16); // 16 is the HashMap default
-    HashMap<K, V> result = new HashMap<>(size);
+    HashMap<K, V> result = keys instanceof Collection<?> ? new HashMap<>(((Collection<? extends K>) keys).size()) : new HashMap<>();
     for (K key : keys) {
       result.put(key, null);
     }

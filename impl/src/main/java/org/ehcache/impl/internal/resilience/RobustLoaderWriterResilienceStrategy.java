@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.resilience;
+package org.ehcache.impl.internal.resilience;
 
 import org.ehcache.core.exceptions.ExceptionFactory;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;

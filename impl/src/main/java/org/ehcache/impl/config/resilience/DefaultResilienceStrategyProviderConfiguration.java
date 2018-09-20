@@ -15,9 +15,10 @@
  */
 package org.ehcache.impl.config.resilience;
 
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.impl.internal.spi.resilience.DefaultResilienceStrategyProvider;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;

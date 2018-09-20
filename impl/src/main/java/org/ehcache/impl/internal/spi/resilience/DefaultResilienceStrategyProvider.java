@@ -18,7 +18,6 @@ package org.ehcache.impl.internal.spi.resilience;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;

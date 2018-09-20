@@ -19,7 +19,6 @@ package org.ehcache.config.builders;
 import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -28,6 +27,7 @@ import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;

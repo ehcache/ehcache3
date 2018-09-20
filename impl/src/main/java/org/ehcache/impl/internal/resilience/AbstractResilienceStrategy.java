@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.internal.resilience;
+package org.ehcache.impl.internal.resilience;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheIterationException;
-import org.ehcache.core.internal.util.Pacer;
+import org.ehcache.impl.internal.util.Pacer;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
