@@ -20,16 +20,17 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.statistics.StatsUtils;
-import org.ehcache.impl.internal.util.CheckerUtil;
 import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.ZeroOperationStatistic;
 import org.terracotta.statistics.observer.OperationObserver;
+import sun.security.krb5.Config;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -49,17 +50,25 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
   protected final boolean operationStatisticsEnabled;
 
   public BaseStore(Configuration<K, V> config) {
-    this.keyType = config.getKeyType();
-    this.valueType = config.getValueType();
-    this.operationStatisticsEnabled = config.isOperationStatisticsEnabled();
+    this(config.getKeyType(), config.getValueType(), config.isOperationStatisticsEnabled());
+  }
+
+  public BaseStore(Class<K> keyType, Class<V> valueType, boolean operationStatisticsEnabled) {
+    this.keyType = keyType;
+    this.valueType = valueType;
+    this.operationStatisticsEnabled = operationStatisticsEnabled;
   }
 
   protected void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
+    if (!keyType.isInstance(Objects.requireNonNull((Object) keyObject))) {
+      throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
+    }
   }
 
   protected void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
+    if (!valueType.isInstance(Objects.requireNonNull((Object) valueObject))) {
+      throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+    }
   }
 
   /**
