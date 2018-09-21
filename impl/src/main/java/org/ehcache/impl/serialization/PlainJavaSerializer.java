@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
