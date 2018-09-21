@@ -57,7 +57,7 @@ closeAndReleaseRepository.enabled = false
 
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.5.3-SNAPSHOT'
+  baseVersion = findProperty('overrideVersion') ?: '3.5.3'
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
