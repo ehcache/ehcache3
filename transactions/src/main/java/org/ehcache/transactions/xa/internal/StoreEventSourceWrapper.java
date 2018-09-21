@@ -16,17 +16,14 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.impl.internal.events.StoreEventImpl;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.event.EventType;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
 
 /**
  * StoreEventSourceWrapper
@@ -104,23 +101,7 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
     @Override
     public void onEvent(StoreEvent<K, SoftLock<V>> event) {
-      StoreEvent<K, V> eventToPropagate = null;
-      switch (event.getType()) {
-        case CREATED:
-          eventToPropagate = createEvent(event.getKey(), event.getNewValue().getOldValue());
-          break;
-        case UPDATED:
-          eventToPropagate = updateEvent(event.getKey(), event.getOldValue().getOldValue(), event.getNewValue()
-                .getOldValue());
-          break;
-        case REMOVED:
-        case EXPIRED:
-        case EVICTED:
-          eventToPropagate = new StoreEventImpl<>(event.getType(), event.getKey(), event.getOldValue()
-            .getOldValue(), null);
-          break;
-      }
-      wrappedOne.onEvent(eventToPropagate);
+      wrappedOne.onEvent(new XaEvent<>(event));
     }
 
     @Override
@@ -137,6 +118,45 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
     @Override
     public int hashCode() {
       return wrappedOne.hashCode();
+    }
+  }
+
+  static class XaEvent<K, V> implements StoreEvent<K, V> {
+
+    private final StoreEvent<K, SoftLock<V>> delegate;
+
+    XaEvent(StoreEvent<K, SoftLock<V>> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public EventType getType() {
+      return delegate.getType();
+    }
+
+    @Override
+    public K getKey() {
+      return delegate.getKey();
+    }
+
+    @Override
+    public V getNewValue() {
+      SoftLock<V> newValue = delegate.getNewValue();
+      if (newValue == null) {
+        return null;
+      } else {
+        return newValue.getOldValue();
+      }
+    }
+
+    @Override
+    public V getOldValue() {
+      SoftLock<V> oldValue = delegate.getOldValue();
+      if (oldValue == null) {
+        return null;
+      } else {
+        return oldValue.getOldValue();
+      }
     }
   }
 }
