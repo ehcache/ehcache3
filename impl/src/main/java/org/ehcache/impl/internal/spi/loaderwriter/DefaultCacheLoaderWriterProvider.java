@@ -30,7 +30,7 @@ import java.util.Set;
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<String, CacheLoaderWriter<?, ?>> implements CacheLoaderWriterProvider {
+public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<String, DefaultCacheLoaderWriterConfiguration, CacheLoaderWriter<?, ?>> implements CacheLoaderWriterProvider {
 
   private final Set<String> cachesWithJsrRegisteredLoaders = new HashSet<>();
 

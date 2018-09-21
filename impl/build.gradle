@@ -35,7 +35,6 @@ jar {
   from "$rootDir/NOTICE"
   manifest {
     instruction 'Export-Package',
-      'org.ehcache.impl.internal.classes',
       'org.ehcache.impl.internal.concurrent',
       'org.ehcache.impl.internal.events',
       'org.ehcache.impl.internal.spi.loaderwriter',

@@ -24,6 +24,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.EventFiringType;
@@ -33,14 +34,11 @@ import org.ehcache.xml.model.ListenersConfig;
 import org.ehcache.xml.model.ListenersType;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
-import static org.ehcache.xml.service.SimpleCoreServiceConfigurationParser.checkNoConcreteInstance;
 
 public class DefaultCacheEventListenerConfigurationParser implements CoreServiceConfigurationParser {
 
@@ -79,14 +77,18 @@ public class DefaultCacheEventListenerConfigurationParser implements CoreService
 
       Set<ListenersType.Listener> listeners = serviceConfigs.stream().map(serviceConfig -> {
         ListenersType.Listener listener = new ListenersType.Listener();
-        checkNoConcreteInstance(serviceConfig);
-        return listener.withClazz(serviceConfig.getClazz().getName())
-          .withEventFiringMode(EventFiringType.fromValue(serviceConfig.firingMode().name()))
-          .withEventOrderingMode(EventOrderingType.fromValue(serviceConfig.orderingMode().name()))
-          .withEventsToFireOn(serviceConfig.fireOn()
-            .stream()
-            .map(eventType -> EventType.fromValue(eventType.name()))
-            .collect(toSet()));
+        if(serviceConfig.getInstance() == null) {
+          return listener.withClazz(serviceConfig.getClazz().getName())
+            .withEventFiringMode(EventFiringType.fromValue(serviceConfig.firingMode().name()))
+            .withEventOrderingMode(EventOrderingType.fromValue(serviceConfig.orderingMode().name()))
+            .withEventsToFireOn(serviceConfig.fireOn()
+              .stream()
+              .map(eventType -> EventType.fromValue(eventType.name()))
+              .collect(toSet()));
+        } else {
+          throw new XmlConfigurationException("XML translation for instance based initialization for DefaultCacheEventListenerConfiguration is not supported");
+
+        }
       }).collect(toSet());
 
       cacheType.withListeners(listenersType.withListener(listeners));
