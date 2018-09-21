@@ -78,6 +78,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findOptionalAmongst;
@@ -113,13 +114,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   public EhcacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
+    this(config, dependencies -> dependencies.with(services), useLoaderInAtomics);
+  }
+
+  public EhcacheManager(Configuration config, UnaryOperator<ServiceLocator.DependencySet> customization, boolean useLoaderInAtomics) {
     final String simpleName = this.getClass().getSimpleName();
     this.simpleName = (simpleName.isEmpty() ? this.getClass().getName() : simpleName);
     this.configuration = new DefaultConfiguration(config);
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.useLoaderInAtomics = useLoaderInAtomics;
     validateServicesConfigs();
-    this.serviceLocator = resolveServices(services);
+    this.serviceLocator = resolveServices(customization);
   }
 
   private void validateServicesConfigs() {
@@ -131,15 +136,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  private ServiceLocator resolveServices(Collection<Service> services) {
+  private ServiceLocator resolveServices(UnaryOperator<ServiceLocator.DependencySet> customization) {
     ServiceLocator.DependencySet builder = dependencySet()
       .with(Store.Provider.class)
       .with(CacheLoaderWriterProvider.class)
       .with(WriteBehindProvider.class)
       .with(CacheEventDispatcherFactory.class)
       .with(CacheEventListenerProvider.class)
-      .with(ResilienceStrategyProvider.class)
-      .with(services);
+      .with(ResilienceStrategyProvider.class);
+
+    builder = customization.apply(builder);
+
     if (!builder.contains(CacheManagerProviderService.class)) {
       builder = builder.with(new DefaultCacheManagerProviderService(this));
     }
