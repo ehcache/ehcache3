@@ -40,7 +40,6 @@ jar {
       'org.ehcache.impl.internal.events',
       'org.ehcache.impl.internal.spi.loaderwriter',
       'org.ehcache.impl.internal.spi.serialization',
-      'org.ehcache.impl.internal.store.basic',
       'org.ehcache.impl.internal.store.loaderwriter',
       'org.ehcache.impl.internal.util',
 

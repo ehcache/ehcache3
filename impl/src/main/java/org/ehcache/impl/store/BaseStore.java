@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.store.basic;
+package org.ehcache.impl.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
