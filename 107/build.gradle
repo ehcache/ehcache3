@@ -55,7 +55,7 @@ javadoc {
 jar {
   manifest {
     instruction 'Export-Package', '!org.ehcache.jsr107.tck', '!org.ehcache.jsr107.internal.*', 'org.ehcache.jsr107.*'
-    instruction 'Import-Package', 'javax.cache.*;resolution:=optional', '!sun.misc.*', '!com.sun.jmx.mbeanserver.*', '*'
+    instruction 'Import-Package', 'javax.cache.*;resolution:=optional', '*'
     instruction 'Service-Component', 'OSGI-INF/*.xml'
   }
 }

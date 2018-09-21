@@ -49,7 +49,7 @@ test {
 jar {
   manifest {
     instruction 'Export-Package', 'org.ehcache.transactions.xa.*'
-    instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.transaction.*;resolution:=optional', '*'
+    instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.transaction.*;resolution:=optional', 'org.ehcache.xml.*;resolution:=optional', '*'
     instruction 'Service-Component', 'OSGI-INF/*.xml'
   }
 }

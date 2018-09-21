@@ -34,16 +34,8 @@ dependencies {
 jar {
   from "$rootDir/NOTICE"
   manifest {
-    instruction 'Export-Package',
-      'org.ehcache.impl.internal.concurrent',
-      'org.ehcache.impl.internal.events',
-      'org.ehcache.impl.internal.spi.loaderwriter',
-      'org.ehcache.impl.internal.spi.serialization',
-      'org.ehcache.impl.internal.store.loaderwriter',
-      'org.ehcache.impl.internal.util',
-
-      '!org.ehcache.impl.internal.*',
-      'org.ehcache.impl.*', 'org.ehcache.config.builders'
+    instruction 'Export-Package', '!org.ehcache.impl.internal.*', 'org.ehcache.impl.*', 'org.ehcache.config.builders',
+      'org.ehcache.impl.internal.spi.loaderwriter' //ugly 107 induced internal export wart
     instruction 'Import-Package', '!sun.misc', '*'
     instruction 'Service-Component', 'OSGI-INF/*.xml'
   }
