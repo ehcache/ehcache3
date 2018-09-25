@@ -12,21 +12,20 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.4.0 on August 29th 2017.
+We released 3.6.1 on September 21th 2018.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.4.0[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.6.1[release notes] contain the links to the artifacts and the documentation to help you get started.
 
-You should consider upgrading to 3.4.x as it does all 3.0.x, 3.1.x, 3.2.x and 3.3.x do and more with a fully compatible API.
+You should consider upgrading to 3.6.x as it does all previous 3.x do and more with a fully compatible API.
 The only thing to note compared to 3.0.x is that transactional support has been moved to a separate jar.
 
 == Current development & next release
 
 We are still working on the missing features of the clustering tier of Ehcache 3 which will be included in upcoming releases.
 
-We are also considering moving to Java 8 support only for the upcoming 3.5.0.
+Starting with version 3.5, Ehcache only supports Java 8 and later.
 
-We may still do 3.3.x release to include all fixes that have been made on it, but this is now less a priority.
-There is no longer any plan for a 3.0.x, 3.1.x or 3.2.x release.
+Version 3.5 is now in maintenance mode. We are no longer planning to perform release of earlier versions.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.
 
