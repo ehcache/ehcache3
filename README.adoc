@@ -12,7 +12,7 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.6.1 on September 21th 2018.
+We released 3.6.1 on September 21st 2018.
 
 The https://github.com/ehcache/ehcache3/releases/tag/v3.6.1[release notes] contain the links to the artifacts and the documentation to help you get started.
 
