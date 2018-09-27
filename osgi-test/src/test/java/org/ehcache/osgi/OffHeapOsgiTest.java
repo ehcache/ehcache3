@@ -33,11 +33,13 @@ import java.io.Serializable;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 @RunWith(PaxExam.class)
@@ -60,8 +62,19 @@ public class OffHeapOsgiTest {
   }
 
   @Configuration
-  public Option[] uberJar() {
+  public Option[] uberJarWithOsgiServiceLoading() {
     return options(
+      gradleBundle("org.ehcache:dist"),
+
+      baseConfiguration()
+    );
+  }
+
+  @Configuration
+  public Option[] uberJarWithJdkServiceLoading() {
+    return options(
+      frameworkProperty(OSGI_LOADING).value("false"),
+
       gradleBundle("org.ehcache:dist"),
 
       baseConfiguration()
