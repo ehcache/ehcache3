@@ -60,7 +60,6 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     }
     this.valueCopier = valueCopier;
     this.copiedValue = value;
-    this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }
 

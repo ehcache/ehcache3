@@ -264,16 +264,6 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public float hitRate(long now, TimeUnit unit) {
-            return 0;
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
           public long getId() {
             throw new UnsupportedOperationException("Implement me!");
           }

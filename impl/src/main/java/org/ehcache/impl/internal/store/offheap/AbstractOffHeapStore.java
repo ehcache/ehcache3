@@ -1048,11 +1048,10 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
       return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
         valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
+        valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
     } else {
       return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder
-        .hits());
+        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
     }
   }
 
