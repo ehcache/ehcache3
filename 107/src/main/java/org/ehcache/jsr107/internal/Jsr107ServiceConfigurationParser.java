@@ -42,7 +42,7 @@ import static java.lang.Boolean.parseBoolean;
 public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107-ext.xsd");
   private static final String ENABLE_MANAGEMENT_ALL_ATTRIBUTE = "enable-management";
   private static final String JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE = "jsr-107-compliant-atomics";
   private static final String ENABLE_STATISTICS_ALL_ATTRIBUTE = "enable-statistics";

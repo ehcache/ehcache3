@@ -67,7 +67,7 @@ include::{sourcedir36}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir36}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
+include::{sourcedir36}/107/src/main/resources/ehcache-107-ext.xsd[lines=18..-1]
 ----
 
 == XA transactions extension

@@ -38,7 +38,7 @@ import javax.xml.transform.stream.StreamSource;
 public class Jsr107CacheConfigurationParser implements CacheServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = Jsr107CacheConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = Jsr107CacheConfigurationParser.class.getResource("/ehcache-107-ext.xsd");
   private static final String MANAGEMENT_ENABLED_ATTRIBUTE = "enable-management";
   private static final String STATISTICS_ENABLED_ATTRIBUTE = "enable-statistics";
 
