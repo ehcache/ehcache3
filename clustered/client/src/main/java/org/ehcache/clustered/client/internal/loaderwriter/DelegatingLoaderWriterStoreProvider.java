@@ -15,15 +15,19 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter;
 
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.loaderwriter.LoaderWriterStoreProvider.StoreRef;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.ArrayList;
@@ -35,7 +39,8 @@ import java.util.Set;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-public class DelegatingLoaderWriterStoreProvider implements Store.Provider {
+@ServiceDependencies({CacheLoaderWriterProvider.class, ClusteringService.class})
+public class DelegatingLoaderWriterStoreProvider implements WrapperStore.Provider {
   private volatile ServiceProvider<Service> serviceProvider;
 
   private final Map<Store<?, ?>, StoreRef<?, ?>> createdStores = new ConcurrentHashMap<>();
@@ -67,18 +72,7 @@ public class DelegatingLoaderWriterStoreProvider implements Store.Provider {
 
   @Override
   public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
-
-    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
-    if (loaderWriterConfiguration == null) {
-      return 0;
-    }
-    if (resourceTypes.stream().anyMatch(x -> ClusteredResourcePool.class.isAssignableFrom(x.getResourcePoolClass()))) {
-      Store.Provider underlyingStoreprovider = selectProvider(resourceTypes, serviceConfigs, loaderWriterConfiguration);
-
-      return 3000 + underlyingStoreprovider.rank(resourceTypes, serviceConfigs);
-    }
-    return 0;
-
+    throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
   }
 
   @Override
@@ -97,5 +91,15 @@ public class DelegatingLoaderWriterStoreProvider implements Store.Provider {
     List<ServiceConfiguration<?>> configsWithoutLoaderWriter = new ArrayList<>(serviceConfigs);
     configsWithoutLoaderWriter.remove(loaderWriterConfiguration);
     return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutLoaderWriter);
+  }
+
+  @Override
+  public int rank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
+    ClusteredCacheIdentifier clusteredCacheIdentifier = findSingletonAmongst(ClusteredCacheIdentifier.class, serviceConfigs);
+    if (clusteredCacheIdentifier != null && loaderWriterConfiguration != null) {
+      return 3;
+    }
+    return 0;
   }
 }

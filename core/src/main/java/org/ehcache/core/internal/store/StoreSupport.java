@@ -19,14 +19,18 @@ package org.ehcache.core.internal.store;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Defines methods supporting working with {@link Store} implementations.
@@ -36,6 +40,24 @@ public final class StoreSupport {
    * Private, niladic constructor to prevent instantiation.
    */
   private StoreSupport() {
+  }
+
+  public static Store.Provider selectWrapperStoreProvider(ServiceProvider<Service> serviceProvider, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    Collection<WrapperStore.Provider> storeProviders = serviceProvider.getServicesOfType(WrapperStore.Provider.class);
+    Optional<Tuple<Integer, WrapperStore.Provider>> wrapperProvider = storeProviders.stream()
+            .map(provider -> new Tuple<>(provider.rank(serviceConfigs), provider))
+            .filter(providerTuple -> providerTuple.x != 0)
+            .max(Comparator.comparingInt(value -> value.x));
+    return wrapperProvider.map(providerTuple -> providerTuple.y).orElse(null);
+  }
+
+  private static class Tuple<X, Y> {
+    final X x;
+    final Y y;
+    Tuple(X x, Y y) {
+      this.x = x;
+      this.y = y;
+    }
   }
 
   /**
@@ -56,12 +78,13 @@ public final class StoreSupport {
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      final ServiceProvider<Service> serviceProvider, final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      ServiceProvider<Service> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
 
-    final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
+    Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
+    List<Store.Provider> filteredStoreProviders = storeProviders.stream().filter(provider -> !(provider instanceof WrapperStore.Provider)).collect(Collectors.toList());
     int highRank = 0;
     List<Store.Provider> rankingProviders = new ArrayList<>();
-    for (final Store.Provider provider : storeProviders) {
+    for (Store.Provider provider : filteredStoreProviders) {
       int rank = provider.rank(resourceTypes, serviceConfigs);
       if (rank > highRank) {
         highRank = rank;
@@ -73,13 +96,13 @@ public final class StoreSupport {
     }
 
     if (rankingProviders.isEmpty()) {
-      final StringBuilder sb = new StringBuilder("No Store.Provider found to handle configured resource types ");
+      StringBuilder sb = new StringBuilder("No Store.Provider found to handle configured resource types ");
       sb.append(resourceTypes);
       sb.append(" from ");
-      formatStoreProviders(storeProviders, sb);
+      formatStoreProviders(filteredStoreProviders, sb);
       throw new IllegalStateException(sb.toString());
     } else if (rankingProviders.size() > 1) {
-      final StringBuilder sb = new StringBuilder("Multiple Store.Providers found to handle configured resource types ");
+      StringBuilder sb = new StringBuilder("Multiple Store.Providers found to handle configured resource types ");
       sb.append(resourceTypes);
       sb.append(": ");
       formatStoreProviders(rankingProviders, sb);

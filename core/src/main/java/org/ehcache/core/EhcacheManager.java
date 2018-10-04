@@ -45,6 +45,7 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
@@ -77,6 +78,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findOptionalAmongst;
@@ -448,8 +450,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
-
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
@@ -504,17 +504,25 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
       operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter);
+
+    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigs);
+    if (storeProvider == null) {
+      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
+    }
+
     Store<K, V> store = storeProvider.createStore(useLoaderInAtomics , storeConfiguration, serviceConfigArray);
+
+    AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() {
-        storeProvider.initStore(store);
+        storeProviderRef.get().initStore(store);
       }
 
       @Override
       public void close() {
-        storeProvider.releaseStore(store);
+        storeProviderRef.get().releaseStore(store);
       }
     });
 

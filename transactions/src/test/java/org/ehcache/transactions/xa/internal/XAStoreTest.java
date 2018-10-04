@@ -162,8 +162,7 @@ public class XAStoreTest {
         }
       });
     try {
-      Set<ResourceType<?>> resources = emptySet();
-      provider.rank(resources, Collections.singleton(mock(XAStoreConfiguration.class)));
+      provider.rank(Collections.singleton(mock(XAStoreConfiguration.class)));
       fail("Expected exception");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
@@ -1459,53 +1458,11 @@ public class XAStoreTest {
     serviceLocator.startAllServices();
 
     Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.singleton(configuration);
-    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.HEAP);
-    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.DISK);
-    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 1003, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertThat(provider.rank(xaStoreConfigs), is(1));
 
     Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
-    assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertThat(provider.rank(emptyConfigs), is(0));
 
-    ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
-      @Override
-      public Class<ResourcePool> getResourcePoolClass() {
-        return ResourcePool.class;
-      }
-      @Override
-      public boolean isPersistable() {
-        return true;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return true;
-      }
-      @Override
-      public int getTierHeight() {
-        return 10;
-      }
-    };
-
-    assertRank(provider, -1, xaStoreConfigs, unmatchedResourceType);
-    assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
-  }
-
-  private void assertRank(final Store.Provider provider, final int expectedRank,
-                          final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType<?>... resources) {
-    if (expectedRank == -1) {
-      try {
-        provider.rank(new HashSet<>(Arrays.asList(resources)), serviceConfigs);
-        fail();
-      } catch (IllegalStateException e) {
-        // Expected
-        assertThat(e.getMessage(), startsWith("No Store.Provider "));
-      }
-    } else {
-      assertThat(provider.rank(new HashSet<>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
-    }
   }
 
   private Set<Long> asSet(Long... longs) {

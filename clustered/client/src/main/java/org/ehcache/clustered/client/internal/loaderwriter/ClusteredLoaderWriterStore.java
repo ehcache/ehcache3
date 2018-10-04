@@ -178,11 +178,11 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           existingVal = loadFromLoaderWriter(key);
           if (existingVal == null) {
             cacheLoaderWriter.write(key, value);
+            PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<>(key, value, timeSource.getTimeMillis());
+            ByteBuffer payload = codec.encode(operation);
+            storeProxy.append(hash, payload);
+            unlocked = true;
           }
-          PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<>(key, value, timeSource.getTimeMillis());
-          ByteBuffer payload = codec.encode(operation);
-          storeProxy.append(hash, payload);
-          unlocked = true;
           return existingVal;
         }
       } finally {

@@ -163,7 +163,7 @@ public class ClusteredLoaderWriterStoreTest {
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.putIfAbsent(1L, "Again", null).get(), equalTo("one"));
-    verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
+    verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
     assertThat(loaderWriter.storeMap.get(1L), equalTo("one"));
   }
 

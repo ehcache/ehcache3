@@ -116,7 +116,7 @@ public class DelegatingLoaderWriterStore<K, V> implements Store<K, V>{
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
-    return null;
+    throw new UnsupportedOperationException("Implement me");
   }
 
   @Override

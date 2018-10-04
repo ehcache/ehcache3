@@ -78,6 +78,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -278,21 +279,26 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
     }
 
-    Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigsList);
+    if (storeProvider == null) {
+      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    }
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
       expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
     Store<K, V> store = storeProvider.createStore(true, storeConfig, serviceConfigs);
 
+    AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
+
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() {
-        storeProvider.initStore(store);
+        storeProviderRef.get().initStore(store);
       }
 
       @Override
       public void close() {
-        storeProvider.releaseStore(store);
+        storeProviderRef.get().releaseStore(store);
       }
     });
 

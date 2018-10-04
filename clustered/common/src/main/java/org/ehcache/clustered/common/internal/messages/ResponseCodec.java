@@ -192,6 +192,12 @@ public class ResponseCodec {
           .struct(CHAIN_FIELD, lockSuccess.getChain(), ChainCodec::encode)
           .encode().array();
       }
+      case LOCK_FAILURE: {
+        EhcacheEntityResponse.LockFailure lockFailure = (EhcacheEntityResponse.LockFailure) response;
+        return LOCK_RESPONSE_STRUCT.encoder()
+                .enm(RESPONSE_TYPE_FIELD_NAME, lockFailure.getResponseType())
+                .encode().array();
+      }
       default:
         throw new UnsupportedOperationException("The operation is not supported : " + response.getResponseType());
     }
@@ -270,6 +276,9 @@ public class ResponseCodec {
         decoder = LOCK_RESPONSE_STRUCT.decoder(buffer);
         Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
         return new EhcacheEntityResponse.LockSuccess(chain);
+      }
+      case LOCK_FAILURE: {
+        return EhcacheEntityResponse.lockFailure();
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);

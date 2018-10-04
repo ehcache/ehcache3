@@ -23,6 +23,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -769,7 +770,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
-  public static class Provider implements Store.Provider {
+  public static class Provider implements WrapperStore.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
@@ -777,18 +778,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      final XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
-      if (xaServiceConfiguration == null) {
-        // An XAStore must be configured for use
-        return 0;
-      } else {
-        if (this.transactionManagerProvider == null) {
-          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
-        }
-      }
-
-      final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);
-      return 1000 + candidateUnderlyingProvider.rank(resourceTypes, serviceConfigs);
+      throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
     }
 
     @Override
@@ -1037,6 +1027,20 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<>(serviceConfigs);
       configsWithoutXA.remove(xaConfig);
       return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutXA);
+    }
+
+    @Override
+    public int rank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+      XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
+      if (xaServiceConfiguration == null) {
+        // An XAStore must be configured for use
+        return 0;
+      } else {
+        if (this.transactionManagerProvider == null) {
+          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
+        }
+      }
+      return 1;
     }
   }
 

@@ -48,9 +48,9 @@ import java.util.function.Supplier;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
-public class BaseLoaderWriterStore<K, V> implements Store<K, V> {
+public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(BaseLoaderWriterStore.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalLoaderWriterStore.class);
   private static final Supplier<Boolean> SUPPLY_FALSE = () -> Boolean.FALSE;
 
   private final Store<K, V> delegate;
@@ -58,8 +58,8 @@ public class BaseLoaderWriterStore<K, V> implements Store<K, V> {
   private final boolean useLoaderInAtomics;
   private final ExpiryPolicy<? super K, ? super V> expiry;
 
-  public BaseLoaderWriterStore(Store<K, V> delegate, CacheLoaderWriter<? super K, V> cacheLoaderWriter, boolean useLoaderInAtomics,
-                               ExpiryPolicy<? super K, ? super V> expiry) {
+  public LocalLoaderWriterStore(Store<K, V> delegate, CacheLoaderWriter<? super K, V> cacheLoaderWriter, boolean useLoaderInAtomics,
+                                ExpiryPolicy<? super K, ? super V> expiry) {
     this.delegate = delegate;
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
