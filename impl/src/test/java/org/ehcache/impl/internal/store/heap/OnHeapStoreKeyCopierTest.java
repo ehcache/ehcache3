@@ -151,12 +151,12 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
       return VALUE;
     }, NOT_REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
@@ -177,12 +177,12 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
       return VALUE;
     }, REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {

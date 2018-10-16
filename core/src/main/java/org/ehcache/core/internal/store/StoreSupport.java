@@ -45,7 +45,7 @@ public final class StoreSupport {
   public static Store.Provider selectWrapperStoreProvider(ServiceProvider<Service> serviceProvider, Collection<ServiceConfiguration<?>> serviceConfigs) {
     Collection<WrapperStore.Provider> storeProviders = serviceProvider.getServicesOfType(WrapperStore.Provider.class);
     Optional<Tuple<Integer, WrapperStore.Provider>> wrapperProvider = storeProviders.stream()
-            .map(provider -> new Tuple<>(provider.rank(serviceConfigs), provider))
+            .map(provider -> new Tuple<>(provider.wrapperStoreRank(serviceConfigs), provider))
             .filter(providerTuple -> providerTuple.x != 0)
             .max(Comparator.comparingInt(value -> value.x));
     return wrapperProvider.map(providerTuple -> providerTuple.y).orElse(null);

@@ -118,7 +118,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
     this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
     this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
-    this.computeObserver = createObserver("getAndCompute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    this.computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
     this.computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
     this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
     this.expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
@@ -590,7 +590,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -784,7 +784,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
           return null;
         }
       };
-      ValueHolder<V> computed = compute(key, biFunction, replaceEqual, () -> false);
+      ValueHolder<V> computed = computeAndGet(key, biFunction, replaceEqual, () -> false);
       result.put(key, computed);
     }
     return result;

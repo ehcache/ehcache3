@@ -40,7 +40,7 @@ import java.util.function.Function;
 public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
-   * Either return the value holder currently in the caching tier, or getAndCompute and store it when it isn't present.
+   * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
    * <p>
    * Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
    *

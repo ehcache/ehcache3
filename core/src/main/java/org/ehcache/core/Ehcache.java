@@ -194,7 +194,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
         };
 
-        ValueHolder<V> compute = store.compute(key, fn, replaceEqual, invokeWriter);
+        ValueHolder<V> compute = store.computeAndGet(key, fn, replaceEqual, invokeWriter);
         V newValue = compute == null ? null : compute.get();
         if (withStatsAndEvents.get()) {
           if (newValue == null) {
@@ -257,7 +257,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  // The getAndCompute function that will return the keys to their NEW values, taking the keys to their old values as input;
+  // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
   // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
   public static class PutAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 

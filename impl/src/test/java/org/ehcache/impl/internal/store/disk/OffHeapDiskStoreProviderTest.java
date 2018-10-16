@@ -69,7 +69,7 @@ public class OffHeapDiskStoreProviderTest {
       .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
-    OffHeapDiskStore<Long, String> store = provider.createStore(true, getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
+    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
     @SuppressWarnings("unchecked")
     Query storeQuery = queryBuilder()

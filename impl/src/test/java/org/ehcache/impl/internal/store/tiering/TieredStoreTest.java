@@ -68,7 +68,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -356,7 +355,7 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
-    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(Supplier.class), any(Supplier.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
+    when(numberAuthoritativeTier.computeAndGet(any(Number.class), any(BiFunction.class), any(Supplier.class), any(Supplier.class))).then((Answer<Store.ValueHolder<CharSequence>>) invocation -> {
       Number key = (Number) invocation.getArguments()[0];
       BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
       return newValueHolder(function.apply(key, null));
@@ -364,10 +363,10 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true, () -> false).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.computeAndGet(1, (number, charSequence) -> "one", () -> true, () -> false).get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class), any(Supplier.class));
+    verify(numberAuthoritativeTier, times(1)).computeAndGet(eq(1), any(BiFunction.class), any(Supplier.class), any(Supplier.class));
   }
 
   @Test
@@ -589,7 +588,7 @@ public class TieredStoreTest {
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
-    when(offHeapStoreProvider.createAuthoritativeTier(anyBoolean(),
+    when(offHeapStoreProvider.createAuthoritativeTier(
             any(Store.Configuration.class), ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
         .thenReturn(stringAuthoritativeTier);
 
@@ -607,7 +606,7 @@ public class TieredStoreTest {
     when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
     tieredStoreProvider.start(serviceProvider);
 
-    final Store<String, String> tieredStore = tieredStoreProvider.createStore(true, configuration);
+    final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
     tieredStoreProvider.initStore(tieredStore);
     tieredStoreProvider.releaseStore(tieredStore);
     verify(onHeapStoreProvider, times(1)).releaseCachingTier(any(CachingTier.class));

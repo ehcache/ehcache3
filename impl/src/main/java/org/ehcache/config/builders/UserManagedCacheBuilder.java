@@ -286,7 +286,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
       expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
-    Store<K, V> store = storeProvider.createStore(true, storeConfig, serviceConfigs);
+    Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
     AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 

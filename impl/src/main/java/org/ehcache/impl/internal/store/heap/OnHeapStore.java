@@ -243,7 +243,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
     replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
     conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
-    computeObserver = createObserver("getAndCompute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
     computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
     evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
     expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
@@ -1133,7 +1133,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -1328,7 +1328,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     for (K key : keys) {
       checkKey(key);
 
-      ValueHolder<V> newValue = compute(key, (k, oldValue) -> {
+      ValueHolder<V> newValue = computeAndGet(key, (k, oldValue) -> {
         Set<Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
         Iterable<? extends Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
         java.util.Iterator<? extends Entry<? extends K, ? extends V>> iterator = entries.iterator();
@@ -1646,7 +1646,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public <K, V> OnHeapStore<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {

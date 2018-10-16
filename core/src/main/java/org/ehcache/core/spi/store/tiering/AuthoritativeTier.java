@@ -110,12 +110,11 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @param <K> the key type for this tier
      * @param <V> the value type for this tier
      *
-     * @param useLoaderInAtomics whether loader can be used in atomic operations
      * @param storeConfig the {@code Store} configuration
      * @param serviceConfigs a collection of service configurations
      * @return the new authoritative tier
      */
-    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
     /**
      * Releases an {@link AuthoritativeTier}.

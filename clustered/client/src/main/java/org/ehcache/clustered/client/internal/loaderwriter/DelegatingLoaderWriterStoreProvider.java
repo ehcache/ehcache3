@@ -30,10 +30,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,13 +44,13 @@ public class DelegatingLoaderWriterStoreProvider implements WrapperStore.Provide
   private final Map<Store<?, ?>, StoreRef<?, ?>> createdStores = new ConcurrentHashMap<>();
 
   @Override
-  public <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
 
-    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, Arrays.asList(serviceConfigs));
-    Store.Provider underlyingStoreProvider = selectProvider(storeConfig.getResourcePools().getResourceTypeSet(),
-            Arrays.asList(serviceConfigs), loaderWriterConfiguration);
+    Store.Provider underlyingStoreProvider = StoreSupport
+            .selectStoreProvider(serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
+                    Arrays.asList(serviceConfigs));
 
-    Store<K, V> store = underlyingStoreProvider.createStore(useLoaderInAtomics, storeConfig, serviceConfigs);
+    Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
     DelegatingLoaderWriterStore<K, V> loaderWriterStore = new DelegatingLoaderWriterStore<>(store);
     createdStores.put(loaderWriterStore, new StoreRef<>(store, underlyingStoreProvider));
     return loaderWriterStore;
@@ -85,16 +83,8 @@ public class DelegatingLoaderWriterStoreProvider implements WrapperStore.Provide
     this.serviceProvider = null;
   }
 
-  private Store.Provider selectProvider(Set<ResourceType<?>> resourceTypes,
-                                        Collection<ServiceConfiguration<?>> serviceConfigs,
-                                        CacheLoaderWriterConfiguration loaderWriterConfiguration) {
-    List<ServiceConfiguration<?>> configsWithoutLoaderWriter = new ArrayList<>(serviceConfigs);
-    configsWithoutLoaderWriter.remove(loaderWriterConfiguration);
-    return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutLoaderWriter);
-  }
-
   @Override
-  public int rank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+  public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
     CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
     ClusteredCacheIdentifier clusteredCacheIdentifier = findSingletonAmongst(ClusteredCacheIdentifier.class, serviceConfigs);
     if (clusteredCacheIdentifier != null && loaderWriterConfiguration != null) {

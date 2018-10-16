@@ -188,7 +188,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     vals.put(2, "d");
     vals.put(3, "e");
     cache.putAll(vals);
-    changesOf(0, 0, 3, 0); // FIXME: No way to track update correctly in OnHeapStore.getAndCompute
+    changesOf(0, 0, 3, 0); // FIXME: No way to track update correctly in OnHeapStore.compute
   }
 
   @Test

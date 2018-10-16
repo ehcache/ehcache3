@@ -45,7 +45,6 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
@@ -503,14 +502,14 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       .orElseGet(() -> config.getResourcePools().getResourceTypeSet().size() > 1);
 
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
-      operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter);
+      operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter, useLoaderInAtomics);
 
     Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigs);
     if (storeProvider == null) {
       storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
     }
 
-    Store<K, V> store = storeProvider.createStore(useLoaderInAtomics , storeConfiguration, serviceConfigArray);
+    Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 

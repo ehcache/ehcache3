@@ -53,25 +53,6 @@ public class ChainBuilderTest {
 
   }
 
-  @Test
-  public void testChainBuilderWithInitialChain() {
-    ByteBuffer[] buffers = new ByteBuffer[3];
-    for (int i = 1; i <= 3; i++) {
-      buffers[i-1] = Util.createPayload(i);
-    }
-
-    Chain intial = Util.getChain(false, buffers);
-
-    ChainBuilder builder = new ChainBuilder(intial);
-
-    builder = builder.add(Util.createPayload(4L));
-
-    Chain finalChain = builder.build();
-
-    assertThat(finalChain.length(), is(4));
-    assertChainHas(finalChain, 1L, 2L, 3L, 4L);
-  }
-
   private static void assertChainHas(Chain chain, long... payLoads) {
     Iterator<Element> elements = chain.iterator();
     for (long payLoad : payLoads) {

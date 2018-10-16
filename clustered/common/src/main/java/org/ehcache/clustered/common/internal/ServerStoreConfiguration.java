@@ -44,7 +44,8 @@ public class ServerStoreConfiguration implements Serializable {
                                   String storedValueType,
                                   String keySerializerType,
                                   String valueSerializerType,
-                                  Consistency consistency, boolean loaderWriterConfigured) {
+                                  Consistency consistency,
+                                  boolean loaderWriterConfigured) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;

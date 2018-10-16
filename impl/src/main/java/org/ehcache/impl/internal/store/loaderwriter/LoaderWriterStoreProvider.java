@@ -27,10 +27,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,13 +42,13 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
   private final Map<Store<?, ?>, StoreRef<?, ?>> createdStores = new ConcurrentHashMap<>();
 
   @Override
-  public <K, V> Store<K, V> createStore(boolean useLoaderInAtomics, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
-    Store.Provider underlyingStoreProvider = selectProvider(storeConfig.getResourcePools().getResourceTypeSet(),
-            Arrays.asList(serviceConfigs), loaderWriterConfiguration);
-    Store<K, V> store = underlyingStoreProvider.createStore(useLoaderInAtomics , storeConfig, serviceConfigs);
+  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
+            storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));
+    Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
-    LocalLoaderWriterStore<K, V> loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), useLoaderInAtomics, storeConfig.getExpiry());
+    LocalLoaderWriterStore<K, V> loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(),
+            storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     createdStores.put(loaderWriterStore, new StoreRef<>(store, underlyingStoreProvider));
     return loaderWriterStore;
   }
@@ -72,14 +70,6 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
     throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
   }
 
-  private Store.Provider selectProvider(Set<ResourceType<?>> resourceTypes,
-                                        Collection<ServiceConfiguration<?>> serviceConfigs,
-                                        CacheLoaderWriterConfiguration loaderWriterConfiguration) {
-    List<ServiceConfiguration<?>> configsWithoutLoaderWriter = new ArrayList<>(serviceConfigs);
-    configsWithoutLoaderWriter.remove(loaderWriterConfiguration);
-    return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutLoaderWriter);
-  }
-
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     this.serviceProvider = serviceProvider;
@@ -92,7 +82,7 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
   }
 
   @Override
-  public int rank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+  public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
     CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
     if (loaderWriterConfiguration == null) {
       return 0;

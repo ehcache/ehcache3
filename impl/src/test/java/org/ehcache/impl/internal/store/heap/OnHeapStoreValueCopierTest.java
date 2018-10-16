@@ -132,8 +132,8 @@ public class OnHeapStoreValueCopierTest {
 
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
-    final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL, () -> false);
-    store.compute(KEY, (aLong, value) -> {
+    final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL, () -> false);
+    store.computeAndGet(KEY, (aLong, value) -> {
       compareReadValues(value, firstValue.get());
       return value;
     }, NOT_REPLACE_EQUAL, () -> false);
@@ -143,8 +143,8 @@ public class OnHeapStoreValueCopierTest {
 
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
-    final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL, () -> false);
-    store.compute(KEY, (aLong, value) -> {
+    final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL, () -> false);
+    store.computeAndGet(KEY, (aLong, value) -> {
       compareReadValues(value, firstValue.get());
       return value;
     }, REPLACE_EQUAL, () -> false);

@@ -162,7 +162,7 @@ public class XAStoreTest {
         }
       });
     try {
-      provider.rank(Collections.singleton(mock(XAStoreConfiguration.class)));
+      provider.wrapperStoreRank(Collections.singleton(mock(XAStoreConfiguration.class)));
       fail("Expected exception");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
@@ -891,19 +891,19 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return "one";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed1.get(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return "un";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed2.get(), equalTo("un"));
-      Store.ValueHolder<String> computed3 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed3 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("un"));
         return null;
@@ -916,13 +916,13 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return "one";
       }, SUPPLY_FALSE, SUPPLY_FALSE);
       assertThat(computed1.get(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return null;
@@ -935,13 +935,13 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return "one";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed1.get(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return null;
@@ -954,13 +954,13 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return "one";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed1.get(), equalTo("one"));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return "un";
@@ -973,7 +973,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("un"));
         return "eins";
@@ -986,7 +986,7 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("eins"));
         return null;
@@ -999,19 +999,19 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      Store.ValueHolder<String> computed1 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("eins"));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed1, is(nullValue()));
-      Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed2, is(nullValue()));
-      Store.ValueHolder<String> computed3 = xaStore.compute(1L, (aLong, s) -> {
+      Store.ValueHolder<String> computed3 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, is(nullValue()));
         return "uno";
@@ -1458,10 +1458,10 @@ public class XAStoreTest {
     serviceLocator.startAllServices();
 
     Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.singleton(configuration);
-    assertThat(provider.rank(xaStoreConfigs), is(1));
+    assertThat(provider.wrapperStoreRank(xaStoreConfigs), is(1));
 
     Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
-    assertThat(provider.rank(emptyConfigs), is(0));
+    assertThat(provider.wrapperStoreRank(emptyConfigs), is(0));
 
   }
 

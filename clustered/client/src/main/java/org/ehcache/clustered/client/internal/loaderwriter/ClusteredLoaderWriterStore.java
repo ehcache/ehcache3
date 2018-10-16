@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter;
 
+import org.ehcache.CacheIterationException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.ClusteredValueHolder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
@@ -86,7 +87,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           try {
             value = cacheLoaderWriter.load(key);
           } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new StorePassThroughException(new CacheIterationException(e));
           }
           if (value == null) {
             return null;

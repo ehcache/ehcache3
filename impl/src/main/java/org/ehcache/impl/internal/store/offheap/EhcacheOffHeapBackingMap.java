@@ -31,8 +31,8 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
    * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
    * the existing value.
    *
-   * @param key the key to getAndCompute the mapping for
-   * @param mappingFunction the function to getAndCompute the mapping
+   * @param key the key to compute the mapping for
+   * @param mappingFunction the function to compute the mapping
    * @param pin pins the mapping if {code true}
    *
    * @return the mapped value
@@ -59,8 +59,8 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
    * <p>
    * The pinning bit from the metadata will be set on the resulting mapping.
    *
-   * @param key the key of the mapping to getAndCompute the value for
-   * @param mappingFunction the function used to getAndCompute the new value
+   * @param key the key of the mapping to compute the value for
+   * @param mappingFunction the function used to compute the new value
    *
    * @return the value mapped as the result of this call
    */

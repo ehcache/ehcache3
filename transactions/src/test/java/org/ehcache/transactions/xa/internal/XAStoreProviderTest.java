@@ -73,7 +73,7 @@ public class XAStoreProviderTest {
     XAStore.Provider provider = new XAStore.Provider();
     provider.start(serviceProvider);
 
-    Store<String, String> store = provider.createStore(true, configuration, mock(XAStoreConfiguration.class));
+    Store<String, String> store = provider.createStore(configuration, mock(XAStoreConfiguration.class));
     provider.initStore(store);
 
     verify(valueSerializer).init(any(StateRepository.class));

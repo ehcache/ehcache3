@@ -392,16 +392,16 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p>
      * This method is implemented as
-     * <code>this.{@link Store#compute(Object, BiFunction, Supplier, Supplier) getAndCompute}(keys, mappingFunction, () -> { returns true; })</code>
+     * <code>this.{@link Store#getAndCompute(Object, BiFunction)} (keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
     public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
         throws StoreAccessException {
-      return this.compute(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
+      return this.computeAndGet(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
     }
 
     /**
-     * Common core for the {@link Store#compute(Object, BiFunction, Supplier, Supplier)} method.
+     * Common core for the {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -457,7 +457,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> compute(
+    public ValueHolder<String> computeAndGet(
             final String key,
             final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
             final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter)
@@ -515,8 +515,8 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * {@inheritDoc}
      * <p>
-     * This implementation calls {@link Store#compute(Object, BiFunction, Supplier, Supplier)
-     *    getAndCompute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
+     * This implementation calls {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)
+     *    } for each key presented in {@code keys}.
      */
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
@@ -527,7 +527,7 @@ public abstract class EhcacheBasicCrudBase {
 
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<>();
       for (final String key : keys) {
-        final ValueHolder<String> newValue = this.compute(key,
+        final ValueHolder<String> newValue = this.computeAndGet(key,
           (key1, oldValue) -> {
             final Entry<String, String> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
             final Entry<? extends String, ? extends String> remappedEntry =

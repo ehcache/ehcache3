@@ -23,7 +23,6 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.loaderwriter.ClusteredLoaderWriterStore;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
-import org.ehcache.clustered.client.internal.store.lock.LockManager;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
@@ -446,7 +445,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -483,7 +482,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
       }
     } else {
-      throw new UnsupportedOperationException("This getAndCompute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This bulkCompute method is not yet capable of handling generic computation functions");
     }
     return valueHolderMap;
   }
@@ -514,7 +513,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
       return map;
     } else {
-      throw new UnsupportedOperationException("This getAndCompute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This bulkComputeIfAbsent method is not yet capable of handling generic computation functions");
     }
   }
 
@@ -589,8 +588,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> ClusteredStore<K, V> createStore(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs, useLoaderInAtomics);
+    public <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
@@ -600,7 +599,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       return store;
     }
 
-    private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs, boolean useLoaderInAtomics) {
+    private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
 
@@ -647,7 +646,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           store = new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
         } else {
           store = new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
-                  storeConfig.getCacheLoaderWriter(), useLoaderInAtomics);
+                  storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics());
         }
 
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
@@ -811,8 +810,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(boolean useLoaderInAtomics, Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs, useLoaderInAtomics);
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
         createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),

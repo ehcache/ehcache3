@@ -41,6 +41,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   private final int dispatcherConcurrency;
   private final boolean operationStatisticsEnabled;
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
+  private final boolean useLoaderInAtomics;
 
   /**
    * Creates a new {@code StoreConfigurationImpl} based on the provided parameters.
@@ -54,7 +55,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
         cacheConfig.getClassLoader(), cacheConfig.getExpiryPolicy(), cacheConfig.getResourcePools(),
-        dispatcherConcurrency, true, keySerializer, valueSerializer, null);
+        dispatcherConcurrency, true, keySerializer, valueSerializer, null, false);
   }
 
   /**
@@ -67,10 +68,11 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * @param valueSerializer the value serializer
    */
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, int dispatcherConcurrency, boolean operationStatisticsEnabled,
-                                Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer,
+                                CacheLoaderWriter<? super K, V> cacheLoaderWriter, boolean useLoaderInAtomics) {
     this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
       cacheConfig.getClassLoader(), cacheConfig.getExpiryPolicy(), cacheConfig.getResourcePools(),
-      dispatcherConcurrency, operationStatisticsEnabled, keySerializer, valueSerializer, cacheLoaderWriter);
+      dispatcherConcurrency, operationStatisticsEnabled, keySerializer, valueSerializer, cacheLoaderWriter, useLoaderInAtomics);
   }
 
   /**
@@ -92,7 +94,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 ResourcePools resourcePools, int dispatcherConcurrency,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, dispatcherConcurrency,
-      true, keySerializer, valueSerializer, null);
+      true, keySerializer, valueSerializer, null, false);
   }
 
   /**
@@ -115,7 +117,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 ResourcePools resourcePools, int dispatcherConcurrency,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, dispatcherConcurrency,
-            true, keySerializer, valueSerializer, cacheLoaderWriter);
+            true, keySerializer, valueSerializer, cacheLoaderWriter, false);
   }
 
   /**
@@ -137,7 +139,8 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 EvictionAdvisor<? super K, ? super V> evictionAdvisor,
                                 ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
                                 ResourcePools resourcePools, int dispatcherConcurrency, boolean operationStatisticsEnabled,
-                                Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+                                Serializer<K> keySerializer, Serializer<V> valueSerializer,
+                                CacheLoaderWriter<? super K, V> cacheLoaderWriter, boolean useLoaderInAtomics) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionAdvisor = evictionAdvisor;
@@ -149,6 +152,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
     this.dispatcherConcurrency = dispatcherConcurrency;
     this.operationStatisticsEnabled = operationStatisticsEnabled;
     this.cacheLoaderWriter = cacheLoaderWriter;
+    this.useLoaderInAtomics = useLoaderInAtomics;
 
   }
 
@@ -238,5 +242,10 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return this.cacheLoaderWriter;
+  }
+
+  @Override
+  public boolean useLoaderInAtomics() {
+    return this.useLoaderInAtomics;
   }
 }

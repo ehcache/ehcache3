@@ -21,6 +21,7 @@ import org.ehcache.core.Ehcache;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.internal.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
@@ -48,7 +49,7 @@ import java.util.function.Supplier;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
-public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
+public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalLoaderWriterStore.class);
   private static final Supplier<Boolean> SUPPLY_FALSE = () -> Boolean.FALSE;
@@ -167,7 +168,7 @@ public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
       return inCache;
     };
 
-    delegate.compute(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
+    delegate.computeAndGet(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
     if (hitRemoved[1]) {
       return Store.RemoveStatus.REMOVED;
     }
@@ -239,7 +240,7 @@ public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
       return inCache;
     };
 
-    delegate.compute(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
+    delegate.computeAndGet(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
     if (successHit[0]) {
       return Store.ReplaceStatus.HIT;
     } else {
@@ -292,7 +293,7 @@ public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
 
     BiFunction<? super K, ? super V, ? extends V> remappingFunction = (mappedKey, mappedValue) -> {
       V newValue = mappingFunction.apply(mappedKey, mappedValue);
@@ -310,7 +311,7 @@ public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
       return newValue;
     };
 
-    return delegate.compute(key, remappingFunction, replaceEqual, SUPPLY_FALSE);
+    return delegate.computeAndGet(key, remappingFunction, replaceEqual, SUPPLY_FALSE);
   }
 
   @Override
@@ -389,7 +390,7 @@ public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
 
     int[] actualPutCount = {0};
 
-    // The getAndCompute function that will return the keys to their NEW values, taking the keys to their old values as input;
+    // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
             entries1 -> {

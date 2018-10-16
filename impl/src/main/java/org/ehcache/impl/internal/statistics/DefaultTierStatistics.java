@@ -73,7 +73,7 @@ class DefaultTierStatistics implements TierStatistics {
     conditionalRemove = findOperationStatistic(cache, tierName, "conditionalRemove");
     eviction = findOperationStatistic(cache, tierName, "tier", "eviction");
     expiration = findOperationStatistic(cache, tierName, "expiration");
-    compute = findOperationStatistic(cache, tierName, "getAndCompute");
+    compute = findOperationStatistic(cache, tierName, "compute");
     computeIfAbsent = findOperationStatistic(cache, tierName, "computeIfAbsent");
 
     mapping = findValueStatistics(cache, tierName, "mappings");

@@ -424,7 +424,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2, () -> false, () -> false);
+    store.computeAndGet(KEY, (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }

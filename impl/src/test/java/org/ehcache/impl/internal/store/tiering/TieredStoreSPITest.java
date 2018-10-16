@@ -181,7 +181,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
           }, new AuthoritativeTier.Provider() {
             @Override
-            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(boolean useLoaderInAtomics, final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -356,7 +356,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(boolean useLoaderInAtomics, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }
 

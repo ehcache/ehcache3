@@ -34,14 +34,6 @@ public class ChainBuilder {
   public ChainBuilder() {
   }
 
-  public ChainBuilder(Chain original) {
-    int chainLength = original.length();
-    buffers = new ArrayList<>(chainLength);
-    for (Element element : original) {
-      buffers.add(element.getPayload());
-    }
-  }
-
   private ChainBuilder(List<ByteBuffer> buffers) {
     this.buffers = buffers;
   }
