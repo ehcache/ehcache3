@@ -101,7 +101,7 @@ public class DefaultCopierConfigurationParserTest {
     cacheType.setValueType(valueType);
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultCopierConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultCopierConfiguration is not supported");
   }
 }

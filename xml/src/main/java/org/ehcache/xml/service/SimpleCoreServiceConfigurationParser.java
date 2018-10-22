@@ -44,7 +44,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
 
   public static void checkNoConcreteInstance(ClassInstanceConfiguration<?> classInstanceConfiguration) {
     if(classInstanceConfiguration.getInstance() != null) {
-      throw new XmlConfigurationException("XML translation for instance based intialization for " + classInstanceConfiguration.getClass().getSimpleName() +
+      throw new XmlConfigurationException("XML translation for instance based initialization for " + classInstanceConfiguration.getClass().getSimpleName() +
         " is not supported");
     }
   }

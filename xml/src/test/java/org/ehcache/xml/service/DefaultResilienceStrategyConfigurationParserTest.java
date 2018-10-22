@@ -61,7 +61,7 @@ public class DefaultResilienceStrategyConfigurationParserTest {
       newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultResilienceStrategyConfiguration(testObject)).build();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultResilienceStrategyConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultResilienceStrategyConfiguration is not supported");
   }
 }

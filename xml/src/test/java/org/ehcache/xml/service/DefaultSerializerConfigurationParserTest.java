@@ -98,7 +98,7 @@ public class DefaultSerializerConfigurationParserTest {
     cacheType.setValueType(valueType);
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultSerializerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultSerializerConfiguration is not supported");
   }
 }

@@ -90,7 +90,7 @@ public class DefaultCacheEventListenerConfigurationParserTest {
     CacheType cacheType = new CacheType();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultCacheEventListenerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultCacheEventListenerConfiguration is not supported");
   }
 }

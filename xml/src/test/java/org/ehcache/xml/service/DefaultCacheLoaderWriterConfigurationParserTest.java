@@ -60,7 +60,7 @@ public class DefaultCacheLoaderWriterConfigurationParserTest {
       newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheLoaderWriterConfiguration(testCacheLoaderWriter)).build();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultCacheLoaderWriterConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultCacheLoaderWriterConfiguration is not supported");
   }
 }
