@@ -38,6 +38,7 @@ public class ServerStoreConfiguration implements Serializable {
   private final String valueSerializerType;
   private final Consistency consistency;
   private final boolean loaderWriterConfigured;
+  private final boolean writeBehindConfigured;
 
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
                                   String storedKeyType,
@@ -46,6 +47,19 @@ public class ServerStoreConfiguration implements Serializable {
                                   String valueSerializerType,
                                   Consistency consistency,
                                   boolean loaderWriterConfigured) {
+    this(poolAllocation, storedKeyType, storedValueType, keySerializerType, valueSerializerType, consistency,
+         loaderWriterConfigured, false);
+  }
+
+
+  public ServerStoreConfiguration(PoolAllocation poolAllocation,
+                                  String storedKeyType,
+                                  String storedValueType,
+                                  String keySerializerType,
+                                  String valueSerializerType,
+                                  Consistency consistency,
+                                  boolean loaderWriterConfigured,
+                                  boolean writeBehindConfigured) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
@@ -53,6 +67,7 @@ public class ServerStoreConfiguration implements Serializable {
     this.valueSerializerType = valueSerializerType;
     this.consistency = consistency;
     this.loaderWriterConfigured = loaderWriterConfigured;
+    this.writeBehindConfigured = writeBehindConfigured;
   }
 
   public PoolAllocation getPoolAllocation() {
@@ -83,6 +98,10 @@ public class ServerStoreConfiguration implements Serializable {
     return loaderWriterConfigured;
   }
 
+  public boolean isWriteBehindConfigured() {
+    return writeBehindConfigured;
+  }
+
   public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
     boolean isCompatible = true;
 
@@ -93,6 +112,7 @@ public class ServerStoreConfiguration implements Serializable {
     isCompatible = isCompatible && compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
     isCompatible = isCompatible && comparePoolAllocation(sb, otherConfiguration.getPoolAllocation());
     isCompatible = isCompatible && (otherConfiguration.isLoaderWriterConfigured() == loaderWriterConfigured);
+    isCompatible = isCompatible && (otherConfiguration.isWriteBehindConfigured() == writeBehindConfigured);
 
     return isCompatible;
   }

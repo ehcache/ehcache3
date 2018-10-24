@@ -33,14 +33,23 @@ import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
 import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -307,6 +316,41 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
       }
     }
     return null;
+  }
+
+  /**
+   * Provider of {@link ClusteredLoaderWriterStore} instances.
+   */
+  @ServiceDependencies({ TimeSourceService.class, ClusteringService.class})
+  public static class Provider extends ClusteredStore.Provider {
+    @Override
+    protected <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig,
+                                                      OperationsCodec<K, V> codec,
+                                                      ChainResolver<K, V> resolver,
+                                                      TimeSource timeSource,
+                                                      boolean useLoaderInAtomics,
+                                                      Object[] serviceConfigs) {
+      return new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
+                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics);
+    }
+
+    @Override
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      int parentRank = super.rank(resourceTypes, serviceConfigs);
+      if (parentRank == 0 || serviceConfigs.stream().noneMatch(CacheLoaderWriterConfiguration.class::isInstance)) {
+        return 0;
+      }
+      return parentRank + 1;
+    }
+
+    @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      int parentRank = super.rankAuthority(authorityResource, serviceConfigs);
+      if (parentRank == 0 || serviceConfigs.stream().noneMatch(CacheLoaderWriterConfiguration.class::isInstance)) {
+        return 0;
+      }
+      return parentRank + 1;
+    }
   }
 
 }

@@ -174,6 +174,7 @@ public abstract class AbstractWriteBehindTestBase {
 
     try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testThatAllGetsReturnLatestData", configurationBuilder()
+        .withLoaderWriter(loaderWriter)
         .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
         .build());
 

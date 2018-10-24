@@ -575,7 +575,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
-    private volatile ExecutionService executionService;
+    protected volatile ExecutionService executionService;
 
     private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -641,19 +641,22 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           resolver = new ExpiryChainResolver<>(codec, expiry);
         }
 
-        ClusteredStore<K, V> store;
-        if (storeConfig.getCacheLoaderWriter() == null) {
-          store = new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
-        } else {
-          store = new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
-                  storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics());
-        }
+        ClusteredStore<K, V> store = createStore(storeConfig, codec, resolver, timeSource, storeConfig.useLoaderInAtomics(), serviceConfigs);
 
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
         return store;
       } finally {
         connectLock.unlock();
       }
+    }
+
+    protected <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig,
+                                                      OperationsCodec<K, V> codec,
+                                                      ChainResolver<K, V> resolver,
+                                                      TimeSource timeSource,
+                                                      boolean useLoaderInAtomics,
+                                                      Object[] serviceConfigs) {
+      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
     }
 
     @Override
@@ -684,42 +687,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
         try {
           ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-                  new ServerCallback() {
-                    @Override
-                    public void onInvalidateHash(long hash) {
-                      EvictionOutcome result = EvictionOutcome.SUCCESS;
-                      clusteredStore.evictionObserver.begin();
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
-                          clusteredStore.invalidationValve.invalidateAllWithHash(hash);
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating hash {}", hash, sae);
-                          result = EvictionOutcome.FAILURE;
-                        }
-                      }
-                      clusteredStore.evictionObserver.end(result);
-                    }
-
-                    @Override
-                    public void onInvalidateAll() {
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for all");
-                          clusteredStore.invalidationValve.invalidateAll();
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating all", sae);
-                        }
-                      }
-                    }
-
-                    @Override
-                    public Chain compact(Chain chain) {
-                      return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
-                    }
-                  });
+                                                                              getServerCallback(clusteredStore));
           ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
             Runnable reconnectTask = () -> {
               connectLock.lock();
@@ -766,6 +734,45 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       } finally {
         connectLock.unlock();
       }
+    }
+
+    protected ServerCallback getServerCallback(ClusteredStore<?, ?> clusteredStore) {
+      return new ServerCallback() {
+        @Override
+        public void onInvalidateHash(long hash) {
+          EvictionOutcome result = EvictionOutcome.SUCCESS;
+          clusteredStore.evictionObserver.begin();
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
+              result = EvictionOutcome.FAILURE;
+            }
+          }
+          clusteredStore.evictionObserver.end(result);
+        }
+
+        @Override
+        public void onInvalidateAll() {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for all");
+              clusteredStore.invalidationValve.invalidateAll();
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating all", sae);
+            }
+          }
+        }
+
+        @Override
+        public Chain compact(Chain chain) {
+          return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
+        }
+      };
     }
 
     @Override

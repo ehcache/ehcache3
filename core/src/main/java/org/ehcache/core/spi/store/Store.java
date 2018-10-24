@@ -513,7 +513,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * The Service used to create Stores.
-   * Implementation of {@link Provider} have be thread-safe.
+   * Implementation of {@link Provider} have to be thread-safe.
    */
   @PluralService
   interface Provider extends Service {

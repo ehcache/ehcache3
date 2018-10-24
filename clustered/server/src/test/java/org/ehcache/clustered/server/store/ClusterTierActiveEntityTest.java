@@ -1141,7 +1141,7 @@ public class ClusterTierActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency, false);
+        keySerializerType, valueSerializerType, consistency, false, false);
     }
   }
 

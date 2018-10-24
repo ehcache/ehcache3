@@ -20,31 +20,36 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class ConditionalRemoveOperation<K, V> extends BaseKeyValueOperation<K, V> {
+/**
+ * @param <K> key type
+ * @param <V> value type
+ */
+public class PutWithWriterOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
 
-  public ConditionalRemoveOperation(final K key, final V value, final long timeStamp) {
+  public PutWithWriterOperation(final K key, final V value, final long timeStamp) {
     super(key, value, timeStamp);
   }
 
-  ConditionalRemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  PutWithWriterOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     super(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   public OperationCode getOpCode() {
-    return OperationCode.REMOVE_CONDITIONAL;
+    return OperationCode.PUT_WITH_WRITER;
+  }
+
+  /**
+   * Put operation applied on top of another {@link Operation} does not care
+   * what the other operation is. The result is gonna be {@code this} operation.
+   */
+  @Override
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
+    return this;
   }
 
   @Override
-  public Result<K, V> apply(final Result<K, V> previousOperation) {
-    if (previousOperation == null) {
-      return null;
-    } else {
-      if (getValue().equals(previousOperation.getValue())) {
-        return null;
-      } else {
-        return previousOperation;
-      }
-    }
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    return new PutOperation<>(this, -expirationTime);
   }
 }

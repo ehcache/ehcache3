@@ -65,6 +65,8 @@ public class LockManagerImpl implements ServerLockManager {
       }
     });
 
-    removeHeldKeys.accept(heldKeys);
+    if (removeHeldKeys != null) {
+      removeHeldKeys.accept(heldKeys);
+    }
   }
 }

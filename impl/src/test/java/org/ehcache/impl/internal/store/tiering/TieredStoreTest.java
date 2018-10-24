@@ -648,6 +648,24 @@ public class TieredStoreTest {
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetAuthoritativeTierProvider() {
+    TieredStore.Provider provider = new TieredStore.Provider();
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    provider.start(serviceProvider);
+
+    AuthoritativeTier.Provider provider1 = mock(AuthoritativeTier.Provider.class);
+    when(provider1.rankAuthority(any(ResourceType.class), any())).thenReturn(1);
+    AuthoritativeTier.Provider provider2 = mock(AuthoritativeTier.Provider.class);
+    when(provider2.rankAuthority(any(ResourceType.class), any())).thenReturn(2);
+
+    when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(Arrays.asList(provider1,
+                                                                                                       provider2));
+
+    assertSame(provider.getAuthoritativeTierProvider(mock(ResourceType.class), Collections.emptyList()), provider2);
+  }
+
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     Assert.assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),

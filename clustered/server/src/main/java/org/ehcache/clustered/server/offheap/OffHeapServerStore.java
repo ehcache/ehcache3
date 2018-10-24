@@ -46,20 +46,28 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     this.segments = segments;
   }
 
-  OffHeapServerStore(PageSource source, KeySegmentMapper mapper) {
+  OffHeapServerStore(PageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      }
     }
   }
 
-  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper) {
+  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());
     long maxSize = getMaxSize(source.getPool().getSize());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int)KILOBYTES.toBytes(maxSize), false));
+      }
     }
   }
 

@@ -73,7 +73,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ServerStore newStore() {
-    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), DEFAULT_MAPPER);
+    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), DEFAULT_MAPPER, false);
   }
 
   @Override
@@ -265,7 +265,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     long seed = System.nanoTime();
     Random random = new Random(seed);
     try {
-      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), DEFAULT_MAPPER);
+      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), DEFAULT_MAPPER, false);
 
       ByteBuffer smallValue = ByteBuffer.allocate(1024);
       for (int i = 0; i < 10000; i++) {
@@ -293,7 +293,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   public void testServerSideUsageStats() {
 
     long maxBytes = MEGABYTES.toBytes(1);
-    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), maxBytes, MEGABYTES.toBytes(1)), new KeySegmentMapper(16));
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), maxBytes, MEGABYTES.toBytes(1)), new KeySegmentMapper(16), false);
 
     int oneKb = 1024;
     long smallLoopCount = 5;

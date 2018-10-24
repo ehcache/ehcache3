@@ -270,7 +270,8 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       }
     }
 
-    lockManager.sweepLocksForClient(clientDescriptor, heldKeys -> heldKeys.forEach(stateService.getStore(storeIdentifier)::remove));
+    lockManager.sweepLocksForClient(clientDescriptor,
+                                    configuration.isWriteBehindConfigured() ? null : heldKeys -> heldKeys.forEach(stateService.getStore(storeIdentifier)::remove));
 
     connectedClients.remove(clientDescriptor);
   }
@@ -395,7 +396,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         if (newChain.length() > chainCompactionLimit) {
           requestChainResolution(clientDescriptor, key, newChain);
         }
-        lockManager.unlock(key);
+        if (!configuration.isWriteBehindConfigured()) {
+          lockManager.unlock(key);
+        }
         return success();
       }
       case GET_AND_APPEND: {

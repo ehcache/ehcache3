@@ -20,6 +20,7 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.loaderwriter.writebehind.ClusteredWriteBehindStore;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -36,6 +37,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -253,7 +255,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       storeConfig.getValueType().getName(),
       (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
       (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-      configuredConsistency, storeConfig.getCacheLoaderWriter() != null);
+      configuredConsistency, storeConfig.getCacheLoaderWriter() != null,
+      invalidation instanceof ClusteredWriteBehindStore.WriteBehindServerCallback);
 
     ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 

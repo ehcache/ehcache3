@@ -203,7 +203,7 @@ public class ClusteredStoreProviderTest {
     };
   }
 
-  private static class UnmatchedResourceType implements ResourceType<ResourcePool> {
+  public static class UnmatchedResourceType implements ResourceType<ResourcePool> {
     @Override
     public Class<ResourcePool> getResourcePoolClass() {
       return ResourcePool.class;

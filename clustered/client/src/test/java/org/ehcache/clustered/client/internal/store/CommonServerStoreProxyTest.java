@@ -161,7 +161,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
     ServerCallback serverCallback = mock(ServerCallback.class);
-    when(serverCallback.compact(any(Chain.class))).thenReturn(getChain(false, buffer.duplicate()));
+    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(getChain(false, buffer.duplicate()));
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
 
     for (int i = 0; i < 8; i++) {
@@ -172,7 +172,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     //trigger compaction at > 8 entries
     serverStoreProxy.append(1L, buffer.duplicate());
-    verify(serverCallback).compact(any(Chain.class));
+    verify(serverCallback).compact(any(Chain.class), any(long.class));
     assertChainHas(serverStoreProxy.get(1L), 42L);
   }
 
