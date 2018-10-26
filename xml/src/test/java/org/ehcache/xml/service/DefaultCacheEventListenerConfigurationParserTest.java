@@ -19,40 +19,34 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.EventFiringType;
 import org.ehcache.xml.model.EventOrderingType;
 import org.ehcache.xml.model.ListenersType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.integration.TestCacheEventListener;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.event.EventFiring.SYNCHRONOUS;
 import static org.ehcache.event.EventOrdering.UNORDERED;
 import static org.ehcache.event.EventType.CREATED;
 import static org.ehcache.event.EventType.REMOVED;
 
-public class DefaultCacheEventListenerConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultCacheEventListenerConfigurationParserTest() {
-    super(new DefaultCacheEventListenerConfigurationParser());
-  }
+public class DefaultCacheEventListenerConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/ehcache-cacheEventListener.xml", "bar");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/ehcache-cacheEventListener.xml")).getCacheConfigurations().get("bar");
 
     DefaultCacheEventListenerConfiguration listenerConfig =
       findSingletonAmongst(DefaultCacheEventListenerConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -72,9 +66,9 @@ public class DefaultCacheEventListenerConfigurationParserTest extends ServiceCon
     listenerConfig.setEventFiringMode(SYNCHRONOUS);
     listenerConfig.setEventOrderingMode(UNORDERED);
 
-    CacheConfiguration<?, ?> cacheConfig = buildCacheConfigWithServiceConfig(listenerConfig);
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(listenerConfig).build();
     CacheType cacheType = new CacheType();
-    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+    cacheType = new DefaultCacheEventListenerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 
     List<ListenersType.Listener> listeners = cacheType.getListeners().getListener();
     assertThat(listeners).hasSize(1);
@@ -92,11 +86,11 @@ public class DefaultCacheEventListenerConfigurationParserTest extends ServiceCon
     listenerConfig.setEventFiringMode(SYNCHRONOUS);
     listenerConfig.setEventOrderingMode(UNORDERED);
 
-    CacheConfiguration<?, ?> cacheConfig = buildCacheConfigWithServiceConfig(listenerConfig);
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(listenerConfig).build();
     CacheType cacheType = new CacheType();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
-      parser.unparseServiceConfiguration(cacheConfig, cacheType))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      new DefaultCacheEventListenerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultCacheEventListenerConfiguration is not supported");
   }
 }

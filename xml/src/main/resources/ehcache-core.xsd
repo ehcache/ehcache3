@@ -19,6 +19,15 @@
            xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="2.0"
            xmlns:annox="http://annox.dev.java.net" jaxb:extensionBindingPrefixes="annox"
            elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
+
+  <xs:annotation>
+    <xs:appinfo>
+      <jaxb:schemaBindings>
+        <jaxb:package name="org.ehcache.xml.model"/>
+      </jaxb:schemaBindings>
+    </xs:appinfo>
+  </xs:annotation>
+
   <xs:element name="config" type="ehcache:config-type"/>
 
   <xs:complexType name="config-type">

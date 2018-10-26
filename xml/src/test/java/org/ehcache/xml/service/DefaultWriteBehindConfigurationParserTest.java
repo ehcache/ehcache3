@@ -18,32 +18,25 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultWriteBehindConfigurationParserTest() {
-    super(new DefaultWriteBehindConfigurationParser());
-  }
+public class DefaultWriteBehindConfigurationParserTest {
 
   @Test
   public void parseServiceConfigurationNonBatching() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "bar");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/writebehind-cache.xml")).getCacheConfigurations().get("bar");
     DefaultWriteBehindConfiguration writeBehindConfig =
       findSingletonAmongst(DefaultWriteBehindConfiguration.class, cacheConfiguration.getServiceConfigurations());
 
@@ -55,7 +48,7 @@ public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurat
 
   @Test
   public void parseServiceConfigurationBatching() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "template1");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/writebehind-cache.xml")).getCacheConfigurations().get("template1");
     DefaultWriteBehindConfiguration writeBehindConfig =
       findSingletonAmongst(DefaultWriteBehindConfiguration.class, cacheConfiguration.getServiceConfigurations());
 
@@ -75,9 +68,9 @@ public class DefaultWriteBehindConfigurationParserTest extends ServiceConfigurat
     WriteBehindConfiguration writeBehindConfiguration =
       WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(123, TimeUnit.SECONDS, 987)
       .enableCoalescing().concurrencyLevel(8).useThreadPool("foo").queueSize(16).build();
-    CacheConfiguration<?, ?> cacheConfig = buildCacheConfigWithServiceConfig(writeBehindConfiguration);
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(writeBehindConfiguration).build();
     CacheType cacheType = new CacheType();
-    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+    cacheType = new DefaultWriteBehindConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 
     CacheLoaderWriterType.WriteBehind writeBehind = cacheType.getLoaderWriter().getWriteBehind();
     assertThat(writeBehind.getThreadPool()).isEqualTo("foo");

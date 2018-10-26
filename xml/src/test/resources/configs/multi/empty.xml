@@ -1,0 +1,5 @@
+
+<multi:configurations
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:multi='http://www.ehcache.org/v3/multi'>
+</multi:configurations>

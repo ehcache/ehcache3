@@ -623,7 +623,7 @@ public class XmlConfigurationTest {
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The url can not be null");
-    new XmlConfiguration(null, mock(ClassLoader.class), getClassLoaderMapMock());
+    new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock());
   }
 
   @Test
@@ -742,15 +742,15 @@ public class XmlConfigurationTest {
 
   @Test
   public void testSysPropReplaceRegExp() {
-    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}", System.getProperties()), equalTo("foo" + File.separator));
-    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}", System.getProperties()), equalTo(File.separator + "foo" + File.separator));
+    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}"), equalTo("foo" + File.separator));
+    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}"), equalTo(File.separator + "foo" + File.separator));
     try {
-      ConfigurationParser.replaceProperties("${bar}foo", System.getProperties());
+      ConfigurationParser.replaceProperties("${bar}foo");
       fail("Should have thrown!");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage().contains("${bar}"), is(true));
     }
-    assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
+    assertThat(ConfigurationParser.replaceProperties("foo"), nullValue());
   }
 
   @Test

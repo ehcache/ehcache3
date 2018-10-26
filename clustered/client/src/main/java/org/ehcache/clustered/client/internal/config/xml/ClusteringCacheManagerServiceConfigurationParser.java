@@ -311,7 +311,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createTimeoutElement(Document doc, String timeoutName, Duration timeout) {
-    Element retElement = null;
+    Element retElement;
     if (READ_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
       retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + READ_TIMEOUT_ELEMENT_NAME);
     } else if (WRITE_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
@@ -425,7 +425,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   private Duration processTimeout(Element parentElement, Node timeoutNode) {
     try {
       // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
+      JAXBContext context = JAXBContext.newInstance(TimeType.class);
       Unmarshaller unmarshaller = context.createUnmarshaller();
       JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
 

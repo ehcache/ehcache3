@@ -21,6 +21,7 @@ import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.SerializerType;
 import org.junit.Test;
@@ -42,15 +43,11 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultSerializationProviderConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
-
-  public DefaultSerializationProviderConfigurationParserTest() {
-    super(new DefaultSerializationProviderConfigurationParser());
-  }
+public class DefaultSerializationProviderConfigurationParserTest {
 
   @Test
   public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
-    Configuration xmlConfig = parseXmlConfiguration("/configs/default-serializer.xml");
+    Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/default-serializer.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
@@ -75,7 +72,7 @@ public class DefaultSerializationProviderConfigurationParserTest extends Service
     providerConfig.addSerializerFor(Person.class, (Class) TestSerializer4.class);
 
     Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
-    ConfigType configType = parser.unparseServiceCreationConfiguration(config, new ConfigType());
+    ConfigType configType = new DefaultSerializationProviderConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     List<SerializerType.Serializer> serializers = configType.getDefaultSerializers().getSerializer();
     assertThat(serializers).hasSize(2);

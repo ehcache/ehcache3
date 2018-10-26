@@ -24,22 +24,16 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.CacheTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
-import static java.util.stream.Collectors.joining;
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static java.util.Objects.requireNonNull;
+import static org.ehcache.xml.ConfigurationParser.documentToText;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
@@ -49,18 +43,21 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
  */
 public class XmlConfiguration implements Configuration {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(XmlConfiguration.class);
+  public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
 
-  private final URL xml;
-  private final ConfigurationParser parser;
+  private final URL source;
+  private final Document document;
+  private final String renderedDocument;
+
   private final Configuration configuration;
-  private final Map<String, CacheTemplate> templates;
-  private final String xmlString;
+  private final Map<String, ClassLoader> cacheClassLoaders;
+  private final Map<String, Template> templates;
 
   /**
-   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
+   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}.
    * <p>
-   * Parses the XML file at the {@code url} provided.
+   * The default ClassLoader will first try to use the thread context class loader, followed by the ClassLoader that
+   * loaded the Ehcache classes.
    *
    * @param url URL pointing to the XML file's location
    *
@@ -74,8 +71,6 @@ public class XmlConfiguration implements Configuration {
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances).
-   * <p>
-   * Parses the XML file at the {@code url} provided.
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
@@ -91,9 +86,8 @@ public class XmlConfiguration implements Configuration {
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
    * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
-   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}
-   * <p>
-   * Parses the XML file at the {@code url} provided.
+   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
+   * aliases that do not appear in the map will use {@code classLoader} as a default.
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
@@ -103,25 +97,19 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
       throws XmlConfigurationException {
-    if(url == null) {
-      throw new NullPointerException("The url can not be null");
-    }
-    if(classLoader == null) {
-      throw new NullPointerException("The classLoader can not be null");
-    }
-    if(cacheClassLoaders == null) {
-      throw new NullPointerException("The cacheClassLoaders map can not be null");
-    }
-    this.xml = url;
+
+    this.source = requireNonNull(url, "The url can not be null");
+    requireNonNull(classLoader, "The classLoader can not be null");
+    this.cacheClassLoaders = requireNonNull(cacheClassLoaders, "The cacheClassLoaders map can not be null");
 
     try {
-      this.parser = new ConfigurationParser();
-      ConfigurationParser.XmlConfigurationWrapper xmlConfigurationWrapper = parser.parseConfiguration(url.toExternalForm(), classLoader, cacheClassLoaders);
-      configuration = xmlConfigurationWrapper.getConfiguration();
-      templates = xmlConfigurationWrapper.getTemplates();
-      try (BufferedReader buffer = new BufferedReader(new InputStreamReader(xml.openStream(), Charset.defaultCharset()))) {
-        xmlString = buffer.lines().collect(joining("\n"));
-      }
+      ConfigurationParser parser = new ConfigurationParser();
+      this.document = parser.uriToDocument(source.toURI());
+      ConfigurationParser.XmlConfigurationWrapper configWrapper = parser.documentToConfig(document, classLoader, cacheClassLoaders);
+      this.configuration = configWrapper.getConfiguration();
+      this.templates = configWrapper.getTemplates();
+
+      this.renderedDocument = ConfigurationParser.urlToText(url, document.getInputEncoding());
     } catch (XmlConfigurationException e) {
       throw e;
     } catch (Exception e) {
@@ -129,14 +117,84 @@ public class XmlConfiguration implements Configuration {
     }
   }
 
-  public XmlConfiguration(Configuration configuration) {
-    this.xml = null;
-    this.configuration = configuration;
-    this.templates = emptyMap();
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM.
+   * <p>
+   * The default ClassLoader will first try to use the thread context class loader, followed by the ClassLoader that
+   * loaded the Ehcache classes.
+   *
+   * @param xml XML Document Object Model
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml) throws XmlConfigurationException {
+    this(xml, ClassLoading.getDefaultClassLoader());
+  }
 
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM and using the provided {@code classLoader} to
+   * load user types (e.g. key and value Class instances).
+   *
+   * @param xml XML Document Object Model
+   * @param classLoader ClassLoader to use to load user types.
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml, ClassLoader classLoader) throws XmlConfigurationException {
+    this(xml, classLoader, emptyMap());
+  }
+
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM and using the provided {@code classLoader} to
+   * load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will let you specify a
+   * different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by the
+   * {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
+   * aliases that do not appear in the map will use {@code classLoader} as a default.
+   *
+   * @param xml XML Document Object Model
+   * @param classLoader ClassLoader to use to load user types.
+   * @param cacheClassLoaders the map with mappings between cache names and the corresponding class loaders
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws XmlConfigurationException {
+    requireNonNull(xml, "The source-element cannot be null");
+    requireNonNull(classLoader, "The classLoader can not be null");
+    this.cacheClassLoaders = requireNonNull(cacheClassLoaders, "The cacheClassLoaders map can not be null");
+
+    this.source = null;
     try {
-      this.parser = new ConfigurationParser();
-      this.xmlString = parser.unparseConfiguration(configuration);
+      ConfigurationParser parser = new ConfigurationParser();
+      this.document = xml;
+      ConfigurationParser.XmlConfigurationWrapper configWrapper = parser.documentToConfig(document, classLoader, cacheClassLoaders);
+      this.configuration = configWrapper.getConfiguration();
+      this.templates = configWrapper.getTemplates();
+
+      this.renderedDocument = documentToText(xml);
+    } catch (XmlConfigurationException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new XmlConfigurationException("Error parsing XML configuration", e);
+    }
+  }
+
+  /**
+   * Constructs an instance of XmlConfiguration from an existing configuration object.
+   *
+   * @param configuration existing configuration
+   *
+   * @throws XmlConfigurationException if anything went wrong converting to XML
+   */
+  public XmlConfiguration(Configuration configuration) throws XmlConfigurationException {
+    this.source = null;
+    this.cacheClassLoaders = emptyMap();
+    try {
+      ConfigurationParser parser = new ConfigurationParser();
+      this.configuration = configuration;
+      this.templates = emptyMap();
+
+      this.document = parser.configToDocument(configuration);
+      this.renderedDocument = documentToText(document);
     } catch (XmlConfigurationException e) {
       throw e;
     } catch (Exception e) {
@@ -144,9 +202,27 @@ public class XmlConfiguration implements Configuration {
     }
   }
 
+  /**
+   * Return this configuration as an XML {@link org.w3c.dom.Document}.
+   *
+   * @return configuration XML DOM.
+   */
+  public Document asDocument() {
+    return document;
+  }
+
+  /**
+   * Return this configuration as a rendered XML string.
+   *
+   * @return configuration XML string
+   */
+  public String asRenderedDocument() {
+    return renderedDocument;
+  }
+
   @Override
   public String toString() {
-    return xmlString;
+    return asRenderedDocument();
   }
 
   /**
@@ -154,7 +230,7 @@ public class XmlConfiguration implements Configuration {
    * @return The URL provided at object instantiation
    */
   public URL getURL() {
-    return xml;
+    return source;
   }
 
   /**
@@ -186,7 +262,12 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, null);
+    Template template = templates.get(name);
+    if (template == null) {
+      return null;
+    } else {
+      return template.builderFor(cacheClassLoaders.getOrDefault(name, getClassLoader()), keyType, valueType, null);
+    }
   }
 
   /**
@@ -216,7 +297,12 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<V> valueType,
                                                                                          final ResourcePools resourcePools)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePools);
+    Template template = templates.get(name);
+    if (template == null) {
+      return null;
+    } else {
+      return template.builderFor(cacheClassLoaders.getOrDefault(name, getClassLoader()), keyType, valueType, requireNonNull(resourcePools));
+    }
   }
 
   /**
@@ -246,47 +332,7 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<V> valueType,
                                                                                          final Builder<? extends ResourcePools> resourcePoolsBuilder)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
-  }
-
-  @SuppressWarnings("unchecked")
-  private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(String name,
-                                                                                               Class<K> keyType,
-                                                                                               Class<V> valueType,
-                                                                                               ResourcePools resourcePools)
-        throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-
-    final CacheTemplate cacheTemplate = templates.get(name);
-    if (cacheTemplate == null) {
-      return null;
-    }
-
-    checkTemplateTypeConsistency("key", keyType, cacheTemplate);
-    checkTemplateTypeConsistency("value", valueType, cacheTemplate);
-
-    if ((resourcePools == null || resourcePools.getResourceTypeSet().isEmpty()) && cacheTemplate.getHeap() == null && cacheTemplate.getResources().isEmpty()) {
-      throw new IllegalStateException("Template defines no resources, and none were provided");
-    }
-
-    if (resourcePools == null) {
-      resourcePools = parser.getResourceConfigurationParser().parseResourceConfiguration(cacheTemplate, newResourcePoolsBuilder());
-    }
-
-    return parser.parseServiceConfigurations(newCacheConfigurationBuilder(keyType, valueType, resourcePools), ClassLoading.getDefaultClassLoader(), cacheTemplate);
-  }
-
-  private static <T> void checkTemplateTypeConsistency(String type, Class<T> providedType, CacheTemplate template) throws ClassNotFoundException {
-    ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-    Class<?> templateType;
-    if (type.equals("key")) {
-      templateType = getClassForName(template.keyType(), defaultClassLoader);
-    } else {
-      templateType = getClassForName(template.valueType(), defaultClassLoader);
-    }
-
-    if(providedType == null || !templateType.isAssignableFrom(providedType)) {
-      throw new IllegalArgumentException("CacheTemplate '" + template.id() + "' declares " + type + " type of " + templateType.getName() + ". Provided: " + providedType);
-    }
+    return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
   public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
@@ -306,5 +352,9 @@ public class XmlConfiguration implements Configuration {
   @Override
   public ClassLoader getClassLoader() {
     return configuration.getClassLoader();
+  }
+
+  public interface Template {
+    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
   }
 }
