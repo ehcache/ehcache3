@@ -16,14 +16,14 @@
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutWithWriterOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutWithWriterOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.Util;

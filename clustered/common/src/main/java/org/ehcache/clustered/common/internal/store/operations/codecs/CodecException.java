@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
+package org.ehcache.clustered.common.internal.store.operations.codecs;
 
 /**
  * Thrown when a payload can not be encoded or decoded

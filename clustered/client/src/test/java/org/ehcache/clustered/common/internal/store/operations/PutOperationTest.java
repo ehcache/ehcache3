@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.client.internal.store.operations;
+
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -22,29 +23,29 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class PutWithWriterOperationTest extends BaseKeyValueOperationTest {
+public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(K key, V value, long timestamp) {
-    return new PutWithWriterOperation<>(key, value, timestamp);
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
+    return new PutOperation<>(key, value, timestamp);
   }
 
   @Override
-  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    return new PutWithWriterOperation<>(buffer, keySerializer, valueSerializer);
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    return new PutOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   protected OperationCode getOperationCode() {
-    return OperationCode.PUT_WITH_WRITER;
+    return OperationCode.PUT;
   }
 
   @Test
-  public void testApply() {
-    PutWithWriterOperation<Long, String> putOperation = new PutWithWriterOperation<>(1L, "one", System.currentTimeMillis());
+  public void testApply() throws Exception {
+    PutOperation<Long, String> putOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
     Result<Long, String> result = putOperation.apply(null);
     assertSame(putOperation, result);
-    PutWithWriterOperation<Long, String> anotherOperation = new PutWithWriterOperation<>(1L, "two", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "two", System.currentTimeMillis());
     result = anotherOperation.apply(putOperation);
     assertSame(anotherOperation, result);
   }

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
+package org.ehcache.clustered.common.internal.store.operations.codecs;
 
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-import org.ehcache.clustered.client.internal.store.operations.OperationCode;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.OperationCode;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;

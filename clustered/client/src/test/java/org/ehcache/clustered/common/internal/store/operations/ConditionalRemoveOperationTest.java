@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -23,31 +23,35 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
+public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new PutIfAbsentOperation<>(key, value, timestamp);
+    return new ConditionalRemoveOperation<>(key, value, timestamp);
   }
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    return new PutIfAbsentOperation<>(buffer, keySerializer, valueSerializer);
+    return new ConditionalRemoveOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   protected OperationCode getOperationCode() {
-    return OperationCode.PUT_IF_ABSENT;
+    return OperationCode.REMOVE_CONDITIONAL;
   }
 
   @Test
   public void testApply() throws Exception {
-    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<>(1L, "one", System.currentTimeMillis());
+    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<>(1L, "one", System.currentTimeMillis());
     Result<Long, String> result = operation.apply(null);
-    assertSame(operation, result);
+    assertNull(result);
 
-    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<>(1L, "another one", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
-    assertSame(anotherOperation, result);
+    assertNull(result);
+
+    PutIfAbsentOperation<Long, String> yetAnotherOperation = new PutIfAbsentOperation<>(1L, "two", System.currentTimeMillis());
+    result = operation.apply(yetAnotherOperation);
+    assertSame(yetAnotherOperation, result);
   }
 }
