@@ -38,7 +38,7 @@ test {
 }
 
 xjcGenerate {
-  source = fileTree('src/main/resources') { include 'ehcache-core.xsd', 'ehcache-multi.xsd' }
+  source = ['src/main/resources/ehcache-core.xsd', 'src/main/resources/ehcache-multi.xsd']
   extension = true
   extraArgs = ['-Xfluent-api', '-Xannotate']
 }
