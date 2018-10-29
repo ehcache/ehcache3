@@ -27,7 +27,9 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.ContextManager;
@@ -48,6 +50,7 @@ import java.util.function.Supplier;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 

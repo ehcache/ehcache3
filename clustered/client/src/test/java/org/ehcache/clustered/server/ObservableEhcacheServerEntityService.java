@@ -18,7 +18,6 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
@@ -33,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Provides an alternative to {@link ClusterTierManagerServerEntityService} for unit tests to enable observing
