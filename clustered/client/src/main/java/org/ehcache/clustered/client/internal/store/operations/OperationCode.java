@@ -57,6 +57,12 @@ public enum OperationCode {
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
       return new ConditionalReplaceOperation<>(buffer, keySerializer, valueSerializer);
     }
+  },
+  PUT_WITH_WRITER((byte)7) {
+    @Override
+    public <K, V> Operation<K, V> decode(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+      return new PutWithWriterOperation<>(buffer, keySerializer, valueSerializer);
+    }
   };
 
   private final byte value;
@@ -85,6 +91,8 @@ public enum OperationCode {
         return REPLACE;
       case 6:
         return REPLACE_CONDITIONAL;
+      case 7:
+        return PUT_WITH_WRITER;
       default:
         throw new IllegalArgumentException("Operation undefined for the value " + value);
     }

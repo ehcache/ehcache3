@@ -52,6 +52,6 @@ public class ReplicationUtil {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(resourceName, 8, MB);
     return new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
         String.class.getName(), String.class.getName(), CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
-        .getName(), Consistency.STRONG);
+        .getName(), Consistency.STRONG, false);
   }
 }

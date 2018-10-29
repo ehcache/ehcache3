@@ -24,6 +24,7 @@ import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -160,7 +161,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
+   * Tests {@link Ehcache#putAll(Map)} for
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -186,7 +187,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
+   * Tests {@link Ehcache#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -215,7 +216,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
+   * Tests {@link Ehcache#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -249,7 +250,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
+   * Tests {@link Ehcache#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -280,45 +281,6 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
-  @Test
-  @SuppressWarnings("unchecked")
-  public void putAllStoreCallsMethodTwice() throws Exception {
-    this.store = mock(Store.class);
-    CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    final List<Map.Entry<?, ?>> written = new ArrayList<>();
-    doAnswer(invocation -> {
-      Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
-      for (Map.Entry<?, ?> entry : i) {
-        if (entry.getKey() == null) fail("null key is forbidden in CacheLoaderWriter.writeAll()");
-        if (entry.getValue() == null) fail("null value is forbidden in CacheLoaderWriter.writeAll()");
-        written.add(entry);
-      }
-      return null;
-    }).when(cacheLoaderWriter).writeAll(any(Iterable.class));
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
-
-    ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>>
-      functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
-
-    Map<String, String> map = new HashMap<>();
-    map.put("1", "one");
-    map.put("2", "two");
-
-    when(store.bulkCompute(ArgumentMatchers.anySet(), functionArgumentCaptor.capture())).then(invocation -> {
-      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function =
-        functionArgumentCaptor.getValue();
-      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = map.entrySet();
-      function.apply(arg);
-      function.apply(arg);
-      return null;
-    });
-
-    ehcache.putAll(map);
-
-    assertThat(written.size(), is(2));
-    assertThat(written.contains(new AbstractMap.SimpleEntry<>("1", "one")), is(true));
-    assertThat(written.contains(new AbstractMap.SimpleEntry<>("2", "two")), is(true));
-  }
 
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance
@@ -327,14 +289,6 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
-      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
-    ehcache.init();
-    assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    return ehcache;
-  }
-
-  private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
@@ -389,7 +343,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
-   * @param contentUpdates the {@code Map} provided to the {@link EhcacheWithLoaderWriter#putAll(java.util.Map)} call in the test
+   * @param contentUpdates the {@code Map} provided to the {@link Ehcache#putAll(java.util.Map)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
    * @param bcweSuccesses the {@code Set} from {@link BulkCacheWritingException#getSuccesses()}

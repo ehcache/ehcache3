@@ -29,6 +29,7 @@ import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +108,7 @@ class ConfigurationMerger {
       }
 
       boolean useEhcacheLoaderWriter;
-      DefaultCacheLoaderWriterConfiguration ehcacheLoaderWriterConfiguration = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
+      CacheLoaderWriterConfiguration ehcacheLoaderWriterConfiguration = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
       if (ehcacheLoaderWriterConfiguration == null) {
         useEhcacheLoaderWriter = false;
         // No template loader/writer - let's activate the JSR-107 one if any

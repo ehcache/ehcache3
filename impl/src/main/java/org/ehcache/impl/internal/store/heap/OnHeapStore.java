@@ -92,6 +92,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -422,7 +423,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
 
@@ -1064,12 +1065,75 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+
+    computeObserver.begin();
+
+    long now = timeSource.getTimeMillis();
+    StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    try {
+      AtomicReference<OnHeapValueHolder<V>> oldValue = new AtomicReference<>();
+      AtomicReference<StoreOperationOutcomes.ComputeOutcome> outcome =
+              new AtomicReference<>(StoreOperationOutcomes.ComputeOutcome.MISS);
+
+      map.compute(key, (mappedKey, mappedValue) -> {
+        long delta = 0L;
+
+        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+          fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
+          delta -= mappedValue.size();
+          mappedValue = null;
+        }
+
+        OnHeapValueHolder<V> holder;
+        V existingValue = mappedValue == null ? null : mappedValue.get();
+        if (mappedValue != null) {
+          oldValue.set(mappedValue);
+        }
+        V computedValue = mappingFunction.apply(mappedKey, existingValue);
+        if (computedValue == null) {
+          if (existingValue != null) {
+            eventSink.removed(mappedKey, mappedValue);
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+            delta -= mappedValue.size();
+          }
+          holder = null;
+        } else {
+          checkValue(computedValue);
+          if (mappedValue != null) {
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+            holder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
+            delta -= mappedValue.size();
+            if (holder != null) {
+              delta += holder.size();
+            }
+          } else {
+            holder = newCreateValueHolder(key, computedValue, now, eventSink);
+            if (holder != null) {
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+              delta += holder.size();
+            }
+          }
+        }
+
+        updateUsageInBytesIfRequired(delta);
+
+        return holder;
+      });
+
+      storeEventDispatcher.releaseEventSink(eventSink);
+      enforceCapacity();
+      computeObserver.end(outcome.get());
+      return oldValue.get();
+    } catch (RuntimeException re) {
+      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      throw handleException(re);
+    }
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -1264,7 +1328,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     for (K key : keys) {
       checkKey(key);
 
-      ValueHolder<V> newValue = compute(key, (k, oldValue) -> {
+      ValueHolder<V> newValue = computeAndGet(key, (k, oldValue) -> {
         Set<Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
         Iterable<? extends Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
         java.util.Iterator<? extends Entry<? extends K, ? extends V>> iterator = entries.iterator();
@@ -1277,7 +1341,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           checkValue(value);
         }
         return value;
-      }, replaceEqual);
+      }, replaceEqual, () -> false);
       result.put(key, newValue);
     }
     return result;

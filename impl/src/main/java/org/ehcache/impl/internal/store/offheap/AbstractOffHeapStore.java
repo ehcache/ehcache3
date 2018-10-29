@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -260,7 +261,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, StoreAccessException {
+  public Store.ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws NullPointerException, StoreAccessException {
     checkKey(key);
     checkValue(value);
 
@@ -520,12 +521,76 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+
+    computeObserver.begin();
+
+    AtomicBoolean write = new AtomicBoolean(false);
+    AtomicReference<OffHeapValueHolder<V>> valueHeld = new AtomicReference<>();
+    AtomicReference<OffHeapValueHolder<V>> existingValueHolder = new AtomicReference<>();
+    StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
+      long now = timeSource.getTimeMillis();
+      V existingValue = null;
+      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null) {
+          onExpiration(mappedKey, mappedValue, eventSink);
+        }
+        mappedValue = null;
+      } else {
+        existingValue = mappedValue.get();
+        existingValueHolder.set(mappedValue);
+      }
+      V computedValue = mappingFunction.apply(mappedKey, existingValue);
+      if (computedValue == null) {
+        if (mappedValue != null) {
+          write.set(true);
+          eventSink.removed(mappedKey, mappedValue);
+        }
+        return null;
+      }
+
+      checkValue(computedValue);
+      write.set(true);
+      if (mappedValue != null) {
+        OffHeapValueHolder<V> valueHolder = newUpdatedValueHolder(key, computedValue, mappedValue, now, eventSink);
+        if (valueHolder == null) {
+          valueHeld.set(new BasicOffHeapValueHolder<>(mappedValue.getId(), computedValue, now, now));
+        }
+        return valueHolder;
+      } else {
+        return newCreateValueHolder(key, computedValue, now, eventSink);
+      }
+    };
+
+    OffHeapValueHolder<V> result;
+    try {
+      result = computeWithRetry(key, computeFunction, false);
+      if (result == null && valueHeld.get() != null) {
+        result = valueHeld.get();
+      }
+      eventDispatcher.releaseEventSink(eventSink);
+      if (result == null) {
+        if (write.get()) {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+        } else {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
+        }
+      } else if (write.get()) {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
+      } else {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
+      }
+      return existingValueHolder.get();
+    } catch (StoreAccessException | RuntimeException caex) {
+      eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
+      throw caex;
+    }
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -719,7 +784,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
           return null;
         }
       };
-      ValueHolder<V> computed = compute(key, biFunction, replaceEqual);
+      ValueHolder<V> computed = computeAndGet(key, biFunction, replaceEqual, () -> false);
       result.put(key, computed);
     }
     return result;

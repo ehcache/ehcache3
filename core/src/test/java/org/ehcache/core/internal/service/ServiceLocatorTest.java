@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.services.TestMandatoryServiceFactory;
 import org.ehcache.core.spi.services.ranking.RankServiceB;
 import org.ehcache.core.spi.services.ranking.RankServiceA;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.CacheProvider;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
@@ -518,12 +518,12 @@ class OptService2 implements Service {
 class YetAnotherCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(EhcacheWithLoaderWriter<?, ?> resource) {
+  public void releaseCache(Ehcache<?, ?> resource) {
     // no-op
   }
 

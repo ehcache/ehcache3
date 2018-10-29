@@ -52,7 +52,6 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 

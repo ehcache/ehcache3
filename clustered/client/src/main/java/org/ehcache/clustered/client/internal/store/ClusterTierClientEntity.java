@@ -53,7 +53,7 @@ public interface ClusterTierClientEntity extends Entity {
 
   void addDisconnectionListener(DisconnectionListener disconnectionListener);
 
-  void setReconnectListener(ReconnectListener reconnectListener);
+  void addReconnectListener(ReconnectListener reconnectListener);
 
   interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);

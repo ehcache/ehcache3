@@ -23,6 +23,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.impl.internal.util.CheckerUtil;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -69,6 +70,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -85,7 +87,7 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link javax.transaction.TransactionManager} using the XA 2-phase commit protocol.
  */
-public class XAStore<K, V> implements Store<K, V> {
+public class XAStore<K, V> implements WrapperStore<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
 
@@ -264,7 +266,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -515,7 +517,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -551,8 +553,64 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V computed = mappingFunction.apply(key, currentContext.newValueOf(key));
+      XAValueHolder<V> returnValueholder = null;
+      if (computed != null) {
+        checkValue(computed);
+        XAValueHolder<V> xaValueHolder = new XAValueHolder<>(computed, timeSource.getTimeMillis());
+        V returnValue = currentContext.newValueOf(key);
+        V oldValue = currentContext.oldValueOf(key);
+        if (returnValue != null) {
+          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+        }
+        currentContext.addCommand(key, new StorePutCommand<>(oldValue, xaValueHolder));
+      } else {
+        V returnValue = currentContext.newValueOf(key);
+        V oldValue = currentContext.oldValueOf(key);
+        if (returnValue != null) {
+          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+        }
+        if (oldValue != null) {
+          currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
+        } else {
+          currentContext.removeCommand(key);
+        }
+      }
+      return returnValueholder;
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+
+    XAValueHolder<V> oldValueHolder = null;
+    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.get();
+    V oldValue = softLock == null ? null : softLock.getOldValue();
+    V newValue = mappingFunction.apply(key, oldValue);
+    XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<>(newValue, timeSource.getTimeMillis());
+    if (newValue != null) {
+      checkValue(newValue);
+    }
+
+    if (softLock != null && isInDoubt(softLock)) {
+      currentContext.addCommand(key, new StoreEvictCommand<>(oldValue));
+    } else {
+      if (xaValueHolder == null) {
+        if (oldValue != null) {
+          currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
+        }
+      } else {
+        currentContext.addCommand(key, new StorePutCommand<>(oldValue, xaValueHolder));
+      }
+    }
+
+    if (oldValue != null) {
+      oldValueHolder = new XAValueHolder<>(oldValue, timeSource.getTimeMillis());
+    }
+
+    return oldValueHolder;
   }
 
   @Override
@@ -638,7 +696,7 @@ public class XAStore<K, V> implements Store<K, V> {
     for (K key : keys) {
       checkKey(key);
 
-      final ValueHolder<V> newValue = compute(key, (k, oldValue) -> {
+      final ValueHolder<V> newValue = computeAndGet(key, (k, oldValue) -> {
         final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
         final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
         final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
@@ -651,7 +709,7 @@ public class XAStore<K, V> implements Store<K, V> {
           checkValue(value);
         }
         return value;
-      }, replaceEqual);
+      }, replaceEqual, () -> false);
       result.put(key, newValue);
     }
     return result;
@@ -709,7 +767,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
-  public static class Provider implements Store.Provider {
+  public static class Provider implements WrapperStore.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
@@ -717,18 +775,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      final XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
-      if (xaServiceConfiguration == null) {
-        // An XAStore must be configured for use
-        return 0;
-      } else {
-        if (this.transactionManagerProvider == null) {
-          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
-        }
-      }
-
-      final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);
-      return 1000 + candidateUnderlyingProvider.rank(resourceTypes, serviceConfigs);
+      throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
     }
 
     @Override
@@ -750,8 +797,8 @@ public class XAStore<K, V> implements Store<K, V> {
 
       List<ServiceConfiguration<?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
-      Store.Provider underlyingStoreProvider =
-          selectProvider(configuredTypes, serviceConfigList, xaServiceConfiguration);
+      Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
+              storeConfig.getResourcePools().getResourceTypeSet(), serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
@@ -893,7 +940,7 @@ public class XAStore<K, V> implements Store<K, V> {
       Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
         storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig
         .getKeySerializer(), softLockValueCombinedSerializer);
-      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
 
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
@@ -971,12 +1018,18 @@ public class XAStore<K, V> implements Store<K, V> {
       this.serviceProvider = null;
     }
 
-    private Store.Provider selectProvider(final Set<ResourceType<?>> resourceTypes,
-                                          final Collection<ServiceConfiguration<?>> serviceConfigs,
-                                          final XAStoreConfiguration xaConfig) {
-      List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<>(serviceConfigs);
-      configsWithoutXA.remove(xaConfig);
-      return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutXA);
+    @Override
+    public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+      XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
+      if (xaServiceConfiguration == null) {
+        // An XAStore must be configured for use
+        return 0;
+      } else {
+        if (this.transactionManagerProvider == null) {
+          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
+        }
+      }
+      return 1;
     }
   }
 

@@ -40,6 +40,10 @@ public interface ServerStoreProxy extends ServerStore {
     void onInvalidateAll();
 
     Chain compact(Chain chain);
+
+    default Chain compact(Chain chain, long hash) {
+      return compact(chain);
+    }
   }
 
   /**

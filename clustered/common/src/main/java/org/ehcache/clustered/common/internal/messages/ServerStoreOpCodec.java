@@ -78,6 +78,11 @@ public class ServerStoreOpCodec {
     .int64(KEY_FIELD, 30)
     .build();
 
+  private static final Struct LOCK_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64("hash", 30)
+    .build();
+
   private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
 
   public byte[] encode(ServerStoreOpMessage message) {
@@ -142,6 +147,18 @@ public class ServerStoreOpCodec {
         return encoder
           .encode()
           .array();
+      case LOCK:
+        encoder = LOCK_STRUCT.encoder();
+        return encoder
+                .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+                .int64("hash", ((ServerStoreOpMessage.LockMessage) message).getHash())
+                .encode().array();
+      case UNLOCK:
+        encoder = LOCK_STRUCT.encoder();
+        return encoder
+                .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+                .int64("hash", ((ServerStoreOpMessage.UnlockMessage) message).getHash())
+                .encode().array();
       default:
         throw new RuntimeException("Unhandled message operation : " + message.getMessageType());
     }
@@ -188,6 +205,16 @@ public class ServerStoreOpCodec {
       }
       case CLEAR: {
         return new ClearMessage();
+      }
+      case LOCK: {
+        decoder = LOCK_STRUCT.decoder(messageBuffer);
+        long hash = decoder.int64("hash");
+        return new ServerStoreOpMessage.LockMessage(hash);
+      }
+      case UNLOCK: {
+        decoder = LOCK_STRUCT.decoder(messageBuffer);
+        long hash = decoder.int64("hash");
+        return new ServerStoreOpMessage.UnlockMessage(hash);
       }
       default:
         throw new RuntimeException("Unhandled message operation : " + opCode);

@@ -432,7 +432,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     }
 
     @Override
-    public boolean replace(Chain expected, Chain replacement) {
+    public ReplaceResponse replace(Chain expected, Chain replacement) {
       throw new AssertionError("Chain not in storage yet. Cannot be mutated");
     }
 
@@ -522,7 +522,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     }
 
     @Override
-    public boolean replace(Chain expected, Chain replacement) {
+    public ReplaceResponse replace(Chain expected, Chain replacement) {
       if (expected.isEmpty()) {
         throw new IllegalArgumentException("Empty expected sequence");
       } else if (replacement.isEmpty()) {
@@ -532,14 +532,14 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       }
     }
 
-    public boolean removeHeader(Chain header) {
+    public ReplaceResponse removeHeader(Chain header) {
       long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
 
       Iterator<Element> iterator = header.iterator();
       do {
         if (!compare(iterator.next(), suffixHead)) {
-          return true;
+          return ReplaceResponse.NO_MATCH;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -551,14 +551,14 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
         if (!owner.evict(slot, true)) {
           throw new AssertionError("Unexpected failure to evict slot " + slot);
         }
-        return true;
+        return ReplaceResponse.EXACT_MATCH_AND_REPLACED;
       } else {
         int hash = readKeyHash(chain);
         int elemSize = readElementLength(suffixHead);
         ByteBuffer elemBuffer = storage.readBuffer(suffixHead + ELEMENT_HEADER_SIZE, elemSize);
         Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, elemBuffer);
         if (newChainAddress == null) {
-          return false;
+          return ReplaceResponse.MATCH_BUT_NOT_REPLACED;
         } else {
           try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
             newChain.chainModified = true;
@@ -573,7 +573,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
               storage.writeLong(prefixTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
               chainMoved(chain, newChainAddress);
               free();
-              return true;
+              return ReplaceResponse.MATCH_AND_REPLACED;
             } else {
               newChain.free();
               throw new AssertionError("Encoding update failure - impossible!");
@@ -583,14 +583,14 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       }
     }
 
-    public boolean replaceHeader(Chain expected, Chain replacement) {
+    public ReplaceResponse replaceHeader(Chain expected, Chain replacement) {
       long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
 
       Iterator<Element> expectedIt = expected.iterator();
       do {
         if (!compare(expectedIt.next(), suffixHead)) {
-          return true;
+          return ReplaceResponse.NO_MATCH;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -599,12 +599,14 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       int hash = readKeyHash(chain);
       Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement.iterator());
       if (newChainAddress == null) {
-        return false;
+        return ReplaceResponse.MATCH_BUT_NOT_REPLACED;
       } else {
         try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
           newChain.chainModified = true;
+          boolean exactMatch = true;
           //copy remaining elements from old chain (by reference)
           if (suffixHead != chain) {
+            exactMatch = false;
             newChain.append(suffixHead, storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET));
           }
 
@@ -612,7 +614,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
             storage.writeLong(prefixTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
             chainMoved(chain, newChainAddress);
             free();
-            return true;
+            return exactMatch ? ReplaceResponse.EXACT_MATCH_AND_REPLACED : ReplaceResponse.MATCH_AND_REPLACED;
           } else {
             newChain.free();
             throw new AssertionError("Encoding update failure - impossible!");

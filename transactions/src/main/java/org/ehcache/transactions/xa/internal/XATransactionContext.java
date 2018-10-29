@@ -293,7 +293,7 @@ public class XATransactionContext<K, V> {
   }
 
   private Store.ValueHolder<SoftLock<V>> putIfAbsentInUnderlyingStore(Map.Entry<K, Command<V>> entry, SoftLock<V> newSoftLock) throws StoreAccessException {
-    return underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
+    return underlyingStore.putIfAbsent(entry.getKey(), newSoftLock, b -> {});
   }
 
   private SoftLock<V> getFromUnderlyingStore(K key) throws StoreAccessException {

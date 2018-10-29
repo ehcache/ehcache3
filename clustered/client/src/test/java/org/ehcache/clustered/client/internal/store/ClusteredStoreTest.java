@@ -35,6 +35,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
@@ -132,6 +133,11 @@ public class ClusteredStoreTest {
     public int getDispatcherConcurrency() {
       return 0;
     }
+
+    @Override
+    public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+      return null;
+    }
   };
 
   @Before
@@ -150,7 +156,7 @@ public class ClusteredStoreTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-      Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null);
+      Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null, false);
     ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
     clientEntity.validate(serverStoreConfiguration);
     ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, clientEntity, mock(ServerCallback.class));
@@ -382,9 +388,9 @@ public class ClusteredStoreTest {
 
   @Test
   public void testPutIfAbsent() throws Exception {
-    assertThat(store.putIfAbsent(1L, "one"), nullValue());
+    assertThat(store.putIfAbsent(1L, "one", b -> {}), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
-    assertThat(store.putIfAbsent(1L, "another one").get(), is("one"));
+    assertThat(store.putIfAbsent(1L, "another one", b -> {}).get(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT, StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
@@ -398,7 +404,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource);
-    store.putIfAbsent(1L, "one");
+    store.putIfAbsent(1L, "one", b -> {});
   }
 
   @Test
@@ -410,7 +416,7 @@ public class ClusteredStoreTest {
     when(proxy.getAndAppend(anyLong(), isNull())).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, null, proxy, timeSource);
 
-    assertTimeoutOccurred(() -> store.putIfAbsent(1L, "one"));
+    assertTimeoutOccurred(() -> store.putIfAbsent(1L, "one", b -> {}));
   }
 
   @Test
@@ -608,15 +614,15 @@ public class ClusteredStoreTest {
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, resolver, proxy, timeSource);
 
     when(resolvedChain.getCompactionCount()).thenReturn(DEFAULT_CHAIN_COMPACTION_THRESHOLD - 1); // less than the default threshold
-    store.putIfAbsent(1L, "one");
+    store.putIfAbsent(1L, "one", b -> {});
     verify(proxy, never()).replaceAtHead(anyLong(), any(Chain.class), any(Chain.class));
 
     when(resolvedChain.getCompactionCount()).thenReturn(DEFAULT_CHAIN_COMPACTION_THRESHOLD); // equal to the default threshold
-    store.putIfAbsent(1L, "one");
+    store.putIfAbsent(1L, "one", b -> {});
     verify(proxy, never()).replaceAtHead(anyLong(), any(Chain.class), any(Chain.class));
 
     when(resolvedChain.getCompactionCount()).thenReturn(DEFAULT_CHAIN_COMPACTION_THRESHOLD + 1); // greater than the default threshold
-    store.putIfAbsent(1L, "one");
+    store.putIfAbsent(1L, "one", b -> {});
     verify(proxy).replaceAtHead(anyLong(), any(Chain.class), any(Chain.class));
   }
 
@@ -714,7 +720,7 @@ public class ClusteredStoreTest {
       ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, resolver, proxy, timeSource);
 
       when(resolvedChain.getCompactionCount()).thenReturn(customThreshold - 1); // less than the custom threshold
-      store.putIfAbsent(1L, "one");
+      store.putIfAbsent(1L, "one", b -> {});
       verify(proxy, never()).replaceAtHead(anyLong(), any(Chain.class), any(Chain.class));
 
       when(resolvedChain.getCompactionCount()).thenReturn(customThreshold); // equal to the custom threshold

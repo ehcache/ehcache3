@@ -32,6 +32,7 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -180,6 +181,11 @@ public class OffHeapDiskStoreProviderTest {
        @Override
        public int getDispatcherConcurrency() {
          return 1;
+       }
+
+       @Override
+       public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+         return null;
        }
 
      };
