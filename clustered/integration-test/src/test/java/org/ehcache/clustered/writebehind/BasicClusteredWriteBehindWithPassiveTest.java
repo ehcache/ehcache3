@@ -137,7 +137,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     List<String> keyRecords = records.get(KEY);
 
     int index = keyRecords.size() - 1;
-    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).startsWith("flush_")) {
+    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).startsWith("flush_queue")) {
       index--;
     }
 
@@ -190,7 +190,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-      if (value.equals(loaderWriter.load(KEY))) break;
+      if (loaderWriter.load(KEY).startsWith("flush_queue")) break;
       if (i > retryCount) {
         throw new RuntimeException("Couldn't flush updates to SOR after " + retryCount + " tries");
       }
