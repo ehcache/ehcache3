@@ -82,13 +82,16 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
       cache.put(KEY, String.valueOf(i));
     }
 
-    assertValue(cache, String.valueOf(9));
+    assertValue(cache, "9");
 
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
 
-    assertValue(cache, String.valueOf(9));
+    // wait for fail-over
+    Thread.sleep(1000);
+
+    assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
 
     cache.clear();
@@ -102,19 +105,22 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     Cache<Long, String> client2 = cacheManager2.getCache(CACHE_NAME, Long.class, String.class);
 
     client1.put(KEY, "The one from client1");
-    client2.put(KEY, "The one one from client2");
-    assertValue(client1, "The one one from client2");
+    client2.put(KEY, "The one from client2");
+    assertValue(client1, "The one from client2");
     client1.remove(KEY);
     client2.put(KEY, "The one from client2");
-    client1.put(KEY, "The one one from client1");
-    assertValue(client2, "The one one from client1");
+    client1.put(KEY, "The one from client1");
+    assertValue(client2, "The one from client1");
     client2.remove(KEY);
     assertValue(client1, null);
     client1.put(KEY, "The one from client1");
     client1.put(KEY, "The one one from client1");
+    assertValue(client2, "The one one from client1");
     client2.remove(KEY);
+    assertValue(client1, null);
     client2.put(KEY, "The one from client2");
     client2.put(KEY, "The one one from client2");
+    assertValue(client1, "The one one from client2");
     client1.remove(KEY);
     assertValue(client2, null);
 
@@ -122,27 +128,14 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
 
+    // wait for fail-over
+    Thread.sleep(1000);
+
     assertValue(client1, null);
     assertValue(client2, null);
     checkValueFromLoaderWriter(client1, null);
 
     client1.clear();
-  }
-
-  private void checkValueFromLoaderWriter(Cache<Long, String> cache, String expected) {
-
-    tryFlushingUpdatesToSOR(cache);
-
-    Map<Long, List<String>> records = loaderWriter.getRecords();
-    List<String> keyRecords = records.get(KEY);
-
-    int index = keyRecords.size() - 1;
-    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).startsWith("flush_queue")) {
-      index--;
-    }
-
-    assertThat(keyRecords.get(index), is(expected));
-
   }
 
   @Test
@@ -172,6 +165,12 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
 
+    // wait for fail-over
+    Thread.sleep(1000);
+
+    assertValue(cache, "new value");
+    checkValueFromLoaderWriter(cache, "new value");
+
     cache.clear();
   }
 
@@ -179,20 +178,33 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     assertThat(cache.get(KEY), is(value));
   }
 
-  private void tryFlushingUpdatesToSOR(Cache<Long, String> cache) {
+  private void checkValueFromLoaderWriter(Cache<Long, String> cache, String expected) throws Exception {
+    tryFlushingUpdatesToSOR(cache);
+
+    Map<Long, List<String>> records = loaderWriter.getRecords();
+    List<String> keyRecords = records.get(KEY);
+
+    int index = keyRecords.size() - 1;
+    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).startsWith("flush_queue")) {
+      index--;
+    }
+
+    assertThat(keyRecords.get(index), is(expected));
+  }
+
+  private void tryFlushingUpdatesToSOR(Cache<Long, String> cache) throws Exception {
     int retryCount = 1000;
     int i = 0;
     while (true) {
       String value = "flush_queue_" + i;
       cache.put(KEY, value);
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+      Thread.sleep(100);
+      String loadedValue = loaderWriter.load(KEY);
+      if (loadedValue != null && loadedValue.startsWith("flush_queue")) {
+        break;
       }
-      if (loaderWriter.load(KEY).startsWith("flush_queue")) break;
       if (i > retryCount) {
-        throw new RuntimeException("Couldn't flush updates to SOR after " + retryCount + " tries");
+        throw new AssertionError("Couldn't flush updates to SOR after " + retryCount + " tries");
       }
       i++;
     }

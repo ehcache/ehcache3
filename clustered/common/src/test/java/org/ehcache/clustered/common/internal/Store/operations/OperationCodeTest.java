@@ -18,6 +18,8 @@ package org.ehcache.clustered.common.internal.Store.operations;
 import org.ehcache.clustered.common.internal.store.operations.OperationCode;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
@@ -27,10 +29,8 @@ public class OperationCodeTest {
   public void testPinning() {
     assertThat(OperationCode.PUT.shouldBePinned(), is(false));
 
-    for (OperationCode operationCode : OperationCode.values()) {
-      if (OperationCode.PUT != operationCode) {
-        assertThat(operationCode.shouldBePinned(), is(true));
-      }
-    }
+    Arrays.stream(OperationCode.values())
+          .filter(operationCode -> operationCode != OperationCode.PUT)
+          .forEach((operationCode -> assertThat(operationCode + " must be pinned", operationCode.shouldBePinned(), is(true))));
   }
 }

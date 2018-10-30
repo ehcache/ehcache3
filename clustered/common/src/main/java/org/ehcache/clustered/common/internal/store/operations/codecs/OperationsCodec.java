@@ -38,12 +38,13 @@ public class OperationsCodec<K, V> {
   }
 
   public static OperationCode getOperationCode(ByteBuffer buffer) {
-    return OperationCode.valueOf(buffer.duplicate().get());
+    OperationCode opCode = OperationCode.valueOf(buffer.get());
+    buffer.rewind();
+    return opCode;
   }
 
   public Operation<K, V> decode(ByteBuffer buffer) {
-    OperationCode opCode = OperationCode.valueOf(buffer.get());
-    buffer.rewind();
+    OperationCode opCode = getOperationCode(buffer);
     return opCode.decode(buffer, keySerializer, valueSerializer);
   }
 

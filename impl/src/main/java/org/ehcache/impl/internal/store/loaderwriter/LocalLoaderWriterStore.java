@@ -63,7 +63,6 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
                                 ExpiryPolicy<? super K, ? super V> expiry) {
     this.delegate = delegate;
     this.cacheLoaderWriter = cacheLoaderWriter;
-
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.expiry = expiry;
     ContextManager.associate(delegate).withParent(this);
