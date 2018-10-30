@@ -13,21 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server.offheap;
+package org.ehcache.clustered.common.internal.Store.operations;
 
-import java.io.Closeable;
-import java.nio.ByteBuffer;
+import org.ehcache.clustered.common.internal.store.operations.OperationCode;
+import org.junit.Test;
 
-import org.ehcache.clustered.common.internal.store.Chain;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.*;
 
-public interface InternalChain extends Closeable {
+public class OperationCodeTest {
 
-  Chain detach();
+  @Test
+  public void testPinning() {
+    assertThat(OperationCode.PUT.shouldBePinned(), is(false));
 
-  boolean append(ByteBuffer element);
-
-  boolean replace(Chain expected, Chain replacement);
-
-  @Override
-  void close();
+    for (OperationCode operationCode : OperationCode.values()) {
+      if (OperationCode.PUT != operationCode) {
+        assertThat(operationCode.shouldBePinned(), is(true));
+      }
+    }
+  }
 }

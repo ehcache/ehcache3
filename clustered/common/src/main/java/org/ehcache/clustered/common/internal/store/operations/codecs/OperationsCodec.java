@@ -37,6 +37,10 @@ public class OperationsCodec<K, V> {
     return operation.encode(keySerializer, valueSerializer);
   }
 
+  public static OperationCode getOperationCode(ByteBuffer buffer) {
+    return OperationCode.valueOf(buffer.duplicate().get());
+  }
+
   public Operation<K, V> decode(ByteBuffer buffer) {
     OperationCode opCode = OperationCode.valueOf(buffer.get());
     buffer.rewind();

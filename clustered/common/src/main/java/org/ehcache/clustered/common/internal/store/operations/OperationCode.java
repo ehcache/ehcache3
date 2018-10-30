@@ -27,6 +27,11 @@ public enum OperationCode {
     public <K, V> Operation<K, V> decode(ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
       return new PutOperation<>(buffer, keySerializer, valueSerializer);
     }
+
+    @Override
+    public boolean shouldBePinned() {
+      return false;
+    }
   },
   REMOVE((byte)2) {
     @Override
@@ -73,6 +78,10 @@ public enum OperationCode {
 
   public byte getValue() {
     return value;
+  }
+
+  public boolean shouldBePinned() {
+    return true;
   }
 
   public abstract  <K, V> Operation<K, V> decode(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer);
