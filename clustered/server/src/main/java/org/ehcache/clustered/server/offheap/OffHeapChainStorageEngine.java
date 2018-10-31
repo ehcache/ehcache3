@@ -532,6 +532,10 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       }
     }
 
+
+    /**
+     * @return false if storage can't be allocated for new header when whole chain is not removed, true otherwise
+     */
     public boolean removeHeader(Chain header) {
       long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
@@ -583,6 +587,10 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       }
     }
 
+    /**
+     * @return false if storage can't be allocated for new header when head of the current chain matches expected
+     * chain, true otherwise
+     */
     public boolean replaceHeader(Chain expected, Chain replacement) {
       long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
