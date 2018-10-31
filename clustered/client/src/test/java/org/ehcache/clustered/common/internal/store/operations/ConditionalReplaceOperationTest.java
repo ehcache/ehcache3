@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -24,9 +24,9 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.client.internal.store.operations.Operation.BYTE_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.Operation.INT_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.Operation.LONG_SIZE_BYTES;
+import static org.ehcache.clustered.common.internal.store.operations.Operation.BYTE_SIZE_BYTES;
+import static org.ehcache.clustered.common.internal.store.operations.Operation.INT_SIZE_BYTES;
+import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 

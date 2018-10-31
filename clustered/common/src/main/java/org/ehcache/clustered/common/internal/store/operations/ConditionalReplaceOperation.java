@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.CodecException;
+import org.ehcache.clustered.common.internal.store.operations.codecs.CodecException;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
 
 public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<K, V> {
 

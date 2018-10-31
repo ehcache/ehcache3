@@ -14,38 +14,38 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
+/**
+ * @param <K> key type
+ * @param <V> value type
+ */
+public class PutWithWriterOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
 
-  public PutIfAbsentOperation(final K key, final V value, final long timeStamp) {
+  public PutWithWriterOperation(final K key, final V value, final long timeStamp) {
     super(key, value, timeStamp);
   }
 
-  PutIfAbsentOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  PutWithWriterOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     super(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   public OperationCode getOpCode() {
-    return OperationCode.PUT_IF_ABSENT;
+    return OperationCode.PUT_WITH_WRITER;
   }
 
   /**
-   * PutIfAbsent operation succeeds only when there is no previous operation
-   * for the same key.
+   * Put operation applied on top of another {@link Operation} does not care
+   * what the other operation is. The result is gonna be {@code this} operation.
    */
   @Override
   public Result<K, V> apply(final Result<K, V> previousOperation) {
-    if(previousOperation == null) {
-      return this;
-    } else {
-      return previousOperation;
-    }
+    return this;
   }
 
   @Override

@@ -18,6 +18,7 @@ package org.ehcache.clustered.server.offheap;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.Util;
+import org.ehcache.clustered.common.internal.store.operations.OperationCode;
 import org.junit.Test;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
@@ -28,146 +29,117 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT_IF_ABSENT;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT_WITH_WRITER;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REMOVE;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REMOVE_CONDITIONAL;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REPLACE;
+import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class PinningOffHeapChainMapTest {
   @Test
-  public void testPinningWithAppendsAndFullChainReplacement() {
+  public void testAppendWithPinningOperation() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+
+    pinningOffHeapChainMap.append(1L, buffer(PUT_WITH_WRITER));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
   }
 
   @Test
-  public void testPinningWithAppendsAndFullChainReplacementWithEmptyChain() {
+  public void testAppendWithNormalOperation() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain());
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+
+    pinningOffHeapChainMap.append(1L, buffer(PUT));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
   @Test
-  public void testPinningWithAppendsPartialChainReplacement() {
+  public void testGetAndAppendWithPinningOperation() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
+    pinningOffHeapChainMap.getAndAppend(1L, buffer(REMOVE_CONDITIONAL));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
   }
 
   @Test
-  public void testPinningWithAppendsAndPartialChainReplacementWithEmptyChain() {
+  public void testGetAndAppendWithNormalOperation() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    pinningOffHeapChainMap.append(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain());
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
+
+    pinningOffHeapChainMap.getAndAppend(1L, buffer(PUT));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
   @Test
-  public void testPinningWithGetAndAppendsFullChainReplacement() {
+  public void testPutWithPinningChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+    pinningOffHeapChainMap.put(1L, chain(buffer(PUT), buffer(REMOVE)));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
   }
 
   @Test
-  public void testPinningWithGetAndAppendsFullChainReplacementWithEmptyChain() {
+  public void testPutWithNormalChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain());
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+    pinningOffHeapChainMap.put(1L, chain(buffer(PUT), buffer(PUT)));
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
   @Test
-  public void testPinningWithGetAndAppendsPartialChainReplacement() {
+  public void testReplaceAtHeadWithUnpinningChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b0 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
+    ByteBuffer buffer = buffer(PUT_IF_ABSENT);
+    Chain pinningChain = chain(buffer);
+    Chain unpinningChain = chain(buffer(PUT));
+
+    pinningOffHeapChainMap.append(1L, buffer);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
+
+    pinningOffHeapChainMap.replaceAtHead(1L, pinningChain, unpinningChain);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
   @Test
-  public void testPinningWithGetAndAppendsPartialChainReplacementWithEmptyChain() {
+  public void testReplaceAtHeadWithPinningChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    pinningOffHeapChainMap.getAndAppend(1L, ByteBuffer.wrap(new byte[] { 0b1 }));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain());
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
+    ByteBuffer buffer = buffer(REPLACE);
+    Chain pinningChain = chain(buffer);
+    Chain unpinningChain = chain(buffer(REPLACE_CONDITIONAL));
+
+    pinningOffHeapChainMap.append(1L, buffer);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
+
+    pinningOffHeapChainMap.replaceAtHead(1L, pinningChain, unpinningChain);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
   }
 
   @Test
-  public void testPinningWithPutsAndFullChainReplacement() {
+  public void testReplaceAtHeadWithEmptyChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.put(1L, chain(ByteBuffer.wrap(new byte[] { 0b1 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+    ByteBuffer buffer = buffer(PUT_WITH_WRITER);
+    Chain pinningChain = chain(buffer);
+    Chain unpinningChain = chain();
+
+    pinningOffHeapChainMap.append(1L, buffer);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
+
+    pinningOffHeapChainMap.replaceAtHead(1L, pinningChain, unpinningChain);
+    assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
-  @Test
-  public void testPinningWithMultiplePutsAndFullChainReplacement() {
-    PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
-
-    pinningOffHeapChainMap.put(1L, chain(ByteBuffer.wrap(new byte[] { 0b1 })));
-    pinningOffHeapChainMap.put(1L, chain(ByteBuffer.wrap(new byte[] { 0b1 }), ByteBuffer.wrap(new byte[] { 0b1 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 }), ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertFalse(pinningOffHeapChainMap.heads.isPinned(1L));
+  private ByteBuffer buffer(OperationCode first) {
+    return ByteBuffer.wrap(new byte[] { first.getValue() });
   }
 
   private PinningOffHeapChainMap<Long> getPinningOffHeapChainMap() {
     return new PinningOffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), LongPortability.INSTANCE,
                                         4096, 4096, false);
-  }
-
-  @Test
-  public void testPinningWithPutsAndPartialChainReplacement() {
-    PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
-
-    pinningOffHeapChainMap.put(1L, chain(ByteBuffer.wrap(new byte[] { 0b1 }), ByteBuffer.wrap(new byte[] { 0b1 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
-    pinningOffHeapChainMap.replaceAtHead(1L,
-                                             chain(ByteBuffer.wrap(new byte[] { 0b1 })),
-                                             chain(ByteBuffer.wrap(new byte[] { 0b0 })));
-    assertTrue(pinningOffHeapChainMap.heads.isPinned(1L));
   }
 
   public static Chain chain(ByteBuffer... buffers) {

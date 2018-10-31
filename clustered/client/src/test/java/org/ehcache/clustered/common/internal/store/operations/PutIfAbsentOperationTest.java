@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -23,30 +23,31 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class PutOperationTest extends BaseKeyValueOperationTest {
+public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new PutOperation<>(key, value, timestamp);
+    return new PutIfAbsentOperation<>(key, value, timestamp);
   }
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    return new PutOperation<>(buffer, keySerializer, valueSerializer);
+    return new PutIfAbsentOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   protected OperationCode getOperationCode() {
-    return OperationCode.PUT;
+    return OperationCode.PUT_IF_ABSENT;
   }
 
   @Test
   public void testApply() throws Exception {
-    PutOperation<Long, String> putOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Result<Long, String> result = putOperation.apply(null);
-    assertSame(putOperation, result);
-    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "two", System.currentTimeMillis());
-    result = anotherOperation.apply(putOperation);
+    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<>(1L, "one", System.currentTimeMillis());
+    Result<Long, String> result = operation.apply(null);
+    assertSame(operation, result);
+
+    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<>(1L, "another one", System.currentTimeMillis());
+    result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }
 }
