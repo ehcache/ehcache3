@@ -27,6 +27,9 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
+import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -85,10 +88,13 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
   }
 
   private static PersistentCacheManager newCacheManager() {
+    DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager1");
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
     return CacheManagerBuilder.newCacheManagerBuilder()
             .with(cluster(CLUSTER.getConnectionURI())
                     .autoCreate()
                     .build())
+            .using(managementRegistry)
             .build(true);
   }
 
