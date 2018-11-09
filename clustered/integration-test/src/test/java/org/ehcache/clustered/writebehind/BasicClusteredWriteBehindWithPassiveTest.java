@@ -21,6 +21,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -28,6 +29,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -35,6 +37,7 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -88,9 +91,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
 
-    // wait for fail-over
-    Thread.sleep(1000);
-
     assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
 
@@ -128,9 +128,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
 
-    // wait for fail-over
-    Thread.sleep(1000);
-
     assertValue(client1, null);
     assertValue(client2, null);
     checkValueFromLoaderWriter(client1, null);
@@ -164,9 +161,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().startOneServer();
-
-    // wait for fail-over
-    Thread.sleep(1000);
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter(cache, "new value");
@@ -218,12 +212,13 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
         .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withResilienceStrategy(new ThrowingResilienceStrategy<>())
         .add(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(CLUSTER.getConnectionURI().resolve("/cm-wb")).autoCreate())
+      .with(cluster(CLUSTER.getConnectionURI().resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate())
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }
