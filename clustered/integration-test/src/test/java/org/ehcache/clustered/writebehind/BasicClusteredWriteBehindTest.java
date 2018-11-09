@@ -22,6 +22,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -29,6 +30,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -251,12 +254,13 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
         .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withResilienceStrategy(new ThrowingResilienceStrategy<>())
         .add(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(CLUSTER.getConnectionURI().resolve("/cm-wb")).autoCreate())
+      .with(cluster(CLUSTER.getConnectionURI().resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(30)).write(Duration.ofSeconds(30))).autoCreate())
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }
