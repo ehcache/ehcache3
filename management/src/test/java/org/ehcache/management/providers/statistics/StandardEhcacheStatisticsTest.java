@@ -224,19 +224,18 @@ public class StandardEhcacheStatisticsTest {
   // In fact, on Windows, it does not sleep for long enough.
   // This method keeps sleeping until the full time has passed.
   private void minimumSleep(long millis) {
-    long start = System.currentTimeMillis();
+    long nanos = TimeUnit.MILLISECONDS.toNanos(millis);
+    long start = System.nanoTime();
 
     while (true) {
-      long now = System.currentTimeMillis();
-      long elapsed = now - start;
-      long millisLeft = millis - elapsed;
+      long nanosLeft = nanos - (System.nanoTime() - start);
 
-      if (millisLeft <= 0) {
+      if (nanosLeft <= 0) {
         break;
       }
 
       try {
-        Thread.sleep(millisLeft);
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(nanosLeft));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         return;
