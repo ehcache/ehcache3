@@ -29,8 +29,9 @@ ext {
 }
 
 dependencies {
-  compileOnly project(':clustered:client')
-  compileOnly project(':clustered:common')
+  compileOnly(project(':clustered:client')) {
+    exclude group: 'org.ehcache.modules', module: 'api'
+  }
   // Needed because declared as provided in the different projects
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
