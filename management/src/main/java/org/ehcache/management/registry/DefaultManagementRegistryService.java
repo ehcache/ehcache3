@@ -55,6 +55,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile InternalCacheManager cacheManager;
   private volatile ClusteringManagementService clusteringManagementService;
+  private volatile boolean clusteringManagementServiceAutoStarted;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -86,15 +87,18 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
     if (this.clusteringManagementService == null && Clustering.isAvailable(serviceProvider)) {
       this.clusteringManagementService = Clustering.newClusteringManagementService(new DefaultClusteringManagementServiceConfiguration());
       this.clusteringManagementService.start(serviceProvider);
+      this.clusteringManagementServiceAutoStarted = true;
+    } else {
+      this.clusteringManagementServiceAutoStarted = false;
     }
   }
 
   @Override
   public void stop() {
-    if (this.clusteringManagementService != null) {
+    if (this.clusteringManagementService != null && this.clusteringManagementServiceAutoStarted) {
       this.clusteringManagementService.stop();
-      this.clusteringManagementService = null;
     }
+    this.clusteringManagementService = null;
 
     super.close();
   }
