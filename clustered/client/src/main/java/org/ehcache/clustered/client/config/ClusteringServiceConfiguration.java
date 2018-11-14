@@ -346,19 +346,23 @@ public class ClusteringServiceConfiguration
         getConnectionSource() + "\n    " +
         "timeouts: " + getTimeouts()+ "\n    " +
         "autoCreate: " + isAutoCreate() + "\n    " +
-        "defaultServerResource: " + serverConfiguration.getDefaultServerResource() + "\n    " +
+        "defaultServerResource: " + (serverConfiguration == null ? null : serverConfiguration.getDefaultServerResource()) + "\n    " +
         readablePoolsString();
   }
 
   private String readablePoolsString() {
     StringBuilder pools = new StringBuilder("resourcePools:\n");
-    serverConfiguration.getResourcePools().forEach((key, value) -> {
-      pools.append("        ");
-      pools.append(key);
-      pools.append(": ");
-      pools.append(value);
-      pools.append("\n");
-    });
+    if (serverConfiguration != null) {
+      serverConfiguration.getResourcePools().forEach((key, value) -> {
+        pools.append("        ");
+        pools.append(key);
+        pools.append(": ");
+        pools.append(value);
+        pools.append("\n");
+      });
+    } else {
+      pools.append("        None.");
+    }
     return pools.toString();
   }
 }
