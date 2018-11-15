@@ -31,18 +31,26 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -60,6 +68,11 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
+  @Rule
+  public Timeout timeout = new Timeout(1, TimeUnit.MINUTES);
+
+  private boolean doThreadDump = true;
+
   @ClassRule
   public static Cluster CLUSTER =
       newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
@@ -67,6 +80,16 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
   @BeforeClass
   public static void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
+  }
+
+  @After
+  public void threadDump() {
+    if(doThreadDump) {
+      System.out.println("Performing thread dump");
+      ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+      ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(true, true);
+      Arrays.stream(threadInfos).forEach(System.out::println);
+    }
   }
 
   private final List<Record> cacheRecords = new ArrayList<>();
@@ -94,6 +117,8 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
 
     verifyRecords(cache);
     cache.clear();
+
+    doThreadDump = false;
   }
 
   @Test
@@ -122,6 +147,8 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
 
     verifyRecords(client1);
     client1.clear();
+
+    doThreadDump = false;
   }
 
   @Test
@@ -150,6 +177,8 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
 
     verifyRecords(cache);
     cache.clear();
+
+    doThreadDump = false;
   }
 
   @Test
@@ -164,6 +193,8 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
     assertThat(cache.get(KEY), notNullValue());
 
     cache.clear();
+
+    doThreadDump = false;
   }
 
   private void assertValue(Cache<Long, String> cache, String value) {
