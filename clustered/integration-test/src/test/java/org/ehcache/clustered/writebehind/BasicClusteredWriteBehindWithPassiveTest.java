@@ -31,7 +31,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
@@ -60,8 +59,9 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
   public static Cluster CLUSTER =
       newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
+  @Before
+  public void waitForActive() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
   }
@@ -89,7 +89,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
 
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
 
     assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
@@ -126,7 +125,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
 
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
 
     assertValue(client1, null);
     assertValue(client2, null);
@@ -160,7 +158,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
 
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter(cache, "new value");
