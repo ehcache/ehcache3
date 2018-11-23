@@ -21,7 +21,7 @@ plugins {
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
   id 'io.codearte.nexus-staging' version '0.9.0'
   // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '1.6.3' apply false
+  id 'com.github.spotbugs' version '1.6.5' apply false
 }
 
 wrapper {
