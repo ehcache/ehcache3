@@ -19,12 +19,12 @@ import org.gradle.internal.jvm.Jvm
 plugins {
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
-  id 'io.codearte.nexus-staging' version '0.9.0'
+  id 'io.codearte.nexus-staging' version '0.12.0'
   // This adds the ability to print a taskTree
   // ./gradlew <task1> ... <taskN> taskTree
-  id "com.dorongold.task-tree" version "1.3"
+  id "com.dorongold.task-tree" version "1.3.1"
   // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '1.6.3' apply false
+  id 'com.github.spotbugs' version '1.6.5' apply false
 }
 
 wrapper {
