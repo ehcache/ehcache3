@@ -56,4 +56,5 @@ Each topic below corresponds to a menu item at the left.
 |link:cache-event-listeners{outfilesuffix}[Cache Event Listeners]|Getting notified about events within the cache
 |link:eviction-advisor{outfilesuffix}[Eviction Advisor]|Affecting the way entries are chosen for eviction
 |link:class-loading{outfilesuffix}[Class loading]|Ehcache and `ClassLoader` interactions
+|link:performance{outfilesuffix}[Performance Tuning]|Ehcache Performance Tuning
 |===
