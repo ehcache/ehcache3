@@ -20,12 +20,13 @@ import org.ehcache.expiry.ExpiryPolicy;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
  * Builder and utilities for getting predefined {@link ExpiryPolicy} instances.
  */
-public final class ExpiryPolicyBuilder implements Builder<ExpiryPolicy<Object, Object>>{
+public final class ExpiryPolicyBuilder<K, V> implements Builder<ExpiryPolicy<K, V>>{
 
   /**
    * Get an {@link ExpiryPolicy} instance for a non expiring (ie. "eternal") cache.
@@ -64,6 +65,19 @@ public final class ExpiryPolicyBuilder implements Builder<ExpiryPolicy<Object, O
     return new TimeToIdleExpiryPolicy(timeToIdle);
   }
 
+  @FunctionalInterface
+  public interface TriFunction<T, U, V, R> {
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param t the first function argument
+     * @param u the second function argument
+     * @param v the third function argument
+     * @return the function result
+     */
+    R apply(T t, U u, V v);
+  }
+
   /**
    * Fluent API for creating an {@link ExpiryPolicy} instance where you can specify constant values for creation, access and update time.
    * Unspecified values will be set to {@link ExpiryPolicy#INFINITE INFINITE} for create and {@code null} for access and update, matching
@@ -71,137 +85,201 @@ public final class ExpiryPolicyBuilder implements Builder<ExpiryPolicy<Object, O
    *
    * @return an {@link ExpiryPolicy} builder
    */
-  public static ExpiryPolicyBuilder expiry() {
-    return new ExpiryPolicyBuilder();
+  public static ExpiryPolicyBuilder<Object, Object> expiry() {
+    return new ExpiryPolicyBuilder<>();
   }
 
-  private Duration create = ExpiryPolicy.INFINITE;
-  private Duration access = null;
-  private Duration update = null;
+  private final BiFunction<? super K, ? super V, Duration> create;
+  private final BiFunction<? super K, ? super Supplier<? extends V>, Duration> access;
+  private final TriFunction<? super K, ? super Supplier<? extends V>, ? super V, Duration> update;
 
-  private ExpiryPolicyBuilder() {}
+  private ExpiryPolicyBuilder() {
+    this((k, v) -> ExpiryPolicy.INFINITE, (k, v) -> null, (k, oldV, newV) -> null);
+  }
+
+  private ExpiryPolicyBuilder(BiFunction<? super K, ? super V, Duration> create,
+                              BiFunction<? super K, ? super Supplier<? extends V>, Duration> access,
+                              TriFunction<? super K, ? super Supplier<? extends V>, ? super V, Duration> update) {
+    this.create = create;
+    this.access = access;
+    this.update = update;
+  }
 
   /**
-   * Set TTL since creation
+   * Set TTL since creation.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTL since creation will override the previous value or function.
    *
    * @param create TTL since creation
-   * @return this builder
+   * @return a new builder with the TTL since creation
    */
-  public ExpiryPolicyBuilder create(Duration create) {
+  public ExpiryPolicyBuilder<K, V> create(Duration create) {
     Objects.requireNonNull(create, "Create duration cannot be null");
     if (create.isNegative()) {
       throw new IllegalArgumentException("Create duration must be positive");
     }
-    this.create = create;
-    return this;
+    return create((a, b) -> create);
   }
 
   /**
-   * Set TTL since last access
+   * Set a function giving the TTL since creation.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTL since creation will override the previous value or function.
    *
-   * @param access TTL since last access
-   * @return this builder
+   * @param create Function giving the TTL since creation
+   * @return a new builder with the TTL creation calculation function
    */
-  public ExpiryPolicyBuilder access(Duration access) {
+  public <K2 extends K, V2 extends V> ExpiryPolicyBuilder<K2, V2> create(BiFunction<K2, V2, Duration> create) {
+    return new ExpiryPolicyBuilder<>(Objects.requireNonNull(create), access, update);
+  }
+
+  /**
+   * Set TTI since last access.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTI since last access will override the previous value or function.
+   *
+   * @param access TTI since last access
+   * @return a new builder with the TTI since last access
+   */
+  public ExpiryPolicyBuilder<K, V> access(Duration access) {
     if (access != null && access.isNegative()) {
       throw new IllegalArgumentException("Access duration must be positive");
     }
-    this.access = access;
-    return this;
+    return access((a, b) -> access);
   }
 
   /**
-   * Set TTL since last update
+   * Set a function giving the TTI since last access.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTI since last access will override the previous value or function.
+   *
+   * @param access Function giving the TTI since last access
+   * @return a new builder with the TTI since last access calculation function
+   */
+  public <K2 extends K, V2 extends V>ExpiryPolicyBuilder<K2, V2> access(BiFunction<K2, Supplier<? extends V2>, Duration> access) {
+    return new ExpiryPolicyBuilder<>(create, Objects.requireNonNull(access), update);
+  }
+
+  /**
+   * Set TTL since last update.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTL since last access will override the previous value or function.
    *
    * @param update TTL since last update
-   * @return this builder
+   * @return a new builder with the TTL since last update
    */
-  public ExpiryPolicyBuilder update(Duration update) {
+  public ExpiryPolicyBuilder<K, V> update(Duration update) {
     if (update != null && update.isNegative()) {
       throw new IllegalArgumentException("Update duration must be positive");
     }
-    this.update = update;
-    return this;
+    return update((a, b, c) -> update);
   }
 
   /**
+   * Set a function giving the TTL since last update.
+   * <p>
+   * Note: Calling this method on a builder with an existing TTL since last update will override the previous value or function.
+   *
+   * @param update Function giving the TTL since last update
+   * @return a new builder with the TTL since last update calculation function
+   */
+  public <K2 extends K, V2 extends V> ExpiryPolicyBuilder<K2, V2> update(TriFunction<K2, Supplier<? extends V2>, V2, Duration> update) {
+    return new ExpiryPolicyBuilder<>(create, access, Objects.requireNonNull(update));
+  }
+
+  /**
+   * Builds an expiry policy instance.
    *
    * @return an {@link ExpiryPolicy}
    */
-  public ExpiryPolicy<Object, Object> build() {
-    return new BaseExpiryPolicy(create, access, update);
+  public ExpiryPolicy<K, V> build() {
+    return new BaseExpiryPolicy<>(create, access, update);
   }
 
   /**
    * Simple implementation of the {@link ExpiryPolicy} interface allowing to set constants to each expiry types.
    */
-  private static class BaseExpiryPolicy implements ExpiryPolicy<Object, Object> {
+  private static class BaseExpiryPolicy<K, V> implements ExpiryPolicy<K, V> {
 
-    private final Duration create;
-    private final Duration access;
-    private final Duration update;
+    private final BiFunction<? super K, ? super V, Duration> create;
+    private final BiFunction<? super K, ? super Supplier<? extends V>, Duration> access;
+    private final TriFunction<? super K, ? super Supplier<? extends V>, ? super V, Duration> update;
 
-    BaseExpiryPolicy(Duration create, Duration access, Duration update) {
+    BaseExpiryPolicy(BiFunction<? super K, ? super V, Duration> create,
+                     BiFunction<? super K, ? super Supplier<? extends V>, Duration> access,
+                     TriFunction<? super K, ? super Supplier<? extends V>, ? super V, Duration> update) {
       this.create = create;
       this.access = access;
       this.update = update;
     }
+
     @Override
-    public Duration getExpiryForCreation(Object key, Object value) {
-      return create;
+    public Duration getExpiryForCreation(K key, V value) {
+      return create.apply(key, value);
     }
 
     @Override
-    public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
-      return access;
+    public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
+      return access.apply(key, value);
     }
 
     @Override
-    public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
-      return update;
+    public Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
+      return update.apply(key, oldValue, newValue);
     }
+  }
 
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
+  private static final class TimeToLiveExpiryPolicy extends BaseExpiryPolicy<Object, Object> {
+    private final Duration ttl;
 
-      final BaseExpiryPolicy that = (BaseExpiryPolicy) o;
-
-      if (!Objects.equals(access, that.access)) return false;
-      if (!Objects.equals(create, that.create)) return false;
-      if (!Objects.equals(update, that.update)) return false;
-
-      return true;
+    TimeToLiveExpiryPolicy(Duration ttl) {
+      super(
+        (a, b) -> ttl,
+        (a, b) -> null,
+        (a, b, c) -> ttl);
+      this.ttl = ttl;
     }
 
     @Override
     public int hashCode() {
-      int result = Objects.hashCode(create);
-      result = 31 * result + Objects.hashCode(access);
-      result = 31 * result + Objects.hashCode(update);
-      return result;
+      return ttl.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof TimeToLiveExpiryPolicy && ttl.equals(((TimeToLiveExpiryPolicy) obj).ttl);
     }
 
     @Override
     public String toString() {
-      return this.getClass().getSimpleName() + "{" +
-             "create=" + create +
-             ", access=" + access +
-             ", update=" + update +
-             '}';
+      return "TTL of " + ttl;
     }
   }
 
-  private static final class TimeToLiveExpiryPolicy extends BaseExpiryPolicy {
-    TimeToLiveExpiryPolicy(Duration ttl) {
-      super(ttl, null, ttl);
-    }
-  }
+  private static final class TimeToIdleExpiryPolicy extends BaseExpiryPolicy<Object, Object> {
+    private final Duration tti;
 
-  private static final class TimeToIdleExpiryPolicy extends BaseExpiryPolicy {
     TimeToIdleExpiryPolicy(Duration tti) {
-      super(tti, tti, tti);
+      super(
+        (a, b) -> tti,
+        (a, b) -> tti,
+        (a, b, c) -> tti);
+      this.tti = tti;
+    }
+
+    @Override
+    public int hashCode() {
+      return tti.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof TimeToIdleExpiryPolicy && tti.equals(((TimeToIdleExpiryPolicy) obj).tti);
+    }
+
+    @Override
+    public String toString() {
+      return "TTI of " + tti;
     }
   }
 }
