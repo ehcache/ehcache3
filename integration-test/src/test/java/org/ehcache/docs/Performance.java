@@ -16,18 +16,11 @@
 
 package org.ehcache.docs;
 
-import org.ehcache.CacheManager;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.Test;
 
 import java.time.Duration;
 import java.util.function.Supplier;
-
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 
 /**
  * Samples showing performance strategies.
@@ -37,19 +30,19 @@ public class Performance {
   @Test
   public void expiryAllocation() {
     // tag::expiryAllocation[]
-    new ExpiryPolicy() {
+    new ExpiryPolicy<Object, Object>() {
       @Override
       public Duration getExpiryForCreation(Object key, Object value) {
         return null;
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Supplier value) {
+      public Duration getExpiryForAccess(Object key, Supplier<?> value) {
         return Duration.ofSeconds(10); // <1>
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Supplier oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<?> oldValue, Object newValue) {
         return null;
       }
     };
