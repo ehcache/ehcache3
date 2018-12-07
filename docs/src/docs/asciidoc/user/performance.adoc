@@ -38,13 +38,13 @@ Your next best bet is off-heap.
 Try to avoid disk.
 Use a remote drive or even an HDD at your own risk.
 
-We won't talk about clustering here because it's a different realm and its performance are based on many factors.
+We won't talk about clustering here because it's a different realm and its performance is based on many factors.
 
 The next question would be: "Should I use a single tier?" Is using a single-tier off-heap faster than two-tiers?
 The answer depends on what you do with it.
 Having two tiers is a bit slower on writing.
 It is also a bit slower on reading when the data is not found in the caching tier (on-heap).
-However, it will be faster for an entry found is indeed found there.
+However, it will be faster for an entry that is indeed found there.
 
 So again, it depends.
 The more you follow the caching hypothesis that the same data is always reused (and so in the caching
@@ -53,7 +53,7 @@ tier), the more interesting having two tiers will be.
 == Byte Sizing
 
 A on-heap tier can be limited to a number of entries or a number of bytes.
-When using bytes, we need to calculated the size of every object added to the cache.
+When using bytes, we need to calculate the size of every object added to the cache.
 This is of course much slower than calculating the number of entries.
 
 Size calculation is done using the https://github.com/ehcache/sizeof[SizeOf] library.
@@ -71,7 +71,7 @@ However, you can increase performances by provoding your own serializers.
 == Copier
 
 By default, on-heap storage stores the entries by reference.
-You might want to use a copier for whatever reason.
+You might want to use a copier to store entries by value for whatever reason.
 This can be much slower so watch out.
 
 == Loader-Writer
@@ -80,7 +80,7 @@ Loader-writer is interesting for many reasons.
 First, it protects you against the Thundering Herd.
 However, it needs to pass through more complicated code to do so.
 
-We are expecting it to be a tiny slower.
+We are expecting it to be a tiny bit slower.
 But nothing noticeable enough to prevent you from using it.
 
 == Expiration
@@ -90,7 +90,7 @@ A cache with no expiration will always be faster.
 === Time to Live
 
 If you need to set an expiration time, TTL will be the faster one.
-This is because the expiration time is calculated once when the entry is inserted in the cache.
+This is because the expiration time of an entry is calculated and updated ony when the entry is inserted or updated in the cache.
 But it still requires an expiration check at access time.
 
 So you can expect a 2% drop in performance when using TTL. Not bad.
@@ -98,12 +98,12 @@ So you can expect a 2% drop in performance when using TTL. Not bad.
 === Time to Idle
 
 TTI is slower than TTL.
-We need to recalculate the expiration time each time the entry is accessed.
+We need to recalculate and update the expiration time each time the entry is accessed.
 
 === Custom
 
 In general, using a custom `ExpiryPolicy` will be the slowest.
-Ehcache uses intrinsics to handle other cases.
+Ehcache had optimised the handling to handle other cases.
 When using a custom policy, you are on your own.
 
 == Allocation rate
@@ -130,9 +130,10 @@ duper fast. But it is super duper accurate.
 You can trade accuracy for speed by using a `TickingTimeSource`. Please read the javadoc for details but the concept is
 that a timer will increase time instead of always retrieving system time.
 
-Switching to `TickingTimeSource`, even with a granularity of 1ms can improve the performance of a `get` of a high as 30%.
+Switching to `TickingTimeSource`, even with a granularity of 1ms, can improve the performance of a `get` as high as 30%.
 
 The drawback is that a timer will continuously run.
 Also, time might drift from the real time a bit.
-Especially if the granularity or the systemUpdatePeriod is big.
+Especially if the granularity of the `systemUpdatePeriod` is big.
+Is your expiration needs to be really tightly linked with real time, it can be a problem.
 But in most cases, the drifting doesn't matter much.
