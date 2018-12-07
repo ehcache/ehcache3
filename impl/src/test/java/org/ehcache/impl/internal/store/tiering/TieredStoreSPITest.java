@@ -130,7 +130,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
         Copier<String> defaultCopier = IdentityCopier.identityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
         try {
           CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
@@ -229,22 +229,22 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public long creationTime(TimeUnit unit) {
+          public long creationTime() {
             return creationTime;
           }
 
           @Override
-          public long expirationTime(TimeUnit unit) {
+          public long expirationTime() {
             return 0;
           }
 
           @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
+          public boolean isExpired(long expirationTime) {
             return false;
           }
 
           @Override
-          public long lastAccessTime(TimeUnit unit) {
+          public long lastAccessTime() {
             return 0;
           }
 

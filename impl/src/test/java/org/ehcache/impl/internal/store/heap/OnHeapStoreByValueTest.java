@@ -78,11 +78,6 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       public Long get() {
         return key * 1000L;
       }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
     });
     assertThat(computed.get(), is(1000L));
     assertThat(keyCopier.copyForWriteCount, is(1));

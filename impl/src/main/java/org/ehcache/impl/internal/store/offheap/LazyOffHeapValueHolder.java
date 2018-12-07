@@ -23,9 +23,7 @@ import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPor
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 /**
 * OffHeapValueHolder variant that supports lazy deserialization and also serving the binary value if detached.
@@ -40,7 +38,7 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
 
   public LazyOffHeapValueHolder(long id, ByteBuffer binaryValue, Serializer<V> serializer, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
     super(id, creationTime, expireTime);
-    setLastAccessTime(lastAccessTime, TIME_UNIT);
+    setLastAccessTime(lastAccessTime);
     this.binaryValue = binaryValue;
     this.valueSerializer = serializer;
     this.writeContext = writeContext;
@@ -72,8 +70,8 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
     if(getId() != valueFlushed.getId()) {
       throw new IllegalArgumentException("Wrong id passed in [this.id != id] : " + getId() + " != " + valueFlushed.getId());
     }
-    this.setLastAccessTime(valueFlushed.lastAccessTime(LazyOffHeapValueHolder.TIME_UNIT), LazyOffHeapValueHolder.TIME_UNIT);
-    this.setExpirationTime(valueFlushed.expirationTime(LazyOffHeapValueHolder.TIME_UNIT), LazyOffHeapValueHolder.TIME_UNIT);
+    this.setLastAccessTime(valueFlushed.lastAccessTime());
+    this.setExpirationTime(valueFlushed.expirationTime());
   }
 
   /**
@@ -81,8 +79,8 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
    */
   @Override
   void writeBack() {
-    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
-    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
+    writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime());
+    writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime());
     writeContext.flush();
   }
 

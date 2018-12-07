@@ -244,22 +244,22 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public long creationTime(TimeUnit unit) {
+          public long creationTime() {
             return creationTime;
           }
 
           @Override
-          public long expirationTime(TimeUnit unit) {
+          public long expirationTime() {
             return 0;
           }
 
           @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
+          public boolean isExpired(long expirationTime) {
             return false;
           }
 
           @Override
-          public long lastAccessTime(TimeUnit unit) {
+          public long lastAccessTime() {
             return 0;
           }
 

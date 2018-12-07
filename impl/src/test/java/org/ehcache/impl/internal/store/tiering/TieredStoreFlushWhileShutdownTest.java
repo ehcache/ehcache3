@@ -137,7 +137,7 @@ public class TieredStoreFlushWhileShutdownTest {
     // Keep the creation time to make sure we have them at restart
     long[] creationTimes = new long[20];
     for (int i = 0; i < 20; i++) {
-      creationTimes[i] = tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS);
+      creationTimes[i] = tieredStore.get(i).creationTime();
     }
 
     tieredStoreProvider.releaseStore(tieredStore);
@@ -155,7 +155,7 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS), is(creationTimes[i]));
+      assertThat(tieredStore.get(i).creationTime(), is(creationTimes[i]));
     }
   }
 

@@ -878,7 +878,7 @@ public class ClusteredStoreTest {
 
     Store.ValueHolder<?> vh = store.get(1L);
 
-    long expirationTime = vh.expirationTime(TimeUnit.MILLISECONDS);
+    long expirationTime = vh.expirationTime();
     assertThat(expirationTime, is(1000L));
   }
 
@@ -908,7 +908,7 @@ public class ClusteredStoreTest {
 
     Store.ValueHolder<?> vh = store.get(1L);
 
-    long expirationTime = vh.expirationTime(TimeUnit.MILLISECONDS);
+    long expirationTime = vh.expirationTime();
     assertThat(expirationTime, is(NO_EXPIRE));
   }
 }
