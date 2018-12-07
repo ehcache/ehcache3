@@ -97,7 +97,7 @@ public class OnHeapEvictionStrategyTest {
       ExpiryPolicyBuilder.expiry()
     .create(ExpiryPolicy.INFINITE)
     .update(Duration.ofMillis(100))
-    .access(null)
+    .access((Duration) null)
     .build());
 
     cache.put(1, "a");
@@ -154,7 +154,7 @@ public class OnHeapEvictionStrategyTest {
       ExpiryPolicyBuilder.expiry()
         .create(ExpiryPolicy.INFINITE)
         .update(Duration.ofMillis(100))
-        .access(null)
+        .access((Duration) null)
         .build());
 
     cache.put(1, "a"); // create
