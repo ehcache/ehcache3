@@ -27,7 +27,7 @@ import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 /**
- * Pairs a {@link ServerSideConfiguration.Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
+ * Pairs a {@link org.ehcache.clustered.common.ServerSideConfiguration.Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
  * for the pool.
  */
 @CommonComponent
