@@ -45,7 +45,7 @@ public class Expiry {
   }
 
   public long value() {
-    final TimeType time;
+    final TimeTypeWithPropSubst time;
     if(isTTI()) {
       time = type.getTti();
     } else {
@@ -55,7 +55,7 @@ public class Expiry {
   }
 
   public TemporalUnit unit() {
-    final TimeType time;
+    final TimeTypeWithPropSubst time;
     if(isTTI()) {
       time = type.getTti();
     } else {

@@ -19,6 +19,7 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -71,8 +72,8 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
       for (Element tags : NodeListIterable.elements(fragment, NAMESPACE, "tags")) {
         // tag
         for (Element tag : NodeListIterable.elements(tags, NAMESPACE, "tag")) {
-          String val = val(tag);
-          if (val != null && !val.isEmpty()) {
+          String val = JaxbParsers.parsePropertyOrString(tag.getTextContent());
+          if (!val.isEmpty()) {
             registryConfiguration.addTag(val);
           }
         }
@@ -90,10 +91,6 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   private static String attr(Element element, String name) {
     String s = element.getAttribute(name);
     return s == null || s.equals("") ? null : s;
-  }
-
-  private static String val(Element element) {
-    return element.hasChildNodes() ? element.getFirstChild().getNodeValue() : null;
   }
 
   @Override

@@ -22,6 +22,7 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
@@ -62,7 +63,7 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
   public ServiceCreationConfiguration<TransactionManagerProvider, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("jta-tm".equals(localName)) {
-      String transactionManagerProviderConfigurationClassName = fragment.getAttribute("transaction-manager-lookup-class");
+      String transactionManagerProviderConfigurationClassName = JaxbParsers.parsePropertyOrString(fragment.getAttribute("transaction-manager-lookup-class"));
       try {
         Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, delegationChain(
           () -> Thread.currentThread().getContextClassLoader(),

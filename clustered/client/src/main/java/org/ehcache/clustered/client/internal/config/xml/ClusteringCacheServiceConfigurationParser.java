@@ -65,7 +65,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   public ServiceConfiguration<ClusteredStore.Provider, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
       if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
-        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));
+        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute(CONSISTENCY_ATTRIBUTE_NAME).toUpperCase()));
       } else {
         return new ClusteredStoreConfiguration();
       }

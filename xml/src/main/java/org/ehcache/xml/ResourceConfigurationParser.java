@@ -29,11 +29,11 @@ import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Disk;
 import org.ehcache.xml.model.Heap;
-import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.MemoryTypeWithPropSubst;
 import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
-import org.ehcache.xml.model.PersistableMemoryType;
-import org.ehcache.xml.model.ResourceType;
+import org.ehcache.xml.model.PersistableMemoryTypeWithPropSubst;
+import org.ehcache.xml.model.ResourceTypeWithPropSubst;
 import org.ehcache.xml.model.ResourcesType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -52,6 +52,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -60,6 +61,7 @@ import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 
 public class ResourceConfigurationParser {
 
+  private static final ObjectFactory OBJECT_FACTORY = new ObjectFactory();
   private static final Schema CORE_SCHEMA;
   static {
     SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
@@ -69,11 +71,7 @@ public class ResourceConfigurationParser {
       throw new AssertionError(e);
     }
   }
-  private static final String CORE_SCHEMA_NS;
-  static {
-    ObjectFactory factory = new ObjectFactory();
-    CORE_SCHEMA_NS = factory.createResource(factory.createResourceType()).getName().getNamespaceURI();
-  }
+  private static final String CORE_SCHEMA_NS = OBJECT_FACTORY.createResource(OBJECT_FACTORY.createResourceTypeWithPropSubst()).getName().getNamespaceURI();
 
   private final JAXBContext jaxbContext;
   private final Set<CacheResourceConfigurationParser> extensionParsers;
@@ -99,16 +97,16 @@ public class ResourceConfigurationParser {
         } else {
           try {
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            unmarshaller.setSchema(CORE_SCHEMA);
+            unmarshaller.setEventHandler(new DefaultValidationEventHandler());
             Object resource = unmarshaller.unmarshal(element);
             if (resource instanceof Heap) {
               resourcePool = parseHeapConfiguration((Heap) resource);
             } else if (resource instanceof Offheap) {
-              MemoryType offheapResource = ((Offheap) resource).getValue();
+              MemoryTypeWithPropSubst offheapResource = ((Offheap) resource).getValue();
               resourcePool = new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.OFFHEAP,
                 offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
             } else if (resource instanceof Disk) {
-              PersistableMemoryType diskResource = ((Disk) resource).getValue();
+              PersistableMemoryTypeWithPropSubst diskResource = ((Disk) resource).getValue();
               resourcePool = new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.DISK,
                 diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
             } else {
@@ -130,20 +128,20 @@ public class ResourceConfigurationParser {
   }
 
   private ResourcePool parseHeapConfiguration(Heap heap) {
-    ResourceType heapResource = heap.getValue();
+    ResourceTypeWithPropSubst heapResource = heap.getValue();
     return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.HEAP,
       heapResource.getValue().longValue(), parseUnit(heapResource), false);
   }
 
-  private static ResourceUnit parseUnit(ResourceType resourceType) {
-    if (resourceType.getUnit().value().equalsIgnoreCase("entries")) {
+  private static ResourceUnit parseUnit(ResourceTypeWithPropSubst resourceType) {
+    if (resourceType.getUnit().equals(org.ehcache.xml.model.ResourceUnit.ENTRIES)) {
       return EntryUnit.ENTRIES;
     } else {
       return org.ehcache.config.units.MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
     }
   }
 
-  private static org.ehcache.config.units.MemoryUnit parseMemory(MemoryType memoryType) {
+  private static org.ehcache.config.units.MemoryUnit parseMemory(MemoryTypeWithPropSubst memoryType) {
     return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
@@ -166,21 +164,12 @@ public class ResourceConfigurationParser {
         SizedResourcePool pool = (SizedResourcePool) resourcePool;
         Object resource;
         if (resourceType == org.ehcache.config.ResourceType.Core.HEAP) {
-          Heap heap = new Heap();
-          ResourceType xmlResourceType = new ResourceType().withValue(BigInteger.valueOf(pool.getSize())).withUnit(unparseUnit(pool.getUnit()));
-          heap.setValue(xmlResourceType);
-          resource = heap;
+          resource = OBJECT_FACTORY.createHeap(OBJECT_FACTORY.createResourceTypeWithPropSubst().withValue(BigInteger.valueOf(pool.getSize())).withUnit(unparseUnit(pool.getUnit())));
         } else if (resourceType == org.ehcache.config.ResourceType.Core.OFFHEAP) {
-          Offheap offheap = new Offheap();
-          MemoryType memoryType = new MemoryType().withValue(BigInteger.valueOf(pool.getSize())).withUnit(unparseMemory((MemoryUnit) pool.getUnit()));
-          offheap.setValue(memoryType);
-          resource = offheap;
+          resource = OBJECT_FACTORY.createOffheap(OBJECT_FACTORY.createMemoryTypeWithPropSubst().withValue(BigInteger.valueOf(pool.getSize())).withUnit(unparseMemory((MemoryUnit) pool.getUnit())));
         } else if (resourceType == org.ehcache.config.ResourceType.Core.DISK) {
-          Disk disk = new Disk();
-          PersistableMemoryType memoryType = new PersistableMemoryType().withValue(BigInteger.valueOf(pool.getSize()))
-            .withUnit(unparseMemory((MemoryUnit) pool.getUnit())).withPersistent(pool.isPersistent());
-          disk.setValue(memoryType);
-          resource = disk;
+          resource = OBJECT_FACTORY.createDisk(OBJECT_FACTORY.createPersistableMemoryTypeWithPropSubst().withValue(BigInteger.valueOf(pool.getSize()))
+            .withUnit(unparseMemory((MemoryUnit) pool.getUnit())).withPersistent(pool.isPersistent()));
         } else {
           throw new AssertionError("Unrecognized core resource type: " + resourceType);
         }
@@ -207,7 +196,7 @@ public class ResourceConfigurationParser {
 
       resources.add(element);
     });
-    return cacheType.withResources(new ResourcesType().withResource(resources));
+    return cacheType.withResources(OBJECT_FACTORY.createResourcesType().withResource(resources));
   }
 
   private static org.ehcache.xml.model.ResourceUnit unparseUnit(ResourceUnit resourceUnit) {

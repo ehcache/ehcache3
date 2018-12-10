@@ -187,6 +187,7 @@ include::{sourcedir39}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbean
 <3> The cache `overrideCache` will have both MBeans disabled, overriding the service configuration.
 <4> The cache `overrideOneCache` will have the statistics MBean disabled, whereas the management MBean will be enabled according to the service configuration.
 
+[[supplement-jsr-107-configurations]]
 ==== Supplementing JCache cache configurations using Ehcache XML extensions
 
 You can also create `cache-templates`.

@@ -134,7 +134,7 @@
   </xs:element>
 
   <xs:complexType name="persistence-type">
-    <xs:attribute name="directory" type="xs:string" use="required"/>
+    <xs:attribute name="directory" type="ehcache:stringWithProperties" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="serializer-type">
@@ -171,8 +171,8 @@
         <xs:complexType>
           <xs:attribute name="alias" use="required" type="xs:string"/>
           <xs:attribute name="default" use="optional" type="xs:boolean" default="false"/>
-          <xs:attribute name="min-size" use="required" type="xs:nonNegativeInteger"/>
-          <xs:attribute name="max-size" use="required" type="xs:positiveInteger"/>
+          <xs:attribute name="min-size" use="required" type="ehcache:propertyOrNonNegativeInteger"/>
+          <xs:attribute name="max-size" use="required" type="ehcache:propertyOrPositiveInteger"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -385,9 +385,9 @@
               <xs:element name="batching">
                 <xs:complexType>
                   <xs:all minOccurs="1">
-                    <xs:element name="max-write-delay" type="ehcache:time-type"/>
+                    <xs:element name="max-write-delay" type="ehcache:time-type-with-prop-subst"/>
                   </xs:all>
-                  <xs:attribute name="batch-size" type="xs:positiveInteger" use="required"/>
+                  <xs:attribute name="batch-size" type="ehcache:propertyOrPositiveInteger" use="required"/>
                   <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
                 </xs:complexType>
               </xs:element>
@@ -396,8 +396,8 @@
               </xs:element>
             </xs:choice>
           </xs:sequence>
-          <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
-          <xs:attribute name="size" type="xs:positiveInteger" default="2147483647" use="optional"/>
+          <xs:attribute name="concurrency" type="ehcache:propertyOrPositiveInteger" default="1" use="optional"/>
+          <xs:attribute name="size" type="ehcache:propertyOrPositiveInteger" default="2147483647" use="optional"/>
           <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
         </xs:complexType>
       </xs:element>
@@ -435,14 +435,14 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="tti" type="ehcache:time-type">
+      <xs:element name="tti" type="ehcache:time-type-with-prop-subst">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Entries in the cache should expire if not accessed for the defined time.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="ttl" type="ehcache:time-type">
+      <xs:element name="ttl" type="ehcache:time-type-with-prop-subst">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Entries in the cache should expire after the defined time.
@@ -460,9 +460,9 @@
     </xs:choice>
   </xs:complexType>
 
-  <xs:complexType name="time-type">
+  <xs:complexType name="time-type-with-prop-subst">
     <xs:simpleContent>
-      <xs:extension base="xs:positiveInteger">
+      <xs:extension base="ehcache:propertyOrPositiveInteger">
         <xs:attribute name="unit" type="ehcache:time-unit" default="seconds">
           <xs:annotation>
             <xs:documentation xml:lang="en">
@@ -477,20 +477,32 @@
   <xs:complexType name="memory-type">
     <xs:simpleContent>
       <xs:extension base="xs:positiveInteger">
-        <xs:attribute name="unit" type="ehcache:memory-unit" default="B" use="optional">
-          <xs:annotation>
-            <xs:documentation xml:lang="en">
-              The memory unit (see org.ehcache.config.units.MemoryUnit) this value is expressed in.
-            </xs:documentation>
-          </xs:annotation>
-        </xs:attribute>
+        <xs:attributeGroup ref="ehcache:memory-unit-attributes"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="resource-type">
+  <xs:complexType name="memory-type-with-prop-subst">
     <xs:simpleContent>
-      <xs:extension base="xs:positiveInteger">
+      <xs:extension base="ehcache:propertyOrPositiveInteger">
+        <xs:attributeGroup ref="ehcache:memory-unit-attributes"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:attributeGroup name="memory-unit-attributes">
+    <xs:attribute name="unit" type="ehcache:memory-unit" default="B" use="optional">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          The memory unit (see org.ehcache.config.units.MemoryUnit) this value is expressed in.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <xs:complexType name="resource-type-with-prop-subst">
+    <xs:simpleContent>
+      <xs:extension base="ehcache:propertyOrPositiveInteger">
         <xs:attribute name="unit" type="ehcache:resource-unit" default="entries" use="optional">
           <xs:annotation>
             <xs:documentation xml:lang="en">
@@ -502,9 +514,9 @@
     </xs:simpleContent>
   </xs:complexType>
 
-  <xs:complexType name="persistable-memory-type">
+  <xs:complexType name="persistable-memory-type-with-prop-subst">
     <xs:complexContent>
-      <xs:extension base="ehcache:memory-type">
+      <xs:extension base="ehcache:memory-type-with-prop-subst">
         <xs:attribute name="persistent" type="xs:boolean" default="false" use="optional"/>
       </xs:extension>
     </xs:complexContent>
@@ -518,7 +530,7 @@
     </xs:annotation>
   </xs:element>
 
-  <xs:element name="heap" type="ehcache:resource-type" substitutionGroup="ehcache:resource">
+  <xs:element name="heap" type="ehcache:resource-type-with-prop-subst" substitutionGroup="ehcache:resource">
     <xs:annotation>
       <xs:appinfo>
         <jaxb:class/>
@@ -528,7 +540,7 @@
       </xs:appinfo>
     </xs:annotation>
   </xs:element>
-  <xs:element name="offheap" type="ehcache:memory-type" substitutionGroup="ehcache:resource">
+  <xs:element name="offheap" type="ehcache:memory-type-with-prop-subst" substitutionGroup="ehcache:resource">
     <xs:annotation>
       <xs:appinfo>
         <jaxb:class/>
@@ -538,7 +550,7 @@
       </xs:appinfo>
     </xs:annotation>
   </xs:element>
-  <xs:element name="disk" type="ehcache:persistable-memory-type" substitutionGroup="ehcache:resource">
+  <xs:element name="disk" type="ehcache:persistable-memory-type-with-prop-subst" substitutionGroup="ehcache:resource">
     <xs:annotation>
       <xs:appinfo>
         <jaxb:class/>
@@ -557,8 +569,8 @@
 
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
-    <xs:attribute name="disk-segments" type="xs:positiveInteger" use="optional" default="16"/>
+    <xs:attribute name="writer-concurrency" type="ehcache:propertyOrPositiveInteger" use="optional" default="1"/>
+    <xs:attribute name="disk-segments" type="ehcache:propertyOrPositiveInteger" use="optional" default="16"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">
@@ -617,7 +629,54 @@
   </xs:simpleType>
   <xs:simpleType name="fqcn-type">
     <xs:restriction base="xs:string">
-      <xs:whiteSpace value="collapse"></xs:whiteSpace>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="propertyOrString">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrString"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:union memberTypes="ehcache:propertyReference">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+
+  <xs:simpleType name="propertyOrPositiveInteger">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrPositiveInteger"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:union memberTypes="ehcache:propertyReference xs:positiveInteger"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="propertyOrNonNegativeInteger">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrNonNegativeInteger"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:union memberTypes="ehcache:propertyReference xs:nonNegativeInteger"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="stringWithProperties">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.JaxbParsers.parseStringWithProperties"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:restriction base="xs:string"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="propertyReference">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\s*\$\{[^{}]+\}\s*"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>

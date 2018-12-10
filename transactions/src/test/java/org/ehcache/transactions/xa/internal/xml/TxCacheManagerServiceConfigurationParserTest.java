@@ -18,15 +18,47 @@ package org.ehcache.transactions.xa.internal.xml;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.Test;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.StringReader;
 
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 
 /**
  * TxCacheManagerServiceConfigurationParserTest
  */
 public class TxCacheManagerServiceConfigurationParserTest {
+
+  @Test
+  public void testParseLookupInsideProperty() throws ParserConfigurationException, IOException, SAXException {
+    String property = TxCacheManagerServiceConfigurationParserTest.class.getName() + ":lookup";
+    String inputString = "<tx:jta-tm xmlns:tx='http://www.ehcache.org/v3/tx' transaction-manager-lookup-class ='${" + property + "}'/>";
+
+    TxCacheManagerServiceConfigurationParser configParser = new TxCacheManagerServiceConfigurationParser();
+
+    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+    documentBuilderFactory.setNamespaceAware(true);
+    Element node =  documentBuilderFactory.newDocumentBuilder()
+      .parse(new InputSource(new StringReader(inputString))).getDocumentElement();
+
+    System.setProperty(property, BitronixTransactionManagerLookup.class.getName());
+    try {
+      LookupTransactionManagerProviderConfiguration configuration =
+        (LookupTransactionManagerProviderConfiguration) configParser.parseServiceCreationConfiguration(node, null);
+
+      assertThat(configuration.getTransactionManagerLookup(), sameInstance(BitronixTransactionManagerLookup.class));
+    } finally {
+      System.clearProperty(property);
+    }
+  }
 
   @Test
   public void testTranslateServiceCreationConfiguration() {
