@@ -48,20 +48,22 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
 
 public class EhcacheCachingProviderTest {
 
+  @Before
   @After
-  public void after() {
+  public void closeCachingProvider() {
     Caching.getCachingProvider().close();
   }
 
   @Test
   public void testLoadsAsCachingProvider() {
-    final CachingProvider provider = Caching.getCachingProvider();
+    CachingProvider provider = Caching.getCachingProvider();
     assertThat(provider, is(instanceOf(EhcacheCachingProvider.class)));
   }
 
