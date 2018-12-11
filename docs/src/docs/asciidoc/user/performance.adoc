@@ -115,7 +115,7 @@ For instance, let's say you define an expiry policy like this.
 
 [source,java,indent=0]
 ----
-include::{sourcedir35}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
+include::{sourcedir36}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
 ----
 
 <1> Will instantiate a `Duration` every time an entry is accessed
