@@ -17,16 +17,13 @@ package org.ehcache.jsr107;
 
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.event.EventType;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -35,19 +32,13 @@ import static org.junit.Assert.assertThat;
 /**
  * @author rism
  */
-public class UnwrapTest {
+public class UnwrapTest extends BaseCachingProviderTest {
 
   private CacheManager cacheManager;
 
   @Before
   public void setUp() {
-    CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager();
-  }
-
-  @After
-  public void tearDown() {
-    cacheManager.close();
   }
 
   @Test

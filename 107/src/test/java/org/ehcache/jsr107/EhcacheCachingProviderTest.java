@@ -16,26 +16,6 @@
 
 package org.ehcache.jsr107;
 
-import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.theInstance;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.util.Collections;
-import java.util.Properties;
-
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
-
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.EhcacheManager;
@@ -47,23 +27,33 @@ import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
 
-public class EhcacheCachingProviderTest {
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Properties;
 
-  @Before
-  @After
-  public void closeCachingProvider() {
-    Caching.getCachingProvider().close();
-  }
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
+
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.theInstance;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+public class EhcacheCachingProviderTest extends BaseCachingProviderTest {
 
   @Test
-  public void testLoadsAsCachingProvider() {
-    CachingProvider provider = Caching.getCachingProvider();
+  public void testLoadsAsprovider() {
     assertThat(provider, is(instanceOf(EhcacheCachingProvider.class)));
   }
 
@@ -81,10 +71,9 @@ public class EhcacheCachingProviderTest {
 
   @Test
   public void testCacheUsesCacheManagerClassLoaderForDefaultURI() {
-    CachingProvider cachingProvider = Caching.getCachingProvider();
-    LimitedClassLoader limitedClassLoader = new LimitedClassLoader(cachingProvider.getDefaultClassLoader());
+    LimitedClassLoader limitedClassLoader = new LimitedClassLoader(provider.getDefaultClassLoader());
 
-    CacheManager cacheManager = cachingProvider.getCacheManager(cachingProvider.getDefaultURI(), limitedClassLoader);
+    CacheManager cacheManager = provider.getCacheManager(provider.getDefaultURI(), limitedClassLoader);
 
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
@@ -101,18 +90,17 @@ public class EhcacheCachingProviderTest {
 
   @Test
   public void testClassLoadCount() throws Exception {
-    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
-    URI uri = cachingProvider.getDefaultURI();
-    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+    URI uri = provider.getDefaultURI();
+    ClassLoader classLoader = provider.getDefaultClassLoader();
     CountingConfigSupplier configSupplier = new CountingConfigSupplier(uri, classLoader);
 
     assertEquals(configSupplier.configCount, 0);
 
-    cachingProvider.getCacheManager(configSupplier, new Properties());
+    provider.getCacheManager(configSupplier, new Properties());
 
     assertEquals(configSupplier.configCount, 1);
 
-    cachingProvider.getCacheManager(configSupplier, new Properties());
+    provider.getCacheManager(configSupplier, new Properties());
 
     assertEquals(configSupplier.configCount, 1);
   }
@@ -150,9 +138,8 @@ public class EhcacheCachingProviderTest {
 
   @Test
   public void testCacheManagerUsingACacheManagerBuilder() throws Exception {
-    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
-    URI uri = cachingProvider.getDefaultURI();
-    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+    URI uri = provider.getDefaultURI();
+    ClassLoader classLoader = provider.getDefaultClassLoader();
 
     Jsr107Service jsr107Service = new DefaultJsr107Service(null);
     DefaultStatisticsService statisticsService = new DefaultStatisticsService();
@@ -166,7 +153,7 @@ public class EhcacheCachingProviderTest {
         .using(cacheLoaderWriterFactory)
         .using(serializationProvider);
 
-    CacheManager cacheManager = cachingProvider.getCacheManager(uri, classLoader, builder);
+    CacheManager cacheManager = provider.getCacheManager(uri, classLoader, builder);
     cacheManager.createCache("cache", new MutableConfiguration<String, String>());
 
     EhcacheManager internalCacheManager = cacheManager.unwrap(EhcacheManager.class);
@@ -186,13 +173,12 @@ public class EhcacheCachingProviderTest {
 
   @Test
   public void testCacheManagerUsingACacheManagerBuilder_stillHaveDefaultServices() throws Exception {
-    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
-    URI uri = cachingProvider.getDefaultURI();
-    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+    URI uri = provider.getDefaultURI();
+    ClassLoader classLoader = provider.getDefaultClassLoader();
 
     CacheManagerBuilder<org.ehcache.CacheManager> builder = newCacheManagerBuilder();
 
-    CacheManager cacheManager = cachingProvider.getCacheManager(uri, classLoader, builder);
+    CacheManager cacheManager = provider.getCacheManager(uri, classLoader, builder);
     cacheManager.createCache("cache", new MutableConfiguration<String, String>());
 
     EhcacheManager internalCacheManager = cacheManager.unwrap(EhcacheManager.class);
@@ -202,14 +188,13 @@ public class EhcacheCachingProviderTest {
 
   @Test
   public void testCacheManagerUsingACacheManagerBuilderWithAJsr107Configuration_isUsingTheConfiguration() throws Exception {
-    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
-    URI uri = cachingProvider.getDefaultURI();
-    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+    URI uri = provider.getDefaultURI();
+    ClassLoader classLoader = provider.getDefaultClassLoader();
 
     CacheManagerBuilder<org.ehcache.CacheManager> builder = newCacheManagerBuilder();
     builder = builder.using(new Jsr107Configuration(null, Collections.emptyMap(), false /* not the default */, null, null));
 
-    CacheManager cacheManager = cachingProvider.getCacheManager(uri, classLoader, builder);
+    CacheManager cacheManager = provider.getCacheManager(uri, classLoader, builder);
     cacheManager.createCache("cache", new MutableConfiguration<String, String>());
 
     EhcacheManager internalCacheManager = cacheManager.unwrap(EhcacheManager.class);

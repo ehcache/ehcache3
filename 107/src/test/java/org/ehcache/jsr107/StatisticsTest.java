@@ -20,14 +20,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
-
 import java.util.HashSet;
 import java.util.concurrent.Callable;
+
+import javax.cache.Cache;
+import javax.cache.CacheManager;
+import javax.cache.configuration.MutableConfiguration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -39,7 +37,7 @@ import static org.hamcrest.Matchers.not;
 /**
  * @author Ludovic Orban
  */
-public class StatisticsTest {
+public class StatisticsTest extends BaseCachingProviderTest {
 
   private CacheManager cacheManager;
   private Eh107CacheStatisticsMXBean heapStatistics;
@@ -53,7 +51,6 @@ public class StatisticsTest {
 
   @Before
   public void setUp() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-stats.xml").toURI(), ClassLoader.getSystemClassLoader());
     MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);

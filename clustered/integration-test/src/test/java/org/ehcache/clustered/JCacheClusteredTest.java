@@ -54,7 +54,8 @@ public class JCacheClusteredTest extends ClusteredTests {
   public void testJCacheClustered() throws Exception {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/jcache-clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
-    CachingProvider cachingProvider = Caching.getCachingProvider();
-    cachingProvider.getCacheManager(substitutedXml.toURI(), getClass().getClassLoader());
+    try(CachingProvider cachingProvider = Caching.getCachingProvider()) {
+      cachingProvider.getCacheManager(substitutedXml.toURI(), getClass().getClassLoader());
+    }
   }
 }

@@ -17,23 +17,17 @@
 package org.ehcache.jsr107;
 
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -46,7 +40,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
-public class LoaderWriterTest {
+public class LoaderWriterTest extends BaseCachingProviderTest {
 
   @Mock
   private CacheLoader<Number, CharSequence> cacheLoader;
@@ -59,7 +53,6 @@ public class LoaderWriterTest {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
 
-    CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107.xml").toURI(), getClass().getClassLoader());
 
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
@@ -68,11 +61,6 @@ public class LoaderWriterTest {
         .setCacheLoaderFactory(() -> cacheLoader)
         .setCacheWriterFactory(() -> cacheWriter)
         .setTypes(Number.class, CharSequence.class));
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    cacheManager.close();
   }
 
   @Test

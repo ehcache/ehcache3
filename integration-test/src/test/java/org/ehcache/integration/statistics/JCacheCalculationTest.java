@@ -48,10 +48,11 @@ import org.junit.Test;
  */
 public class JCacheCalculationTest extends AbstractCacheCalculationTest {
 
+  private CachingProvider cachingProvider;
+
   private CacheManager cacheManager;
 
   private Cache<Integer, String> cache;
-
 
   public JCacheCalculationTest(ResourcePoolsBuilder poolBuilder) {
     super(poolBuilder);
@@ -59,7 +60,7 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
 
   @Before
   public void before() throws Exception {
-    CachingProvider cachingProvider = Caching.getCachingProvider();
+    cachingProvider = Caching.getCachingProvider();
     EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider;
 
     DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
@@ -88,6 +89,7 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
     if(cacheManager != null) {
       cacheManager.close();
     }
+    cachingProvider.close();
   }
 
   @Test

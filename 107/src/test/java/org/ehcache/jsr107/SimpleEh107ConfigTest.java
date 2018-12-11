@@ -16,7 +16,6 @@
 
 package org.ehcache.jsr107;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,17 +23,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
@@ -47,19 +43,13 @@ import static org.junit.Assert.assertThat;
 /**
  * SimpleEh107ConfigTest
  */
-public class SimpleEh107ConfigTest {
+public class SimpleEh107ConfigTest extends BaseCachingProviderTest {
 
   private CacheManager cacheManager;
 
   @Before
   public void setUp() {
-    CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager();
-  }
-
-  @After
-  public void tearDown() {
-    cacheManager.close();
   }
 
   @Test

@@ -23,6 +23,7 @@ import java.net.URI;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
+import javax.cache.spi.CachingProvider;
 
 import org.junit.After;
 import org.junit.Before;
@@ -46,17 +47,17 @@ public class XA107Test {
   public void testXAWorksWithJsr107() throws Exception {
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
     URI uri = getClass().getResource("/configs/simple-xa.xml").toURI();
-    CacheManager cacheManager = Caching.getCachingProvider().getCacheManager(uri, getClass().getClassLoader());
+    try(CachingProvider cachingProvider = Caching.getCachingProvider()) {
+      CacheManager cacheManager = cachingProvider.getCacheManager(uri, getClass().getClassLoader());
 
-    Cache<String, String> xaCache = cacheManager.getCache("xaCache", String.class, String.class);
+      Cache<String, String> xaCache = cacheManager.getCache("xaCache", String.class, String.class);
 
-    transactionManager.begin();
-    {
+      transactionManager.begin();
+      {
         xaCache.put("key", "one");
+      }
+      transactionManager.commit();
     }
-    transactionManager.commit();
-
-    cacheManager.close();
   }
 
 }

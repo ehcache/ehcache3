@@ -25,24 +25,20 @@ import org.mockito.MockitoAnnotations;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
  * LoadAtomicsWith107Test
  */
-public class LoadAtomicsWith107Test {
+public class LoadAtomicsWith107Test extends BaseCachingProviderTest {
   @Mock
   private CacheLoader<Number, CharSequence> cacheLoader;
   @Mock
@@ -54,7 +50,6 @@ public class LoadAtomicsWith107Test {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
 
-    CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107-load-atomics.xml").toURI(), getClass().getClassLoader());
 
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
