@@ -59,7 +59,7 @@ public class StandardEhcacheStatisticsTest {
   private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(30);
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -162,7 +162,7 @@ public class StandardEhcacheStatisticsTest {
       .execute()
       .getSingleResult();
 
-    assertThat(latency.size()).isEqualTo(1);
+    assertThat(latency.size()).describedAs(statName).isEqualTo(1);
     return latency.<Long>getLatestSampleValue(statName).get();
   }
 
