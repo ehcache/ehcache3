@@ -151,7 +151,7 @@ public class StandardEhcacheStatisticsTest {
 
   private AbstractLongAssert<?> assertStatistic(String statName) {
     long value = getStatistic(statName);
-    return assertThat(value);
+    return assertThat(value).describedAs(statName);
   }
 
   private long getStatistic(String statName) {

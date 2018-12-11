@@ -15,6 +15,8 @@
  */
 package org.ehcache.core.resilience;
 
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;

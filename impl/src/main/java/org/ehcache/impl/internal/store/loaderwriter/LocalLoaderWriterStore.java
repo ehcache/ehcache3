@@ -120,6 +120,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
 
+      // Here were a returning an actual value instead of null because the mappingFunction is called by a map.compute(). So we
+      // want the compute to actually set the value to the backend. However, the putIfAbsent should return null since there
+      // was no previous value. This is why we use put.accept(true). This will tell EhcacheBase: "Hey! A put was done, you should return null"
       put.accept(true);
       return value;
     };

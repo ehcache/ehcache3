@@ -13,29 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.impl.internal.store.basic;
 
 import org.ehcache.core.spi.store.Store;
 
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 /**
- * A value holder that always contains null
- *
- * @author Henri Tremblay
+ * A really basic value holder that just holds a value.
  */
-public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
+public class SimpleValueHolder<T> implements Store.ValueHolder<T> {
 
-  private static final Store.ValueHolder<Object> EMPTY = new EmptyValueHolder<>();
+  private final T value;
 
-  @SuppressWarnings("unchecked")
-  public static <V> Store.ValueHolder<V> empty() {
-    return (Store.ValueHolder<V>) EMPTY;
+  public SimpleValueHolder(T v) {
+    this.value = v;
   }
 
   @Override
-  public V get() {
-    return null;
+  @Nonnull
+  public T get() {
+    return value;
   }
 
   @Override

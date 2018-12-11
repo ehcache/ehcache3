@@ -83,7 +83,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
-    return EmptyValueHolder.empty();
+    return null;
   }
 
   @Override
@@ -158,7 +158,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
-    return EmptyValueHolder.empty();
+    return null;
   }
 
   @Override
@@ -180,7 +180,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) {
     Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
-      map.put(key, EmptyValueHolder.empty());
+      map.put(key, null);
     }
     return map;
   }
@@ -189,7 +189,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) {
     Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
-      map.put(key, EmptyValueHolder.empty());
+      map.put(key, null);
     }
     return map;
   }
