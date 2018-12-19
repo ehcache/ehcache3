@@ -340,4 +340,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  // for test purposes
+  public ConnectionState getConnectionState() {
+    return connectionState;
+  }
+
 }
