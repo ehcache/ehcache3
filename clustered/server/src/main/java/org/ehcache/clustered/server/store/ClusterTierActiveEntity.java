@@ -835,11 +835,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     management.close();
   }
 
-  Set<ClientDescriptor> getConnectedClients() {
+  protected Set<ClientDescriptor> getConnectedClients() {
     return connectedClients.keySet();
   }
 
-  Set<ClientDescriptor> getValidatedClients() {
+  protected Set<ClientDescriptor> getValidatedClients() {
     return connectedClients.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(toSet());
   }
 
