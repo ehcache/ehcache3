@@ -40,6 +40,7 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
+      cleanCaches(true),
       junitBundles()
     );
   }
