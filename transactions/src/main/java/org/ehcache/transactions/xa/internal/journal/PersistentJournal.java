@@ -34,7 +34,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * A persistent, but not durable {@link Journal} implementation.

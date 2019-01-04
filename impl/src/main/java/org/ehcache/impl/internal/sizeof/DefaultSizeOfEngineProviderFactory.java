@@ -16,17 +16,18 @@
 
 package org.ehcache.impl.internal.sizeof;
 
+import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Abhilash
  *
  */
-
+@Component
 public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOfEngineProvider> {
 
   @Override

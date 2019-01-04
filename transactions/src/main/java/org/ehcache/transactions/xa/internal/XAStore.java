@@ -20,11 +20,11 @@ import org.ehcache.Cache;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.WrapperStore;
-import org.ehcache.impl.internal.util.CheckerUtil;
+import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreSupport;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -80,22 +80,20 @@ import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link javax.transaction.TransactionManager} using the XA 2-phase commit protocol.
  */
-public class XAStore<K, V> implements WrapperStore<K, V> {
+public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
 
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final Store<K, SoftLock<V>> underlyingStore;
   private final TransactionManagerWrapper transactionManagerWrapper;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<>();
@@ -108,8 +106,7 @@ public class XAStore<K, V> implements WrapperStore<K, V> {
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
                  TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId) {
-    this.keyType = keyType;
-    this.valueType = valueType;
+    super(keyType, valueType, true);
     this.underlyingStore = underlyingStore;
     this.transactionManagerWrapper = transactionManagerWrapper;
     this.timeSource = timeSource;
@@ -165,14 +162,6 @@ public class XAStore<K, V> implements WrapperStore<K, V> {
     } catch (RollbackException re) {
       throw new XACacheException("XA Transaction has been marked for rollback only", re);
     }
-  }
-
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
   }
 
   @Override
@@ -418,6 +407,11 @@ public class XAStore<K, V> implements WrapperStore<K, V> {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     Map<K, XAValueHolder<V>> valueHolderMap = transactionContextFactory.listPuts(currentContext.getTransactionId());
     return new XAIterator(valueHolderMap, underlyingStore.iterator(), currentContext.getTransactionId());
+  }
+
+  @Override
+  protected String getStatisticsTag() {
+    return "XaStore";
   }
 
   class XAIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {

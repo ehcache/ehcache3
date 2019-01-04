@@ -22,8 +22,8 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -34,11 +34,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.core.util.ClassLoading.delegationChain;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<LookupTransactionManagerProviderConfiguration> implements CacheManagerServiceConfigurationParser<TransactionManagerProvider> {
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
@@ -57,13 +59,16 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
   }
 
   @Override
-  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("jta-tm".equals(localName)) {
       String transactionManagerProviderConfigurationClassName = fragment.getAttribute("transaction-manager-lookup-class");
       try {
-        ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-        Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, defaultClassLoader);
+        Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, delegationChain(
+          () -> Thread.currentThread().getContextClassLoader(),
+          getClass().getClassLoader(),
+          classLoader
+        ));
         Class<? extends TransactionManagerLookup> clazz = uncheckedCast(aClass);
         return new LookupTransactionManagerProviderConfiguration(clazz);
       } catch (Exception e) {

@@ -17,12 +17,14 @@
 package org.ehcache.impl.internal.spi.event;
 
 import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author rism
  */
+@Component
 public class DefaultCacheEventListenerProviderFactory implements ServiceFactory<CacheEventListenerProvider> {
 
   @Override

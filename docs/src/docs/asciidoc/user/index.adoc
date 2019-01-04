@@ -56,5 +56,6 @@ Each topic below corresponds to a menu item at the left.
 |link:cache-event-listeners{outfilesuffix}[Cache Event Listeners]|Getting notified about events within the cache
 |link:eviction-advisor{outfilesuffix}[Eviction Advisor]|Affecting the way entries are chosen for eviction
 |link:class-loading{outfilesuffix}[Class loading]|Ehcache and `ClassLoader` interactions
+|link:osgi{outfilesuffix}[OSGi Deployment]|How to use Ehcache in an OSGi Environment
 |link:performance{outfilesuffix}[Performance Tuning]|Ehcache Performance Tuning
 |===

@@ -18,9 +18,8 @@ package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
@@ -55,7 +54,7 @@ public class DefaultCopyProviderConfigurationParserTest {
     assertThat(configuration).isExactlyInstanceOf(DefaultCopyProviderConfiguration.class);
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
-    Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = factoryConfiguration.getDefaults();
+    Map<Class<?>, DefaultCopierConfiguration<?>> defaults = factoryConfiguration.getDefaults();
     assertThat(defaults).hasSize(2);
     assertThat(defaults.get(Description.class).getClazz()).isEqualTo(DescriptionCopier.class);
     assertThat(defaults.get(Person.class).getClazz()).isEqualTo((PersonCopier.class));

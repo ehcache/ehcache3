@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 

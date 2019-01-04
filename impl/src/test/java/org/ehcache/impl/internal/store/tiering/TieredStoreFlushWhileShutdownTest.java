@@ -28,7 +28,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
@@ -43,7 +43,7 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;

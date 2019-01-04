@@ -22,6 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -36,6 +37,7 @@ import static org.ehcache.transactions.xa.internal.xml.TxCacheManagerServiceConf
 /**
  * @author Ludovic Orban
  */
+@Component
 public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreConfiguration> implements CacheServiceConfigurationParser<XAStore.Provider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
@@ -54,7 +56,7 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
   }
 
   @Override
-  public ServiceConfiguration<XAStore.Provider> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<XAStore.Provider> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("xa-store".equals(localName)) {
       String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");

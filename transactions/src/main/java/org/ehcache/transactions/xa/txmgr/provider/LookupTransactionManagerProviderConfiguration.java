@@ -18,7 +18,7 @@ package org.ehcache.transactions.xa.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.

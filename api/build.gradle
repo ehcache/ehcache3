@@ -15,7 +15,15 @@
  */
 
 apply plugin: EhDeploy
+apply plugin: 'osgi'
 
 checkstyle {
   configFile = file("$projectDir/config/checkstyle.xml")
+}
+
+jar {
+  manifest {
+    instruction 'Export-Package', 'org.ehcache.*'
+    instruction 'Import-Package', '*'
+  }
 }

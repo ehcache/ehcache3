@@ -35,7 +35,7 @@ import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

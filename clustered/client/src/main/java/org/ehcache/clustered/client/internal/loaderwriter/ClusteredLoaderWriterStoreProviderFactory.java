@@ -17,7 +17,9 @@ package org.ehcache.clustered.client.internal.loaderwriter;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class ClusteredLoaderWriterStoreProviderFactory implements ServiceFactory<ClusteredLoaderWriterStore.Provider> {
 
   @Override

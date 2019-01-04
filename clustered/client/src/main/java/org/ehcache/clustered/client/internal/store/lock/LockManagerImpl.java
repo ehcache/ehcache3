@@ -23,10 +23,10 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Lock
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.LockMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.UnlockMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.LOCK_FAILURE;

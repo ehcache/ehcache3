@@ -17,16 +17,17 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * A factory for creating a {@link ClusteringService} instance.
  *
  * @author Clifford W. Johnson
  */
+@Component
 @ServiceFactory.RequiresConfiguration
 public class ClusteringServiceFactory implements ServiceFactory<ClusteringService> {
 
