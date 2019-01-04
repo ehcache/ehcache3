@@ -28,6 +28,7 @@ import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvid
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -39,16 +40,14 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 import static bitronix.tm.TransactionManagerServices.getTransactionManager;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
-import static org.ops4j.pax.exam.CoreOptions.cleanCaches;
-import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
+@Ignore("Not stable under windows")
 public class TransactionalOsgiTest {
 
   @Configuration
@@ -82,7 +81,6 @@ public class TransactionalOsgiTest {
         .instructions("Fragment-Host=org.apache.felix.framework"),
       wrappedGradleBundle("org.codehaus.btm:btm"),
 
-      cleanCaches(true),
       baseConfiguration()
     );
   }

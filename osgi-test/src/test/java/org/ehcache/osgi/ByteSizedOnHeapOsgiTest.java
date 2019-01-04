@@ -21,7 +21,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 import org.ehcache.Cache;
@@ -51,9 +50,7 @@ public class ByteSizedOnHeapOsgiTest {
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
 
-      baseConfiguration(),
-
-      junitBundles()
+      baseConfiguration()
     );
   }
 
