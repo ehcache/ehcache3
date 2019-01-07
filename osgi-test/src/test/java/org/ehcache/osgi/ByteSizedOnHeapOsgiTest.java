@@ -50,7 +50,7 @@ public class ByteSizedOnHeapOsgiTest {
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
 
-      baseConfiguration()
+      baseConfiguration("ByteSizedOnHeapOsgiTest", "individualModules")
     );
   }
 
@@ -59,7 +59,7 @@ public class ByteSizedOnHeapOsgiTest {
     return options(
       gradleBundle("org.ehcache:dist"),
 
-      baseConfiguration()
+      baseConfiguration("ByteSizedOnHeapOsgiTest", "uberJar")
     );
   }
 

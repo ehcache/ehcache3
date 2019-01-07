@@ -71,7 +71,7 @@ public class SimpleOsgiTest {
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
 
-      baseConfiguration()
+      baseConfiguration("SimpleOsgiTest", "individualModules")
     );
   }
 
@@ -80,7 +80,7 @@ public class SimpleOsgiTest {
     return options(
       gradleBundle("org.ehcache:dist"),
 
-      baseConfiguration()
+      baseConfiguration("SimpleOsgiTest", "uberJarWithOsgiServiceLoading")
     );
   }
 
@@ -91,7 +91,7 @@ public class SimpleOsgiTest {
 
       gradleBundle("org.ehcache:dist"),
 
-      baseConfiguration()
+      baseConfiguration("SimpleOsgiTest", "uberJarWithJdkServiceLoading")
     );
   }
 

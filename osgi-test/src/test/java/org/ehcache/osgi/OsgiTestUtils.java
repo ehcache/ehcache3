@@ -20,9 +20,11 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.UrlProvisionOption;
 import org.ops4j.pax.exam.options.WrappedUrlProvisionOption;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static java.lang.String.join;
 import static java.nio.file.Files.isRegularFile;
 import static java.util.Objects.requireNonNull;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
@@ -30,17 +32,19 @@ import static org.ops4j.pax.exam.CoreOptions.cleanCaches;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
+import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
 import static org.ops4j.pax.exam.CoreOptions.wrappedBundle;
 
 public class OsgiTestUtils {
 
-  public static Option baseConfiguration() {
+  public static Option baseConfiguration(String ... path) {
     return composite(
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
       cleanCaches(true),
+      workingDirectory(join(File.separator, "build", "osgi-container", join(File.separator, path))),
       junitBundles()
     );
   }
