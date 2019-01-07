@@ -69,7 +69,7 @@ public class Jsr107OsgiTest {
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
 
-      baseConfiguration()
+      baseConfiguration("Jsr107OsgiTest", "individualModules")
     );
   }
 
@@ -79,7 +79,7 @@ public class Jsr107OsgiTest {
       gradleBundle("org.ehcache:dist"),
       gradleBundle("javax.cache:cache-api"),
 
-      baseConfiguration()
+      baseConfiguration("Jsr107OsgiTest", "uberJar")
     );
   }
 

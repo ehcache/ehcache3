@@ -88,7 +88,7 @@ public class ClusteredOsgiTest {
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
 
-      baseConfiguration()
+      baseConfiguration("ClusteredOsgiTest", "individualModules")
     );
   }
 
@@ -98,7 +98,7 @@ public class ClusteredOsgiTest {
       gradleBundle("org.ehcache:dist"),
       gradleBundle("org.ehcache:clustered-dist"),
 
-      baseConfiguration()
+      baseConfiguration("ClusteredOsgiTest", "uberJar")
     );
   }
 
