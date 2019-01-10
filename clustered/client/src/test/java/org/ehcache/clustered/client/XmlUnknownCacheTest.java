@@ -16,9 +16,7 @@
 
 package org.ehcache.clustered.client;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
-import static org.junit.Assert.fail;
 
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;

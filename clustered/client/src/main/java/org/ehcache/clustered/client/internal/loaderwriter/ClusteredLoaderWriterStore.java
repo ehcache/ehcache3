@@ -50,7 +50,6 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
-import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 
 public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
@@ -88,7 +87,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         boolean unlocked = false;
         getProxy().lock(hash);
         try {
-          V value = null;
+          V value;
           try {
             value = cacheLoaderWriter.load(key);
           } catch (Exception e) {

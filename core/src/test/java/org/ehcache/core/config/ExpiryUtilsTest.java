@@ -25,7 +25,6 @@ import org.mockito.junit.MockitoRule;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ExpiryUtilsTest {

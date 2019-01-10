@@ -21,10 +21,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
-import static java.util.Collections.synchronizedMap;
 import static org.ehcache.core.store.StoreSupport.selectStoreProvider;
 
 public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {

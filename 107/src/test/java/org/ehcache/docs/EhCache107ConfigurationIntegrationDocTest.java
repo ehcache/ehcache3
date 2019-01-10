@@ -228,7 +228,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
     Client client1 = new Client("client1", 1);
 
-    Cache<Long, Client> myCache = null;
+    Cache<Long, Client> myCache;
     myCache = cacheManager.createCache("anyCache", mutableConfiguration);
     myCache.put(1L, client1);
     assertNotSame(client1, myCache.get(1L));

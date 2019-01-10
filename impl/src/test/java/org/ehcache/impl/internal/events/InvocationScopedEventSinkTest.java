@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;

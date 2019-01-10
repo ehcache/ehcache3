@@ -18,8 +18,6 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.store.Store;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * BasicOffHeapValueHolder
  */

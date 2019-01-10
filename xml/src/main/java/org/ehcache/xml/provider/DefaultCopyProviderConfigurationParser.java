@@ -17,7 +17,6 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
 

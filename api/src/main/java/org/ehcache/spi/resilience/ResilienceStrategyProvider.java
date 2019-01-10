@@ -18,7 +18,6 @@ package org.ehcache.spi.resilience;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A {@link Service} that creates {@link ResilienceStrategy} instances.

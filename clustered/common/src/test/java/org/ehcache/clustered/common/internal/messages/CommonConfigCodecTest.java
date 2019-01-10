@@ -21,7 +21,6 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.terracotta.runnel.EnumMapping;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;

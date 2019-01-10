@@ -20,8 +20,6 @@ import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressExcepti
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class EhcacheStateServiceImplTest {

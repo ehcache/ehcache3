@@ -15,7 +15,6 @@
  */
 package org.ehcache.core.util;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 

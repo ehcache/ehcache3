@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.lock;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;

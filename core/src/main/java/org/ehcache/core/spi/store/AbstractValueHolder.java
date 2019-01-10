@@ -19,7 +19,6 @@ package org.ehcache.core.spi.store;
 import org.ehcache.core.config.ExpiryUtils;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 import static java.lang.String.format;

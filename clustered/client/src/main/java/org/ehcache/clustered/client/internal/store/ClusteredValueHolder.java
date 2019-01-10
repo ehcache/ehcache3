@@ -18,8 +18,6 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.core.spi.store.AbstractValueHolder;
 
-import java.util.concurrent.TimeUnit;
-
 public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
   private final V value;

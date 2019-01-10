@@ -80,9 +80,5 @@ class EhDeploy implements Plugin<Project> {
         } << artifactFiltering)
       }
     }
-
-    def installer = project.install.repositories.mavenInstaller
-    def deployer = project.uploadArchives.repositories.mavenDeployer
-
   }
 }

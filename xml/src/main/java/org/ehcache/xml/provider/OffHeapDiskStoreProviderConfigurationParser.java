@@ -16,10 +16,8 @@
 
 package org.ehcache.xml.provider;
 
-import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.xml.model.ConfigType;
-import org.ehcache.xml.model.ThreadPoolReferenceType;
 
 public class OffHeapDiskStoreProviderConfigurationParser extends ThreadPoolServiceCreationConfigurationParser<OffHeapDiskStoreProviderConfiguration> {
 

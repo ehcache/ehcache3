@@ -21,8 +21,6 @@ import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;

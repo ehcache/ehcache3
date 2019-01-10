@@ -19,9 +19,7 @@ package org.ehcache.impl.internal.store.offheap;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 /**
  * BinaryOffHeapValueHolder

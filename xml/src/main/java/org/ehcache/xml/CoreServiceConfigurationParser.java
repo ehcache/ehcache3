@@ -20,7 +20,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
-import org.w3c.dom.Document;
 
 public interface CoreServiceConfigurationParser {
 

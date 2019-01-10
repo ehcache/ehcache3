@@ -17,7 +17,6 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;

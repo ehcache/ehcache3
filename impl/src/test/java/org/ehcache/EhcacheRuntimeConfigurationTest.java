@@ -27,9 +27,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.rules.TemporaryFolder;
 

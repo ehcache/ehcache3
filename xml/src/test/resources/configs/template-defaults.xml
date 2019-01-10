@@ -16,10 +16,8 @@
 
 <ehcache:config
     xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns:foo='http://www.example.com/foo'
     xmlns:ehcache='http://www.ehcache.org/v3'
-    xsi:schemaLocation="http://www.example.com/foo foo.xsd
-                     http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
 
   <ehcache:cache-template name="minimal-template">
   </ehcache:cache-template>

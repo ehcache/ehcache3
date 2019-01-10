@@ -260,7 +260,7 @@ public class XmlConfigurationTest {
       fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(5));
+      assertThat(e.getLineNumber(), is(4));
       assertThat(e.getColumnNumber(), is(29));
     }
   }
@@ -272,7 +272,7 @@ public class XmlConfigurationTest {
       fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(6));
+      assertThat(e.getLineNumber(), is(5));
       assertThat(e.getColumnNumber(), is(15));
     }
   }

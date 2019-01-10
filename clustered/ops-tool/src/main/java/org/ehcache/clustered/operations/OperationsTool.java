@@ -18,7 +18,7 @@ package org.ehcache.clustered.operations;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterDescription;
 import com.beust.jcommander.ParameterException;
-import java.io.IOException;
+
 import java.util.Comparator;
 
 public class OperationsTool {

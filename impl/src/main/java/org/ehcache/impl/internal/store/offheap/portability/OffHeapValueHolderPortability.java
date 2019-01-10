@@ -24,7 +24,6 @@ import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
 /**
  * OffHeapValueHolderPortability

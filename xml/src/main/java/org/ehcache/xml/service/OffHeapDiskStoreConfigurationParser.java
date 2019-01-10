@@ -23,8 +23,6 @@ import org.ehcache.xml.model.DiskStoreSettingsType;
 
 import java.math.BigInteger;
 
-import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
-
 public class OffHeapDiskStoreConfigurationParser
   extends SimpleCoreServiceConfigurationParser<DiskStoreSettingsType, DiskStoreSettingsType, OffHeapDiskStoreConfiguration> {
 

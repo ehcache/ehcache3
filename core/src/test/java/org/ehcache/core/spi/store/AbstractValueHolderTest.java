@@ -19,8 +19,6 @@ package org.ehcache.core.spi.store;
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 

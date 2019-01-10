@@ -37,7 +37,7 @@ class Utils {
       try {
         def proc = cmd.execute()
         revision = proc.text.trim()
-      } catch (IOException) {
+      } catch (IOException ignored) {
         revision = 'Unknown'
       }
     }

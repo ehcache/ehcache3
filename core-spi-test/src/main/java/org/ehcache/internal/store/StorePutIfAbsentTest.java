@@ -18,7 +18,6 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
@@ -28,7 +27,6 @@ import org.ehcache.spi.test.SPITest;
 import java.time.Duration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;

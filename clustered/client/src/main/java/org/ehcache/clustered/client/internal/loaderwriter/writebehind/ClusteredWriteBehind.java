@@ -29,7 +29,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;

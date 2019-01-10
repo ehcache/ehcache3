@@ -14,9 +14,7 @@
   ~ limitations under the License.
   -->
 
-<ehcache:config
-    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns:ehcache='http://www.ehcache.org/v3'>
+<ehcache:config xmlns:ehcache='http://www.ehcache.org/v3'>
 
   <ehcache:default-serializers>
     <ehcache:serializer type="java.lang.CharSequence">com.pany.ehcache.serializer.TestSerializer</ehcache:serializer>

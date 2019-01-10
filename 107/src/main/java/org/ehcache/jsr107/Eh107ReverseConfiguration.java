@@ -17,8 +17,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
 
-import java.io.ObjectStreamException;
-
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 
 /**

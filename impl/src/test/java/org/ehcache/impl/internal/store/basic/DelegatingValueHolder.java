@@ -18,8 +18,6 @@ package org.ehcache.impl.internal.store.basic;
 
 import org.ehcache.core.spi.store.Store;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.annotation.Nonnull;
 
 /**

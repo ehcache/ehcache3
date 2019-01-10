@@ -16,9 +16,6 @@
   Terracotta, Inc., a Software AG company
 -->
 
-<ohr:offheap-resources
-  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-  xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>
-  
+<ohr:offheap-resources xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>
   <ohr:resource name="primary" unit="MB">64</ohr:resource>
 </ohr:offheap-resources>

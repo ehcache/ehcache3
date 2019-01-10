@@ -19,13 +19,11 @@ package org.ehcache.xml.service;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.UnBatchedWriteBehindConfigurationBuilder;
-import org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.TimeType;
-import org.ehcache.xml.model.TimeUnit;
 
 import java.math.BigInteger;
 

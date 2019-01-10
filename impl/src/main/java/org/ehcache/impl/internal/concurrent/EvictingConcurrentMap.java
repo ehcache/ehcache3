@@ -19,7 +19,6 @@ import org.ehcache.config.EvictionAdvisor;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentMap;
 

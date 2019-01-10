@@ -17,11 +17,8 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.SerializerType;
-
-import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;

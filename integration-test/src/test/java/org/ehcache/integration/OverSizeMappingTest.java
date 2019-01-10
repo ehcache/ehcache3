@@ -17,7 +17,6 @@
 package org.ehcache.integration;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;

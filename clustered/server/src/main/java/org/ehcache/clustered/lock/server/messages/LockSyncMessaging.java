@@ -17,7 +17,6 @@
 package org.ehcache.clustered.lock.server.messages;
 
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
-import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.SyncMessageCodec;
 
 /**

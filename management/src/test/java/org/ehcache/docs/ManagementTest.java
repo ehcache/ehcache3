@@ -223,7 +223,7 @@ public class ManagementTest {
         .on(context2)
         .build();
 
-      long val = 0;
+      long val;
       // it could be several seconds before the sampled stats could become available
       // let's try until we find the correct value : 2
       do {

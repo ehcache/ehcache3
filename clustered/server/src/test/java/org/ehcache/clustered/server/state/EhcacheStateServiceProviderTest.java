@@ -32,7 +32,6 @@ import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
 
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.Collections;
 
 import static java.util.Collections.emptyMap;

@@ -19,7 +19,6 @@ package org.ehcache.clustered.common.internal.messages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.MessageCodecException;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.Enm;
 

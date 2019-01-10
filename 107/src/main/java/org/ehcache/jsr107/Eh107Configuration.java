@@ -19,8 +19,6 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 
-import java.util.Collection;
-
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
 

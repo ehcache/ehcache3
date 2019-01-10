@@ -20,8 +20,6 @@ import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @author Albin Suresh
  */
