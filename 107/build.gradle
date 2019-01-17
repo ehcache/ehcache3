@@ -15,7 +15,7 @@
  */
 
 apply plugin: EhDeploy
-apply plugin: 'osgi'
+apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'osgi-ds'
 
 configurations {
@@ -53,11 +53,11 @@ javadoc {
 }
 
 jar {
-  manifest {
-    instruction 'Export-Package', '!org.ehcache.jsr107.tck', '!org.ehcache.jsr107.internal.*', 'org.ehcache.jsr107.*'
-    instruction 'Import-Package', 'javax.cache.*;resolution:=optional', '*'
-    instruction 'Service-Component', 'OSGI-INF/*.xml'
-  }
+  bnd(
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
+    'Import-Package': 'javax.cache.*;resolution:=optional, *',
+    'Service-Component': 'OSGI-INF/*.xml'
+  )
 }
 
 test {

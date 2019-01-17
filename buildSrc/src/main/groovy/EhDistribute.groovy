@@ -33,6 +33,7 @@ class EhDistribute implements Plugin<Project> {
     project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
+    project.plugins.apply 'biz.aQute.bnd.builder'
     project.plugins.apply 'com.github.johnrengelman.shadow'
     project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
@@ -62,18 +63,14 @@ class EhDistribute implements Plugin<Project> {
       from "$project.rootDir/NOTICE"
       duplicatesStrategy = 'exclude'
 
-      def osgiConvention = new OsgiPluginConvention(project)
-      manifest = osgiConvention.osgiManifest {
-        classesDir = project.shadowJar.archivePath
-        classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
-
-        // Metadata
-        instruction 'Bundle-DocURL', 'http://ehcache.org'
-        instruction 'Bundle-License', 'LICENSE'
-        instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.8'
-        instruction 'Service-Component', 'OSGI-INF/*.xml'
-      }
+      classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
+      bnd(
+        'Bundle-DocURL': 'http://ehcache.org',
+        'Bundle-License': 'LICENSE',
+        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
+        'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
+        'Service-Component': 'OSGI-INF/*.xml'
+      )
 
       utils.fillManifest(manifest, project.archivesBaseName)
     }

@@ -16,7 +16,7 @@
 
 group = 'org.ehcache'
 
-apply plugin: 'osgi'
+apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'osgi-ds'
 apply plugin: EhPomMangle
 
@@ -47,11 +47,12 @@ test {
 }
 
 jar {
-  manifest {
-    instruction 'Export-Package', 'org.ehcache.transactions.xa.*'
-    instruction 'Import-Package', 'bitronix.tm.*;resolution:=optional', 'javax.transaction.*;resolution:=optional', 'org.ehcache.xml.*;resolution:=optional', '*'
-    instruction 'Service-Component', 'OSGI-INF/*.xml'
-  }
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.transactions',
+    'Export-Package': 'org.ehcache.transactions.xa.*',
+    'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
+    'Service-Component': 'OSGI-INF/*.xml'
+  )
 }
 
 project.signing {

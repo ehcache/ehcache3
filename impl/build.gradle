@@ -15,7 +15,7 @@
  */
 
 apply plugin: EhDeploy
-apply plugin: 'osgi'
+apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'osgi-ds'
 
 dependencies {
@@ -33,12 +33,12 @@ dependencies {
 
 jar {
   from "$rootDir/NOTICE"
-  manifest {
-    instruction 'Export-Package', '!org.ehcache.impl.internal.*', 'org.ehcache.impl.*', 'org.ehcache.config.builders',
-      'org.ehcache.impl.internal.spi.loaderwriter' //ugly 107 induced internal export wart
-    instruction 'Import-Package', '!sun.misc', '*'
-    instruction 'Service-Component', 'OSGI-INF/*.xml'
-  }
+  bnd (
+    'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
+      'org.ehcache.impl.internal.spi.loaderwriter', //ugly 107 induced internal export wart
+    'Import-Package': '!sun.misc, *',
+    'Service-Component': 'OSGI-INF/*.xml'
+  )
 }
 
 compileJava {

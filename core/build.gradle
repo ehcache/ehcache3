@@ -15,7 +15,7 @@
  */
 
 apply plugin: EhDeploy
-apply plugin: 'osgi'
+apply plugin: 'biz.aQute.bnd.builder'
 
 dependencies {
   api project(':api')
@@ -25,8 +25,9 @@ dependencies {
 }
 
 jar {
-  manifest {
-    instruction 'Bundle-Activator', 'org.ehcache.core.osgi.EhcacheActivator'
-    instruction 'Export-Package', '!org.ehcache.core.internal.*', 'org.ehcache.core.*'
-  }
+  bnd (
+    'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
+    'Import-Package': '!javax.annotation, *',
+    'Export-Package': '!org.ehcache.core.internal.*, org.ehcache.core.*',
+  )
 }
