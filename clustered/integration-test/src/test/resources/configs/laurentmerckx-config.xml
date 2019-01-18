@@ -1,0 +1,29 @@
+<ehcache:config xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+        xmlns:terracotta='http://www.ehcache.org/v3/clustered'
+        xmlns:ehcache='http://www.ehcache.org/v3'
+        xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core.xsd
+                http://www.ehcache.org/v3/clustered http://www.ehcache.org/schema/ehcache-clustered-ext-3.1.xsd">
+
+        <ehcache:service>
+                <terracotta:cluster>
+                        <terracotta:connection url="${cluster-uri}/laurent"/>
+                        <terracotta:server-side-config auto-create="true">
+                                <terracotta:default-resource from="heap-resource"/>
+                        </terracotta:server-side-config>
+                </terracotta:cluster>
+        </ehcache:service>
+
+        <ehcache:cache alias="test-cache">
+                <ehcache:key-type>org.ehcache.clustered.laurentmerckx.ProviderArguments</ehcache:key-type>
+                <ehcache:value-type>org.ehcache.clustered.laurentmerckx.CacheContent</ehcache:value-type>
+                <ehcache:expiry>
+                        <ehcache:ttl unit="minutes">15</ehcache:ttl>
+                </ehcache:expiry>
+                <ehcache:resources>
+                        <ehcache:heap unit="entries">100</ehcache:heap>
+                        <terracotta:clustered-dedicated unit="MB">5</terracotta:clustered-dedicated>
+                </ehcache:resources>
+<!--            <terracotta:clustered-store consistency="strong"/>-->
+        </ehcache:cache>
+
+</ehcache:config>

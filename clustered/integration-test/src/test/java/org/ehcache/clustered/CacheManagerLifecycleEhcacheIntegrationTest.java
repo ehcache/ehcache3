@@ -194,7 +194,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
     ASSERTION_CONNECTION.close();
   }
 
-  static URL substitute(URL input, String variable, String substitution) throws IOException {
+  public static URL substitute(URL input, String variable, String substitution) throws IOException {
     File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(output));
          BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"))) {
