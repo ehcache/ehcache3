@@ -27,6 +27,8 @@ plugins {
   id 'com.github.spotbugs' version '1.6.5' apply false
   // Declare osgi-ds at the top
   id 'org.jayware.osgi-ds' version '0.5.5' apply false
+  //OWASP Security Vulnerability Detection
+  id 'org.owasp.dependencycheck' version '4.0.2' apply false
 }
 
 wrapper {
@@ -89,6 +91,7 @@ subprojects {
   apply plugin: 'checkstyle'
   apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
+  apply plugin: 'org.owasp.dependencycheck'
 
   group = 'org.ehcache.modules'
   version = baseVersion
@@ -201,6 +204,12 @@ subprojects {
       csv.enabled false
     }
   }
+
+  dependencyCheck {
+    failBuildOnCVSS = 0
+    skipConfigurations += ['checkstyle']
+  }
+  check.dependsOn(dependencyCheckAnalyze)
 
   tasks.withType(AbstractCompile) {
     options.with {

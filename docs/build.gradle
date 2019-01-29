@@ -68,3 +68,6 @@ liveReload {
   docRoot asciidoctor.outputDir.canonicalPath
 }
 
+dependencyCheck {
+  skip = true
+}
