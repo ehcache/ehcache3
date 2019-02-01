@@ -31,6 +31,9 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlSchema;
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -38,28 +41,17 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import java.io.IOException;
 import java.net.URL;
-import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.AbstractSet;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableSet;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.ehcache.xml.ConfigurationParser.discoverSchema;
@@ -74,6 +66,9 @@ import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 public class XmlMultiConfiguration {
 
   private static final URL MULTI_SCHEMA_URL = XmlMultiConfiguration.class.getResource("/ehcache-multi.xsd");
+  private static final QName MULTI_SCHEMA_ROOT_NAME = new QName(
+    Configurations.class.getPackage().getAnnotation(XmlSchema.class).namespace(),
+    Configurations.class.getAnnotation(XmlRootElement.class).name());
 
   private final Map<String, Config> configurations;
 
@@ -88,9 +83,16 @@ public class XmlMultiConfiguration {
       this.document = domBuilder.parse(url.toExternalForm());
       this.renderedDocument = urlToText(url, document.getInputEncoding());
 
+      Element rootElement = document.getDocumentElement();
+
+      QName rootName = new QName(rootElement.getNamespaceURI(), rootElement.getLocalName());
+      if (!MULTI_SCHEMA_ROOT_NAME.equals(rootName)) {
+        throw new XmlConfigurationException("Expecting " + MULTI_SCHEMA_ROOT_NAME + " element; found " + rootName);
+      }
+
       JAXBContext jaxbContext = JAXBContext.newInstance(Configurations.class);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-      Configurations value = unmarshaller.unmarshal(document.getDocumentElement(), Configurations.class).getValue();
+      Configurations value = unmarshaller.unmarshal(rootElement, Configurations.class).getValue();
 
       this.configurations = value.getConfiguration().stream().collect(toMap(Configurations.Configuration::getIdentity, c -> {
 
