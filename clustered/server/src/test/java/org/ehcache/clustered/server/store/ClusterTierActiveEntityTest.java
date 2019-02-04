@@ -77,7 +77,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -94,7 +94,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;

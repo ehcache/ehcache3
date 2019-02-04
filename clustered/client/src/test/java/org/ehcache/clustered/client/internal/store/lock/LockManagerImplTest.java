@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.LockSuccess;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.LockMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -31,6 +30,8 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.lockFailure;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -126,11 +127,11 @@ public class LockManagerImplTest {
 
   private LockSuccess getLockSuccessResponse() {
     ByteBuffer[] buffers = new ByteBuffer[3];
-    for (int i = 1; i <= 3; i++) {
-      buffers[i-1] = Util.createPayload(i);
+    for (int i = 0; i < 3; i++) {
+      buffers[i] = createPayload(i + 1);
     }
 
-    Chain chain = Util.getChain(false, buffers);
+    Chain chain = chainOf(buffers);
 
     return EhcacheEntityResponse.lockSuccess(chain);
   }

@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.Operation;

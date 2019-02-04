@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNotNull;

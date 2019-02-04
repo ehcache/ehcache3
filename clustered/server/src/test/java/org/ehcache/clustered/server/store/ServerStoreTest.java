@@ -24,8 +24,10 @@ import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -49,31 +51,6 @@ public abstract class ServerStoreTest {
     }
   }
 
-  private static long readPayLoad(ByteBuffer byteBuffer) {
-    return byteBuffer.getLong();
-  }
-
-  protected static ByteBuffer createPayload(long key) {
-    ByteBuffer byteBuffer = ByteBuffer.allocate(8).putLong(key);
-    byteBuffer.flip();
-    return byteBuffer;
-  }
-
-  private static void assertChainAndReverseChainOnlyHave(Chain chain, long... payLoads) {
-    Iterator<Element> elements = chain.iterator();
-    for (long payLoad : payLoads) {
-      assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
-    }
-    assertThat(elements.hasNext(), is(false));
-
-    Iterator<Element> reverseElements = chain.reverseIterator();
-
-    for (int i = payLoads.length -1; i >= 0; i--) {
-      assertThat(readPayLoad(reverseElements.next().getPayload()), is(Long.valueOf(payLoads[i])));
-    }
-    assertThat(reverseElements.hasNext(), is(false));
-  }
-
   @Test
   public void testGetNoMappingExists() throws Exception {
     ServerStore store = newStore();
@@ -86,28 +63,28 @@ public abstract class ServerStoreTest {
   public void testGetMappingExists() throws Exception {
     ServerStore store = newStore();
     populateStore(store);
-    Chain chain = store.get(1);
+    Chain chain = store.get(1L);
     assertThat(chain.isEmpty(), is(false));
-    assertChainAndReverseChainOnlyHave(chain, 1);
+    assertThat(chain, hasPayloads(1L));
   }
 
   @Test
   public void testAppendNoMappingExists() throws Exception {
     ServerStore store = newStore();
-    store.append(1, createPayload(1));
-    Chain chain = store.get(1);
+    store.append(1L, createPayload(1L));
+    Chain chain = store.get(1L);
     assertThat(chain.isEmpty(), is(false));
-    assertChainAndReverseChainOnlyHave(chain, 1);
+    assertThat(chain, hasPayloads(1L));
   }
 
   @Test
   public void testAppendMappingExists() throws Exception {
     ServerStore store = newStore();
     populateStore(store);
-    store.append(2, createPayload(22));
-    Chain chain = store.get(2);
+    store.append(2L, createPayload(22L));
+    Chain chain = store.get(2L);
     assertThat(chain.isEmpty(), is(false));
-    assertChainAndReverseChainOnlyHave(chain, 2, 22);
+    assertThat(chain, hasPayloads(2L, 22L));
   }
 
   @Test
@@ -116,7 +93,7 @@ public abstract class ServerStoreTest {
     Chain chain = store.getAndAppend(1, createPayload(1));
     assertThat(chain.isEmpty(), is(true));
     chain = store.get(1);
-    assertChainAndReverseChainOnlyHave(chain, 1);
+    assertThat(chain, hasPayloads(1L));
   }
 
   @Test
@@ -125,10 +102,10 @@ public abstract class ServerStoreTest {
     populateStore(store);
     Chain chain = store.getAndAppend(1, createPayload(22));
     for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(1)));
+      assertThat(readPayload(element.getPayload()), is(Long.valueOf(1)));
     }
     chain = store.get(1);
-    assertChainAndReverseChainOnlyHave(chain, 1, 22);
+    assertThat(chain, hasPayloads(1, 22));
   }
 
   @Test
@@ -139,7 +116,7 @@ public abstract class ServerStoreTest {
 
     store.replaceAtHead(1, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(11))));
     Chain chain = store.get(1);
-    assertChainAndReverseChainOnlyHave(chain, 11);
+    assertThat(chain, hasPayloads(11));
 
     store.append(2, createPayload(22));
     store.append(2, createPayload(222));
@@ -150,7 +127,7 @@ public abstract class ServerStoreTest {
 
     chain = store.get(2);
 
-    assertChainAndReverseChainOnlyHave(chain, 2222);
+    assertThat(chain, hasPayloads(2222));
   }
 
   @Test
@@ -165,7 +142,7 @@ public abstract class ServerStoreTest {
     store.replaceAtHead(1, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(111))));
     Chain chain = store.get(1);
 
-    assertChainAndReverseChainOnlyHave(chain, 111, 11);
+    assertThat(chain, hasPayloads(111, 11));
 
     store.append(2, createPayload(22));
     existingMapping = store.get(2);
@@ -175,7 +152,7 @@ public abstract class ServerStoreTest {
     store.replaceAtHead(2, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(2222))));
 
     chain = store.get(2);
-    assertChainAndReverseChainOnlyHave(chain, 2222, 222);
+    assertThat(chain, hasPayloads(2222, 222));
   }
 
   @Test
@@ -190,16 +167,15 @@ public abstract class ServerStoreTest {
     store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(111))));
 
     Chain current = store.get(1);
-    assertChainAndReverseChainOnlyHave(current, 111);
+    assertThat(current, hasPayloads(111));
 
     store.append(1, createPayload(1111));
     store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(11111))));
 
     Chain toVerify = store.get(1);
 
-    assertChainAndReverseChainOnlyHave(toVerify, 111, 1111);
+    assertThat(toVerify, hasPayloads(111, 1111));
   }
-
 
   @Test
   public void test_append_doesNotConsumeBuffer() throws Exception {
@@ -220,14 +196,13 @@ public abstract class ServerStoreTest {
   }
 
   @Test
-  public void test_replaceAtHead_doesNotConsumeBuffer() throws Exception {
+  public void test_replaceAtHead_doesNotConsumeBuffer() {
     ServerStore store = newStore();
     ByteBuffer payload = createPayload(1L);
 
     Chain expected = newChainBuilder().build(newElementBuilder().build(payload), newElementBuilder().build(payload));
     Chain update = newChainBuilder().build(newElementBuilder().build(payload));
     store.replaceAtHead(1L, expected, update);
-    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), Is.is(8));
   }
-
 }

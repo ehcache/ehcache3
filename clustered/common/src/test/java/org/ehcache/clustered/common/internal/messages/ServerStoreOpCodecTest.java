@@ -19,9 +19,11 @@ package org.ehcache.clustered.common.internal.messages;
 import org.junit.Test;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -39,7 +41,7 @@ public class ServerStoreOpCodecTest {
     ServerStoreOpMessage.AppendMessage decodedAppendMessage = (ServerStoreOpMessage.AppendMessage) decodedMsg;
 
     assertThat(decodedAppendMessage.getKey(), is(1L));
-    assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
+    assertThat(readPayload(decodedAppendMessage.getPayload()), is(1L));
     assertThat(decodedAppendMessage.getMessageType(), is(EhcacheMessageType.APPEND));
   }
 
@@ -64,23 +66,23 @@ public class ServerStoreOpCodecTest {
     ServerStoreOpMessage.GetAndAppendMessage decodedGetAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage) decodedMsg;
 
     assertThat(decodedGetAndAppendMessage.getKey(), is(10L));
-    assertThat(readPayLoad(decodedGetAndAppendMessage.getPayload()), is(10L));
+    assertThat(readPayload(decodedGetAndAppendMessage.getPayload()), is(10L));
     assertThat(decodedGetAndAppendMessage.getMessageType(), is(EhcacheMessageType.GET_AND_APPEND));
   }
 
   @Test
   public void testReplaceAtHeadMessageCodec() {
     ServerStoreOpMessage replaceAtHeadMessage = new ServerStoreOpMessage.ReplaceAtHeadMessage(10L,
-        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
-        getChain(false, createPayload(2000L)));
+        sequencedChainOf(createPayload(10L), createPayload(100L), createPayload(1000L)),
+        chainOf(createPayload(2000L)));
 
     byte[] encoded = STORE_OP_CODEC.encode(replaceAtHeadMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(replaceAtHeadMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ReplaceAtHeadMessage decodedReplaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) decodedMsg;
 
     assertThat(decodedReplaceAtHeadMessage.getKey(), is(10L));
-    Util.assertChainHas(decodedReplaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
-    Util.assertChainHas(decodedReplaceAtHeadMessage.getUpdate(), 2000L);
+    assertThat(decodedReplaceAtHeadMessage.getExpect(), hasPayloads(10L, 100L, 1000L));
+    assertThat(decodedReplaceAtHeadMessage.getUpdate(), hasPayloads(2000L));
     assertThat(decodedReplaceAtHeadMessage.getMessageType(), is(EhcacheMessageType.REPLACE));
   }
 

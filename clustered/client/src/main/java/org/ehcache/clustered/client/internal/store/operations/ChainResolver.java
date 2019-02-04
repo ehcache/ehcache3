@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
