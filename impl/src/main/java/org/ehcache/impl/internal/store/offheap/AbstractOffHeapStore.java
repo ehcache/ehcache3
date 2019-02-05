@@ -759,12 +759,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
         } else {
           OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
-          if (valueHolder != null) {
-            if (delayedDeserialization) {
-              mappedValue.detach();
-            } else {
-              mappedValue.forceDeserialization();
-            }
+          if (valueHolder != null && !delayedDeserialization) {
+            mappedValue.forceDeserialization();
           } else {
             valueHeld.set(mappedValue);
           }
@@ -904,7 +900,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             onExpiration(mappedKey, mappedValue, eventSink);
             return null;
           }
-          mappedValue.detach();
           return mappedValue;
         }
       });
@@ -1051,7 +1046,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
           return null;
         }
-        mappedValue.detach();
         valueHolderAtomicReference.set(mappedValue);
         return null;
       }
@@ -1189,7 +1183,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
-    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
+    if (valueHolder instanceof BinaryValueHolder) {
       return new BinaryOffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), ((BinaryValueHolder)valueHolder).getBinaryValue(),
           valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
           valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());

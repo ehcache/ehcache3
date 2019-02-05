@@ -34,7 +34,6 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
 
   private final Serializer<V> valueSerializer;
   private final WriteContext writeContext;
-  private Mode mode;
   private ByteBuffer binaryValue;
   private V value;
 
@@ -45,7 +44,6 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
     this.valueSerializer = serializer;
     this.setHits(hits);
     this.writeContext = writeContext;
-    this.mode = Mode.ATTACHED;
   }
 
   @Override
@@ -56,16 +54,7 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
 
   @Override
   public ByteBuffer getBinaryValue() throws IllegalStateException {
-    if (isBinaryValueAvailable()) {
-      return binaryValue.duplicate();
-    } else {
-      throw new IllegalStateException("This OffHeapValueHolder has not been prepared to hand off its binary form");
-    }
-  }
-
-  @Override
-  public boolean isBinaryValueAvailable() {
-    return mode == Mode.DETACHED;
+    return binaryValue.duplicate();
   }
 
   @Override
@@ -104,25 +93,6 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
                                       "serialization related issues is a red flag!", e);
       }
     }
-  }
-
-  /**
-   * Must be called under offheap lock, may read invalid memory content otherwise
-   */
-  @Override
-  void detach() {
-    if (mode == Mode.ATTACHED) {
-      byte[] bytes = new byte[binaryValue.remaining()];
-      binaryValue.get(bytes);
-      binaryValue = ByteBuffer.wrap(bytes);
-      mode = Mode.DETACHED;
-    } else {
-      throw new IllegalStateException("OffHeapValueHolder in mode " + mode + " cannot be prepared for delayed deserialization");
-    }
-  }
-
-  private enum Mode {
-    ATTACHED, DETACHED
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

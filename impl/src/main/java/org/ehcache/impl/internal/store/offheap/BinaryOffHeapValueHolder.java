@@ -46,11 +46,6 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   }
 
   @Override
-  public boolean isBinaryValueAvailable() {
-    return true;
-  }
-
-  @Override
   void updateMetadata(Store.ValueHolder<V> valueFlushed) {
     throw new UnsupportedOperationException();
   }
@@ -62,11 +57,6 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
 
   @Override
   void forceDeserialization() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  void detach() {
     throw new UnsupportedOperationException();
   }
 

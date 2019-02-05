@@ -52,11 +52,6 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
   }
 
   @Override
-  void detach() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public V value() {
     return value;
   }

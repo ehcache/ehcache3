@@ -149,7 +149,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
 
   @Override
   public V compute(K key, final BiFunction<K, V, V> mappingFunction, final boolean pin) {
-    MetadataTuple<V> result = computeWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+    MetadataTuple<V> result = computeWithMetadata(key, new java.util.function.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
       public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
         V oldValue = current == null ? null : current.value();
@@ -169,7 +169,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
 
   @Override
   public V computeIfPresent(K key, final BiFunction<K, V, V> mappingFunction) {
-    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new java.util.function.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
       public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
         V oldValue = current.value();
@@ -189,7 +189,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
 
   @Override
   public V computeIfPresentAndPin(final K key, final BiFunction<K, V, V> mappingFunction) {
-    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new java.util.function.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
       public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
         V oldValue = current.value();
@@ -210,7 +210,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
     final AtomicBoolean unpin = new AtomicBoolean();
-    computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+    computeIfPresentWithMetadata(key, new java.util.function.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
       public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
         if ((current.metadata() & Metadata.PINNED) != 0) {

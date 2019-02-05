@@ -46,7 +46,7 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
   @Override
   public ByteBuffer encode(OffHeapValueHolder<V> valueHolder) {
     ByteBuffer serialized;
-    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
+    if (valueHolder instanceof BinaryValueHolder) {
       serialized = ((BinaryValueHolder)valueHolder).getBinaryValue();
     } else {
       serialized = serializer.serialize(valueHolder.value());
@@ -79,7 +79,11 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     long lastAccessTime = byteBuffer.getLong();
     long expireTime = byteBuffer.getLong();
     long hits = byteBuffer.getLong();
-    return new LazyOffHeapValueHolder<V>(id, byteBuffer.slice(), serializer,
+
+    ByteBuffer attached = byteBuffer.slice();
+    ByteBuffer detached = ByteBuffer.allocateDirect(attached.remaining());
+    detached.put(attached).clear();
+    return new LazyOffHeapValueHolder<V>(id, detached, serializer,
         creationTime, expireTime, lastAccessTime, hits, writeContext);
   }
 }

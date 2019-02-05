@@ -62,6 +62,4 @@ public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   abstract void writeBack();
 
   abstract void forceDeserialization();
-
-  abstract void detach();
 }

@@ -31,11 +31,4 @@ public interface BinaryValueHolder {
    * @throws IllegalStateException If the ValueHolder cannot provide the binary form
    */
   ByteBuffer getBinaryValue() throws IllegalStateException;
-
-  /**
-   * Indicates whether the binary value can be accessed.
-   *
-   * @return {@code true} if the binary value is present and accessible, {@code false} otherwise
-   */
-  boolean isBinaryValueAvailable();
 }
