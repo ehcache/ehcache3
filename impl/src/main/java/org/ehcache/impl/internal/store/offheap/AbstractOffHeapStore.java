@@ -700,9 +700,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       } else {
         OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
         if (valueHolder != null) {
-          if (delayedDeserialization) {
-            mappedValue.detach();
-          } else {
+          if (!delayedDeserialization) {
             mappedValue.forceDeserialization();
           }
         } else {
@@ -824,7 +822,6 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
           onExpiration(mappedKey, mappedValue1, eventSink);
           return null;
         }
-        mappedValue1.detach();
         return mappedValue1;
       });
 
@@ -970,7 +967,6 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
         }
         return null;
       }
-      mappedValue.detach();
       valueHolderAtomicReference.set(mappedValue);
       return null;
     };
@@ -1110,7 +1106,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
-    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
+    if (valueHolder instanceof BinaryValueHolder) {
       return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
         valueHolder.creationTime(), valueHolder.expirationTime(),
         valueHolder.lastAccessTime());

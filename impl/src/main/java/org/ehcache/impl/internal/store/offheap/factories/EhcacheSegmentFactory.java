@@ -24,6 +24,9 @@ import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.storage.StorageEngine;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 /**

@@ -1452,7 +1452,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     boolean evictionAdvice = checkEvictionAdvice(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder;
     if(valueCopier instanceof SerializingCopier) {
-      if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
+      if (valueHolder instanceof BinaryValueHolder) {
         clonedValueHolder = new SerializedOnHeapValueHolder<>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
           evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       } else {

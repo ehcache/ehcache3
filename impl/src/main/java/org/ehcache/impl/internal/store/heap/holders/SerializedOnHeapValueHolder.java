@@ -75,11 +75,6 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
   }
 
   @Override
-  public boolean isBinaryValueAvailable() {
-    return true;
-  }
-
-  @Override
   public boolean equals(Object other) {
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;

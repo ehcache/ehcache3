@@ -42,11 +42,6 @@ public class BasicOffHeapValueHolderTest {
   }
 
   @Test(expected = UnsupportedOperationException.class)
-  public void testDoesNotSupportDelayedDeserialization() {
-    valueHolder.detach();
-  }
-
-  @Test(expected = UnsupportedOperationException.class)
   public void testDoesNotSupportForceDeserialization() {
     valueHolder.forceDeserialization();
   }

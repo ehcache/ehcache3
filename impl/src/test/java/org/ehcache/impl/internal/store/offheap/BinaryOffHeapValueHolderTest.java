@@ -43,7 +43,6 @@ public class BinaryOffHeapValueHolderTest {
 
   @Test
   public void testCanAccessBinaryValue() throws ClassNotFoundException {
-    assertThat(valueHolder.isBinaryValueAvailable(), is(true));
     ByteBuffer binaryValue = valueHolder.getBinaryValue();
     assertThat(serializer.read(binaryValue), is(value));
   }
@@ -51,11 +50,6 @@ public class BinaryOffHeapValueHolderTest {
   @Test
   public void testCanAccessValue() {
     assertThat(valueHolder.get(), is(value));
-  }
-
-  @Test(expected = UnsupportedOperationException.class)
-  public void testCantBeDetached() {
-    valueHolder.detach();
   }
 
   @Test(expected = UnsupportedOperationException.class)
