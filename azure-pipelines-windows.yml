@@ -28,4 +28,4 @@ jobs:
   parameters:
     gradleTasks: 'check'
     vmImage: 'vs2017-win2016'
-    options: '-i'
+    options: '-d'
