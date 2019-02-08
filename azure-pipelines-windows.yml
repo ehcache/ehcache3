@@ -26,6 +26,4 @@ resources:
 jobs:
 - template: build-templates/gradle-common.yml@templates  
   parameters:
-    gradleTasks: 'check'
     vmImage: 'vs2017-win2016'
-    options: '-d'
