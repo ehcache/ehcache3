@@ -101,9 +101,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           unlocked = true;
           return new ClusteredValueHolder<>(value);
         } finally {
-          if (!unlocked) {
-            getProxy().unlock(hash);
-          }
+          getProxy().unlock(hash, unlocked);
         }
       }
     } catch (RuntimeException re) {
@@ -130,9 +128,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         append(key, value);
         unlocked = true;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
       return PutStatus.PUT;
     } catch (Exception e) {
@@ -159,9 +155,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           return false;
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -192,9 +186,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           return existingVal;
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -232,9 +224,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           }
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -263,9 +253,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         }
         return existingVal;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -294,9 +282,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         }
         return existingVal;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);

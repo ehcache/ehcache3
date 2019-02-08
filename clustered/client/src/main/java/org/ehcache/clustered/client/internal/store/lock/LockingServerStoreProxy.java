@@ -47,8 +47,8 @@ public class LockingServerStoreProxy implements ServerStoreProxy, LockManager {
   }
 
   @Override
-  public void unlock(long hash) throws TimeoutException {
-    lockManager.unlock(hash);
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
+    lockManager.unlock(hash, localonly);
   }
 
   @Override

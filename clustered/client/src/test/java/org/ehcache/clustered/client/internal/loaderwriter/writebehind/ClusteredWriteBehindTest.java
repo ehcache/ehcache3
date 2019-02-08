@@ -188,7 +188,7 @@ public class ClusteredWriteBehindTest {
       assertThat(entry.getValue(), is(expectedChainContents.get(entry.getKey())));
     }
 
-    verify(clusteredWriteBehindStore).unlock(1L);
+    verify(clusteredWriteBehindStore).unlock(1L, false);
   }
 
   private Map<Long, String> convert(Chain chain, OperationsCodec<Long, String> codec,

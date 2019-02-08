@@ -97,7 +97,7 @@ class ClusteredWriteBehind<K, V> {
             clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
           }
         } finally {
-          clusteredWriteBehindStore.unlock(hash);
+          clusteredWriteBehindStore.unlock(hash, false);
         }
       } catch (TimeoutException e) {
         throw new RuntimeException(e);

@@ -41,7 +41,7 @@ public class LockManagerImpl implements LockManager {
     clientEntity.addReconnectListener(this::reconnectListener);
   }
 
-  private void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
+  void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
     reconnectMessage.addLocksHeld(locksHeld);
   }
 
@@ -70,9 +70,11 @@ public class LockManagerImpl implements LockManager {
   }
 
   @Override
-  public void unlock(long hash) throws TimeoutException {
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
     try {
-      clientEntity.invokeAndWaitForComplete(new UnlockMessage(hash), false);
+      if (!localonly) {
+        clientEntity.invokeAndWaitForComplete(new UnlockMessage(hash), false);
+      }
       locksHeld.remove(hash);
     } catch (TimeoutException tme) {
       throw tme;
