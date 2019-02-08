@@ -16,6 +16,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
@@ -25,6 +26,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.terracotta.exception.ConnectionClosedException;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -44,7 +46,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
@@ -385,4 +388,39 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
       assertThat(re.getCause(), instanceOf(IllegalStateException.class));
     }
   }
+
+  @Test
+  public void testAppendThrowsConnectionClosedExceptionDuringHashInvalidation() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = mock(SimpleClusterTierClientEntity.class);
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendThrowsConnectionClosedExceptionDuringHashInvalidation", clientEntity1, mock(ServerCallback.class));
+    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForReceive(any(), anyBoolean());
+    when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
+    when(clientEntity1.isConnected()).thenReturn(true);
+    try {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      fail("Expected ServerStoreProxyException");
+    } catch (ServerStoreProxyException e) {
+      assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
+    } catch (RuntimeException e) {
+      fail("Expected ServerStoreProxyException");
+    }
+  }
+
+  @Test
+  public void testClearThrowsConnectionClosedExceptionDuringAllInvaildation() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = mock(SimpleClusterTierClientEntity.class);
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearThrowsConnectionClosedExceptionDuringAllInvaildation", clientEntity1, mock(ServerCallback.class));
+    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForRetired(any(), anyBoolean());
+    when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
+    when(clientEntity1.isConnected()).thenReturn(true);
+    try {
+      serverStoreProxy1.clear();
+      fail("Expected ServerStoreProxyException");
+    } catch (ServerStoreProxyException e) {
+      assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
+    } catch (RuntimeException e) {
+      fail("Expected ServerStoreProxyException");
+    }
+  }
+
 }
