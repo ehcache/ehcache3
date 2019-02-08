@@ -121,6 +121,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       if (ex instanceof TimeoutException) {
         throw (TimeoutException)ex;
       }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
@@ -155,6 +158,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
       if (ex instanceof TimeoutException) {
         throw (TimeoutException)ex;
+      }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
       }
       throw new RuntimeException(ex);
     }
