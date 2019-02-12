@@ -18,14 +18,17 @@ package org.ehcache.clustered.client.internal.store.lock;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
 import org.ehcache.clustered.common.internal.exceptions.UnknownClusterException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.LockSuccess;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.LockMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.nio.ByteBuffer;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.lockFailure;
@@ -36,8 +39,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class LockManagerImplTest {
 
@@ -99,6 +101,27 @@ public class LockManagerImplTest {
 
     assertThat(lock, notNullValue());
     assertThat(lock.length(), is(3));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testUnlockClearsLocksHeldState() throws Exception {
+    ClusterTierClientEntity clusterTierClientEntity = mock(ClusterTierClientEntity.class);
+    LockManagerImpl lockManager = new LockManagerImpl(clusterTierClientEntity);
+
+    LockSuccess lockSuccess = getLockSuccessResponse();
+    when(clusterTierClientEntity.invokeAndWaitForComplete(any(LockMessage.class), anyBoolean()))
+      .thenReturn(lockSuccess);
+
+    Chain lock = lockManager.lock(2L);
+    lockManager.unlock(2L, false);
+
+    ClusterTierReconnectMessage reconnectMessage = mock(ClusterTierReconnectMessage.class);
+    ArgumentCaptor<Set<Long>> locks = ArgumentCaptor.forClass(Set.class);
+    doNothing().when(reconnectMessage).addLocksHeld(locks.capture());
+    lockManager.reconnectListener(reconnectMessage);
+    assertThat(locks.getValue().size(), is(0));
+
   }
 
   private LockSuccess getLockSuccessResponse() {

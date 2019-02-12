@@ -29,7 +29,8 @@ public interface LockManager {
   /**
    *
    * @param hash
+   * @param localonly
    */
-  void unlock(long hash) throws TimeoutException;
+  void unlock(long hash, boolean localonly) throws TimeoutException;
 
 }

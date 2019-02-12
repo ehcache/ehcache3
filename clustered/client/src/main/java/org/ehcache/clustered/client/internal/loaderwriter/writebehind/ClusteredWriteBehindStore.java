@@ -78,8 +78,8 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     return ((LockManager) storeProxy).lock(hash);
   }
 
-  void unlock(long hash) throws TimeoutException {
-    ((LockManager) storeProxy).unlock(hash);
+  void unlock(long hash, boolean localOnly) throws TimeoutException {
+    ((LockManager) storeProxy).unlock(hash, localOnly);
   }
 
   void replaceAtHead(long key, Chain expected, Chain replacement) {
@@ -120,7 +120,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
           append(key, value);
           return new ClusteredValueHolder<>(value);
         } finally {
-          unlock(hash);
+          unlock(hash, false);
         }
       }
     } catch (RuntimeException re) {

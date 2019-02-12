@@ -121,9 +121,9 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
   }
 
   @Override
-  public void unlock(long hash) throws TimeoutException {
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
     onStoreProxy(lockingServerStoreProxy -> {
-      lockingServerStoreProxy.unlock(hash);
+      lockingServerStoreProxy.unlock(hash, localonly);
       return null;
     });
   }
@@ -183,7 +183,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
     }
 
     @Override
-    public void unlock(long hash) throws TimeoutException {
+    public void unlock(long hash, boolean localonly) throws TimeoutException {
       throw new ReconnectInProgressException();
     }
   }
@@ -196,7 +196,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
     }
 
     @Override
-    public void unlock(long hash) throws TimeoutException {
+    public void unlock(long hash, boolean localonly) throws TimeoutException {
       throw new UnsupportedOperationException("Lock ops are not supported");
     }
   }
