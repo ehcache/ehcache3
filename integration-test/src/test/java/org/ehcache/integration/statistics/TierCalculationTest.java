@@ -149,16 +149,16 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     changesOf(0, 0, 2, 0);
 
     Iterator<Cache.Entry<Integer, String>> iterator = cache.iterator();
-    changesOf(1, 0, 0, 0); // FIXME Why one?!?
+    changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(1, 0, 0, 0); // FIXME One hit and on the cache we have two
+    changesOf(0, 0, 0, 0);
 
     expect(iterator.hasNext()).isTrue();
     changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(0, 0, 0, 0); // FIXME No hit on a next
+    changesOf(0, 0, 0, 0);
 
     expect(iterator.hasNext()).isFalse();
     changesOf(0, 0, 0, 0);

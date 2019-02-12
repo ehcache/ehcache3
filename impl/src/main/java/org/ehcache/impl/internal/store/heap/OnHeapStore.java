@@ -85,10 +85,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -647,29 +647,47 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
+    java.util.Iterator<Entry<K, OnHeapValueHolder<V>>> iterator = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
-      private final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
+      private Cache.Entry<K, ValueHolder<V>> prefetched = advance();
 
       @Override
       public boolean hasNext() {
-        return it.hasNext();
+        return prefetched != null;
       }
 
       @Override
-      public Cache.Entry<K, ValueHolder<V>> next() {
-        Entry<K, OnHeapValueHolder<V>> next = it.next();
-        K key = next.getKey();
-        OnHeapValueHolder<V> value = next.getValue();
-        return new Cache.Entry<K, ValueHolder<V>>() {
-          @Override
-          public K getKey() {
-            return key;
+      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+        if (prefetched == null) {
+          throw new NoSuchElementException();
+        } else {
+          Cache.Entry<K, ValueHolder<V>> next = prefetched;
+          prefetched = advance();
+          return next;
+        }
+      }
+
+      private Cache.Entry<K, ValueHolder<V>> advance() {
+        while (iterator.hasNext()) {
+          Entry<K, OnHeapValueHolder<V>> next = iterator.next();
+
+          if (strategy.isExpired(next.getValue())) {
+            expireMappingUnderLock(next.getKey(), next.getValue());
+          } else {
+            return new Cache.Entry<K, ValueHolder<V>>() {
+              @Override
+              public K getKey() {
+                return next.getKey();
+              }
+
+              @Override
+              public ValueHolder<V> getValue() {
+                return next.getValue();
+              }
+            };
           }
-          @Override
-          public ValueHolder<V> getValue() {
-            return value;
-          }
-        };
+        }
+        return null;
       }
     };
   }
@@ -716,6 +734,33 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
+    } catch (RuntimeException re) {
+      throw handleException(re);
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getOrDefault(K key, Function<K, ValueHolder<V>> source) throws StoreAccessException {
+    try {
+      Backend<K, V> backEnd = map;
+
+      // First try to find the value from heap
+      OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+
+      if (cachedValue == null) {
+        return source.apply(key);
+      } else {
+        // If we have a real value (not a fault), we make sure it is not expired
+        if (!(cachedValue instanceof Fault)) {
+          if (cachedValue.isExpired(timeSource.getTimeMillis())) {
+            expireMappingUnderLock(key, cachedValue);
+            return null;
+          }
+        }
+
+        // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
+        return getValue(cachedValue);
+      }
     } catch (RuntimeException re) {
       throw handleException(re);
     }

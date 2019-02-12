@@ -119,6 +119,26 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   @Override
+  public Store.ValueHolder<V> getOrDefault(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException {
+    try {
+      return higher.getOrDefault(key, keyParam -> {
+        try {
+          Store.ValueHolder<V> valueHolder = lower.get(keyParam);
+          if (valueHolder != null) {
+            return valueHolder;
+          }
+
+          return source.apply(keyParam);
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
+        }
+      });
+    } catch (ComputationException ce) {
+      throw ce.getStoreAccessException();
+    }
+  }
+
+  @Override
   public void invalidate(final K key) throws StoreAccessException {
     try {
       higher.silentInvalidate(key, mappedValue -> {
