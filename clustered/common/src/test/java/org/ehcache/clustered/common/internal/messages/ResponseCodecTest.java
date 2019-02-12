@@ -22,11 +22,15 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
+import static java.util.Arrays.asList;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -177,5 +181,24 @@ public class ResponseCodecTest {
     EhcacheEntityResponse.LockFailure failureDecoded = (EhcacheEntityResponse.LockFailure) RESPONSE_CODEC.decode(failureEncoded);
 
     assertThat(failureDecoded.getResponseType(), is(EhcacheResponseType.LOCK_FAILURE));
+  }
+
+  @Test
+  public void testIteratorBatchResponse() {
+    UUID uuid = UUID.randomUUID();
+    List<Chain> chains = asList(
+      chainOf(createPayload(1L), createPayload(10L)),
+      chainOf(createPayload(2L), createPayload(20L))
+    );
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = new EhcacheEntityResponse.IteratorBatch(uuid, chains, true);
+
+    byte[] encoded = RESPONSE_CODEC.encode(iteratorBatch);
+    EhcacheEntityResponse.IteratorBatch batchDecoded = (EhcacheEntityResponse.IteratorBatch) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(batchDecoded.getResponseType(), is(EhcacheResponseType.ITERATOR_BATCH));
+    assertThat(batchDecoded.getIdentity(), is(uuid));
+    assertThat(batchDecoded.getChains().get(0), hasPayloads(1L, 10L));
+    assertThat(batchDecoded.getChains().get(1), hasPayloads(2L, 20L));
+    assertThat(batchDecoded.isLast(), is(true));
   }
 }

@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 
 public class EventualServerStoreProxy implements ServerStoreProxy {
@@ -61,5 +62,10 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     delegate.clear();
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

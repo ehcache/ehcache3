@@ -22,15 +22,21 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -172,5 +178,98 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(1L, buffer.duplicate());
     verify(serverCallback).compact(any(Chain.class), any(long.class));
     assertThat(serverStoreProxy.get(1L), hasPayloads(42L));
+  }
+
+  @Test
+  public void testEmptyStoreIteratorIsEmpty() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testEmptyStoreIteratorIsEmpty");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testEmptyStoreIteratorIsEmpty", clientEntity, mock(ServerCallback.class));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainIterator() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainIterator");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainIterator", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), hasPayloads(42L));
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainMultipleElements() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainMultipleElements");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainMultipleElements", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+    serverStoreProxy.append(1L, createPayload(43L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), hasPayloads(42L, 43L));
+    assertThat(iterator.hasNext(), CoreMatchers.is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testMultipleChains() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testMultipleChains");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testMultipleChains", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+    serverStoreProxy.append(2L, createPayload(43L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    Matcher<Chain> chainOne = hasPayloads(42L);
+    Matcher<Chain> chainTwo = hasPayloads(43L);
+
+    assertThat(iterator.hasNext(), CoreMatchers.is(true));
+
+    Chain next = iterator.next();
+    assertThat(next, either(chainOne).or(chainTwo));
+
+    if (chainOne.matches(next)) {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(chainTwo));
+      assertThat(iterator.hasNext(), is(false));
+    } else {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(chainOne));
+      assertThat(iterator.hasNext(), is(false));
+    }
+
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
   }
 }

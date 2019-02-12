@@ -17,6 +17,7 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -34,7 +35,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
-public class OffHeapChainMap<K> implements MapInternals {
+public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
 
   interface ChainMapEvictionListener<K> {
     void onEviction(K key);
@@ -237,6 +238,38 @@ public class OffHeapChainMap<K> implements MapInternals {
     } finally {
       heads.writeLock().unlock();
     }
+  }
+
+  @Override
+  public Iterator<Chain> iterator() {
+    Iterator<Map.Entry<K, InternalChain>> headsIterator = heads.entrySet().iterator();
+
+    return new Iterator<Chain>() {
+      @Override
+      public boolean hasNext() {
+        return headsIterator.hasNext();
+      }
+
+      @Override
+      public Chain next() {
+        final Lock lock = heads.readLock();
+        lock.lock();
+        try {
+          InternalChain chain = headsIterator.next().getValue();
+          if (chain == null) {
+            return EMPTY_CHAIN;
+          } else {
+            try {
+              return chain.detach();
+            } finally {
+              chain.close();
+            }
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+    };
   }
 
   private void evict() {

@@ -28,6 +28,7 @@ import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.StructDecoder;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
@@ -83,6 +84,22 @@ public class ServerStoreOpCodec {
     .int64("hash", 30)
     .build();
 
+  private static final Struct ITERATOR_OPEN_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int32("batchSize", 20)
+    .build();
+
+  private static final Struct ITERATOR_CLOSE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .string("id", 20)
+    .build();
+
+  private static final Struct ITERATOR_ADVANCE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .string("id", 20)
+    .int32("batchSize", 30)
+    .build();
+
   public byte[] encode(ServerStoreOpMessage message) {
     switch (message.getMessageType()) {
       case GET_STORE:
@@ -132,6 +149,19 @@ public class ServerStoreOpCodec {
         ServerStoreOpMessage.UnlockMessage unlockMessage = (ServerStoreOpMessage.UnlockMessage) message;
         return encodeMandatoryFields(LOCK_STRUCT, message)
           .int64("hash", unlockMessage.getHash())
+          .encode().array();
+      case ITERATOR_OPEN:
+        return encodeMandatoryFields(ITERATOR_OPEN_STRUCT, message)
+          .int32("batchSize", ((ServerStoreOpMessage.IteratorOpenMessage) message).getBatchSize())
+          .encode().array();
+      case ITERATOR_CLOSE:
+        return encodeMandatoryFields(ITERATOR_CLOSE_STRUCT, message)
+          .string("id", ((ServerStoreOpMessage.IteratorCloseMessage) message).getIdentity().toString())
+          .encode().array();
+      case ITERATOR_ADVANCE:
+        return encodeMandatoryFields(ITERATOR_ADVANCE_STRUCT, message)
+          .string("id", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getIdentity().toString())
+          .int32("batchSize", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getBatchSize())
           .encode().array();
       default:
         throw new RuntimeException("Unhandled message operation : " + message.getMessageType());
@@ -187,6 +217,22 @@ public class ServerStoreOpCodec {
         StructDecoder<Void> decoder = LOCK_STRUCT.decoder(messageBuffer);
         long hash = decoder.int64("hash");
         return new ServerStoreOpMessage.UnlockMessage(hash);
+      }
+      case ITERATOR_OPEN: {
+        StructDecoder<Void> decoder = ITERATOR_OPEN_STRUCT.decoder(messageBuffer);
+        int batchSize = decoder.int32("batchSize");
+        return new ServerStoreOpMessage.IteratorOpenMessage(batchSize);
+      }
+      case ITERATOR_CLOSE: {
+        StructDecoder<Void> decoder = ITERATOR_CLOSE_STRUCT.decoder(messageBuffer);
+        UUID identity = UUID.fromString(decoder.string("id"));
+        return new ServerStoreOpMessage.IteratorCloseMessage(identity);
+      }
+      case ITERATOR_ADVANCE: {
+        StructDecoder<Void> decoder = ITERATOR_ADVANCE_STRUCT.decoder(messageBuffer);
+        UUID identity = UUID.fromString(decoder.string("id"));
+        int batchSize = decoder.int32("batchSize");
+        return new ServerStoreOpMessage.IteratorAdvanceMessage(identity, batchSize);
       }
       default:
         throw new RuntimeException("Unhandled message operation : " + opCode);

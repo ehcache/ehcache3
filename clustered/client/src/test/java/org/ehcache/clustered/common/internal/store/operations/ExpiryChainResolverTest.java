@@ -62,7 +62,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration(), customCodec);
-    resolver.applyOperation(chain, 0L);
+    resolver.compactChain(chain, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
     assertThat(valueSerializer.decodeCount, is(3));
@@ -185,6 +185,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     InOrder inOrder = inOrder(expiry);
 
     verify(expiry, times(0)).getExpiryForAccess(anyLong(), any());
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
     inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(), anyString());
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
 
@@ -196,10 +197,10 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
 
 
     Chain chain = getChainFromOperations(
-      new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis()),
-      new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis()),
-      new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()),
-      new PutOperation<Long, String>(1L, "Four", timeSource.getTimeMillis())
+      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Second", timeSource.getTimeMillis()),
+      new RemoveOperation<>(1L, timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Four", timeSource.getTimeMillis())
     );
 
     chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());

@@ -19,17 +19,26 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.ChainUtils.readPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
+import static java.util.stream.LongStream.range;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.fail;
 
 /**
  * Verify Server Store
@@ -183,7 +192,7 @@ public abstract class ServerStoreTest {
     ByteBuffer payload = createPayload(1L);
 
     store.append(1L, payload);
-    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), Is.is(8));
   }
 
   @Test
@@ -192,7 +201,7 @@ public abstract class ServerStoreTest {
     ByteBuffer payload = createPayload(1L);
 
     store.getAndAppend(1L, payload);
-    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), Is.is(8));
   }
 
   @Test
@@ -204,5 +213,65 @@ public abstract class ServerStoreTest {
     Chain update = newChainBuilder().build(newElementBuilder().build(payload));
     store.replaceAtHead(1L, expected, update);
     assertThat(payload.remaining(), Is.is(8));
+  }
+
+  @Test
+  public void testEmptyIterator() throws TimeoutException {
+    ServerStore store = newStore();
+
+    Iterator<Chain> chainIterator = store.iterator();
+
+    assertThat(chainIterator.hasNext(), Is.is(false));
+    try {
+      chainIterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleElementIterator() throws TimeoutException {
+    ServerStore store = newStore();
+
+    store.append(1L, createPayload(42L));
+    Iterator<Chain> chainIterator = store.iterator();
+
+    assertThat(chainIterator.hasNext(), is(true));
+    assertThat(chainIterator.next(), hasPayloads(42L));
+    assertThat(chainIterator.hasNext(), is(false));
+    try {
+      chainIterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testHeavilyPopulatedIterator() throws TimeoutException {
+    ServerStore store = newStore();
+
+    range(0, 100).forEach(k -> {
+      try {
+        store.append(k, createPayload(k));
+      } catch (TimeoutException e) {
+        throw new AssertionError();
+      }
+    });
+
+    Iterator<Chain> chainIterator = store.iterator();
+
+    Set<Long> longs = new HashSet<>();
+    while (chainIterator.hasNext()) {
+      Chain chain = chainIterator.next();
+      for (Element e: chain) {
+        long l = readPayload(e.getPayload());
+        assertThat(longs, not(hasItem(l)));
+        longs.add(l);
+      }
+    }
+
+    assertThat(longs, hasItems(range(0, 100).boxed().toArray(Long[]::new)));
   }
 }

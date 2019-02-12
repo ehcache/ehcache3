@@ -36,7 +36,8 @@ public enum EhcacheResponseType {
   PREPARE_FOR_DESTROY,
   RESOLVE_REQUEST,
   LOCK_SUCCESS,
-  LOCK_FAILURE;
+  LOCK_FAILURE,
+  ITERATOR_BATCH;
 
 
   public static final String RESPONSE_TYPE_FIELD_NAME = "opCode";
@@ -55,5 +56,6 @@ public enum EhcacheResponseType {
     .mapping(EhcacheResponseType.RESOLVE_REQUEST, 90)
     .mapping(EhcacheResponseType.LOCK_SUCCESS, 91)
     .mapping(EhcacheResponseType.LOCK_FAILURE, 92)
+    .mapping(EhcacheResponseType.ITERATOR_BATCH, 93)
     .build();
 }

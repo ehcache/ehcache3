@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
@@ -29,18 +30,24 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAn
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.config.units.MemoryUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
+import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
  */
 class CommonServerStoreProxy implements ServerStoreProxy {
+
+  private static final int ITERATOR_BATCH_SIZE = toIntExact(MemoryUnit.KB.toBytes(100));
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommonServerStoreProxy.class);
 
@@ -175,6 +182,74 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       throw e;
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
+    }
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = openIterator();
+    if (iteratorBatch.isLast()) {
+      return iteratorBatch.getChains().iterator();
+    } else {
+      UUID iteratorId = iteratorBatch.getIdentity();
+      return new Iterator<Chain>() {
+
+        private boolean lastBatch = false;
+        private Iterator<Chain> batch = iteratorBatch.getChains().iterator();
+
+        @Override
+        public boolean hasNext() {
+          return !lastBatch || batch.hasNext();
+        }
+
+        @Override
+        public Chain next() {
+          if (batch.hasNext()) {
+            return batch.next();
+          } else {
+            try {
+              EhcacheEntityResponse.IteratorBatch batchResponse = fetchBatch(iteratorId);
+              batch = batchResponse.getChains().iterator();
+              lastBatch = batchResponse.isLast();
+              return batch.next();
+            } catch (TimeoutException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+          if (!lastBatch) {
+            entity.invokeAndWaitForReceive(new ServerStoreOpMessage.IteratorCloseMessage(iteratorId), false);
+          }
+        }
+      };
+    }
+  }
+
+  private EhcacheEntityResponse.IteratorBatch openIterator() throws TimeoutException {
+    return fetchBatch(new ServerStoreOpMessage.IteratorOpenMessage(ITERATOR_BATCH_SIZE));
+  }
+
+  private EhcacheEntityResponse.IteratorBatch fetchBatch(UUID id) throws TimeoutException {
+    return fetchBatch(new ServerStoreOpMessage.IteratorAdvanceMessage(id, ITERATOR_BATCH_SIZE));
+  }
+
+  private EhcacheEntityResponse.IteratorBatch fetchBatch(EhcacheOperationMessage message) throws TimeoutException {
+    EhcacheEntityResponse response;
+    try {
+      response = entity.invokeAndWaitForComplete(message, false);
+    } catch (TimeoutException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+    if (response != null && response.getResponseType() == EhcacheResponseType.ITERATOR_BATCH) {
+      return (EhcacheEntityResponse.IteratorBatch) response;
+    } else {
+      throw new ServerStoreProxyException("Response for iterator operation was invalid : " +
+        (response != null ? response.getResponseType() : "null message"));
     }
   }
 }

@@ -28,6 +28,7 @@ import com.tc.classloader.CommonComponent;
 
 import java.nio.ByteBuffer;
 import java.util.AbstractList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -197,5 +198,10 @@ public class ServerStoreImpl implements ServerSideServerStore {
       throw new OversizeMappingException("Payload (" + payLoad.remaining() +
                                          ") bigger than pool size (" + pageSource.getPool().getSize() + ")");
     }
+  }
+
+  @Override
+  public Iterator<Chain> iterator() {
+    return store.iterator();
   }
 }

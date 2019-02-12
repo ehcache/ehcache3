@@ -78,6 +78,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -89,6 +90,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.util.Collections.emptyIterator;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
@@ -433,8 +435,84 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    try {
+      java.util.Iterator<Chain> chainIterator = storeProxy.iterator();
+
+      return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+
+        private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> chain = nextChain();
+
+        @Override
+        public boolean hasNext() {
+          return chain.hasNext() || (chain = nextChain()).hasNext();
+        }
+
+        @Override
+        public Cache.Entry<K, ValueHolder<V>> next() {
+          try {
+            return chain.next();
+          } catch (NoSuchElementException e) {
+            return (chain = nextChain()).next();
+          }
+        }
+
+        private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
+          try {
+            while (true) {
+              Map<K, PutOperation<K, V>> chainContents = resolver.resolveChain(chainIterator.next(), timeSource.getTimeMillis());
+              if (!chainContents.isEmpty()) {
+                return chainContents.entrySet().stream().map(entry -> {
+                  K key = entry.getKey();
+
+                  PutOperation<K, V> operation = entry.getValue();
+                  ValueHolder<V> valueHolder;
+                  if (operation.isExpiryAvailable()) {
+                    valueHolder = new ClusteredValueHolder<>(operation.getValue(), operation.expirationTime());
+                  } else {
+                    valueHolder = new ClusteredValueHolder<>(operation.getValue());
+                  }
+                  return new Cache.Entry<K, ValueHolder<V>>() {
+
+                    @Override
+                    public K getKey() {
+                      return key;
+                    }
+
+                    @Override
+                    public ValueHolder<V> getValue() {
+                      return valueHolder;
+                    }
+
+                    @Override
+                    public String toString() {
+                      return getKey() + "=" + getValue();
+                    }
+                  };
+                }).iterator();
+              }
+            }
+          } catch (NoSuchElementException e) {
+            return emptyIterator();
+          }
+        }
+      };
+    } catch (Exception e) {
+      return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+
+        private boolean accessed;
+
+        @Override
+        public boolean hasNext() {
+          return !accessed;
+        }
+
+        @Override
+        public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+          accessed = true;
+          throw handleException(e);
+        }
+      };
+    }
   }
 
   @Override
@@ -769,7 +847,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
         @Override
         public Chain compact(Chain chain) {
-          return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
+          return clusteredStore.resolver.compactChain(chain, clusteredStore.timeSource.getTimeMillis());
         }
       };
     }

@@ -958,6 +958,94 @@ public class ClusterTierActiveEntityTest {
     assertThat(actual, sameInstance(expected));
   }
 
+  @Test @SuppressWarnings("unchecked")
+  public void testShortIterationIsNotTracked() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(Integer.MAX_VALUE));
+
+    assertThat(iteratorBatch.isLast(), is(true));
+    assertThat(iteratorBatch.getChains(), containsInAnyOrder(hasPayloads(1L, 2L), hasPayloads(3L, 4L)));
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(iteratorBatch.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
+  @Test
+  public void testLongIteration() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(1));
+
+    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
+    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+
+    assertThat(batchOne.isLast(), is(false));
+    assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
+
+    EhcacheEntityResponse.IteratorBatch batchTwo = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE));
+    assertThat(batchTwo.isLast(), is(true));
+    if (contains(chainOne).matches(batchOne.getChains())) {
+      assertThat(batchTwo.getChains(), contains(chainTwo));
+    } else {
+      assertThat(batchTwo.getChains(), contains(chainOne));
+    }
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
+  @Test
+  public void testExplicitIteratorClose() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(1));
+
+    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
+    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+
+    assertThat(batchOne.isLast(), is(false));
+    assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorCloseMessage(batchOne.getIdentity())), succeeds());
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
   private void prepareAndRunActiveEntityForPassiveSync(BiConsumer<ClusterTierActiveEntity, Integer> testConsumer) throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
