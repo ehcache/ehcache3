@@ -91,9 +91,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
-    Portability<OffHeapValueHolder<V>> elementPortability = new OffHeapValueHolderPortability<V>(valueSerializer);
+    Portability<OffHeapValueHolder<V>> valuePortability = createValuePortability(valueSerializer);
     Factory<OffHeapBufferStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, source, config
-        .getSegmentDataPageSize(), keyPortability, elementPortability, false, true);
+        .getSegmentDataPageSize(), keyPortability, valuePortability, false, true);
 
     Factory<? extends PinnableSegment<K, OffHeapValueHolder<V>>> segmentFactory = new EhcacheSegmentFactory<K, OffHeapValueHolder<V>>(
                                                                                                          source,

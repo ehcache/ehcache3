@@ -23,6 +23,8 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValueHolderPortability;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestLocalPersistenceService;
@@ -88,7 +90,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
               new OnDemandExecutionService(), null, 1,
               storeConfiguration, timeSource,
               new TestStoreEventDispatcher<String, String>(),
-              MemoryUnit.MB.toBytes(1));
+              MemoryUnit.MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<String> createValuePortability(Serializer<String> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -111,7 +118,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
               new OnDemandExecutionService(), null, 1,
               storeConfiguration, timeSource,
               new TestStoreEventDispatcher<String, byte[]>(),
-              MemoryUnit.MB.toBytes(1));
+              MemoryUnit.MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<byte[]> createValuePortability(Serializer<byte[]> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {

@@ -69,12 +69,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Long.max;
+import static java.util.Arrays.asList;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
@@ -169,11 +171,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       MappedPageSource source = new MappedPageSource(dataFile, false, size);
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
-        PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
+        PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-            max((size / 16) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
+            max((size / 16) / 10, 1024), BYTES, keyPortability, valuePortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -210,11 +212,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new RuntimeException(e);
     }
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
-    PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
+    PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        max((size / 16) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
+        max((size / 16) / 10, 1024), BYTES, keyPortability, valuePortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,
@@ -373,22 +375,24 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
    * This is kind of a hack, but it's safe to use this if the regular portability
    * is stateless.
    */
+  @SuppressWarnings("unchecked")
   public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
-    final Class<?> normalKlazz = normal.getClass();
-    Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();
-    Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
-    proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
+    if (normal instanceof PersistentPortability<?>) {
+      return (PersistentPortability<T>) normal;
+    } else {
+      LinkedHashSet<Class<?>> proxyInterfaces = new LinkedHashSet<>();
+      for (Class<?> klazz = normal.getClass(); klazz != null; klazz = klazz.getSuperclass()) {
+        proxyInterfaces.addAll(asList(klazz.getInterfaces()));
+      }
+      proxyInterfaces.add(PersistentPortability.class);
 
-    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, new InvocationHandler() {
-
-      @Override
-      public Object invoke(Object o, Method method, Object[] os) throws Throwable {
+      return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces.toArray(new Class[0]), (o, method, os) -> {
         if (method.getDeclaringClass().equals(Persistent.class)) {
           return null;
         } else {
           return method.invoke(normal, os);
         }
-      }
-    });
+      });
+    }
   }
 }

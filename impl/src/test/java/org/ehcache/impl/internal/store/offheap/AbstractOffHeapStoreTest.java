@@ -119,6 +119,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
         @Override
         public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          valueHolder.value();
           invalidated.set(valueHolder);
         }
       });
@@ -200,6 +201,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
         @Override
         public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          valueHolder.value();
           invalidated.set(valueHolder);
         }
       });
@@ -256,6 +258,7 @@ public abstract class AbstractOffHeapStoreTest {
       offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
         @Override
         public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
+          valueHolder.value();
           invalidated.set(valueHolder);
         }
       });

@@ -124,7 +124,7 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.7'
+    toolVersion = '5.9'
   }
 
   findbugs {

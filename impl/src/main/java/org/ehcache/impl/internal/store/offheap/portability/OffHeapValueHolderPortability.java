@@ -73,7 +73,10 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     long lastAccessTime = byteBuffer.getLong();
     long expireTime = byteBuffer.getLong();
     long hits = byteBuffer.getLong();
-    OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, byteBuffer.slice(), serializer, creationTime, expireTime, lastAccessTime, hits, writeContext);
-    return valueHolder;
+    return createLazyOffHeapValueHolder(id, byteBuffer.slice(), serializer, creationTime, expireTime, lastAccessTime, hits, writeContext);
+  }
+
+  protected OffHeapValueHolder<V> createLazyOffHeapValueHolder(long id, ByteBuffer byteBuffer, Serializer<V> serializer, long creationTime, long expireTime, long lastAccessTime, long hits, WriteContext writeContext) {
+    return new OffHeapValueHolder<V>(id, byteBuffer.slice(), serializer, creationTime, expireTime, lastAccessTime, hits, writeContext);
   }
 }

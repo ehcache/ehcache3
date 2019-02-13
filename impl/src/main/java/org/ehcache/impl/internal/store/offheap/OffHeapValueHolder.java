@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 * OffHeapValueHolder
 */
 @FindbugsSuppressWarnings("SE_NO_SERIALVERSIONID")
-public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> implements BinaryValueHolder {
+public class OffHeapValueHolder<V> extends AbstractValueHolder<V> implements BinaryValueHolder {
 
   public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
@@ -124,16 +124,20 @@ public final class OffHeapValueHolder<V> extends AbstractValueHolder<V> implemen
 
   void forceDeserialization() {
     if (value == null && mode != Mode.VALUE) {
-      try {
-        value = valueSerializer.read(binaryValue.duplicate());
-      } catch (ClassNotFoundException e) {
-        throw new SerializerException(e);
-      } finally {
-        if (mode == Mode.BINARY) {
-          binaryValue = null;
-          valueSerializer = null;
-          mode = Mode.VALUE;
-        }
+      value = deserialize();
+    }
+  }
+
+  V deserialize() {
+    try {
+      return valueSerializer.read(binaryValue.duplicate());
+    } catch (ClassNotFoundException e) {
+      throw new SerializerException(e);
+    } finally {
+      if (mode == Mode.BINARY) {
+        binaryValue = null;
+        valueSerializer = null;
+        mode = Mode.VALUE;
       }
     }
   }

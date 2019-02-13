@@ -23,6 +23,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValueHolderPortability;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -41,7 +43,12 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
           null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, String>(), MemoryUnit.MB.toBytes(1));
+      OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, String>(), MemoryUnit.MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<String> createValuePortability(Serializer<String> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -59,7 +66,12 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
           evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, byte[]>(),MemoryUnit.MB.toBytes(1));
+      OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, byte[]>(),MemoryUnit.MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<byte[]> createValuePortability(Serializer<byte[]> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
