@@ -43,6 +43,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 public class EhcachePersistentSegmentTest {
 
@@ -71,7 +72,7 @@ public class EhcachePersistentSegmentTest {
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
       PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
-      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
+      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
       return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);

@@ -74,8 +74,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.lang.Long.max;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**
  *
@@ -171,7 +173,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                keyPortability, elementPortability, writeWorkers, false);
+            max((size / 16) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -212,7 +214,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        keyPortability, elementPortability, writeWorkers, true);
+        max((size / 16) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,

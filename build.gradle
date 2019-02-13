@@ -17,7 +17,7 @@ import scripts.*
 
 ext {
   baseVersion = '3.0.0-SNAPSHOT'
-  offheapVersion = '2.2.1'
+  offheapVersion = '2.4.2'
   managementVersion = '2.2.0'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
@@ -47,8 +47,8 @@ subprojects {
 
   archivesBaseName = "ehcache-${project.name}"
 
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 
   repositories {
     mavenCentral()

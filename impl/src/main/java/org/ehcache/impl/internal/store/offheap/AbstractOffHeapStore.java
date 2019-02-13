@@ -406,6 +406,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
           return null;
         } else {
+          mappedValue.forceDeserialization();
           returnValue.set(mappedValue);
           return newUpdatedValueHolder(mappedKey, value, mappedValue, now, eventSink);
         }
