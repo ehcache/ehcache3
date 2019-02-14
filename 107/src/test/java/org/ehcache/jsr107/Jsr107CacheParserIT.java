@@ -17,7 +17,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.xml.XmlConfigurationTest;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
 
@@ -30,7 +29,7 @@ public class Jsr107CacheParserIT {
 
   @Test(expected = XmlConfigurationException.class)
   public void testJsr107CacheXmlTranslationToString() {
-    URL resource = XmlConfigurationTest.class.getResource("/ehcache-107.xml");
+    URL resource = Jsr107CacheParserIT.class.getResource("/ehcache-107.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
   }

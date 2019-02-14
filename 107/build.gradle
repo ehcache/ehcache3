@@ -45,7 +45,6 @@ dependencies {
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
-  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 javadoc {

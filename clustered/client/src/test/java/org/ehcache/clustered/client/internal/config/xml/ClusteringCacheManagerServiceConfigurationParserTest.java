@@ -37,6 +37,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -60,7 +62,6 @@ import javax.xml.transform.stream.StreamSource;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -71,6 +72,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class ClusteringCacheManagerServiceConfigurationParserTest {
 
@@ -441,8 +443,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:shared-pool name = \"primaryresource\" unit = \"B\">5368709120</tc:shared-pool>" +
                          "<tc:shared-pool from = \"optional\" name = \"secondaryresource\" unit = \"B\">10737418240</tc:shared-pool>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
-
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -466,7 +468,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:server-side-config auto-create = \"false\">" +
                          "<tc:default-resource from = \"main\"/>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -486,7 +489,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
                          "<tc:server-side-config auto-create = \"false\">" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -516,7 +520,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
                          "<tc:server-side-config auto-create = \"false\"/></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   /**

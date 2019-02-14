@@ -17,9 +17,7 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.xml.XmlConfigurationTest;
 import org.junit.Test;
-import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
@@ -35,11 +33,10 @@ public class ClusteredCacheConfigurationParserIT {
 
   @Test
   public void testClusteredCacheXmlTranslationToString() {
-    URL resource = XmlConfigurationTest.class.getResource("/configs/clustered-cache.xml");
+    URL resource = ClusteredCacheConfigurationParserIT.class.getResource("/configs/clustered-cache.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(Input.from(resource)).ignoreComments()
-      .ignoreWhitespace()
+    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace()
       .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndAllAttributes)));
   }
 }

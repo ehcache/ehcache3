@@ -128,7 +128,6 @@ subprojects {
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testCompile 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
     testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
