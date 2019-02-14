@@ -41,12 +41,6 @@ dependencies {
   pomOnlyProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
 
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
-}
-
 jar {
   bnd (
     'Bundle-SymbolicName': 'org.ehcache.transactions',

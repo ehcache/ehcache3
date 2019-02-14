@@ -59,12 +59,6 @@ jar {
   )
 }
 
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
-}
-
 task unpackTckTests(type: Copy) {
   from {
     configurations.tckTestClasses.collect {zipTree(it)}
