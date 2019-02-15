@@ -17,6 +17,7 @@
 package org.ehcache.core.util;
 
 import static java.util.Collections.list;
+import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Vector;
 
 import org.junit.Test;
@@ -34,28 +36,33 @@ public class ClassLoadingTest {
 
   @Test
   public void testDefaultClassLoader() throws Exception {
-    String resource = getClass().getName().replace('.', '/').concat(".class");
-    ClassLoader thisLoader = getClass().getClassLoader();
-    ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
+    ClassLoader originalTccl = Thread.currentThread().getContextClassLoader();
+    try {
+      String resource = getClass().getName().replace('.', '/').concat(".class");
+      ClassLoader thisLoader = getClass().getClassLoader();
+      ClassLoader defaultClassLoader = getDefaultClassLoader();
 
-    Thread.currentThread().setContextClassLoader(null);
-    assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
-    assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
-    assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
+      Thread.currentThread().setContextClassLoader(null);
+      assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
+      assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
+      assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
 
-    Thread.currentThread().setContextClassLoader(new FindNothingLoader());
-    assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
-    assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
-    assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
+      Thread.currentThread().setContextClassLoader(new FindNothingLoader());
+      assertSame(thisLoader.loadClass(getClass().getName()), defaultClassLoader.loadClass(getClass().getName()));
+      assertEquals(thisLoader.getResource(resource), defaultClassLoader.getResource(resource));
+      assertThat(list(defaultClassLoader.getResources(resource)), is(list(thisLoader.getResources(resource))));
 
-    URL url = new URL("file:///tmp");
-    ClassLoader tc = new TestClassLoader(url);
-    Thread.currentThread().setContextClassLoader(tc);
-    Class<?> c = defaultClassLoader.loadClass(getClass().getName());
-    assertNotSame(getClass(), c);
-    assertSame(tc, c.getClassLoader());
-    assertEquals(url, defaultClassLoader.getResource(resource));
-    assertThat(list(defaultClassLoader.getResources(resource)), contains(url, thisLoader.getResource(resource)));
+      URL url = new URL("file:///tmp");
+      ClassLoader tc = new TestClassLoader(url);
+      Thread.currentThread().setContextClassLoader(tc);
+      Class<?> c = defaultClassLoader.loadClass(getClass().getName());
+      assertNotSame(getClass(), c);
+      assertSame(tc, c.getClassLoader());
+      assertEquals(url, defaultClassLoader.getResource(resource));
+      assertThat(list(defaultClassLoader.getResources(resource)), contains(url, thisLoader.getResource(resource)));
+    } finally {
+      Thread.currentThread().setContextClassLoader(originalTccl);
+    }
   }
 
   @SafeVarargs
