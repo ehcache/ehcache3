@@ -28,6 +28,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.collection.IsIterableWithSize;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,8 +46,10 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
@@ -160,6 +164,19 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
         assertThat(all.get(2L), is("two"));
         assertThat(all.get(3L), is("three"));
 
+        Map<Long, String> entries1 = new HashMap<>();
+        assertThat(cache1, iterableWithSize(3));
+        cache1.forEach(e -> entries1.putIfAbsent(e.getKey(), e.getValue()));
+        assertThat(entries1, hasEntry(1L, "one"));
+        assertThat(entries1, hasEntry(2L, "two"));
+        assertThat(entries1, hasEntry(3L, "three"));
+
+        Map<Long, String> entries2 = new HashMap<>();
+        assertThat(cache2, iterableWithSize(3));
+        cache2.forEach(e -> entries2.putIfAbsent(e.getKey(), e.getValue()));
+        assertThat(entries2, hasEntry(1L, "one"));
+        assertThat(entries2, hasEntry(2L, "two"));
+        assertThat(entries2, hasEntry(3L, "three"));
         cache2.removeAll(keySet);
 
         all = cache1.getAll(keySet);

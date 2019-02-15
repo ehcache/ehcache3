@@ -35,6 +35,7 @@ dependencies {
   testImplementation(project(':clustered:server')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
+  testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
   testImplementation "org.terracotta.internal:common:$terracottaCoreVersion"

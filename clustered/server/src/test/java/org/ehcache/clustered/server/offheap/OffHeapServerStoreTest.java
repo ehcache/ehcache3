@@ -25,6 +25,7 @@ import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -35,11 +36,12 @@ import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
-import org.junit.Assert;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
@@ -83,13 +85,13 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       for (int i = 0; i < buffers.length; i++) {
         buffers[i] = elements[i].getPayload();
       }
-      return OffHeapChainMap.chain(buffers);
+      return chainOf(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return payLoad -> () -> payLoad;
+    return payLoad -> () -> payLoad.asReadOnlyBuffer();
   }
 
   @Test

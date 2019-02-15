@@ -26,15 +26,16 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.Repla
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class ServerStoreOpCodec {
@@ -83,123 +84,124 @@ public class ServerStoreOpCodec {
     .int64("hash", 30)
     .build();
 
-  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
+  private static final Struct ITERATOR_OPEN_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int32("batchSize", 20)
+    .build();
+
+  private static final Struct ITERATOR_CLOSE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .string("id", 20)
+    .build();
+
+  private static final Struct ITERATOR_ADVANCE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .string("id", 20)
+    .int32("batchSize", 30)
+    .build();
 
   public byte[] encode(ServerStoreOpMessage message) {
-    StructEncoder<Void> encoder;
-
     switch (message.getMessageType()) {
       case GET_STORE:
         GetMessage getMessage = (GetMessage) message;
-        encoder = GET_MESSAGE_STRUCT.encoder();
-        return encoder
-          .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+        return encodeMandatoryFields(GET_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, getMessage.getKey())
-          .encode()
-          .array();
+          .encode().array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage) message;
-        encoder = APPEND_MESSAGE_STRUCT.encoder();
-        messageCodecUtils.encodeMandatoryFields(encoder, message);
-        return encoder
+        return encodeMandatoryFields(APPEND_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, appendMessage.getKey())
           .byteBuffer("payload", appendMessage.getPayload())
-          .encode()
-          .array();
+          .encode().array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage) message;
-        encoder = GET_AND_APPEND_MESSAGE_STRUCT.encoder();
-        messageCodecUtils.encodeMandatoryFields(encoder, message);
-        return encoder
+        return encodeMandatoryFields(GET_AND_APPEND_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, getAndAppendMessage.getKey())
           .byteBuffer("payload", getAndAppendMessage.getPayload())
-          .encode()
-          .array();
+          .encode().array();
       case REPLACE:
         final ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage) message;
-        encoder = REPLACE_MESSAGE_STRUCT.encoder();
-        messageCodecUtils.encodeMandatoryFields(encoder, message);
-        return encoder
+        return encodeMandatoryFields(REPLACE_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, replaceAtHeadMessage.getKey())
           .struct("expect", replaceAtHeadMessage.getExpect(), ChainCodec::encode)
           .struct("update", replaceAtHeadMessage.getUpdate(), ChainCodec::encode)
-          .encode()
-          .array();
+          .encode().array();
       case CLIENT_INVALIDATION_ACK:
         ClientInvalidationAck clientInvalidationAckMessage = (ClientInvalidationAck) message;
-        encoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.encoder();
-        return encoder
-          .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+        return encodeMandatoryFields(CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, clientInvalidationAckMessage.getKey())
           .int32("invalidationId", clientInvalidationAckMessage.getInvalidationId())
-          .encode()
-          .array();
+          .encode().array();
       case CLIENT_INVALIDATION_ALL_ACK:
         ClientInvalidationAllAck clientInvalidationAllAckMessage = (ClientInvalidationAllAck) message;
-        encoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT.encoder();
-        return encoder
-          .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+        return encodeMandatoryFields(CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT, message)
           .int32("invalidationId", clientInvalidationAllAckMessage.getInvalidationId())
           .encode().array();
       case CLEAR:
-        encoder = CLEAR_MESSAGE_STRUCT.encoder();
-        messageCodecUtils.encodeMandatoryFields(encoder, message);
-        return encoder
-          .encode()
-          .array();
+        return encodeMandatoryFields(CLEAR_MESSAGE_STRUCT, message)
+          .encode().array();
       case LOCK:
-        encoder = LOCK_STRUCT.encoder();
-        return encoder
-                .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
-                .int64("hash", ((ServerStoreOpMessage.LockMessage) message).getHash())
-                .encode().array();
+        ServerStoreOpMessage.LockMessage lockMessage = (ServerStoreOpMessage.LockMessage) message;
+        return encodeMandatoryFields(LOCK_STRUCT, message)
+          .int64("hash", lockMessage.getHash())
+          .encode().array();
       case UNLOCK:
-        encoder = LOCK_STRUCT.encoder();
-        return encoder
-                .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
-                .int64("hash", ((ServerStoreOpMessage.UnlockMessage) message).getHash())
-                .encode().array();
+        ServerStoreOpMessage.UnlockMessage unlockMessage = (ServerStoreOpMessage.UnlockMessage) message;
+        return encodeMandatoryFields(LOCK_STRUCT, message)
+          .int64("hash", unlockMessage.getHash())
+          .encode().array();
+      case ITERATOR_OPEN:
+        return encodeMandatoryFields(ITERATOR_OPEN_STRUCT, message)
+          .int32("batchSize", ((ServerStoreOpMessage.IteratorOpenMessage) message).getBatchSize())
+          .encode().array();
+      case ITERATOR_CLOSE:
+        return encodeMandatoryFields(ITERATOR_CLOSE_STRUCT, message)
+          .string("id", ((ServerStoreOpMessage.IteratorCloseMessage) message).getIdentity().toString())
+          .encode().array();
+      case ITERATOR_ADVANCE:
+        return encodeMandatoryFields(ITERATOR_ADVANCE_STRUCT, message)
+          .string("id", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getIdentity().toString())
+          .int32("batchSize", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getBatchSize())
+          .encode().array();
       default:
         throw new RuntimeException("Unhandled message operation : " + message.getMessageType());
     }
   }
 
   public EhcacheEntityMessage decode(EhcacheMessageType opCode, ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder;
     switch (opCode) {
       case GET_STORE: {
-        decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         return new GetMessage(key);
       }
       case GET_AND_APPEND: {
-        decoder = GET_AND_APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = GET_AND_APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         return new GetAndAppendMessage(key, payload);
       }
       case APPEND: {
-        decoder = APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         return new AppendMessage(key, payload);
       }
       case REPLACE: {
-        decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         Chain expect = ChainCodec.decode(decoder.struct("expect"));
         Chain update = ChainCodec.decode(decoder.struct("update"));
         return new ReplaceAtHeadMessage(key, expect, update);
       }
       case CLIENT_INVALIDATION_ACK: {
-        decoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         Integer invalidationId = decoder.int32("invalidationId");
         return new ClientInvalidationAck(key, invalidationId);
       }
       case CLIENT_INVALIDATION_ALL_ACK: {
-        decoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT
-          .decoder(messageBuffer);
+        StructDecoder<Void> decoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
         Integer invalidationId = decoder.int32("invalidationId");
         return new ClientInvalidationAllAck(invalidationId);
       }
@@ -207,14 +209,30 @@ public class ServerStoreOpCodec {
         return new ClearMessage();
       }
       case LOCK: {
-        decoder = LOCK_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = LOCK_STRUCT.decoder(messageBuffer);
         long hash = decoder.int64("hash");
         return new ServerStoreOpMessage.LockMessage(hash);
       }
       case UNLOCK: {
-        decoder = LOCK_STRUCT.decoder(messageBuffer);
+        StructDecoder<Void> decoder = LOCK_STRUCT.decoder(messageBuffer);
         long hash = decoder.int64("hash");
         return new ServerStoreOpMessage.UnlockMessage(hash);
+      }
+      case ITERATOR_OPEN: {
+        StructDecoder<Void> decoder = ITERATOR_OPEN_STRUCT.decoder(messageBuffer);
+        int batchSize = decoder.int32("batchSize");
+        return new ServerStoreOpMessage.IteratorOpenMessage(batchSize);
+      }
+      case ITERATOR_CLOSE: {
+        StructDecoder<Void> decoder = ITERATOR_CLOSE_STRUCT.decoder(messageBuffer);
+        UUID identity = UUID.fromString(decoder.string("id"));
+        return new ServerStoreOpMessage.IteratorCloseMessage(identity);
+      }
+      case ITERATOR_ADVANCE: {
+        StructDecoder<Void> decoder = ITERATOR_ADVANCE_STRUCT.decoder(messageBuffer);
+        UUID identity = UUID.fromString(decoder.string("id"));
+        int batchSize = decoder.int32("batchSize");
+        return new ServerStoreOpMessage.IteratorAdvanceMessage(identity, batchSize);
       }
       default:
         throw new RuntimeException("Unhandled message operation : " + opCode);

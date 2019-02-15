@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.client.internal.store;
+package org.ehcache.clustered.common.internal.util;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -31,25 +30,35 @@ public class ChainBuilder {
 
   private List<ByteBuffer> buffers = new ArrayList<>();
 
-  public ChainBuilder() {
-  }
-
-  private ChainBuilder(List<ByteBuffer> buffers) {
-    this.buffers = buffers;
-  }
-
-  //TODO: optimize this & make this mutable
   public ChainBuilder add(final ByteBuffer payload) {
-    List<ByteBuffer> newList = new ArrayList<>(buffers.size() + 1);
-    newList.addAll(buffers);
-    newList.add(payload);
-    return new ChainBuilder(newList);
+    buffers.add(payload);
+    return this;
   }
 
   public Chain build() {
-    ByteBuffer[] elements = new ByteBuffer[buffers.size()];
-    buffers.toArray(elements);
-    return Util.getChain(false, elements);
+    List<Element> elements = new ArrayList<>();
+    for (final ByteBuffer buffer : buffers) {
+      elements.add(buffer::asReadOnlyBuffer);
+    }
+    return chainFromList(elements);
   }
 
+  public static Chain chainFromList(List<Element> elements) {
+    return new Chain() {
+      @Override
+      public boolean isEmpty() {
+        return elements.isEmpty();
+      }
+
+      @Override
+      public int length() {
+        return elements.size();
+      }
+
+      @Override
+      public Iterator<Element> iterator() {
+        return elements.iterator();
+      }
+    };
+  }
 }

@@ -540,12 +540,9 @@ public abstract class BaseOnHeapStoreTest {
     timeSource.advanceTime(1);
 
     Map<String, String> observed = observe(store.iterator());
-    assertThat(3, equalTo(observed.size()));
-    assertThat(observed.get("key1"), equalTo("value1"));
-    assertThat(observed.get("key2"), equalTo("value2"));
-    assertThat(observed.get("key3"), equalTo("value3"));
+    assertThat(0, equalTo(observed.size()));
 
-    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ExpirationOutcome.SUCCESS, 0L);
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ExpirationOutcome.SUCCESS, 3L);
   }
 
   @Test

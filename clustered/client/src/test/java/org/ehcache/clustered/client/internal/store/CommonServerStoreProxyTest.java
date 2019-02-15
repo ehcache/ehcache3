@@ -20,19 +20,23 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -72,7 +76,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     Chain chain = serverStoreProxy.get(2);
     assertThat(chain.isEmpty(), is(false));
-    assertThat(readPayLoad(chain.iterator().next().getPayload()), is(2L));
+    assertThat(chain, hasPayloads(2L));
   }
 
   @Test
@@ -88,7 +92,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     assertThat(chain.isEmpty(), is(false));
 
-    assertChainHas(chain, 3L, 33L, 333l);
+    assertThat(chain, hasPayloads(3L, 33L, 333l));
   }
 
   @Test
@@ -102,7 +106,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     chain = serverStoreProxy.get(4L);
 
     assertThat(chain.isEmpty(), is(false));
-    assertChainHas(chain, 4L);
+    assertThat(chain, hasPayloads(4L));
   }
 
   @Test
@@ -115,7 +119,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     Chain chain = serverStoreProxy.getAndAppend(5l, createPayload(5555L));
 
     assertThat(chain.isEmpty(), is(false));
-    assertChainHas(chain, 5L, 55L, 555L);
+    assertThat(chain, hasPayloads(5L, 55L, 555L));
   }
 
   @Test
@@ -127,21 +131,21 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(20L, createPayload(20000L));
 
     Chain expect = serverStoreProxy.get(20L);
-    Chain update = getChain(false, createPayload(400L));
+    Chain update = chainOf(createPayload(400L));
 
     serverStoreProxy.replaceAtHead(20l, expect, update);
 
     Chain afterReplace = serverStoreProxy.get(20L);
-    assertChainHas(afterReplace, 400L);
+    assertThat(afterReplace, hasPayloads(400L));
 
     serverStoreProxy.append(20L, createPayload(4000L));
     serverStoreProxy.append(20L, createPayload(40000L));
 
-    serverStoreProxy.replaceAtHead(20L, afterReplace, getChain(false, createPayload(800L)));
+    serverStoreProxy.replaceAtHead(20L, afterReplace, chainOf(createPayload(800L)));
 
     Chain anotherReplace = serverStoreProxy.get(20L);
 
-    assertChainHas(anotherReplace, 800L, 4000L, 40000L);
+    assertThat(anotherReplace, hasPayloads(800L, 4000L, 40000L));
   }
 
   @Test
@@ -161,27 +165,111 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
     ServerCallback serverCallback = mock(ServerCallback.class);
-    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(getChain(false, buffer.duplicate()));
+    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(chainOf(buffer.duplicate()));
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
 
     for (int i = 0; i < 8; i++) {
       serverStoreProxy.append(1L, buffer.duplicate());
     }
     verify(serverCallback, never()).compact(any(Chain.class));
-    assertChainHas(serverStoreProxy.get(1L), 42L, 42L, 42L, 42L, 42L, 42L, 42L, 42L);
+    assertThat(serverStoreProxy.get(1L), hasPayloads(42L, 42L, 42L, 42L, 42L, 42L, 42L, 42L));
 
     //trigger compaction at > 8 entries
     serverStoreProxy.append(1L, buffer.duplicate());
     verify(serverCallback).compact(any(Chain.class), any(long.class));
-    assertChainHas(serverStoreProxy.get(1L), 42L);
+    assertThat(serverStoreProxy.get(1L), hasPayloads(42L));
   }
 
-  private static void assertChainHas(Chain chain, long... payLoads) {
-    Iterator<Element> elements = chain.iterator();
-    for (long payLoad : payLoads) {
-      assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
+  @Test
+  public void testEmptyStoreIteratorIsEmpty() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testEmptyStoreIteratorIsEmpty");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testEmptyStoreIteratorIsEmpty", clientEntity, mock(ServerCallback.class));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
     }
-    assertThat(elements.hasNext(), is(false));
   }
 
+  @Test
+  public void testSingleChainIterator() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainIterator");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainIterator", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), hasPayloads(42L));
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainMultipleElements() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainMultipleElements");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainMultipleElements", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+    serverStoreProxy.append(1L, createPayload(43L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), hasPayloads(42L, 43L));
+    assertThat(iterator.hasNext(), CoreMatchers.is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testMultipleChains() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testMultipleChains");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testMultipleChains", clientEntity, mock(ServerCallback.class));
+
+    serverStoreProxy.append(1L, createPayload(42L));
+    serverStoreProxy.append(2L, createPayload(43L));
+
+    Iterator<Chain> iterator = serverStoreProxy.iterator();
+
+    Matcher<Chain> chainOne = hasPayloads(42L);
+    Matcher<Chain> chainTwo = hasPayloads(43L);
+
+    assertThat(iterator.hasNext(), CoreMatchers.is(true));
+
+    Chain next = iterator.next();
+    assertThat(next, either(chainOne).or(chainTwo));
+
+    if (chainOne.matches(next)) {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(chainTwo));
+      assertThat(iterator.hasNext(), is(false));
+    } else {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(chainOne));
+      assertThat(iterator.hasNext(), is(false));
+    }
+
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
 }

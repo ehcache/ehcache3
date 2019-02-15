@@ -21,7 +21,6 @@ import org.ehcache.clustered.client.internal.store.operations.EternalChainResolv
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.loaderWriter.TestCacheLoaderWriter;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSource;
@@ -33,7 +32,8 @@ import org.mockito.ArgumentMatchers;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.common.internal.store.Util.EMPTY_CHAIN;
+import static java.util.Collections.emptyList;
+import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -59,7 +59,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testGetValueAbsentInSOR() throws Exception {
     ServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     CacheLoaderWriter<Long, String> loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.get(eq(1L))).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.get(eq(1L))).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(store.get(1L), is(nullValue()));
@@ -70,7 +70,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     loaderWriter.storeMap.put(1L, "one");
-    when(storeProxy.get(eq(1L))).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.get(eq(1L))).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(store.get(1L).get(), equalTo("one"));
@@ -82,7 +82,7 @@ public class ClusteredLoaderWriterStoreTest {
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.get(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
@@ -106,7 +106,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testRemoveValueAbsentInCachePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -119,7 +119,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     when(storeProxy.get(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
@@ -135,7 +135,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(store.remove(1L), is(false));
@@ -146,7 +146,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testPufIfAbsentValueAbsentInCacheAbsentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(loaderWriter.storeMap.isEmpty(), is(true));
@@ -158,7 +158,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testPufIfAbsentValueAbsentInCachePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -172,7 +172,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
@@ -186,7 +186,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testReplaceValueAbsentInCacheAbsentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(loaderWriter.storeMap.isEmpty(), is(true));
@@ -199,7 +199,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testReplaceValueAbsentInCachePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -213,7 +213,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
@@ -228,7 +228,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_MISSING));
@@ -239,7 +239,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testRemove2ArgsValueAbsentInCachePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -254,7 +254,7 @@ public class ClusteredLoaderWriterStoreTest {
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
@@ -268,7 +268,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testRemove2ArgsValueAbsentInCacheDiffValuePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -282,7 +282,7 @@ public class ClusteredLoaderWriterStoreTest {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     assertThat(store.replace(1L, "one", "Again"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
@@ -295,7 +295,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testReplace2ArgsValueAbsentInCachePresentInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");
@@ -310,7 +310,7 @@ public class ClusteredLoaderWriterStoreTest {
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Chain toReturn = Util.getChain(false, codec.encode(operation));
+    Chain toReturn = chainOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
@@ -324,7 +324,7 @@ public class ClusteredLoaderWriterStoreTest {
   public void testReplace2ArgsValueAbsentInCacheDiffValueInSOR() throws Exception {
     LockingServerStoreProxy storeProxy = mock(LockingServerStoreProxy.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
-    when(storeProxy.lock(anyLong())).thenReturn(EMPTY_CHAIN);
+    when(storeProxy.lock(anyLong())).thenReturn(chainOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
             timeSource, loaderWriter);
     loaderWriter.storeMap.put(1L, "one");

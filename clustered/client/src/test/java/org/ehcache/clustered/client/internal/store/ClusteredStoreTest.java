@@ -16,7 +16,9 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import com.google.common.base.Objects;
 import org.assertj.core.api.ThrowableAssert;
+import org.ehcache.Cache;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -43,6 +45,9 @@ import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,8 +61,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
@@ -69,6 +74,7 @@ import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.ehcache.core.spi.store.Store.ValueHolder.NO_EXPIRE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -910,5 +916,139 @@ public class ClusteredStoreTest {
 
     long expirationTime = vh.expirationTime();
     assertThat(expirationTime, is(NO_EXPIRE));
+  }
+
+  @Test
+  public void testEmptyChainIteratorIsEmpty() throws StoreAccessException {
+
+    Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
+
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainSingleValue() throws StoreAccessException {
+    store.put(1L, "foo");
+
+    Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), isEntry(1L, "foo"));
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainMultipleValues() throws StoreAccessException {
+    assertThat(Long.hashCode(1L), is(Long.hashCode(~1L)));
+
+    store.put(1L, "foo");
+    store.put(~1L, "bar");
+
+    Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
+
+    Matcher<Cache.Entry<Long, Store.ValueHolder<String>>> entryOne = isEntry(1L, "foo");
+    Matcher<Cache.Entry<Long, Store.ValueHolder<String>>> entryTwo = isEntry(~1L, "bar");
+
+    assertThat(iterator.hasNext(), is(true));
+
+    Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
+    assertThat(next, either(entryOne).or(entryTwo));
+
+    if (entryOne.matches(next)) {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(entryTwo));
+      assertThat(iterator.hasNext(), is(false));
+    } else {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(entryOne));
+      assertThat(iterator.hasNext(), is(false));
+    }
+
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testSingleChainRequiresResolution() throws StoreAccessException {
+
+    store.put(~1L, "bar");
+    store.put(1L, "foo");
+    store.remove(~1L);
+
+    Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
+
+    assertThat(iterator.hasNext(), is(true));
+    assertThat(iterator.next(), isEntry(1L, "foo"));
+    assertThat(iterator.hasNext(), is(false));
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testMultipleChains() throws StoreAccessException {
+
+    store.put(1L, "foo");
+    store.put(2L, "bar");
+
+    Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
+
+    Matcher<Cache.Entry<Long, Store.ValueHolder<String>>> entryOne = isEntry(1L, "foo");
+    Matcher<Cache.Entry<Long, Store.ValueHolder<String>>> entryTwo = isEntry(2L, "bar");
+
+    assertThat(iterator.hasNext(), is(true));
+
+    Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
+    assertThat(next, either(entryOne).or(entryTwo));
+
+    if (entryOne.matches(next)) {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(entryTwo));
+      assertThat(iterator.hasNext(), is(false));
+    } else {
+      assertThat(iterator.hasNext(), is(true));
+      assertThat(iterator.next(), is(entryOne));
+      assertThat(iterator.hasNext(), is(false));
+    }
+
+    try {
+      iterator.next();
+      fail("Expected NoSuchElementException");
+    } catch (NoSuchElementException e) {
+      //expected
+    }
+  }
+
+  private <K, V> Matcher<Cache.Entry<K, Store.ValueHolder<V>>> isEntry(K key, V value) {
+    return new TypeSafeMatcher<Cache.Entry<K, Store.ValueHolder<V>>>() {
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" the cache entry { ").appendValue(key).appendText(": ").appendValue(value).appendText(" }");
+      }
+
+      @Override
+      protected boolean matchesSafely(Cache.Entry<K, Store.ValueHolder<V>> item) {
+        return Objects.equal(key, item.getKey()) && Objects.equal(value, item.getValue().get());
+      }
+    };
   }
 }

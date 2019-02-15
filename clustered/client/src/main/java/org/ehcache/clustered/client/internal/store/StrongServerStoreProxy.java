@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -225,5 +226,10 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       delegate.clear();
       return null;
     }, entity.getTimeouts().getWriteOperationTimeout());
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

@@ -25,13 +25,17 @@ import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.ArrayDecoder;
 import org.terracotta.runnel.decoding.Enm;
+import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.ArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
@@ -103,6 +107,12 @@ public class ResponseCodec {
   private static final Struct LOCK_RESPONSE_STRUCT = newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
     .struct(CHAIN_FIELD, 20, CHAIN_STRUCT)
+    .build();
+  private static final Struct ITERATOR_BATCH_STRUCT = newStructBuilder()
+    .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
+    .string("id", 20)
+    .structs("chains", 30, CHAIN_STRUCT)
+    .bool("last", 40)
     .build();
 
   public byte[] encode(EhcacheEntityResponse response) {
@@ -198,6 +208,15 @@ public class ResponseCodec {
                 .enm(RESPONSE_TYPE_FIELD_NAME, lockFailure.getResponseType())
                 .encode().array();
       }
+      case ITERATOR_BATCH: {
+        EhcacheEntityResponse.IteratorBatch iteratorBatch = (EhcacheEntityResponse.IteratorBatch) response;
+        return ITERATOR_BATCH_STRUCT.encoder()
+          .enm(RESPONSE_TYPE_FIELD_NAME, iteratorBatch.getResponseType())
+          .string("id", iteratorBatch.getIdentity().toString())
+          .structs("chains", iteratorBatch.getChains(), ChainCodec::encode)
+          .bool("last", iteratorBatch.isLast())
+          .encode().array();
+      }
       default:
         throw new UnsupportedOperationException("The operation is not supported : " + response.getResponseType());
     }
@@ -280,6 +299,18 @@ public class ResponseCodec {
       case LOCK_FAILURE: {
         return EhcacheEntityResponse.lockFailure();
       }
+      case ITERATOR_BATCH: {
+        decoder = ITERATOR_BATCH_STRUCT.decoder(buffer);
+        UUID id = UUID.fromString(decoder.string("id"));
+        StructArrayDecoder<StructDecoder<Void>> chainsDecoder = decoder.structs("chains");
+        List<Chain> chains = new ArrayList<>(chainsDecoder.length());
+        while (chainsDecoder.hasNext()) {
+          chains.add(ChainCodec.decode(chainsDecoder.next()));
+        }
+        boolean last = decoder.bool("last");
+        return new EhcacheEntityResponse.IteratorBatch(id, chains, last);
+      }
+
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
     }
