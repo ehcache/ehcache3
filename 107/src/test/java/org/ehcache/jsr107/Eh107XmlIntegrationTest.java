@@ -34,21 +34,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableCacheEntryListenerConfiguration;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.event.CacheEntryListener;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.EternalExpiryPolicy;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -60,21 +55,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 
-public class Eh107XmlIntegrationTest {
+public class Eh107XmlIntegrationTest extends BaseCachingProviderTest {
 
   private CacheManager cacheManager;
-  private CachingProvider cachingProvider;
 
   @Before
   public void setUp() throws Exception {
-    cachingProvider = Caching.getCachingProvider();
-    cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-integration.xml")
-        .toURI(), cachingProvider.getDefaultClassLoader());
+    cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-integration.xml")
+        .toURI(), provider.getDefaultClassLoader());
   }
 
   @Test
   public void test107CacheCanReturnCompleteConfigurationWhenNonePassedIn() {
-    CacheManager cacheManager = cachingProvider.getCacheManager();
+    CacheManager cacheManager = provider.getCacheManager();
     Cache<Long, String> cache = cacheManager.createCache("cacheWithoutCompleteConfig", new Configuration<Long, String>() {
       private static final long serialVersionUID = 1L;
 
@@ -105,7 +98,7 @@ public class Eh107XmlIntegrationTest {
 
   @Test
   public void testTemplateAddsListeners() throws Exception {
-    CacheManager cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-listeners.xml")
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-listeners.xml")
         .toURI(), getClass().getClassLoader());
 
     MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
@@ -197,7 +190,7 @@ public class Eh107XmlIntegrationTest {
 
   @Test
   public void testCopierAtServiceLevel() throws Exception {
-    CacheManager cacheManager = cachingProvider.getCacheManager(
+    CacheManager cacheManager = provider.getCacheManager(
         getClass().getResource("/ehcache-107-default-copiers.xml").toURI(),
         getClass().getClassLoader());
 

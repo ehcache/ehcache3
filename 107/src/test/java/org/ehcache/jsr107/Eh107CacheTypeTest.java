@@ -17,23 +17,19 @@ package org.ehcache.jsr107;
 
 import org.junit.Test;
 
-import javax.cache.Caching;
 import javax.cache.configuration.Configuration;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
-public class Eh107CacheTypeTest {
+public class Eh107CacheTypeTest extends BaseCachingProviderTest {
 
   @Test
   @SuppressWarnings("unchecked")
   public void testCompileTimeTypeSafety() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
     MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
@@ -62,7 +58,6 @@ public class Eh107CacheTypeTest {
 
   @Test
   public void testRunTimeTypeLaxity() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
     MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
@@ -85,7 +80,6 @@ public class Eh107CacheTypeTest {
 
   @Test
   public void testTypeOverriding() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
     MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<>();
@@ -99,7 +93,6 @@ public class Eh107CacheTypeTest {
 
   @Test
   public void testEhcacheCloseRemovesFromCacheManager() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass()
             .getResource("/ehcache-107-types.xml")
@@ -116,7 +109,6 @@ public class Eh107CacheTypeTest {
 
   @Test
   public void testCacheManagerCloseLenientToEhcacheClosed() throws Exception {
-    CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass()
             .getResource("/ehcache-107-types.xml")

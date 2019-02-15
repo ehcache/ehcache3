@@ -26,7 +26,6 @@ import org.terracotta.statistics.StatisticType;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.ZeroOperationStatistic;
 import org.terracotta.statistics.observer.OperationObserver;
-import sun.security.krb5.Config;
 
 import java.io.Serializable;
 import java.util.Map;

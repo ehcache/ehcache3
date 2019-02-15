@@ -21,15 +21,11 @@ import java.lang.management.ManagementFactory;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -42,24 +38,12 @@ import static org.junit.Assert.assertThat;
 /**
  * ConfigStatsManagementActivationTest
  */
-public class ConfigStatsManagementActivationTest {
+public class ConfigStatsManagementActivationTest extends BaseCachingProviderTest {
 
   private static final String MBEAN_MANAGEMENT_TYPE = "CacheConfiguration";
   private static final String MBEAN_STATISTICS_TYPE = "CacheStatistics";
 
   private MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-
-  private CachingProvider provider;
-
-  @Before
-  public void setUp() {
-    provider = Caching.getCachingProvider();
-  }
-
-  @After
-  public void tearDown() {
-    provider.close();
-  }
 
   @Test
   public void testEnabledAtCacheLevel() throws Exception {

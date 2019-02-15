@@ -55,11 +55,8 @@ import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStati
 
 public class StandardEhcacheStatisticsTest {
 
-  private static final int HISTOGRAM_WINDOW_MILLIS = 400;
-  private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
-
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(30);
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -69,8 +66,7 @@ public class StandardEhcacheStatisticsTest {
   private long latency;
   private final Map<Long, String> systemOfRecords = new HashMap<>();
 
-  @Before
-  public void before() {
+  private void createCacheManager(long histogramWindowSize) {
 
     // We need a loaderWriter to easily test latencies, to simulate a latency when loading from a SOR.
     CacheLoaderWriter<Long, String> loaderWriter = new CacheLoaderWriter<Long, String>() {
@@ -103,7 +99,7 @@ public class StandardEhcacheStatisticsTest {
     LatencyHistogramConfiguration latencyHistogramConfiguration = new LatencyHistogramConfiguration(
       LatencyHistogramConfiguration.DEFAULT_PHI,
       LatencyHistogramConfiguration.DEFAULT_BUCKET_COUNT,
-      Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)
+      Duration.ofMillis(histogramWindowSize)
     );
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration()
       .setCacheManagerAlias("myCacheManager3")
@@ -128,6 +124,9 @@ public class StandardEhcacheStatisticsTest {
 
   @Test
   public void statTest() throws InterruptedException {
+    // Use a long window because we don't want it to end before we do the assertions. Even during a really slow build.
+    createCacheManager(30_000);
+
     cache.get(1L); // miss
     cache.put(1L, "one"); // put
     cache.get(1L); // hit
@@ -162,12 +161,14 @@ public class StandardEhcacheStatisticsTest {
       .execute()
       .getSingleResult();
 
-    assertThat(latency.size()).isEqualTo(1);
+    assertThat(latency.size()).describedAs(statName).isEqualTo(1);
     return latency.<Long>getLatestSampleValue(statName).get();
   }
 
   @Test
-  public void getCacheGetHitMissLatencies() {
+  public void getCacheGetHitMissLatenciesFromTheSameHistogramWindow() {
+    // Use a long window because we want the entire test to fit in a single window
+    createCacheManager(30_000);
 
     Consumer<LatencyHistogramStatistic> verifier = histogram -> {
       assertThat(histogram.count()).isEqualTo(0L);
@@ -181,6 +182,50 @@ public class StandardEhcacheStatisticsTest {
       assertThat(histogram.count()).isEqualTo(2L);
       assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100L));
 
+      latency = 50;
+      cache.get(3L);
+
+      latency = 150;
+      cache.get(4L);
+
+      // We are in the same window so the count goes up and the new max is not 150L
+      assertThat(histogram.count()).isEqualTo(4L);
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(150L));
+    };
+
+    verifier.accept(getHistogram(CacheOperationOutcomes.GetOutcome.MISS, "get"));
+
+    systemOfRecords.put(1L, "a");
+    systemOfRecords.put(2L, "b");
+    systemOfRecords.put(3L, "c");
+    systemOfRecords.put(4L, "d");
+    systemOfRecords.put(5L, "e");
+
+    verifier.accept(getHistogram(CacheOperationOutcomes.GetOutcome.HIT, "get"));
+  }
+
+  @Test
+  public void getCacheGetHitMissLatenciesFromTwoDifferentWindows() {
+    final int HISTOGRAM_WINDOW_MILLIS = 400;
+    final int NEXT_WINDOW_SLEEP_MILLIS = HISTOGRAM_WINDOW_MILLIS + 100; // window size plus a bit of buffer
+
+    // The first part of the test will fit in a first and then we will wait until the next window
+    // So we want the window to be small enough to prevent waiting but long enough to fit the first part in it
+    createCacheManager(HISTOGRAM_WINDOW_MILLIS);
+
+    Consumer<LatencyHistogramStatistic> verifier = histogram -> {
+      assertThat(histogram.count()).isEqualTo(0L);
+
+      latency = 100;
+      cache.get(1L);
+
+      latency = 50;
+      cache.get(2L);
+
+      assertThat(histogram.count()).isEqualTo(2L);
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100L));
+
+      // Wait until the next window
       minimumSleep(NEXT_WINDOW_SLEEP_MILLIS);
 
       latency = 50;

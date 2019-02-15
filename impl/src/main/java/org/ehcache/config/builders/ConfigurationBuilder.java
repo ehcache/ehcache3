@@ -23,6 +23,8 @@ import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,5 +123,9 @@ public class ConfigurationBuilder implements Builder<Configuration> {
 
   public boolean containsCache(String alias) {
     return caches.containsKey(alias);
+  }
+
+  public Collection<ServiceCreationConfiguration<?>> getServiceConfigurations() {
+    return Collections.unmodifiableList(serviceConfigurations);
   }
 }

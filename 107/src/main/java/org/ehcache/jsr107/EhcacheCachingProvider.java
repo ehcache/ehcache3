@@ -16,15 +16,19 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
+import org.ehcache.spi.serialization.SerializationProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.osgi.service.component.annotations.Component;
@@ -37,6 +41,7 @@ import java.util.Properties;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.cache.CacheException;
@@ -111,32 +116,11 @@ public class EhcacheCachingProvider implements CachingProvider {
     return getCacheManager(new ConfigSupplier(uri, config), properties);
   }
 
-  Eh107CacheManager getCacheManager(ConfigSupplier configSupplier, Properties properties) {
-    Eh107CacheManager cacheManager;
-    ConcurrentMap<URI, Eh107CacheManager> byURI;
-    final ClassLoader classLoader = configSupplier.getClassLoader();
-    final URI uri = configSupplier.getUri();
+  CacheManager getCacheManager(ConfigSupplier configSupplier, Properties properties) {
+    ClassLoader classLoader = configSupplier.getClassLoader();
+    URI uri = configSupplier.getUri();
 
-    synchronized (cacheManagers) {
-      byURI = cacheManagers.get(classLoader);
-      if (byURI == null) {
-        byURI = new ConcurrentHashMap<>();
-        cacheManagers.put(classLoader, byURI);
-      }
-
-      cacheManager = byURI.get(uri);
-      if (cacheManager == null || cacheManager.isClosed()) {
-
-        if(cacheManager != null) {
-          byURI.remove(uri, cacheManager);
-        }
-
-        cacheManager = createCacheManager(uri, configSupplier.getConfiguration(), properties);
-        byURI.put(uri, cacheManager);
-      }
-    }
-
-    return cacheManager;
+    return getCacheManager(uri, classLoader, () -> createCacheManager(uri, configSupplier.getConfiguration(), properties));
   }
 
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
@@ -160,6 +144,73 @@ public class EhcacheCachingProvider implements CachingProvider {
 
     return new Eh107CacheManager(this, ehcacheManager, jsr107Service, properties, config.getClassLoader(), uri,
             new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
+  }
+
+  /**
+   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link CacheManagerBuilder}.
+   *
+   * @param uri the URI identifying this cache manager
+   * @param classLoader class loader where the cache manager will be registered
+   * @param builder the builder to create the underlying EhcacheManager
+   *
+   * @return a cache manager
+   */
+  public CacheManager getCacheManager(URI uri, ClassLoader classLoader, CacheManagerBuilder<org.ehcache.CacheManager> builder) {
+    return getCacheManager(uri, classLoader, () -> createCacheManager(uri, classLoader, builder));
+  }
+
+  private CacheManager getCacheManager(URI uri, ClassLoader classLoader, Supplier<Eh107CacheManager> cacheManagerCreator) {
+    Eh107CacheManager cacheManager;
+
+    synchronized (cacheManagers) {
+      ConcurrentMap<URI, Eh107CacheManager> byURI = cacheManagers.get(classLoader);
+      if (byURI == null) {
+        byURI = new ConcurrentHashMap<>();
+        cacheManagers.put(classLoader, byURI);
+      }
+
+      cacheManager = byURI.get(uri);
+      if (cacheManager == null || cacheManager.isClosed()) {
+
+        if(cacheManager != null) {
+          byURI.remove(uri, cacheManager);
+        }
+
+        cacheManager = cacheManagerCreator.get();
+        byURI.put(uri, cacheManager);
+      }
+    }
+
+    return cacheManager;
+  }
+
+  private Eh107CacheManager createCacheManager(URI uri, ClassLoader classLoader, CacheManagerBuilder<org.ehcache.CacheManager> builder) {
+    Collection<Service> services = builder.getServices();
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = builder.getServiceConfigurations();
+
+    Jsr107Configuration jsr107Configuration = ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations);
+
+    Jsr107Service jsr107Service = findOrCreateService(services, Jsr107Service.class, () -> new DefaultJsr107Service(jsr107Configuration));
+    builder = builder.using(jsr107Service);
+
+    Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = findOrCreateService(services, Eh107CacheLoaderWriterProvider.class, Eh107CacheLoaderWriterProvider::new);
+    builder = builder.using(cacheLoaderWriterFactory);
+
+    SerializationProvider serializationProvider = findOrCreateService(services, SerializationProvider.class, () -> new DefaultSerializationProvider(null));
+    builder = builder.using(serializationProvider);
+
+    org.ehcache.CacheManager cacheManager = builder.build(true);
+
+    return new Eh107CacheManager(this, cacheManager, jsr107Service, new Properties(), classLoader, uri,
+      new ConfigurationMerger(null, jsr107Service, cacheLoaderWriterFactory));
+  }
+
+  private <T extends Service> T findOrCreateService(Collection<Service> services, Class<T> serviceClass, Supplier<T> serviceCreator) {
+    T service = ServiceUtils.findSingletonAmongst(serviceClass, services);
+    if(service == null) {
+      return serviceCreator.get();
+    }
+    return service;
   }
 
   /**
@@ -191,7 +242,7 @@ public class EhcacheCachingProvider implements CachingProvider {
    */
   @Override
   public CacheManager getCacheManager(final URI uri, final ClassLoader classLoader) {
-    return getCacheManager(uri, classLoader, null);
+    return getCacheManager(uri, classLoader, (Properties) null);
   }
 
   /**
