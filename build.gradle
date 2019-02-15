@@ -170,8 +170,6 @@ subprojects {
   }
 
   artifacts {
-    archives jar
-
     archives javadocJar
     archives sourceJar
   }
