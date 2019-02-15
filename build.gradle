@@ -24,11 +24,13 @@ plugins {
   // ./gradlew <task1> ... <taskN> taskTree
   id "com.dorongold.task-tree" version "1.3.1"
   // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '1.6.5' apply false
+  id 'com.github.spotbugs' version '1.6.9' apply false
   // Declare osgi-ds at the top
   id 'org.jayware.osgi-ds' version '0.5.5' apply false
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck' version '4.0.2' apply false
+  // Declare bnd at the top
+  id 'biz.aQute.bnd.builder' version '4.1.0' apply false
 }
 
 wrapper {
@@ -231,18 +233,19 @@ subprojects {
     }
   }
 
-  if (plugins.hasPlugin('osgi')) {
+  plugins.withType(aQute.bnd.gradle.BndBuilderPlugin) {
     jar {
-      manifest {
-        instruction 'Bundle-Name', project.properties.subPomName
-        instruction 'Bundle-Description', project.properties.subPomDesc
-        instruction 'Bundle-SymbolicName', "org.ehcache.$project.archivesBaseName"
-        instruction 'Bundle-DocURL', 'http://ehcache.org'
-        instruction 'Bundle-License', 'LICENSE'
-        instruction 'Bundle-Vendor', 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
-        instruction 'Bundle-RequiredExecutionEnvironment', 'JavaSE-1.8'
-      }
+      bnd(
+        'Bundle-Name': project.properties.subPomName,
+        'Bundle-Description': project.properties.subPomDesc,
+        'Bundle-SymbolicName': "org.ehcache.modules.$project.archivesBaseName",
+        'Bundle-DocURL': 'http://ehcache.org',
+        'Bundle-License': 'LICENSE',
+        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
+        'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
+      )
     }
+    check.dependsOn(baseline)
   }
 }
 

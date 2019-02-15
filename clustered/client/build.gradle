@@ -15,7 +15,6 @@
  */
 
 apply plugin: EhDeploy
-apply plugin: 'osgi'
 apply plugin: 'osgi-ds'
 
 dependencies {

@@ -74,10 +74,12 @@ task copyDocs(type: Copy) {
 }
 
 jar {
-  manifest {
-    instruction 'Export-Package', '!com.tc.*', '!com.terracotta.*', '!org.terracotta.*', '!org.ehcache.*.internal.*', '!sun.misc', 'org.ehcache.clustered.client.*'
-    instruction 'Import-Package', '!sun.misc.*', 'org.ehcache.xml.*;resolution:=optional', '*'
-  }
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.clustered',
+    'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
+      'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, *'
+  )
 }
 
 distributions {

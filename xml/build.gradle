@@ -20,7 +20,7 @@ plugins {
 }
 
 apply plugin: EhDeploy
-apply plugin: 'osgi'
+apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'com.github.hauner.jarTest'
 
 dependencies {
@@ -39,9 +39,9 @@ test {
 }
 
 jar {
-  manifest {
-    instruction 'Export-Package', 'org.ehcache.xml', 'org.ehcache.xml.exceptions', 'org.ehcache.xml.model'
-  }
+  bnd (
+    'Export-Package': 'org.ehcache.xml, org.ehcache.xml.exceptions, org.ehcache.xml.model',
+  )
 }
 
 xjcGenerate {
