@@ -39,7 +39,7 @@ public class PersistentJournalTest extends AbstractJournalTest {
 
   @Override
   protected Journal<Long> createJournal() {
-    return new PersistentJournal<>(folder.getRoot(), new JavaSerializer<>(ClassLoader.getSystemClassLoader()));
+    return new PersistentJournal<>(folder.getRoot().toPath(), new JavaSerializer<>(ClassLoader.getSystemClassLoader()));
   }
 
   @Test

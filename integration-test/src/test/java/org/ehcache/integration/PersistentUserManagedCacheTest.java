@@ -47,7 +47,7 @@ public class PersistentUserManagedCacheTest {
   public void recoversWithSerializableType() throws Exception {
     File folder = temporaryFolder.newFolder("cache-persistence-store");
     {
-      LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder));
+      LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder.toPath()));
       PersistentUserManagedCache<Long, Foo> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, Foo.class)
           .with(new UserManagedPersistenceContext<>("cache-name", persistenceService))
           .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -60,7 +60,7 @@ public class PersistentUserManagedCacheTest {
     }
 
     {
-      LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder));
+      LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder.toPath()));
       PersistentUserManagedCache<Long, Foo> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, Foo.class)
           .with(new UserManagedPersistenceContext<>("cache-name", persistenceService))
           .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()

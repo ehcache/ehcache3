@@ -48,7 +48,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
     root.mkdirs();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(new CacheManagerPersistenceConfiguration(root))
+      .with(new CacheManagerPersistenceConfiguration(root.toPath()))
       .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class, String.class,
         newResourcePoolsBuilder()

@@ -32,10 +32,13 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+
+import static java.nio.file.Files.createDirectories;
+import static org.ehcache.impl.persistence.FileUtils.validateName;
 
 /**
  * Default implementation of the {@link DiskResourceService} which can be used explicitly when
@@ -209,13 +212,17 @@ public class DefaultDiskResourceService implements DiskResourceService {
       throw newCachePersistenceException(identifier);
     }
 
-    FileBasedStateRepository stateRepository = new FileBasedStateRepository(
-        FileUtils.createSubDirectory(persistenceSpace.identifier.persistentSpaceId.getRoot(), name));
-    FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
-    if (previous != null) {
-      return previous;
+    try {
+      FileBasedStateRepository stateRepository = new FileBasedStateRepository(
+          createDirectories(persistenceSpace.identifier.persistentSpaceId.getRootPath().resolve(name)));
+      FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
+      if (previous != null) {
+        return previous;
+      }
+      return stateRepository;
+    } catch (IOException e) {
+      throw new CachePersistenceException("Unable to create state repository: " + name + " (within " + identifier + ")", e);
     }
-    return stateRepository;
   }
 
   private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
@@ -240,8 +247,12 @@ public class DefaultDiskResourceService implements DiskResourceService {
     if(getPersistenceSpace(identifier) == null) {
       throw newCachePersistenceException(identifier);
     }
-    return new DefaultFileBasedPersistenceContext(
-        FileUtils.createSubDirectory(((DefaultPersistenceSpaceIdentifier)identifier).persistentSpaceId.getRoot(), name));
+    Path rootPath = ((DefaultPersistenceSpaceIdentifier) identifier).persistentSpaceId.getRootPath();
+    try {
+      return new DefaultFileBasedPersistenceContext(createDirectories(rootPath.resolve(validateName(name))));
+    } catch (IOException e) {
+      throw new CachePersistenceException("Unable to create persistence context: " + name + " (within " + identifier, e);
+    }
   }
 
   private static class PersistenceSpace {
@@ -275,14 +286,14 @@ public class DefaultDiskResourceService implements DiskResourceService {
   }
 
   private static class DefaultFileBasedPersistenceContext implements FileBasedPersistenceContext {
-    private final File directory;
+    private final Path directory;
 
-    private DefaultFileBasedPersistenceContext(File directory) {
+    private DefaultFileBasedPersistenceContext(Path directory) {
       this.directory = directory;
     }
 
     @Override
-    public File getDirectory() {
+    public Path getDirectoryPath() {
       return directory;
     }
   }

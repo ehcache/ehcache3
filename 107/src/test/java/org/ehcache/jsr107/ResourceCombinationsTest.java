@@ -73,7 +73,7 @@ public class ResourceCombinationsTest {
   @Test
   public void testBasicCacheOperation() throws IOException, URISyntaxException {
     Configuration config = new DefaultConfiguration(ResourceCombinationsTest.class.getClassLoader(),
-            new DefaultPersistenceConfiguration(diskPath.newFolder()));
+            new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()));
     try (CacheManager cacheManager = new EhcacheCachingProvider().getCacheManager(URI.create("dummy"), config)) {
       Cache<String, String> cache = cacheManager.createCache("test", fromEhcacheCacheConfiguration(
         newCacheConfigurationBuilder(String.class, String.class, resources)));

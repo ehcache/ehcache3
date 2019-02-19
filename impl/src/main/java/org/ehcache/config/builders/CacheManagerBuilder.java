@@ -37,6 +37,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -386,7 +388,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see PersistentCacheManager
    */
   public static CacheManagerConfiguration<PersistentCacheManager> persistence(String rootDirectory) {
-    return persistence(new File(rootDirectory));
+    return persistence(Paths.get(rootDirectory));
   }
 
   /**
@@ -400,7 +402,12 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see #with(CacheManagerConfiguration)
    * @see PersistentCacheManager
    */
+  @Deprecated
   public static CacheManagerConfiguration<PersistentCacheManager> persistence(File rootDirectory) {
+    return persistence(rootDirectory.toPath());
+  }
+
+  public static CacheManagerConfiguration<PersistentCacheManager> persistence(Path rootDirectory) {
     return new CacheManagerPersistenceConfiguration(rootDirectory);
   }
 }

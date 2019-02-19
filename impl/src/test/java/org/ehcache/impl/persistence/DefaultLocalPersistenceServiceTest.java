@@ -28,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 
+import static java.nio.file.Files.exists;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,11 +58,11 @@ public class DefaultLocalPersistenceServiceTest {
     assumeTrue(testFolder.setWritable(false));
     try {
       try {
-        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder.toPath()));
         service.start(null);
         fail("Expected IllegalArgumentException");
       } catch(IllegalArgumentException e) {
-        assertThat(e.getMessage(), equalTo("Location isn't writable: " + testFolder.getAbsolutePath()));
+        assertThat(e.getMessage(), equalTo("Persistence directory isn't writable: " + testFolder.getAbsolutePath()));
       }
     } finally {
       testFolder.setWritable(true);
@@ -72,11 +73,11 @@ public class DefaultLocalPersistenceServiceTest {
   public void testFailsIfFileExistsButIsNotDirectory() throws IOException {
     File f = folder.newFile("testFailsIfFileExistsButIsNotDirectory");
     try {
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f.toPath()));
       service.start(null);
       fail("Expected IllegalArgumentException");
     } catch(IllegalArgumentException e) {
-      assertThat(e.getMessage(), equalTo("Location is not a directory: " + f.getAbsolutePath()));
+      assertThat(e.getMessage(), equalTo("Persistence directory couldn't be created: " + f.getAbsolutePath()));
     }
   }
 
@@ -86,11 +87,11 @@ public class DefaultLocalPersistenceServiceTest {
     try {
       File f = new File(testFolder, "notallowed");
       try {
-        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f.toPath()));
         service.start(null);
         fail("Expected IllegalArgumentException");
       } catch(IllegalArgumentException e) {
-        assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
+        assertThat(e.getMessage(), equalTo("Persistence directory couldn't be created: " + f.getAbsolutePath()));
       }
     } finally {
       testFolder.setWritable(true);
@@ -99,20 +100,20 @@ public class DefaultLocalPersistenceServiceTest {
 
   @Test
   public void testLocksDirectoryAndUnlocks() throws IOException {
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder.toPath()));
     service.start(null);
-    assertThat(service.getLockFile().exists(), is(true));
+    assertThat(exists(service.getLockFile()), is(true));
     service.stop();
-    assertThat(service.getLockFile().exists(), is(false));
+    assertThat(exists(service.getLockFile()), is(false));
   }
 
   @Test
   public void testPhysicalDestroy() throws IOException, CachePersistenceException {
     final File f = folder.newFolder("testPhysicalDestroy");
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f.toPath()));
     service.start(null);
 
-    assertThat(service.getLockFile().exists(), is(true));
+    assertThat(exists(service.getLockFile()), is(true));
     assertThat(f, isLocked());
 
     LocalPersistenceService.SafeSpaceIdentifier id = service.createSafeSpaceIdentifier("test", "test");
@@ -133,8 +134,8 @@ public class DefaultLocalPersistenceServiceTest {
 
   @Test
   public void testExclusiveLock() throws IOException {
-    DefaultLocalPersistenceService service1 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
-    DefaultLocalPersistenceService service2 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    DefaultLocalPersistenceService service1 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder.toPath()));
+    DefaultLocalPersistenceService service2 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder.toPath()));
     service1.start(null);
 
     // We should not be able to lock the same directory twice

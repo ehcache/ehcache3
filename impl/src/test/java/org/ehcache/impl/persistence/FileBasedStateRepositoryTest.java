@@ -44,7 +44,7 @@ public class FileBasedStateRepositoryTest {
   @Test
   public void testHolderSave() throws Exception {
     File directory = folder.newFolder("testSave");
-    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
+    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory.toPath());
     String holderName = "myHolder";
     StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class, c -> true, null);
 
@@ -77,7 +77,7 @@ public class FileBasedStateRepositoryTest {
       oos.writeObject(new FileBasedStateRepository.Tuple(0, map));
     }
 
-    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
+    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory.toPath());
     StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class, c -> true, null);
 
     assertThat(myHolder, is(map));
@@ -94,7 +94,7 @@ public class FileBasedStateRepositoryTest {
       oos.writeObject(new FileBasedStateRepository.Tuple(0, new TransientStateHolder<Long, String>()));
     }
 
-    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
+    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory.toPath());
     stateRepository.getPersistentStateHolder("otherHolder", Long.class, Long.class, c -> true, null);
     stateRepository.close();
 

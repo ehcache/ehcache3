@@ -34,8 +34,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -59,7 +59,7 @@ public class ThreadPools {
             .pool("defaultDiskPool", 1, 3)
             .pool("cache2Pool", 2, 2)
             .build())
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData")))
+        .with(new CacheManagerPersistenceConfiguration(Paths.get(getStoragePath(), "myData")))
         .withDefaultDiskStoreThreadPool("defaultDiskPool") // <2>
         .withCache("cache1",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,

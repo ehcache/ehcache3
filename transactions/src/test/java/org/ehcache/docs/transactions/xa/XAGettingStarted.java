@@ -41,9 +41,9 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -171,7 +171,7 @@ public class XAGettingStarted {
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
+        .with(CacheManagerBuilder.persistence(Paths.get(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
                 ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                         .heap(10, EntryUnit.ENTRIES)

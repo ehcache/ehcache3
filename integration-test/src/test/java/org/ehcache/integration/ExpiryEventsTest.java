@@ -73,7 +73,7 @@ public class ExpiryEventsTest {
   @Before
   public void setup() throws IOException {
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder.newFolder("tempData")))
+        .with(new CacheManagerPersistenceConfiguration(folder.newFolder("tempData").toPath()))
         .using(new TimeSourceConfiguration(testTimeSource))
         .build(true);
     testTimeSource.setTimeMillis(0);

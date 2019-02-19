@@ -56,7 +56,7 @@ public class PersistentCacheTest {
     File folder = temporaryFolder.newFolder(testName.getMethodName());
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(folder))
+          .with(new CacheManagerPersistenceConfiguration(folder.toPath()))
           .withCache("persistentCache",
               CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                   newResourcePoolsBuilder()
@@ -72,7 +72,7 @@ public class PersistentCacheTest {
 
     {
         PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new CacheManagerPersistenceConfiguration(folder))
+            .with(new CacheManagerPersistenceConfiguration(folder.toPath()))
             .withCache("persistentCache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class,
                     newResourcePoolsBuilder()
@@ -106,7 +106,7 @@ public class PersistentCacheTest {
     File folder = temporaryFolder.newFolder(testName.getMethodName());
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder))
+        .with(new CacheManagerPersistenceConfiguration(folder.toPath()))
         .withCache("persistentCache",
           CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
             newResourcePoolsBuilder()
@@ -122,7 +122,7 @@ public class PersistentCacheTest {
 
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder))
+        .with(new CacheManagerPersistenceConfiguration(folder.toPath()))
         .withCache("persistentCache",
           CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
             newResourcePoolsBuilder()
@@ -142,9 +142,9 @@ public class PersistentCacheTest {
   public void testPersistentCachesColliding() throws Exception {
     File folder = temporaryFolder.newFolder(testName.getMethodName());
     try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
+      .with(new CacheManagerPersistenceConfiguration(folder.toPath())).build(true)) {
       CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder))
+        .with(new CacheManagerPersistenceConfiguration(folder.toPath()))
         .build(true)
         .close();
       Assert.fail("Expected StateTransitionException");
@@ -163,7 +163,7 @@ public class PersistentCacheTest {
     Future<Integer> external = JavaExec.exec(Locker.class, folder.getAbsolutePath());
     while(!ping.exists());
     try {
-      CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder)).build(true).close();
+      CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder.toPath())).build(true).close();
       Assert.fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by another process"));
@@ -182,7 +182,7 @@ public class PersistentCacheTest {
       File pong = new File(folder, "pong");
 
       try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
+        .with(new CacheManagerPersistenceConfiguration(folder.toPath())).build(true)) {
         ping.createNewFile();
         long bailout = System.nanoTime() + SECONDS.toNanos(30);
         while (System.nanoTime() < bailout && !pong.exists());

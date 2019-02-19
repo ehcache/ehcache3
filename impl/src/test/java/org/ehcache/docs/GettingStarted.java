@@ -41,9 +41,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
@@ -95,7 +95,7 @@ public class GettingStarted {
   public void threeTiersCacheManager() throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
+        .with(CacheManagerBuilder.persistence(Paths.get(getStoragePath(), "myData"))) // <1>
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()

@@ -33,12 +33,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.concurrent.Executors;
-
-import javax.print.URIException;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -68,7 +65,7 @@ public class UserManagedCaches {
   @Test
   public void userManagedDiskCache() throws Exception {
     // tag::persistentUserManagedCache[]
-    LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(new File(getStoragePath(), "myUserData"))); // <1>
+    LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(Paths.get(getStoragePath(), "myUserData"))); // <1>
 
     PersistentUserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
         .with(new UserManagedPersistenceContext<>("cache-name", persistenceService)) // <2>

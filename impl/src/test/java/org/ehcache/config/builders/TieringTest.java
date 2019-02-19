@@ -25,7 +25,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
-import java.io.File;
+import java.nio.file.Paths;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -43,7 +43,7 @@ public class TieringTest {
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(System.getProperty("java.io.tmpdir") + "/tiered-cache-data")))
+        .with(new CacheManagerPersistenceConfiguration(Paths.get(System.getProperty("java.io.tmpdir"), "tiered-cache-data")))
         .withCache("tiered-cache", tieredCacheConfiguration).build(true);
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tiered-cache", Long.class, String.class);
@@ -81,7 +81,7 @@ public class TieringTest {
         .build();
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getClass().getClassLoader().getResource(".").toURI().getPath() + "/../../persistent-cache-data")))
+        .with(new CacheManagerPersistenceConfiguration(Paths.get(getClass().getClassLoader().getResource(".").toURI()).resolve("../../persistent-cache-data")))
         .withCache("persistent-cache", cacheConfiguration)
         .build(true);
 

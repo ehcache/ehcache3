@@ -20,7 +20,7 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.PersistenceType;
 
-import java.io.File;
+import java.nio.file.Paths;
 
 public class CacheManagerPersistenceConfigurationParser
   extends SimpleCoreServiceCreationConfigurationParser<PersistenceType, CacheManagerPersistenceConfiguration> {
@@ -28,7 +28,7 @@ public class CacheManagerPersistenceConfigurationParser
   public CacheManagerPersistenceConfigurationParser() {
     super(CacheManagerPersistenceConfiguration.class,
       ConfigType::getPersistence, ConfigType::setPersistence,
-      config -> new CacheManagerPersistenceConfiguration(new File(config.getDirectory())),
-      config -> new PersistenceType().withDirectory(config.getRootDirectory().toString()));
+      config -> new CacheManagerPersistenceConfiguration(Paths.get(config.getDirectory())),
+      config -> new PersistenceType().withDirectory(config.getRootDirectoryPath().toString()));
   }
 }

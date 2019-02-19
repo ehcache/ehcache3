@@ -20,20 +20,26 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * {@link ServiceCreationConfiguration} for the default {@link LocalPersistenceService}.
  */
 public class DefaultPersistenceConfiguration implements ServiceCreationConfiguration<LocalPersistenceService> {
 
-  private final File rootDirectory;
+  private final Path rootDirectory;
 
   /**
    * Creates a new configuration object with the provided parameters.
    *
    * @param rootDirectory the root directory to use for local persistence
    */
+  @Deprecated
   public DefaultPersistenceConfiguration(File rootDirectory) {
+    this(rootDirectory.toPath());
+  }
+
+  public DefaultPersistenceConfiguration(Path rootDirectory) {
     this.rootDirectory = rootDirectory;
   }
 
@@ -42,7 +48,12 @@ public class DefaultPersistenceConfiguration implements ServiceCreationConfigura
    *
    * @return the root directory
    */
+  @Deprecated
   public File getRootDirectory() {
+    return getRootDirectoryPath().toFile();
+  }
+
+  public Path getRootDirectoryPath() {
     return rootDirectory;
   }
 

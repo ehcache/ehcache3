@@ -16,8 +16,8 @@
 
 package org.ehcache.docs;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -75,7 +75,7 @@ public class Tiering {
   public void threeTiersCacheManager() throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData")))
+      .with(CacheManagerBuilder.persistence(Paths.get(getStoragePath(), "myData")))
       .withCache("threeTieredCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -93,7 +93,7 @@ public class Tiering {
   public void persistentCacheManager() throws Exception {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <1>
-      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <2>
+      .with(CacheManagerBuilder.persistence(Paths.get(getStoragePath(), "myData"))) // <2>
       .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)) // <3>
       )
@@ -108,7 +108,7 @@ public class Tiering {
     // tag::diskSegments[]
     String storagePath = getStoragePath();
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(new File(storagePath, "myData")))
+      .with(CacheManagerBuilder.persistence(Paths.get(storagePath, "myData")))
       .withCache("less-segments",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))

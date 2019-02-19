@@ -82,7 +82,7 @@ public class EhcacheBaseTest extends AbstractCacheCalculationTest {
   private void createNotAtomicCacheManager() throws IOException {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
       .addService(new TimeSourceConfiguration(timeSource))
-      .addService(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .addService(new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()))
       .build();
 
     Collection<Service> services = Collections.singleton(statisticsService);
@@ -97,7 +97,7 @@ public class EhcacheBaseTest extends AbstractCacheCalculationTest {
   private CacheManagerBuilder<CacheManager> baseCacheManagerConfig() {
     try {
       return CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+        .using(new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()))
         .using(statisticsService)
         .using(new TimeSourceConfiguration(timeSource));
     } catch (IOException e) {

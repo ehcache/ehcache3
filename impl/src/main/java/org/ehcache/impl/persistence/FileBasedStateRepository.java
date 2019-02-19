@@ -24,18 +24,23 @@ import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.list;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.newOutputStream;
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 
 /**
@@ -45,15 +50,15 @@ class FileBasedStateRepository implements StateRepository, Closeable {
 
   private static final String HOLDER_FILE_PREFIX = "holder-";
   private static final String HOLDER_FILE_SUFFIX = ".bin";
-  private final File dataDirectory;
+  private final Path dataDirectory;
   private final ConcurrentMap<String, Tuple> knownHolders;
   private final AtomicInteger nextIndex = new AtomicInteger();
 
-  FileBasedStateRepository(File directory) throws CachePersistenceException {
+  FileBasedStateRepository(Path directory) throws CachePersistenceException {
     if (directory == null) {
       throw new NullPointerException("directory must be non null");
     }
-    if (!directory.isDirectory()) {
+    if (!isDirectory(directory)) {
       throw new IllegalArgumentException(directory + " is not a directory");
     }
     this.dataDirectory = directory;
@@ -64,19 +69,20 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
-      //noinspection ConstantConditions
-      for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
-        try (FileInputStream fis = new FileInputStream(file);
-             ObjectInputStream oin = new ObjectInputStream(fis)) {
-          String name = (String) oin.readObject();
-          Tuple tuple = (Tuple) oin.readObject();
-          if (nextIndex.get() <= tuple.index) {
-            nextIndex.set(tuple.index + 1);
+      try (Stream<Path> stream = list(dataDirectory).filter(path -> path.getFileName().toString().endsWith(HOLDER_FILE_SUFFIX))) {
+        for (Path file : stream.toArray(Path[]::new)) {
+          try (InputStream is = newInputStream(file);
+               ObjectInputStream ois = new ObjectInputStream(is)) {
+            String name = (String) ois.readObject();
+            Tuple tuple = (Tuple) ois.readObject();
+            if (nextIndex.get() <= tuple.index) {
+              nextIndex.set(tuple.index + 1);
+            }
+            knownHolders.put(name, tuple);
           }
-          knownHolders.put(name, tuple);
         }
       }
-    } catch (Exception e) {
+    } catch (IOException | ClassNotFoundException e) {
       knownHolders.clear();
       throw new CachePersistenceException("Failed to load existing StateRepository data", e);
     }
@@ -84,9 +90,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
 
   private void saveMaps() throws IOException {
     for (Map.Entry<String, Tuple> entry : knownHolders.entrySet()) {
-      File outFile = new File(dataDirectory, createFileName(entry));
-      try (FileOutputStream fos = new FileOutputStream(outFile);
-           ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+      Path outFile = dataDirectory.resolve(createFileName(entry));
+      try (OutputStream os = newOutputStream(outFile);
+           ObjectOutputStream oos = new ObjectOutputStream(os)) {
         oos.writeObject(entry.getKey());
         oos.writeObject(entry.getValue());
       }

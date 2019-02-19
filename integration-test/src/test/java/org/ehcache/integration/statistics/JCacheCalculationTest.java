@@ -63,7 +63,7 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
     EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider;
 
     DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
-      new DefaultPersistenceConfiguration(diskPath.newFolder()));
+      new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()));
 
     CacheConfiguration<Integer, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, resources).build();

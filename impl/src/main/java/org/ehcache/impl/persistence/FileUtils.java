@@ -18,22 +18,28 @@ package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.ehcache.CachePersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
+import static java.nio.file.Files.deleteIfExists;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.list;
+import static java.util.stream.Collectors.toList;
 
 /**
  * A bunch of utility functions, mainly used by {@link DefaultLocalPersistenceService} and
@@ -59,82 +65,43 @@ final class FileUtils {
     ILLEGALS.add('.');
   }
 
-  static void createLocationIfRequiredAndVerify(final File rootDirectory) {
-    if(!rootDirectory.exists()) {
-      if(!rootDirectory.mkdirs()) {
-        throw new IllegalArgumentException("Directory couldn't be created: " + rootDirectory.getAbsolutePath());
-      }
-    } else if(!rootDirectory.isDirectory()) {
-      throw new IllegalArgumentException("Location is not a directory: " + rootDirectory.getAbsolutePath());
-    }
-
-    if(!rootDirectory.canWrite()) {
-      throw new IllegalArgumentException("Location isn't writable: " + rootDirectory.getAbsolutePath());
-    }
-  }
-
-  static File createSubDirectory(File mainDirectory, String name) throws CachePersistenceException {
-    validateName(name);
-    File subDirectory = new File(mainDirectory, name);
-    create(subDirectory);
-    return subDirectory;
-  }
-
-  static void validateName(String name) {
-    if (!name.matches("[a-zA-Z0-9\\-_]+")) {
+  static String validateName(String name) {
+    if (name.matches("[a-zA-Z0-9\\-_]+")) {
+      return name;
+    } else {
       throw new IllegalArgumentException("Name is invalid for persistence context: " + name);
     }
   }
 
-  static void create(File directory) throws CachePersistenceException {
-    if (directory.isDirectory()) {
-      LOGGER.debug("Reusing {}", directory.getAbsolutePath());
-    } else if (directory.mkdir()) {
-      LOGGER.debug("Created {}", directory.getAbsolutePath());
-    } else if (directory.isDirectory()) {
-      // if create directory fails, check once more if it is due to concurrent creation.
-      LOGGER.debug("Reusing {}", directory.getAbsolutePath());
-    } else {
-      throw new CachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
-    }
-  }
-
-  static boolean recursiveDeleteDirectoryContent(File file) {
-    File[] contents = file.listFiles();
-    if (contents == null) {
-      throw new IllegalArgumentException("File " + file.getAbsolutePath() + " is not a directory");
-    } else {
-      boolean deleteSuccessful = true;
-      for (File f : contents) {
-        deleteSuccessful &= tryRecursiveDelete(f);
-      }
-      return deleteSuccessful;
-    }
-  }
-
-  private static boolean recursiveDelete(File file) {
-    Deque<File> toDelete = new ArrayDeque<>();
+  private static boolean recursiveDelete(Path file) {
+    Deque<Path> toDelete = new ArrayDeque<>();
     toDelete.push(file);
-    while (!toDelete.isEmpty()) {
-      File target = toDelete.pop();
-      File[] contents = target.listFiles();
-      if (contents == null || contents.length == 0) {
-        if (target.exists() && !target.delete()) {
-          return false;
-        }
-      } else {
-        toDelete.push(target);
-        for (File f : contents) {
-          toDelete.push(f);
+    try {
+      while (!toDelete.isEmpty()) {
+        Path target = toDelete.pop();
+        if (isDirectory(target)) {
+          try (Stream<Path> list = list(target)) {
+            List<Path> contents = list.collect(toList());
+            if (contents.isEmpty()) {
+              deleteIfExists(target);
+            } else {
+              toDelete.push(target);
+              contents.forEach(toDelete::push);
+            }
+          }
+        } else {
+          deleteIfExists(target);
         }
       }
+      return true;
+    } catch (IOException e) {
+      return false;
     }
-    return true;
   }
 
   @SuppressFBWarnings("DM_GC")
-  static boolean tryRecursiveDelete(File file) {
-    boolean interrupted = false;
+  static boolean tryRecursiveDelete(Path file) {
+    boolean interrupted = Thread.interrupted();
     try {
       for (int i = 0; i < 5; i++) {
         if (recursiveDelete(file) || !isWindows()) {

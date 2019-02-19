@@ -58,7 +58,7 @@ public class PersistentCacheManagerTest {
   public void setup() throws IOException {
     rootDirectory = folder.newFolder("testInitializesDiskResourceService");
     assertTrue(rootDirectory.delete());
-    builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
+    builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory.toPath()));
   }
 
   @Test

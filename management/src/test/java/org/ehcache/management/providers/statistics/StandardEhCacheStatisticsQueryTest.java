@@ -108,7 +108,7 @@ public class StandardEhCacheStatisticsQueryTest {
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("myCache", cacheConfiguration)
       .using(managementRegistry)
-      .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .using(new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()))
       .build(true)) {
 
       Context context = StatsUtil.createContext(managementRegistry);

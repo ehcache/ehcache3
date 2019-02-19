@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.Cache;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -29,7 +28,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.nio.file.Path;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
@@ -50,10 +49,10 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   @Test
   public void testDestroyRemovesPersistenceData () throws Exception {
     File file = new File(getStoragePath(), "myData");
-    initCacheManager(file);
+    initCacheManager(file.toPath());
     putValuesInCacheAndCloseCacheManager();
 
-    initCacheManager(file);
+    initCacheManager(file.toPath());
     persistentCacheManager.close();
     persistentCacheManager.destroy();
 
@@ -63,7 +62,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   @Test
   public void testDestroyCacheDestroysPersistenceContext() throws Exception {
     File file = new File(getStoragePath(), "testDestroy");
-    initCacheManager(file);
+    initCacheManager(file.toPath());
 
     persistentCacheManager.destroyCache(PERSISTENT_CACHE);
 
@@ -73,7 +72,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   @Test
   public void testCreateCacheWithSameAliasAfterDestroy() throws Exception {
     File file = new File(getStoragePath(), "testDestroy");
-    initCacheManager(file);
+    initCacheManager(file.toPath());
 
     persistentCacheManager.destroyCache(PERSISTENT_CACHE);
 
@@ -91,7 +90,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   @Test
   public void testDestroyCacheWithUnknownAlias() throws Exception {
     File file = new File(getStoragePath(), "testDestroyUnknownAlias");
-    initCacheManager(file);
+    initCacheManager(file.toPath());
 
     Cache<Long, String > cache = persistentCacheManager.getCache(PERSISTENT_CACHE, Long.class, String.class);
 
@@ -100,14 +99,14 @@ public class CacheManagerDestroyRemovesPersistenceTest {
     persistentCacheManager.close();
 
     PersistentCacheManager anotherPersistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(file)).build(true);
+        .with(new CacheManagerPersistenceConfiguration(file.toPath())).build(true);
 
     anotherPersistentCacheManager.destroyCache(PERSISTENT_CACHE);
 
     assertThat(file, not(containsCacheDirectory(PERSISTENT_CACHE)));
   }
 
-  private void initCacheManager(File file) {
+  private void initCacheManager(Path file) {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(file))
         .withCache(PERSISTENT_CACHE, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,

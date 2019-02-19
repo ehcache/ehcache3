@@ -20,6 +20,7 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.MaintainableService;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * Service that provides isolated persistence spaces to any service that requires it
@@ -73,6 +74,12 @@ public interface LocalPersistenceService extends MaintainableService {
      *
      * @return Root directory of the safe space.
      */
-    File getRoot();
+    @Deprecated
+    default File getRoot() {
+      return getRootPath().toFile();
+    }
+
+
+    Path getRootPath();
   }
 }

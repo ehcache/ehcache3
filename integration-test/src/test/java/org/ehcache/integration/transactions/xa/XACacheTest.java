@@ -45,7 +45,6 @@ import javax.transaction.RollbackException;
 import javax.transaction.Status;
 import javax.transaction.Transaction;
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -218,7 +217,7 @@ public class XACacheTest {
                 .disk(20, MemoryUnit.MB, true));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(getStoragePath()))
+        .with(new CacheManagerPersistenceConfiguration(getStoragePath().toPath()))
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
@@ -320,7 +319,7 @@ public class XACacheTest {
                 .disk(20, MemoryUnit.MB, true));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(getStoragePath()))
+        .with(new CacheManagerPersistenceConfiguration(getStoragePath().toPath()))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
                 .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
@@ -371,7 +370,7 @@ public class XACacheTest {
                 .offheap(10, MemoryUnit.MB));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(getStoragePath()))
+        .with(new CacheManagerPersistenceConfiguration(getStoragePath().toPath()))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
                 .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))

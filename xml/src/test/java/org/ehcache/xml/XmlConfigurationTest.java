@@ -71,6 +71,8 @@ import com.pany.ehcache.serializer.TestSerializer4;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -501,13 +503,19 @@ public class XmlConfigurationTest {
   @Test
   public void testPersistenceConfig() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
-    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
+    try {
+      XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
-    ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(serviceConfig, instanceOf(DefaultPersistenceConfiguration.class));
+      ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
+      assertThat(serviceConfig, instanceOf(DefaultPersistenceConfiguration.class));
 
-    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)serviceConfig;
-    assertThat(persistenceConfiguration.getRootDirectory(), is(new File("   \n\t/my/caching/persistence  directory\r\n      ")));
+      DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)serviceConfig;
+
+      assertThat(persistenceConfiguration.getRootDirectoryPath(), is(Paths.get("   \n\t/my/caching/persistence  directory\r\n      ")));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getCause(), instanceOf(InvalidPathException.class));
+      assertThat(System.getProperty("os.name"), containsString("indows"));
+    }
   }
 
   @Test
@@ -739,7 +747,7 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
 
     DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(persistenceConfiguration.getRootDirectory(), is(new File(System.getProperty("user.home") + "/ehcache")));
+    assertThat(persistenceConfiguration.getRootDirectoryPath(), is(Paths.get(System.getProperty("user.home"), "ehcache")));
   }
 
   @Test

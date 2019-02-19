@@ -73,7 +73,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("cache", cacheConfiguration)
-      .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .using(new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()))
       .using(statisticsService)
       .using(new TimeSourceConfiguration(timeSource))
       .build(true);

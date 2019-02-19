@@ -60,7 +60,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("cache", cacheConfiguration)
-      .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .using(new DefaultPersistenceConfiguration(diskPath.newFolder().toPath()))
       .using(statisticsService)
       .build(true);
 

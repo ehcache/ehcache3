@@ -59,7 +59,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   @Override
   protected void before() throws Throwable {
     folder.create();
-    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
+    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder().toPath()));
     fileService.start(null);
     diskResourceService = new DefaultDiskResourceService();
     @SuppressWarnings("unchecked")

@@ -61,13 +61,15 @@ import org.terracotta.offheapstore.util.Factory;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Proxy;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,10 +78,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Math.max;
+import static java.nio.file.Files.getLastModifiedTime;
+import static java.nio.file.Files.isRegularFile;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.newOutputStream;
+import static java.nio.file.attribute.FileTime.fromMillis;
+import static java.time.Duration.between;
+import static java.time.Duration.ofSeconds;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static java.util.Arrays.asList;
@@ -151,11 +159,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
-    File dataFile = getDataFile();
-    File indexFile = getIndexFile();
-    File metadataFile = getMetadataFile();
+    Path dataFile = getDataFile();
+    Path indexFile = getIndexFile();
+    Path metadataFile = getMetadataFile();
 
-    if (dataFile.isFile() && indexFile.isFile() && metadataFile.isFile()) {
+    if (isRegularFile(dataFile) && isRegularFile(indexFile) && isRegularFile(metadataFile)) {
       try {
         return recoverBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } catch (IOException ex) {
@@ -171,12 +179,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
-    File dataFile = getDataFile();
-    File indexFile = getIndexFile();
-    File metadataFile = getMetadataFile();
+    Path dataFile = getDataFile();
+    Path indexFile = getIndexFile();
+    Path metadataFile = getMetadataFile();
 
     Properties properties = new Properties();
-    try (FileInputStream fis = new FileInputStream(metadataFile)) {
+    try (InputStream fis = newInputStream(metadataFile)) {
       properties.load(fis);
     }
     try {
@@ -196,24 +204,25 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new IllegalStateException("Persisted value type class not found", cnfe);
     }
 
-    try (FileInputStream fin = new FileInputStream(indexFile)) {
-      ObjectInputStream input = new ObjectInputStream(fin);
-      long dataTimestampFromIndex = input.readLong();
-      long dataTimestampFromFile = dataFile.lastModified();
-      long delta = dataTimestampFromFile - dataTimestampFromIndex;
-      if (delta < 0) {
-        LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
-          dataFile.getName(), -delta);
-      } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
+    try (InputStream is = newInputStream(indexFile);
+         ObjectInputStream input = new ObjectInputStream(is)) {
+      FileTime indexTimestamp = fromMillis(input.readLong());
+      FileTime fileTimestamp = getLastModifiedTime(dataFile);
+      Duration delta = between(indexTimestamp.toInstant(), fileTimestamp.toInstant());
+
+      if (delta.compareTo(ofSeconds(1)) > 0) {
         LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
-          dataFile.getName(), delta);
+          dataFile.getFileName(), delta);
         return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
-      } else if (delta > 0) {
+      } else if (delta.isNegative()) {
+        LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
+          dataFile.getFileName(), delta.negated());
+      } else {
         LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
-          dataFile.getName(), delta);
+          dataFile.getFileName(), delta);
       }
 
-      MappedPageSource source = new MappedPageSource(dataFile, false, size);
+      MappedPageSource source = new MappedPageSource(dataFile.toFile(), false, size);
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
         PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
@@ -237,22 +246,21 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw e;
       }
     } catch (Exception e) {
-      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
+      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.toAbsolutePath(), e.getMessage());
       LOGGER.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     }
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
-    File metadataFile = getMetadataFile();
-    try (FileOutputStream fos = new FileOutputStream(metadataFile)) {
+    try (OutputStream fos = newOutputStream(getMetadataFile())) {
       Properties properties = new Properties();
       properties.put(KEY_TYPE_PROPERTY_NAME, keyType.getName());
       properties.put(VALUE_TYPE_PROPERTY_NAME, valueType.getName());
       properties.store(fos, "Key and value types");
     }
 
-    MappedPageSource source = new MappedPageSource(getDataFile(), size);
+    MappedPageSource source = new MappedPageSource(getDataFile().toFile(), size);
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
     PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
@@ -280,16 +288,16 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return evictionAdvisor;
   }
 
-  private File getDataFile() {
-    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.data");
+  private Path getDataFile() {
+    return fileBasedPersistenceContext.getDirectoryPath().resolve("ehcache-disk-store.data");
   }
 
-  private File getIndexFile() {
-    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.index");
+  private Path getIndexFile() {
+    return fileBasedPersistenceContext.getDirectoryPath().resolve("ehcache-disk-store.index");
   }
 
-  private File getMetadataFile() {
-    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.meta");
+  private Path getMetadataFile() {
+    return fileBasedPersistenceContext.getDirectoryPath().resolve("ehcache-disk-store.meta");
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
@@ -399,7 +407,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (localMap != null) {
         resource.map = null;
         localMap.flush();
-        try (ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()))) {
+        try (OutputStream os = newOutputStream(resource.getIndexFile());
+             ObjectOutputStream output = new ObjectOutputStream(os)) {
           output.writeLong(System.currentTimeMillis());
           localMap.persist(output);
         }

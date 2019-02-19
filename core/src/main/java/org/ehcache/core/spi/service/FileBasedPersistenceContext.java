@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.service;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * A file based persistence context as returned by the {@link LocalPersistenceService}.
@@ -28,5 +29,16 @@ public interface FileBasedPersistenceContext {
    *
    * @return a directory to use
    */
-  File getDirectory();
+  @Deprecated
+  default File getDirectory() {
+    return getDirectoryPath().toFile();
+  }
+
+
+  /**
+   * Returns a directory where the user of this persistence context can write its files.
+   *
+   * @return a directory to use
+   */
+  Path getDirectoryPath();
 }

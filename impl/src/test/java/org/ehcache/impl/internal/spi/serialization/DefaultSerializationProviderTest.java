@@ -554,7 +554,7 @@ public class DefaultSerializationProviderTest {
     when(diskResourceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
           .thenReturn(() -> {
             try {
-              return tempFolder.newFolder();
+              return tempFolder.newFolder().toPath();
             } catch (IOException e) {
               fail("unable to create persistence ");
               return null;

@@ -37,8 +37,8 @@ import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -123,7 +123,7 @@ public class StoreStatisticsTest {
   @Test
   public void test3TiersStoreStatsAvailableInContextManager() throws Exception {
     try(PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "StoreStatisticsTest")))
+        .with(new CacheManagerPersistenceConfiguration(Paths.get(getStoragePath(), "StoreStatisticsTest")))
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 newResourcePoolsBuilder()

@@ -40,7 +40,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
@@ -160,7 +159,7 @@ public class TieredStoreFlushWhileShutdownTest {
   }
 
   private ServiceLocator getServiceLocator(File location) throws Exception {
-    DefaultPersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
+    DefaultPersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location.toPath());
     DefaultLocalPersistenceService fileService = new DefaultLocalPersistenceService(persistenceConfiguration);
     DefaultDiskResourceService diskResourceService = new DefaultDiskResourceService();
     ServiceLocator.DependencySet dependencySet = dependencySet();

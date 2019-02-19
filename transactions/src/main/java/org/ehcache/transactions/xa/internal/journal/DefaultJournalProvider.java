@@ -57,7 +57,7 @@ public class DefaultJournalProvider implements JournalProvider {
     try {
       LOGGER.info("Using persistent XAStore journal");
       FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
-      return new PersistentJournal<>(persistenceContext.getDirectory(), keySerializer);
+      return new PersistentJournal<>(persistenceContext.getDirectoryPath(), keySerializer);
     } catch (CachePersistenceException cpe) {
       throw new RuntimeException(cpe);
     }

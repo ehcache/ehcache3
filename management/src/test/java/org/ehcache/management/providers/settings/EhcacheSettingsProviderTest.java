@@ -95,7 +95,7 @@ public class EhcacheSettingsProviderTest {
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(sharedManagementService)
-        .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache")))
+        .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache").toPath()))
       .using(serviceConfiguration)
         .withCache("cache-1", cacheConfiguration1)
         .withCache("cache-2", cacheConfiguration2)

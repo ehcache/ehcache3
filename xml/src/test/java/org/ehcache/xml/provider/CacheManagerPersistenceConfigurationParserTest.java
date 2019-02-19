@@ -24,8 +24,8 @@ import org.ehcache.xml.model.ConfigType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 
 import javax.xml.bind.JAXBException;
@@ -46,14 +46,14 @@ public class CacheManagerPersistenceConfigurationParserTest {
     assertThat(serviceConfig).hasSize(1);
 
     CacheManagerPersistenceConfiguration providerConfiguration = serviceConfig.iterator().next();
-    assertThat(providerConfiguration.getRootDirectory()).isEqualTo(new File("some/dir"));
+    assertThat(providerConfiguration.getRootDirectoryPath()).isEqualTo(Paths.get("some/dir"));
   }
 
 
   @Test
   public void unparseServiceCreationConfiguration() {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new CacheManagerPersistenceConfiguration(new File("foo"))).build();
+      .addService(new CacheManagerPersistenceConfiguration(Paths.get("foo"))).build();
     ConfigType configType = new CacheManagerPersistenceConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     assertThat(configType.getPersistence().getDirectory()).isEqualTo("foo");

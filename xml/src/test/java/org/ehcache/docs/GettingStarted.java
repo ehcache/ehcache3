@@ -70,7 +70,7 @@ public class GettingStarted {
   public void testXmlToString() throws IOException {
     // tag::xmlTranslation[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(tmpDir.newFile("myData")))
+      .with(CacheManagerBuilder.persistence(tmpDir.newFile("myData").toPath()))
       .withCache("threeTieredCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()

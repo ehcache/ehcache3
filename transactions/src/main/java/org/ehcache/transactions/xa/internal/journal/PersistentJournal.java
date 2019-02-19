@@ -21,19 +21,22 @@ import org.ehcache.transactions.xa.internal.TransactionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.nio.file.Files.isRegularFile;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.newOutputStream;
 import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
@@ -76,10 +79,10 @@ public class PersistentJournal<K> extends TransientJournal<K> {
   }
 
 
-  private final File directory;
+  private final Path directory;
   private final Serializer<K> keySerializer;
 
-  public PersistentJournal(File directory, Serializer<K> keySerializer) {
+  public PersistentJournal(Path directory, Serializer<K> keySerializer) {
     if (directory == null) {
       throw new NullPointerException("directory must not be null");
     }
@@ -92,9 +95,10 @@ public class PersistentJournal<K> extends TransientJournal<K> {
 
   @Override
   public void open() throws IOException {
-    File file = new File(directory, JOURNAL_FILENAME);
-    if (file.isFile()) {
-      try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+    Path file = directory.resolve(JOURNAL_FILENAME);
+    if (isRegularFile(file)) {
+      try (InputStream is = newInputStream(file);
+           ObjectInputStream ois = new ObjectInputStream(is)) {
         boolean valid = ois.readBoolean();
         states.clear();
         if (valid) {
@@ -109,7 +113,9 @@ public class PersistentJournal<K> extends TransientJournal<K> {
       } catch (ClassNotFoundException cnfe) {
         LOGGER.warn("Cannot deserialize XA journal contents, truncating it", cnfe);
       } finally {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+
+        try (OutputStream os = newOutputStream(file);
+             ObjectOutputStream oos = new ObjectOutputStream(os)) {
           oos.writeObject(false);
         }
       }
@@ -118,7 +124,8 @@ public class PersistentJournal<K> extends TransientJournal<K> {
 
   @Override
   public void close() throws IOException {
-    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)))) {
+    try (OutputStream os = newOutputStream(directory.resolve(JOURNAL_FILENAME));
+         ObjectOutputStream oos = new ObjectOutputStream(os)) {
       oos.writeBoolean(true);
       Map<TransactionId, SerializableEntry<K>> toSerialize = new HashMap<>();
       for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {

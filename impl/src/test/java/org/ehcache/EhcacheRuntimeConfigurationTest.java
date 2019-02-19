@@ -27,9 +27,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.rules.TemporaryFolder;
 
@@ -52,7 +49,7 @@ public class EhcacheRuntimeConfigurationTest {
             .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).build();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(diskPath.newFolder("myData")))
+        .with(new CacheManagerPersistenceConfiguration(diskPath.newFolder("myData").toPath()))
         .withCache("cache", cacheConfiguration).build(true)) {
 
       Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);

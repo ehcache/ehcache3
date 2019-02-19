@@ -285,7 +285,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider; // <1>
 
     DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
-      new DefaultPersistenceConfiguration(getPersistenceDirectory())); // <2>
+      new DefaultPersistenceConfiguration(getPersistenceDirectory().toPath())); // <2>
 
     CacheManager cacheManager = ehcacheProvider.getCacheManager(ehcacheProvider.getDefaultURI(), configuration); // <3>
     // end::ehcacheCacheManagerConfigurationExample[]

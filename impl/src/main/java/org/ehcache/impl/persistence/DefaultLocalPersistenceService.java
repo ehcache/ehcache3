@@ -25,15 +25,19 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Path;
 
-import static org.ehcache.impl.persistence.FileUtils.createLocationIfRequiredAndVerify;
-import static org.ehcache.impl.persistence.FileUtils.recursiveDeleteDirectoryContent;
+import static java.nio.file.Files.createDirectories;
+import static java.nio.file.Files.deleteIfExists;
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isWritable;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 import static org.ehcache.impl.persistence.FileUtils.tryRecursiveDelete;
 import static org.ehcache.impl.persistence.FileUtils.validateName;
@@ -46,11 +50,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLocalPersistenceService.class);
 
-  private final File rootDirectory;
-  private final File lockFile;
+  private final Path rootDirectory;
+  private final Path lockFile;
 
   private FileLock lock;
-  private RandomAccessFile rw;
+  private FileChannel rwChannel;
   private boolean started;
 
   /**
@@ -60,11 +64,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   public DefaultLocalPersistenceService(final DefaultPersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
-      rootDirectory = persistenceConfiguration.getRootDirectory();
+      rootDirectory = persistenceConfiguration.getRootDirectoryPath();
     } else {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
-    lockFile = new File(rootDirectory, ".lock");
+    lockFile = rootDirectory.resolve(".lock");
   }
 
   /**
@@ -82,27 +86,32 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
-      createLocationIfRequiredAndVerify(rootDirectory);
       try {
-        rw = new RandomAccessFile(lockFile, "rw");
-      } catch (FileNotFoundException e) {
-        // should not happen normally since we checked that everything is fine right above
-        throw new RuntimeException(e);
+        if (!isWritable(createDirectories(rootDirectory))) {
+          throw new IllegalArgumentException("Persistence directory isn't writable: " + rootDirectory.toAbsolutePath());
+        }
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Persistence directory couldn't be created: " + rootDirectory.toAbsolutePath());
       }
       try {
-        lock = rw.getChannel().tryLock();
-      } catch (OverlappingFileLockException e) {
-        throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
-      } catch (Exception e) {
+        rwChannel = FileChannel.open(lockFile, WRITE, CREATE);
         try {
-          rw.close();
-        } catch (IOException e1) {
-          // ignore silently
+          lock = rwChannel.tryLock();
+        } catch (Throwable t) {
+          try {
+            rwChannel.close();
+          } finally {
+            deleteIfExists(lockFile);
+          }
+          throw t;
         }
-        throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.getAbsolutePath(), e);
+      } catch (OverlappingFileLockException e) {
+        throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.toAbsolutePath(), e);
+      } catch (IOException e) {
+        throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.toAbsolutePath(), e);
       }
       if (lock == null) {
-        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
+        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.toAbsolutePath());
       }
       started = true;
       LOGGER.debug("RootDirectory Locked");
@@ -116,23 +125,24 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public synchronized void stop() {
     if (started) {
       try {
-        lock.release();
-        // Closing RandomAccessFile so that files gets deleted on windows and
-        // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
-        // passes on windows
-        rw.close();
-        if (!lockFile.delete()) {
-          LOGGER.debug("Lock file was not deleted {}.", lockFile.getPath());
+        try {
+          lock.release();
+        } finally {
+          try {
+            rwChannel.close();
+          } finally {
+            deleteIfExists(lockFile);
+          }
         }
       } catch (IOException e) {
-        throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
+        throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.toAbsolutePath(), e);
       }
       started = false;
       LOGGER.debug("RootDirectory Unlocked");
     }
   }
 
-  File getLockFile() {
+  Path getLockFile() {
     return lockFile;
   }
 
@@ -141,16 +151,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public SafeSpaceIdentifier createSafeSpaceIdentifier(String owner, String identifier) {
-    validateName(owner);
-    SafeSpace ss = createSafeSpaceLogical(owner, identifier);
+    SafeSpace ss = createSafeSpaceLogical(validateName(owner), identifier);
 
-    for (File parent = ss.directory.getParentFile(); parent != null; parent = parent.getParentFile()) {
-      if (rootDirectory.equals(parent)) {
-        return new DefaultSafeSpaceIdentifier(ss);
-      }
+    if (ss.directory.toAbsolutePath().normalize().startsWith(rootDirectory.toAbsolutePath().normalize())) {
+      return new DefaultSafeSpaceIdentifier(ss);
+    } else {
+      throw new IllegalArgumentException("Attempted to access data outside the persistence path");
     }
-
-    throw new IllegalArgumentException("Attempted to access file outside the persistence path");
   }
 
   /**
@@ -163,8 +170,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       throw new AssertionError("Invalid safe space identifier. Identifier not created");
     }
     SafeSpace ss = ((DefaultSafeSpaceIdentifier) safeSpaceId).safeSpace;
-    FileUtils.create(ss.directory.getParentFile());
-    FileUtils.create(ss.directory);
+
+    try {
+      createDirectories(ss.directory);
+    } catch (IOException e) {
+      throw new CachePersistenceException("Unable to create directory: " + ss.directory.toAbsolutePath());
+    }
   }
 
   /**
@@ -184,17 +195,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   public void destroyAll(String owner) {
-    File ownerDirectory = new File(rootDirectory, owner);
-    boolean cleared = true;
-    if (ownerDirectory.exists() && ownerDirectory.isDirectory()) {
-      cleared = false;
-      if (recursiveDeleteDirectoryContent(ownerDirectory)) {
+    Path ownerDirectory = rootDirectory.resolve(owner);
+    if (isDirectory(ownerDirectory)) {
+      if (tryRecursiveDelete(ownerDirectory)) {
         LOGGER.debug("Destroyed all file based persistence contexts owned by {}", owner);
-        cleared = ownerDirectory.delete();
+      } else {
+        LOGGER.warn("Could not delete all file based persistence contexts owned by {}", owner);
       }
-    }
-    if (!cleared) {
-      LOGGER.warn("Could not delete all file based persistence contexts owned by {}", owner);
     }
   }
 
@@ -202,7 +209,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if (verbose) {
       LOGGER.debug("Destroying file based persistence context for {}", ss.identifier);
     }
-    if (ss.directory.exists() && !tryRecursiveDelete(ss.directory)) {
+    if (exists(ss.directory) && !tryRecursiveDelete(ss.directory)) {
       if (verbose) {
         LOGGER.warn("Could not delete directory for context {}", ss.identifier);
       }
@@ -211,16 +218,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
 
   private SafeSpace createSafeSpaceLogical(String owner, String identifier) {
-    File ownerDirectory = new File(rootDirectory, owner);
-    File directory = new File(ownerDirectory, safeIdentifier(identifier));
+    Path ownerDirectory = rootDirectory.resolve(owner);
+    Path directory = ownerDirectory.resolve(safeIdentifier(identifier));
     return new SafeSpace(identifier, directory);
   }
 
   private static final class SafeSpace {
     private final String identifier;
-    private final File directory;
+    private final Path directory;
 
-    private SafeSpace(String identifier, File directory) {
+    private SafeSpace(String identifier, Path directory) {
       this.directory = directory;
       this.identifier = identifier;
     }
@@ -240,7 +247,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
 
     @Override
-    public File getRoot() {
+    public Path getRootPath() {
       return safeSpace.directory;
     }
   }

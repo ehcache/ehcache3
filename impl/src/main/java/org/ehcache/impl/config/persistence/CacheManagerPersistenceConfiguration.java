@@ -23,6 +23,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.HumanReadable;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * Convenience configuration type that enables the {@link CacheManagerBuilder} to return a more specific type of
@@ -35,7 +36,12 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
    *
    * @param rootDirectory the root directory to use for disk storage
    */
+  @Deprecated
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
+    this(rootDirectory.toPath());
+  }
+
+  public CacheManagerPersistenceConfiguration(final Path rootDirectory) {
     super(rootDirectory);
   }
 
@@ -51,6 +57,6 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
   @Override
   public String readableString() {
     return this.getClass().getName() + ":\n    " +
-        "rootDirectory: " + getRootDirectory();
+        "rootDirectory: " + getRootDirectoryPath();
   }
 }

@@ -55,7 +55,7 @@ public class CacheManagerListenerTest {
     cacheManagerListener = mock(CacheManagerListener.class);
 
     cacheManager = (EhcacheManager) CacheManagerBuilder.newCacheManagerBuilder()
-      .with(new CacheManagerPersistenceConfiguration(folder.getRoot()))
+      .with(new CacheManagerPersistenceConfiguration(folder.getRoot().toPath()))
       .withCache(CACHE, cacheConfiguration)
       .build();
     cacheManager.registerListener(cacheManagerListener);
