@@ -31,6 +31,8 @@ import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValueHolderPortability;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestDiskResourceService;
@@ -249,12 +251,17 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
         null, classLoader, expiry, null, 0, true, keySerializer, valueSerializer, null, false);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
         storeConfiguration, timeSource,
         new TestStoreEventDispatcher<>(),
-        MB.toBytes(1));
+        MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<String> createValuePortability(Serializer<String> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -272,12 +279,17 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
         evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, true, keySerializer, valueSerializer, null, false);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
         storeConfiguration, timeSource,
         new TestStoreEventDispatcher<>(),
-        MB.toBytes(1));
+        MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<byte[]> createValuePortability(Serializer<byte[]> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {

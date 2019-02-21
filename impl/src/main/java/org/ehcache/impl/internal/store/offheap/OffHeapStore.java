@@ -26,7 +26,6 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
-import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -103,9 +102,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<>(keySerializer);
-    Portability<OffHeapValueHolder<V>> elementPortability = new OffHeapValueHolderPortability<>(valueSerializer);
+    Portability<OffHeapValueHolder<V>> valuePortability = createValuePortability(valueSerializer);
     Factory<OffHeapBufferStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, source, config
-        .getSegmentDataPageSize(), keyPortability, elementPortability, false, true);
+        .getSegmentDataPageSize(), keyPortability, valuePortability, false, true);
 
     Factory<? extends PinnableSegment<K, OffHeapValueHolder<V>>> segmentFactory = new EhcacheSegmentFactory<>(
       source,
