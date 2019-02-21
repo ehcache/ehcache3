@@ -55,7 +55,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
-import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
@@ -772,7 +771,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(Input.from(resource)).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

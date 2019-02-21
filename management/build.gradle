@@ -32,11 +32,6 @@ dependencies {
   testImplementation project(':xml')
   testImplementation project(':impl')
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-  testCompile project(path: ':xml', configuration: 'testArchives')
-}
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
+  testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
+  testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
 }

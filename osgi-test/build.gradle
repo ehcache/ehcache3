@@ -74,8 +74,15 @@ configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
   test.dependsOn it.dependencyProject.tasks.jar
 }
 
-test.doFirst {
-  if (testJava.javaVersion.isJava9Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 9")
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    //Deploying the jaxb-runtime as an OSGi module is currently impossible - don't ask... sigh.
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+    //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
+    jvmArgs += ['--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED']
+  }
+}.doFirst {
+  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 11")
 
   configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
     systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
