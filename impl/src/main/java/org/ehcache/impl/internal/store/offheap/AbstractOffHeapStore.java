@@ -38,6 +38,7 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -51,6 +52,7 @@ import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.impl.store.HashUtils;
+import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -408,6 +410,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
         }
         return null;
       } else {
+        mappedValue.forceDeserialization();
         returnValue.set(mappedValue);
         return newUpdatedValueHolder(mappedKey, value, mappedValue, now, eventSink);
       }
@@ -1147,6 +1150,10 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
   protected abstract SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor();
+
+  protected OffHeapValueHolderPortability<V> createValuePortability(Serializer<V> serializer) {
+    return new OffHeapValueHolderPortability<>(serializer);
+  }
 
   protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<>(delegate);
