@@ -16,11 +16,14 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
+import com.tc.classloader.CommonComponent;
+
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * EhcacheStateRepoSyncMessage
  */
+@CommonComponent
 public class EhcacheStateRepoSyncMessage extends EhcacheSyncMessage {
 
   private final String cacheId;
