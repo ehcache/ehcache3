@@ -121,6 +121,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @After
   public void tearDown() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+
     CACHE_MANAGER1.close();
     CACHE_MANAGER2.close();
     CACHE_MANAGER2.destroy();
