@@ -35,7 +35,7 @@ import org.osgi.service.component.annotations.Component;
 public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindProvider> {
 
   @Override
-  public WriteBehindProvider create(ServiceCreationConfiguration<WriteBehindProvider> configuration) {
+  public WriteBehindProvider create(ServiceCreationConfiguration<WriteBehindProvider, ?> configuration) {
     if (configuration == null) {
       return new Provider();
     } else if (configuration instanceof WriteBehindProviderConfiguration) {

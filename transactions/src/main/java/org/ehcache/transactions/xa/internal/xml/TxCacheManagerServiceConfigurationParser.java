@@ -59,7 +59,7 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
   }
 
   @Override
-  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceCreationConfiguration<TransactionManagerProvider, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("jta-tm".equals(localName)) {
       String transactionManagerProviderConfigurationClassName = fragment.getAttribute("transaction-manager-lookup-class");
@@ -86,7 +86,7 @@ public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<L
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<TransactionManagerProvider> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<TransactionManagerProvider, ?> serviceCreationConfiguration) {
     return unparseConfig(serviceCreationConfiguration);
   }
 

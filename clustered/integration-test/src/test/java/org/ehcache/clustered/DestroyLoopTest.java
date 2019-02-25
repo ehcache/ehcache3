@@ -81,14 +81,14 @@ public class DestroyLoopTest extends ClusteredTests {
   private void destroyCacheManager() throws CachePersistenceException {
     PersistentCacheManager cacheManager = newCacheManagerBuilder().with(
       ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME))
-        .expecting()).build(false);
+        .expecting(c -> c)).build(false);
     cacheManager.destroy();
   }
 
   private PersistentCacheManager createCacheManager() {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-        .with(cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME)).autoCreate())
+        .with(cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME)).autoCreate(c -> c))
         .withCache(CACHE_NAME, newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))

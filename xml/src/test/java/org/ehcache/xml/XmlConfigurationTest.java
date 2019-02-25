@@ -409,7 +409,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
@@ -461,7 +461,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations().size(), is(1));
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration, instanceOf(DefaultCopyProviderConfiguration.class));
 
@@ -503,7 +503,7 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/persistence-config.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
-    ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(serviceConfig, instanceOf(DefaultPersistenceConfiguration.class));
 
     DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)serviceConfig;

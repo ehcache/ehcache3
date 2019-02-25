@@ -98,7 +98,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                     .timeouts(TimeoutsBuilder.timeouts()
                                              .read(Duration.ofSeconds(30))
                                              .write(Duration.ofSeconds(30)))
-                    .autoCreate()
+                    .autoCreate(c -> c)
                     .build())
             .using(managementRegistry)
             .build(true);

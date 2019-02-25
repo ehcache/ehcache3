@@ -27,7 +27,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
   @Override
-  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider> configuration) {
+  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider, ?> configuration) {
     return new XAStore.Provider();
   }
 

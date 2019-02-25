@@ -40,7 +40,7 @@ public class CacheEventDispatcherFactoryConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isInstanceOf(CacheEventDispatcherFactoryConfiguration.class);
 
     CacheEventDispatcherFactoryConfiguration providerConfiguration = (CacheEventDispatcherFactoryConfiguration) configuration;
@@ -50,7 +50,7 @@ public class CacheEventDispatcherFactoryConfigurationParserTest {
   @Test
   public void unparseServiceCreationConfiguration() {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new CacheEventDispatcherFactoryConfiguration("foo")).build();
+      .withService(new CacheEventDispatcherFactoryConfiguration("foo")).build();
     ConfigType configType = new CacheEventDispatcherFactoryConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     assertThat(configType.getEventDispatch().getThreadPool()).isEqualTo("foo");

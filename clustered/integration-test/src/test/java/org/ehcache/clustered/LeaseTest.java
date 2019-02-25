@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -100,13 +101,10 @@ public class LeaseTest extends ClusteredTests {
   public void leaseExpiry() throws Exception {
     URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
 
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-            = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .timeouts(TimeoutsBuilder.timeouts()
-                            .connection(Duration.ofSeconds(20)))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"));
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
+      .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
+        .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(20)))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 

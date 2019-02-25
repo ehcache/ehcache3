@@ -125,7 +125,7 @@ public class ClusteredOsgiTest {
 
     public static void testProgrammaticClusteredCache(OsgiTestUtils.Cluster cluster) throws Throwable {
       try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
-        .with(cluster(cluster.getConnectionUri()).autoCreate())
+        .with(cluster(cluster.getConnectionUri()).autoCreate(c -> c))
         .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated("main", 2, MemoryUnit.MB))))
         .build(true)) {

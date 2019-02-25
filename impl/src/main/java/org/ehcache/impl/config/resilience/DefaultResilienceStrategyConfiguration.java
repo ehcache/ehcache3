@@ -52,6 +52,10 @@ public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfigu
     super(instance);
   }
 
+  protected DefaultResilienceStrategyConfiguration(DefaultResilienceStrategyConfiguration configuration) {
+    super(configuration);
+  }
+
   @Override
   public Class<ResilienceStrategyProvider> getServiceType() {
     return ResilienceStrategyProvider.class;

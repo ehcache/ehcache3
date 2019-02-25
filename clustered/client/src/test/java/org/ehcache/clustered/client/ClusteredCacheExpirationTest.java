@@ -59,7 +59,7 @@ public class ClusteredCacheExpirationTest {
     return newCacheManagerBuilder()
         .using(statisticsService)
         .using(new TimeSourceConfiguration(timeSource))
-        .with(cluster(CLUSTER_URI).autoCreate())
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
         .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)

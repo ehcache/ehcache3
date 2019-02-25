@@ -17,9 +17,9 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -79,14 +79,12 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
 
   @Before
   public void initializeCacheManager() {
-    ServerSideConfigurationBuilder serverSideConfigurationBuilder =
+    ClusteringServiceConfiguration clusteringConfiguration =
       ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource");
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")).build();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-      = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(serverSideConfigurationBuilder);
+      = CacheManagerBuilder.newCacheManagerBuilder().with(clusteringConfiguration);
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

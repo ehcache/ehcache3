@@ -27,7 +27,7 @@ import org.osgi.service.component.annotations.Component;
 public class OnHeapStoreProviderFactory implements ServiceFactory<OnHeapStore.Provider> {
 
   @Override
-  public OnHeapStore.Provider create(ServiceCreationConfiguration<OnHeapStore.Provider> configuration) {
+  public OnHeapStore.Provider create(ServiceCreationConfiguration<OnHeapStore.Provider, ?> configuration) {
     return new OnHeapStore.Provider();
   }
 

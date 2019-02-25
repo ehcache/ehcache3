@@ -91,7 +91,7 @@ public class ClusterStateRepositoryReplicationTest {
   public void testClusteredStateRepositoryReplication() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
+            .autoCreate(c -> c)
             .build();
 
     ClusteringService service = new ClusteringServiceFactory().create(configuration);
@@ -126,7 +126,7 @@ public class ClusterStateRepositoryReplicationTest {
   public void testClusteredStateRepositoryReplicationWithSerializableKV() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
+            .autoCreate(c -> c)
             .build();
 
     ClusteringService service = new ClusteringServiceFactory().create(configuration);

@@ -78,13 +78,11 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
 
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
   }
 
   @After

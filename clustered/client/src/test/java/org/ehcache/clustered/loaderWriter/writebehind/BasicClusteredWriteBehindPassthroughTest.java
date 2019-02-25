@@ -254,7 +254,7 @@ public class BasicClusteredWriteBehindPassthroughTest {
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(CLUSTER_URI).autoCreate())
+      .with(cluster(CLUSTER_URI).autoCreate(c -> c))
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }

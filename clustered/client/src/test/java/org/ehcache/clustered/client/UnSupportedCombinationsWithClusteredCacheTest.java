@@ -76,7 +76,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
-            .autoCreate());
+            .autoCreate(b -> b));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     try {
@@ -103,7 +103,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
-            .autoCreate());
+            .autoCreate(c -> c));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     try {
@@ -132,7 +132,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     try {
       CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
-          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")).autoCreate())
+          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")).autoCreate(c -> c))
           .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))

@@ -123,8 +123,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
             .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
                 .read(Duration.ofMinutes(1))
                 .write(Duration.ofMinutes(1)))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);
     CACHE_MANAGER2 = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder

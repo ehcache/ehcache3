@@ -18,10 +18,13 @@ package org.ehcache.impl.config.executor;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableMap;
+import static org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder.newPooledExecutionServiceConfigurationBuilder;
 
 /**
  * {@link ServiceCreationConfiguration} for the pooled {@link ExecutionService} implementation.
@@ -36,7 +39,7 @@ import static java.util.Collections.unmodifiableMap;
  * @see org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration
  * @see org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration
  */
-public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService> {
+public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService, PooledExecutionServiceConfigurationBuilder> {
 
   private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<>();
 
@@ -52,18 +55,20 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
    * @param alias the pool alias
    * @param minSize the minimum size
    * @param maxSize the maximum size
+   * @return this configuration object with a new default pool
    *
    * @throws NullPointerException if alias is null
    * @throws IllegalArgumentException if another default was configured already or if another pool with the same
    *                                  alias was configured already
    */
-  public void addDefaultPool(String alias, int minSize, int maxSize) {
+  public PooledExecutionServiceConfiguration addDefaultPool(String alias, int minSize, int maxSize) {
     if (alias == null) {
       throw new NullPointerException("Pool alias cannot be null");
     }
     if (defaultAlias == null) {
       addPool(alias, minSize, maxSize);
       defaultAlias = alias;
+      return this;
     } else {
       throw new IllegalArgumentException("'" + defaultAlias + "' is already configured as the default pool");
     }
@@ -75,11 +80,12 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
    * @param alias the pool alias
    * @param minSize the minimum size
    * @param maxSize the maximum size
+   * @return this configuration object with a new pool
    *
    * @throws NullPointerException if alias is null
    * @throws IllegalArgumentException if another pool with the same alias was configured already
    */
-  public void addPool(String alias, int minSize, int maxSize) {
+  public PooledExecutionServiceConfiguration addPool(String alias, int minSize, int maxSize) {
     if (alias == null) {
       throw new NullPointerException("Pool alias cannot be null");
     }
@@ -87,6 +93,7 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
       throw new IllegalArgumentException("A pool with the alias '" + alias + "' is already configured");
     } else {
       poolConfigurations.put(alias, new PoolConfiguration(minSize, maxSize));
+      return this;
     }
   }
 
@@ -114,6 +121,16 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
   @Override
   public Class<ExecutionService> getServiceType() {
     return ExecutionService.class;
+  }
+
+  @Override
+  public PooledExecutionServiceConfigurationBuilder derive() {
+    return newPooledExecutionServiceConfigurationBuilder(this);
+  }
+
+  @Override
+  public PooledExecutionServiceConfiguration build(PooledExecutionServiceConfigurationBuilder builder) {
+    return builder.build();
   }
 
   /**

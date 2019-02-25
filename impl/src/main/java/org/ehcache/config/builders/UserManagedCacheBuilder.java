@@ -112,7 +112,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Class<V> valueType;
   private String id;
   private final Set<Service> services = new HashSet<>();
-  private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
+  private final Set<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = new HashSet<>();
   private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -171,7 +171,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     ServiceLocator serviceLocator;
     try {
-      for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
+      for (ServiceCreationConfiguration<?, ?> serviceCreationConfig : serviceCreationConfigurations) {
         serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
       serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
@@ -813,7 +813,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    *
    * @see #using(Service)
    */
-  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
+  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);

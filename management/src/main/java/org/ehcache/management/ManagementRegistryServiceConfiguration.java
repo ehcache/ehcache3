@@ -24,7 +24,7 @@ import java.util.Collection;
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
  */
-public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
+public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService, Void> {
 
   /**
    * The context used to identify this cache manager

@@ -31,7 +31,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultLocalPersistenceServiceFactory implements ServiceFactory<LocalPersistenceService> {
 
   @Override
-  public DefaultLocalPersistenceService create(final ServiceCreationConfiguration<LocalPersistenceService> serviceConfiguration) {
+  public DefaultLocalPersistenceService create(final ServiceCreationConfiguration<LocalPersistenceService, ?> serviceConfiguration) {
     return new DefaultLocalPersistenceService((DefaultPersistenceConfiguration) serviceConfiguration);
   }
 

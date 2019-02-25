@@ -146,7 +146,7 @@ public class EhcacheManagerTest {
   @Test
   public void testConstructionThrowsWhenNotBeingToResolveService() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
+    final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown...");
@@ -158,7 +158,7 @@ public class EhcacheManagerTest {
   @Test
   public void testCreationFailsOnDuplicateServiceCreationConfiguration() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
+    DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown ...");

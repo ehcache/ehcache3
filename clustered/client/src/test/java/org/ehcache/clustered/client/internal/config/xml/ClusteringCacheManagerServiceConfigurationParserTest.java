@@ -136,7 +136,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -170,7 +170,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -202,7 +202,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -366,7 +366,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
       ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
@@ -403,7 +403,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
       ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
@@ -424,10 +424,10 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .autoCreate()
-      .defaultServerResource("main")
-      .resourcePool("primaryresource", 5, MemoryUnit.GB)
-      .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional")
+      .autoCreate(server -> server
+        .defaultServerResource("main")
+        .resourcePool("primaryresource", 5, MemoryUnit.GB)
+        .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional"))
       .build();
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
@@ -452,8 +452,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .expecting()
-      .defaultServerResource("main")
+      .expecting(server -> server.defaultServerResource("main"))
       .build();
 
 

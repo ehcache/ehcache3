@@ -140,7 +140,7 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = config.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = config.getServiceCreationConfigurations();
 
     Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();

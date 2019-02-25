@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultSerializationProviderFactory implements ServiceFactory<SerializationProvider> {
 
   @Override
-  public DefaultSerializationProvider create(ServiceCreationConfiguration<SerializationProvider> configuration) {
+  public DefaultSerializationProvider create(ServiceCreationConfiguration<SerializationProvider, ?> configuration) {
     if (configuration != null && !(configuration instanceof DefaultSerializationProviderConfiguration)) {
       throw new IllegalArgumentException("Expected a configuration of type DefaultSerializationProviderConfiguration but got " + configuration
           .getClass()

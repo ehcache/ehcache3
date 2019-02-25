@@ -112,4 +112,13 @@ public interface CacheConfiguration<K, V> {
    */
   ResourcePools getResourcePools();
 
+  /**
+   * Create a builder seeded with this configuration.
+   *
+   * @see FluentConfigurationBuilder
+   * @return a configuration builder
+   */
+  default FluentCacheConfigurationBuilder<K, V> derive() {
+    return () -> this;
+  }
 }

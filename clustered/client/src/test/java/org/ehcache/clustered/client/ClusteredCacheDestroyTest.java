@@ -57,7 +57,7 @@ public class ClusteredCacheDestroyTest {
 
   private static final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI).autoCreate())
+          .with(cluster(CLUSTER_URI).autoCreate(c -> c))
           .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
@@ -120,7 +120,7 @@ public class ClusteredCacheDestroyTest {
   public void testDestroyUnknownCacheAlias() throws Exception {
     clusteredCacheManagerBuilder.build(true).close();
 
-    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).expecting()).build(true);
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).expecting(c -> c)).build(true);
 
     cacheManager.destroyCache(CLUSTERED_CACHE);
 

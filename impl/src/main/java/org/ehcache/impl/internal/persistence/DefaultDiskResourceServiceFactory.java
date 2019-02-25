@@ -25,7 +25,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultDiskResourceServiceFactory implements ServiceFactory<DefaultDiskResourceService> {
 
   @Override
-  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DefaultDiskResourceService> serviceConfiguration) {
+  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DefaultDiskResourceService, ?> serviceConfiguration) {
     return new DefaultDiskResourceService();
   }
 

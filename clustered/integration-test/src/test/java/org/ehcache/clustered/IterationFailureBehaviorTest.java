@@ -79,8 +79,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -138,8 +137,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 

@@ -49,7 +49,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
-import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -129,7 +128,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
   private void validateServicesConfigs() {
     Set<Class<?>> classes = new HashSet<>();
-    for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
+    for (ServiceCreationConfiguration<?, ?> service : configuration.getServiceCreationConfigurations()) {
       if (!classes.add(service.getServiceType())) {
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
       }
@@ -150,7 +149,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if (!builder.contains(CacheManagerProviderService.class)) {
       builder = builder.with(new DefaultCacheManagerProviderService(this));
     }
-    for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
+    for (ServiceCreationConfiguration<?, ?> serviceConfig : configuration.getServiceCreationConfigurations()) {
       builder = builder.with(serviceConfig);
     }
     return builder.build();

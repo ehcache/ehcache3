@@ -42,7 +42,7 @@ public class PooledExecutionServiceConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(PooledExecutionServiceConfiguration.class);
 
     PooledExecutionServiceConfiguration providerConfiguration = (PooledExecutionServiceConfiguration) configuration;
@@ -65,7 +65,7 @@ public class PooledExecutionServiceConfigurationParserTest {
     providerConfig.addDefaultPool("foo", 5, 9);
     providerConfig.addPool("bar", 2, 6);
 
-    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().withService(providerConfig).build();
     ConfigType configType = new ConfigType();
     configType = new PooledExecutionServiceConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 

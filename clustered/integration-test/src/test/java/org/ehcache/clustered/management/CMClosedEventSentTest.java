@@ -63,10 +63,10 @@ public class CMClosedEventSentTest {
     createNmsService(CLUSTER);
 
     try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
-      .autoCreate()
-      .defaultServerResource("primary-server-resource")
-      .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
-      .resourcePool("resource-pool-b", 10, MemoryUnit.MB)) // will take from primary-server-resource
+      .autoCreate(server -> server
+        .defaultServerResource("primary-server-resource")
+        .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+        .resourcePool("resource-pool-b", 10, MemoryUnit.MB))) // will take from primary-server-resource
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")

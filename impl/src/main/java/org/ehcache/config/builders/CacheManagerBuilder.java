@@ -21,6 +21,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
@@ -40,6 +41,8 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
@@ -57,7 +60,7 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
  */
 public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
-  private final ConfigurationBuilder configBuilder;
+  private final FluentConfigurationBuilder<?> configBuilder;
   private final Set<Service> services;
 
   /**
@@ -94,7 +97,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     this.services = unmodifiableSet(services);
   }
 
-  private CacheManagerBuilder(CacheManagerBuilder<T> builder, ConfigurationBuilder configBuilder) {
+  private CacheManagerBuilder(CacheManagerBuilder<T> builder, FluentConfigurationBuilder<?> configBuilder) {
     this.configBuilder = configBuilder;
     this.services = builder.services;
   }
@@ -132,7 +135,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see CacheConfigurationBuilder
    */
   public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfiguration<K, V> configuration) {
-    return new CacheManagerBuilder<>(this, configBuilder.addCache(alias, configuration));
+    return new CacheManagerBuilder<>(this, configBuilder.withCache(alias, configuration));
   }
 
   /**
@@ -203,16 +206,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the added default copier
    */
   public <C> CacheManagerBuilder<T> withCopier(Class<C> clazz, Class<? extends Copier<C>> copier) {
-    DefaultCopyProviderConfiguration service = configBuilder.findServiceByClass(DefaultCopyProviderConfiguration.class);
-    if (service == null) {
-      service = new DefaultCopyProviderConfiguration();
-      service.addCopierFor(clazz, copier);
-      return new CacheManagerBuilder<>(this, configBuilder.addService(service));
-    } else {
-      DefaultCopyProviderConfiguration newConfig = new DefaultCopyProviderConfiguration(service);
-      newConfig.addCopierFor(clazz, copier, true);
-      return new CacheManagerBuilder<>(this, configBuilder.removeService(service).addService(newConfig));
-    }
+    return ensureThenUpdate(DefaultCopyProviderConfiguration::new, existing -> existing.addCopierFor(clazz, copier, true));
   }
 
   /**
@@ -224,16 +218,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the added default serializer
    */
   public <C> CacheManagerBuilder<T> withSerializer(Class<C> clazz, Class<? extends Serializer<C>> serializer) {
-    DefaultSerializationProviderConfiguration service = configBuilder.findServiceByClass(DefaultSerializationProviderConfiguration.class);
-    if (service == null) {
-      service = new DefaultSerializationProviderConfiguration();
-      service.addSerializerFor(clazz, serializer);
-      return new CacheManagerBuilder<>(this, configBuilder.addService(service));
-    } else {
-      DefaultSerializationProviderConfiguration newConfig = new DefaultSerializationProviderConfiguration(service);
-      newConfig.addSerializerFor(clazz, serializer, true);
-      return new CacheManagerBuilder<>(this, configBuilder.removeService(service).addService(newConfig));
-    }
+    return ensureThenUpdate(DefaultSerializationProviderConfiguration::new, config -> config.addSerializerFor(clazz, serializer, true));
   }
 
   /**
@@ -244,14 +229,10 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the added configuration
    */
   public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectGraph(long size) {
-    DefaultSizeOfEngineProviderConfiguration configuration = configBuilder.findServiceByClass(DefaultSizeOfEngineProviderConfiguration.class);
-    if (configuration == null) {
-      return new CacheManagerBuilder<>(this, configBuilder.addService(new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size)));
-    } else {
-      ConfigurationBuilder builder = configBuilder.removeService(configuration);
-      return new CacheManagerBuilder<>(this, builder.addService(new DefaultSizeOfEngineProviderConfiguration(configuration
-        .getMaxObjectSize(), configuration.getUnit(), size)));
-    }
+    return ensureThenUpdate(
+      () -> new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, DEFAULT_OBJECT_GRAPH_SIZE),
+      existing -> new DefaultSizeOfEngineProviderConfiguration(existing.getMaxObjectSize(), existing.getUnit(), size)
+    );
   }
 
   /**
@@ -263,14 +244,10 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the added configuration
    */
   public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectSize(long size, MemoryUnit unit) {
-    DefaultSizeOfEngineProviderConfiguration configuration = configBuilder.findServiceByClass(DefaultSizeOfEngineProviderConfiguration.class);
-    if (configuration == null) {
-      return new CacheManagerBuilder<>(this, configBuilder.addService(new DefaultSizeOfEngineProviderConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE)));
-    } else {
-      ConfigurationBuilder builder = configBuilder.removeService(configuration);
-      return new CacheManagerBuilder<>(this, builder.addService(new DefaultSizeOfEngineProviderConfiguration(size, unit, configuration
-        .getMaxObjectGraphSize())));
-    }
+    return ensureThenUpdate(
+      () -> new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, DEFAULT_OBJECT_GRAPH_SIZE),
+      existing -> new DefaultSizeOfEngineProviderConfiguration(size, unit, existing.getMaxObjectGraphSize())
+    );
   }
 
   /**
@@ -282,13 +259,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see PooledExecutionServiceConfigurationBuilder
    */
   public CacheManagerBuilder<T> withDefaultWriteBehindThreadPool(String threadPoolAlias) {
-    WriteBehindProviderConfiguration config = configBuilder.findServiceByClass(WriteBehindProviderConfiguration.class);
-    if (config == null) {
-      return new CacheManagerBuilder<>(this, configBuilder.addService(new WriteBehindProviderConfiguration(threadPoolAlias)));
-    } else {
-      ConfigurationBuilder builder = configBuilder.removeService(config);
-      return new CacheManagerBuilder<>(this, builder.addService(new WriteBehindProviderConfiguration(threadPoolAlias)));
-    }
+    return using(new WriteBehindProviderConfiguration(threadPoolAlias));
   }
 
   /**
@@ -301,13 +272,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see PooledExecutionServiceConfigurationBuilder
    */
   public CacheManagerBuilder<T> withDefaultDiskStoreThreadPool(String threadPoolAlias) {
-    OffHeapDiskStoreProviderConfiguration config = configBuilder.findServiceByClass(OffHeapDiskStoreProviderConfiguration.class);
-    if (config == null) {
-      return new CacheManagerBuilder<>(this, configBuilder.addService(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias)));
-    } else {
-      ConfigurationBuilder builder = configBuilder.removeService(config);
-      return new CacheManagerBuilder<>(this, builder.addService(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias)));
-    }
+    return using(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias));
   }
 
   /**
@@ -320,25 +285,21 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @see PooledExecutionServiceConfigurationBuilder
    */
   public CacheManagerBuilder<T> withDefaultEventListenersThreadPool(String threadPoolAlias) {
-    CacheEventDispatcherFactoryConfiguration config = configBuilder.findServiceByClass(CacheEventDispatcherFactoryConfiguration.class);
-    if (config == null) {
-      return new CacheManagerBuilder<>(this, configBuilder.addService(new CacheEventDispatcherFactoryConfiguration(threadPoolAlias)));
-    } else {
-      ConfigurationBuilder builder = configBuilder.removeService(config);
-      return new CacheManagerBuilder<>(this, builder.addService(new CacheEventDispatcherFactoryConfiguration(threadPoolAlias)));
-    }
+    return using(new CacheEventDispatcherFactoryConfiguration(threadPoolAlias));
   }
 
   /**
    * Adds a {@link ServiceCreationConfiguration} to the returned builder.
    * <p>
-   * These configurations are used to load services and configure them at creation time.
+   * These configurations are used to load services and configure them at creation time.  This method will remove any
+   * existing configuration incompatible with the given configuration, before adding the new configuration.
    *
    * @param serviceConfiguration the {@code ServiceCreationConfiguration} to use
    * @return a new builder with the added configuration
+   * @see FluentConfigurationBuilder#withService(ServiceCreationConfiguration)
    */
-  public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
-    return new CacheManagerBuilder<>(this, configBuilder.addService(serviceConfiguration));
+  public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
+    return new CacheManagerBuilder<>(this, configBuilder.withService(serviceConfiguration));
   }
 
   /**
@@ -348,11 +309,12 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    *
    * @param overwriteServiceConfiguration the new {@code ServiceCreationConfiguration} to use
    * @return a new builder with the replaced configuration
+   *
+   * @deprecated in favor of {@link #using(ServiceCreationConfiguration)} whose refined contract matches this one
    */
-  public CacheManagerBuilder<T> replacing(ServiceCreationConfiguration<?> overwriteServiceConfiguration) {
-    ServiceCreationConfiguration<?> existingConfiguration = configBuilder.findServiceByClass(overwriteServiceConfiguration.getClass());
-    return new CacheManagerBuilder<>(this, configBuilder.removeService(existingConfiguration)
-      .addService(overwriteServiceConfiguration));
+  @Deprecated
+  public CacheManagerBuilder<T> replacing(ServiceCreationConfiguration<?, ?> overwriteServiceConfiguration) {
+    return using(overwriteServiceConfiguration);
   }
 
   /**
@@ -363,6 +325,19 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    */
   public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
     return new CacheManagerBuilder<>(this, configBuilder.withClassLoader(classLoader));
+  }
+
+  private <R, C extends ServiceCreationConfiguration<?, R>> CacheManagerBuilder<T> ensureThenUpdate(Supplier<C> supplier, UnaryOperator<R> update) {
+    C emptyConfig = supplier.get();
+   @SuppressWarnings("unchecked")
+    Class<? extends C> configType = (Class<? extends C>) emptyConfig.getClass();
+
+    FluentConfigurationBuilder<?> fluentBuilder = configBuilder;
+    if (configBuilder.getService(configType) == null) {
+      fluentBuilder = fluentBuilder.withService(emptyConfig);
+    }
+
+    return new CacheManagerBuilder<>(this, fluentBuilder.updateServices(configType, update));
   }
 
   /**

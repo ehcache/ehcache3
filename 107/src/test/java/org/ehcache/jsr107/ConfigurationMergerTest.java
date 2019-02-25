@@ -355,7 +355,7 @@ public class ConfigurationMergerTest {
 
     assertThat(configHolder1.cacheConfiguration.getServiceConfigurations().isEmpty(), is(true));
 
-    for (ServiceCreationConfiguration<?> serviceCreationConfiguration : xmlConfiguration.getServiceCreationConfigurations()) {
+    for (ServiceCreationConfiguration<?, ?> serviceCreationConfiguration : xmlConfiguration.getServiceCreationConfigurations()) {
       if (serviceCreationConfiguration instanceof DefaultCopyProviderConfiguration) {
         DefaultCopyProviderConfiguration copierConfig = (DefaultCopyProviderConfiguration)serviceCreationConfiguration;
         assertThat(copierConfig.getDefaults().size(), is(6));

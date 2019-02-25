@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.config.serializer;
 
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
@@ -27,6 +28,9 @@ import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
 
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.*;
 
 public class DefaultSerializationProviderConfigurationTest {
@@ -80,6 +84,18 @@ public class DefaultSerializationProviderConfigurationTest {
     expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
     config.addSerializerFor(Long.class, LegacySerializer.class);
+  }
+
+  @Test @SuppressWarnings("unchecked")
+  public void testDeriveDetachesCorrectly() {
+    DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
+    configuration.addSerializerFor(String.class, (Class) JavaSerializer.class);
+
+    DefaultSerializationProviderConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived, is(not(sameInstance(configuration))));
+    assertThat(derived.getDefaultSerializers(), is(not(sameInstance(configuration.getDefaultSerializers()))));
+    assertThat(derived.getDefaultSerializers().get(String.class), sameInstance(JavaSerializer.class));
   }
 
   private static class MinimalSerializer implements Serializer<Long> {

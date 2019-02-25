@@ -20,7 +20,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * Configuration interface for a  {@link ClusteringManagementService}.
  */
-public interface ClusteringManagementServiceConfiguration extends ServiceCreationConfiguration<ClusteringManagementService> {
+public interface ClusteringManagementServiceConfiguration<R> extends ServiceCreationConfiguration<ClusteringManagementService, R> {
 
   /**
    * @return The alias of the executor used to run management call queries.

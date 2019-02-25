@@ -121,8 +121,7 @@ public class EventsReconnectTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"));
+                    .autoCreate(s -> s.defaultServerResource("primary-server-resource")));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

@@ -67,7 +67,7 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
   @Test
   public void testDestroyCacheManager() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> configBuilder = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/destroy-CM"))
-      .autoCreate().defaultServerResource("primary-server-resource"));
+      .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     PersistentCacheManager cacheManager1 = configBuilder.build(true);
     PersistentCacheManager cacheManager2 = configBuilder.build(true);
 

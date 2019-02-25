@@ -109,7 +109,7 @@ public class WriteBehindTestBase extends ClusteredTests {
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate())
+      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }

@@ -46,7 +46,7 @@ public interface Configuration {
    *
    * @return a collection of service creations configurations
    */
-  Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations();
+  Collection<ServiceCreationConfiguration<?, ?>> getServiceCreationConfigurations();
 
   /**
    * The {@link ClassLoader} for the {@link org.ehcache.CacheManager CacheManager}.
@@ -59,4 +59,18 @@ public interface Configuration {
    * @return the cache manager {@code ClassLoader}
    */
   ClassLoader getClassLoader();
+
+  /**
+   * Creates a builder seeded with this configuration.
+   * <p>
+   * The default implementation throws {@code UnsupportedOperationException} to indicate that configuration derivation
+   * is not supported.
+   *
+   * @see FluentConfigurationBuilder
+   * @return a configuration builder
+   * @throws UnsupportedOperationException if configuration derivation is not supported
+   */
+  default FluentConfigurationBuilder<?> derive() {
+    throw new UnsupportedOperationException();
+  }
 }

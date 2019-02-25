@@ -81,8 +81,8 @@ public class EhcacheBaseTest extends AbstractCacheCalculationTest {
 
   private void createNotAtomicCacheManager() throws IOException {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new TimeSourceConfiguration(timeSource))
-      .addService(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .withService(new TimeSourceConfiguration(timeSource))
+      .withService(new DefaultPersistenceConfiguration(diskPath.newFolder()))
       .build();
 
     Collection<Service> services = Collections.singleton(statisticsService);

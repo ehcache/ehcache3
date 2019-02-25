@@ -17,7 +17,7 @@
 package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
-import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CoreServiceCreationConfigurationParser;
@@ -27,7 +27,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationConfiguration<?>> implements CoreServiceCreationConfigurationParser {
+class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationConfiguration<?, ?>> implements CoreServiceCreationConfigurationParser {
 
   private final Class<U> configType;
 
@@ -68,12 +68,12 @@ class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationC
   }
 
   @Override
-  public final ConfigurationBuilder parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, ConfigurationBuilder builder) throws ClassNotFoundException {
+  public final FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, FluentConfigurationBuilder<?> builder) throws ClassNotFoundException {
     T config = getter.apply(root);
     if (config == null) {
       return builder;
     } else {
-      return builder.addService(parser.parse(config, classLoader));
+      return builder.withService(parser.parse(config, classLoader));
     }
   }
 
@@ -94,7 +94,7 @@ class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationC
   }
 
   @FunctionalInterface
-  interface Parser<T, U extends ServiceCreationConfiguration<?>> {
+  interface Parser<T, U extends ServiceCreationConfiguration<?, ?>> {
 
     U parse(T t, ClassLoader classLoader) throws ClassNotFoundException;
   }

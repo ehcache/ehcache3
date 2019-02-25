@@ -97,9 +97,8 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
-                .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(20)))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
+          .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(20)))
+          .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);
     CACHE_MANAGER2 = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, BlobValue.class,

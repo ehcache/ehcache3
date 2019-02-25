@@ -32,13 +32,13 @@ public class DefaultResilienceStrategyConfigurationTest {
 
   @Test
   public void testBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null), sameInstance(configuration));
   }
 
   @Test
   public void testLoaderWriterBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null, null), sameInstance(configuration));
   }
 
