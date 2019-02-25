@@ -52,7 +52,7 @@ subprojects {
 
   repositories {
     mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
+    maven { url "https://repo.terracotta.org/maven2" }
   }
 
   sourceSets {
