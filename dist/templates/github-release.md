@@ -1,8 +1,8 @@
 ## Getting started
 
-=> Please add what this release is about here
+3.7.0 release : clustered loader writer
 
-As usual, it contains numerous [bug fixes and enhancements](https://github.com/ehcache/ehcache3/milestone/%MILESTONE%?closed=1).
+As usual, it contains numerous [bug fixes and enhancements](https://github.com/ehcache/ehcache3/milestone/3.7.0?closed=1).
 
 Ehcache ${version} has been released to maven central under the following coordinates:
 
@@ -12,7 +12,7 @@ Ehcache ${version} has been released to maven central under the following coordi
 <dependency>
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache</artifactId>
-  <version>%VERSION%</version>
+  <version>3.7.0</version>
 </dependency>
 ```
 
@@ -22,7 +22,7 @@ Ehcache ${version} has been released to maven central under the following coordi
 <dependency>
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache-transactions</artifactId>
-  <version>%VERSION%</version>
+  <version>3.7.0</version>
 </dependency>
 ```
 
@@ -32,7 +32,7 @@ Ehcache ${version} has been released to maven central under the following coordi
 <dependency>
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache-clustered</artifactId>
-  <version>%VERSION%</version>
+  <version>3.7.0</version>
 </dependency>
 ```
 
@@ -45,4 +45,4 @@ Note that if you download Ehcache jar you will need one additional jar in your c
 For clustering a kit is also provided that includes the Terracotta Server component. See below.
 
 ## Further reading
-- [Ehcache 3 documentation](http://www.ehcache.org/documentation/%MAJORVERSION%/)
+- [Ehcache 3 documentation](http://www.ehcache.org/documentation/3.7/)
