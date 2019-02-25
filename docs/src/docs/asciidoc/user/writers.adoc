@@ -12,8 +12,6 @@ endif::notBuildingForSite[]
 [[introduction]]
 == Introduction to Cache Loaders and Writers
 
-NOTE: Ehcache clustering is not yet compatible with _cache-through_.
-
 This section documents the specifics behind the cache-through implementation in Ehcache.
 Refer to the section <<caching-patterns#,Cache Usage Patterns>> if you are not familiar with terms
 like _cache-through_, _read-through_, _write-through_ or _system of record_.
@@ -98,3 +96,5 @@ include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 <5> Define the concurrency level of write-behind queue(s).
 This indicates how many writer threads work in parallel to update the underlying system of record asynchronously.
 <6> Enable the write coalescing behavior, which ensures that only one update per key per batch reaches the underlying system of record.
+
+NOTE: `BatchedWriteBehindConfigurationBuilder` configurations are not honoured by clustered caches.
