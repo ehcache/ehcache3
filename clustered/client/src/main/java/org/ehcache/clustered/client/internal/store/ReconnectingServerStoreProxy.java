@@ -32,6 +32,10 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     this.onReconnect = onReconnect;
   }
 
+  private void testMethod() {
+    //do nothing
+  }
+
   @Override
   public String getCacheId() {
     return proxy().getCacheId();
