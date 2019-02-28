@@ -248,8 +248,8 @@ public class BasicClusteredWriteBehindPassthroughTest {
                                                                                  .offheap(1, MemoryUnit.MB)
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
-        .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
-        .add(new ClusteredStoreConfiguration(Consistency.STRONG))
+        .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder

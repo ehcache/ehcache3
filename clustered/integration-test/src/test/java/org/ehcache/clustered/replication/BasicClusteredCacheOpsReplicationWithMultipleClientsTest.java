@@ -104,7 +104,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
     CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, BlobValue.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
     CACHE1 = CACHE_MANAGER1.createCache("clustered-cache", config);

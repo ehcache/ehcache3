@@ -33,7 +33,7 @@ public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<Str
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider> serviceConfiguration) {
+  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider, ?> serviceConfiguration) {
     return (CacheEventListener<K, V>) newInstance(alias, serviceConfiguration);
   }
 

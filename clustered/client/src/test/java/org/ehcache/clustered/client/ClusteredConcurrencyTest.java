@@ -101,7 +101,7 @@ public class ClusteredConcurrencyTest {
           .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-            .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+            .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
 
         latch.countDown();
         try {

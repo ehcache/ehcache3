@@ -421,12 +421,12 @@ public class XmlConfigurationTest {
     assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.equalTo(TestSerializer4.class));
 
 
-    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
+    List<ServiceConfiguration<?, ?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
       .get("baz")
       .getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
     orderedServiceConfigurations.sort(Comparator.comparing(o -> o.getClass().getName()));
-    Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
+    Iterator<ServiceConfiguration<?, ?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration<?> keySerializationProviderConfiguration = (DefaultSerializerConfiguration<?>) it.next();
     assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
@@ -473,8 +473,8 @@ public class XmlConfigurationTest {
         Matchers.<Class<? extends Copier<?>>>equalTo(PersonCopier.class));
 
 
-    Collection<ServiceConfiguration<?>> configs = xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations();
-    for(ServiceConfiguration<?> config: configs) {
+    Collection<ServiceConfiguration<?, ?>> configs = xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations();
+    for(ServiceConfiguration<?, ?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration<?>) config;
         if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
@@ -486,7 +486,7 @@ public class XmlConfigurationTest {
     }
 
     configs = xmlConfig.getCacheConfigurations().get("bak").getServiceConfigurations();
-    for(ServiceConfiguration<?> config: configs) {
+    for(ServiceConfiguration<?, ?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration<?>) config;
         if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
@@ -530,7 +530,7 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/writebehind-cache.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    Collection<ServiceConfiguration<?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
+    Collection<ServiceConfiguration<?, ?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
 
     assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
@@ -538,7 +538,7 @@ public class XmlConfigurationTest {
 
     assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
-    for (ServiceConfiguration<?> configuration : serviceConfiguration) {
+    for (ServiceConfiguration<?, ?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
         BatchingConfiguration batchingConfig = ((WriteBehindConfiguration) configuration).getBatchingConfiguration();
         assertThat(batchingConfig.getMaxDelay(), is(10L));
@@ -570,7 +570,7 @@ public class XmlConfigurationTest {
     checkListenerConfigurationExists(cacheConfig.getServiceConfigurations());
 
     CacheConfigurationBuilder<Number, String> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class);
-    assertThat(templateConfig.getExistingServiceConfiguration(DefaultCacheEventListenerConfiguration.class), notNullValue());
+    assertThat(templateConfig.getService(DefaultCacheEventListenerConfiguration.class), notNullValue());
   }
 
   @Test

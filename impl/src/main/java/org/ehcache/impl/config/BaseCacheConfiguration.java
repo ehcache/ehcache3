@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config;
+package org.ehcache.impl.config;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,8 +23,12 @@ import java.util.Collections;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
+
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 
 /**
  * Base implementation of {@link CacheConfiguration}.
@@ -34,7 +38,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations;
+  private final Collection<ServiceConfiguration<?, ?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final ExpiryPolicy<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
@@ -53,7 +57,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionAdvisor<? super K, ? super V> evictionAdvisor,
           ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
-          ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
+          ResourcePools resourcePools, ServiceConfiguration<?, ?>... serviceConfigurations) {
     if (keyType == null) {
       throw new NullPointerException("keyType cannot be null");
     }
@@ -80,7 +84,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    * {@inheritDoc}
    */
   @Override
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
+  public Collection<ServiceConfiguration<?, ?>> getServiceConfigurations() {
     return serviceConfigurations;
   }
 
@@ -139,5 +143,10 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   @Override
   public ResourcePools getResourcePools() {
     return resourcePools;
+  }
+
+  @Override
+  public CacheConfigurationBuilder<K, V> derive() {
+    return newCacheConfigurationBuilder(this);
   }
 }

@@ -116,7 +116,7 @@ public interface FluentConfigurationBuilder<B extends FluentConfigurationBuilder
    * @see #withoutCache(String)
    * @see #updateCaches(UnaryOperator)
    */
-  B updateCache(String alias, UnaryOperator<FluentCacheConfigurationBuilder<?, ?>> update) throws IllegalArgumentException;
+  B updateCache(String alias, UnaryOperator<FluentCacheConfigurationBuilder<?, ?, ?>> update) throws IllegalArgumentException;
 
   /**
    * Updates the configuration of the all caches.

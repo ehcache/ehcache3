@@ -65,10 +65,10 @@ public class DefaultWriteBehindConfigurationParserTest {
 
   @Test
   public void unparseServiceConfigurationBatched() {
-    WriteBehindConfiguration writeBehindConfiguration =
+    WriteBehindConfiguration<?> writeBehindConfiguration =
       WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(123, TimeUnit.SECONDS, 987)
       .enableCoalescing().concurrencyLevel(8).useThreadPool("foo").queueSize(16).build();
-    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(writeBehindConfiguration).build();
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(writeBehindConfiguration).build();
     CacheType cacheType = new CacheType();
     cacheType = new DefaultWriteBehindConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 

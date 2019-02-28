@@ -25,7 +25,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
@@ -309,10 +308,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
   <K, V> InternalCache<K, V> createNewEhcache(String alias, CacheConfiguration<K, V> config,
                                         Class<K> keyType, Class<V> valueType) {
-    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
+    Collection<ServiceConfiguration<?, ?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration<?>> unknownServiceConfigs = new ArrayList<>();
-    for (ServiceConfiguration<?> serviceConfig : adjustedServiceConfigs) {
+    List<ServiceConfiguration<?, ?>> unknownServiceConfigs = new ArrayList<>();
+    for (ServiceConfiguration<?, ?> serviceConfig : adjustedServiceConfigs) {
       if (!serviceLocator.knowsServiceFor(serviceConfig)) {
         unknownServiceConfigs.add(serviceConfig);
       }
@@ -345,7 +344,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
     CacheEventDispatcher<K, V> evtService =
-        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?>[adjustedServiceConfigs.size()]));
+        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[adjustedServiceConfigs.size()]));
     lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
@@ -365,9 +364,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
-      Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
-          ServiceUtils.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
-      for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
+      @SuppressWarnings("unchecked")
+      Collection<CacheEventListenerConfiguration<?>> evtLsnrConfigs =
+          ServiceUtils.<Class<CacheEventListenerConfiguration<?>>>findAmongst((Class) CacheEventListenerConfiguration.class, config.getServiceConfigurations());
+      for (CacheEventListenerConfiguration<?> lsnrConfig: evtLsnrConfigs) {
         CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
           cache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
@@ -414,7 +414,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
    */
   protected <K, V> Store<K, V> getStore(String alias, CacheConfiguration<K, V> config,
                                        Class<K> keyType, Class<V> valueType,
-                                       Collection<ServiceConfiguration<?>> serviceConfigs,
+                                       Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                        List<LifeCycled> lifeCycledList, CacheLoaderWriter<? super K, V> loaderWriter) {
 
     final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
@@ -441,7 +441,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?>[serviceConfigs.size()]);
+    ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[serviceConfigs.size()]);
     if (serialization != null) {
       try {
         final Serializer<K> keySer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigArray);
@@ -479,9 +479,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    Collection<ServiceConfiguration<?>> serviceConfigurations = config.getServiceConfigurations();
+    Collection<ServiceConfiguration<?, ?>> serviceConfigurations = config.getServiceConfigurations();
 
-    int dispatcherConcurrency = findOptionalAmongst(StoreEventSourceConfiguration.class, serviceConfigurations)
+    @SuppressWarnings("unchecked")
+    int dispatcherConcurrency = findOptionalAmongst((Class<StoreEventSourceConfiguration<?>>) (Class) StoreEventSourceConfiguration.class, serviceConfigurations)
       .map(StoreEventSourceConfiguration::getDispatcherConcurrency)
       .orElse(StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY);
 
@@ -531,39 +532,23 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
    *  adjusts the config to reflect new classloader & serialization provider
    */
   private <K, V> CacheConfiguration<K, V> adjustConfigurationWithCacheManagerDefaults(String alias, CacheConfiguration<K, V> config) {
-    ClassLoader cacheClassLoader = config.getClassLoader();
+    if (config.getClassLoader() == null && cacheManagerClassLoader != null) {
+      config = config.derive().withClassLoader(cacheManagerClassLoader).build();
+    }
 
-    List<ServiceConfiguration<?>> configurationList = new ArrayList<>();
-    configurationList.addAll(config.getServiceConfigurations());
 
-    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, config.getServiceConfigurations());
+    CacheLoaderWriterConfiguration<?> loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, config.getServiceConfigurations());
     if (loaderWriterConfiguration == null) {
       CacheLoaderWriterProvider loaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
-      ServiceConfiguration<CacheLoaderWriterProvider> preConfiguredCacheLoaderWriterConfig = loaderWriterProvider.getPreConfiguredCacheLoaderWriterConfig(alias);
+      CacheLoaderWriterConfiguration<?> preConfiguredCacheLoaderWriterConfig = loaderWriterProvider.getPreConfiguredCacheLoaderWriterConfig(alias);
       if (preConfiguredCacheLoaderWriterConfig != null) {
-        configurationList.add(preConfiguredCacheLoaderWriterConfig);
+        config = config.derive().withService(preConfiguredCacheLoaderWriterConfig).build();
       }
       if (loaderWriterProvider.isLoaderJsrProvided(alias)) {
-        configurationList.add(new CacheLoaderWriterConfiguration() {
-        });
+        config = config.derive().withService(new CacheLoaderWriterConfiguration<Void>() {}).build();
       }
     }
 
-    ServiceConfiguration<?>[] serviceConfigurations = new ServiceConfiguration<?>[configurationList.size()];
-    configurationList.toArray(serviceConfigurations);
-
-    if (cacheClassLoader == null) {
-      cacheClassLoader = cacheManagerClassLoader;
-    }
-    if (cacheClassLoader != config.getClassLoader() ) {
-      config = new BaseCacheConfiguration<>(config.getKeyType(), config.getValueType(),
-        config.getEvictionAdvisor(), cacheClassLoader, config.getExpiryPolicy(),
-        config.getResourcePools(), serviceConfigurations);
-    } else {
-      config = new BaseCacheConfiguration<>(config.getKeyType(), config.getValueType(),
-              config.getEvictionAdvisor(), config.getClassLoader(), config.getExpiryPolicy(),
-              config.getResourcePools(), serviceConfigurations);
-    }
     return config;
   }
 

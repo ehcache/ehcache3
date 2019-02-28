@@ -71,7 +71,7 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
     }
 
     @Override
-    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration) {
+    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
       if (cacheLoaderWriter == null) {
         throw new NullPointerException("WriteBehind requires a non null CacheLoaderWriter.");
       }

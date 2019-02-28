@@ -100,7 +100,7 @@ public class EventsReconnectTest extends ClusteredTests {
   private static CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
       .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-    .add(CacheEventListenerConfigurationBuilder
+    .withService(CacheEventListenerConfigurationBuilder
       .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
       .unordered().asynchronous())
     .withResilienceStrategy(new ThrowingResiliencyStrategy<>())

@@ -56,7 +56,7 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
   }
 
   @Override
-  public ServiceConfiguration<XAStore.Provider> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<XAStore.Provider, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("xa-store".equals(localName)) {
       String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");
@@ -73,7 +73,7 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<XAStore.Provider> serviceConfiguration) {
+  public Element unparseServiceConfiguration(ServiceConfiguration<XAStore.Provider, ?> serviceConfiguration) {
     return unparseConfig(serviceConfiguration);
   }
 

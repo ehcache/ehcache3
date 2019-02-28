@@ -34,9 +34,9 @@ public interface CacheServiceConfigurationParser<T extends Service> {
 
   URI getNamespace();
 
-  ServiceConfiguration<T> parseServiceConfiguration(Element fragment, ClassLoader classLoader);
+  ServiceConfiguration<T, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader);
 
   Class<T> getServiceType();
 
-  Element unparseServiceConfiguration(ServiceConfiguration<T> serviceConfiguration);
+  Element unparseServiceConfiguration(ServiceConfiguration<T, ?> serviceConfiguration);
 }

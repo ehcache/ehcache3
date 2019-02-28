@@ -32,6 +32,7 @@ import org.ehcache.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -106,7 +107,7 @@ class ConfigurationMerger {
       }
 
       boolean useEhcacheLoaderWriter;
-      CacheLoaderWriterConfiguration ehcacheLoaderWriterConfiguration = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
+      CacheLoaderWriterConfiguration<?> ehcacheLoaderWriterConfiguration = builder.getService(DefaultCacheLoaderWriterConfiguration.class);
       if (ehcacheLoaderWriterConfiguration == null) {
         useEhcacheLoaderWriter = false;
         // No template loader/writer - let's activate the JSR-107 one if any
@@ -144,8 +145,9 @@ class ConfigurationMerger {
   }
 
   private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder, String cacheName) {
-    DefaultCopierConfiguration<?> copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
-    if(copierConfig == null) {
+    @SuppressWarnings("unchecked")
+    Collection<DefaultCopierConfiguration<?>> copierConfigs = builder.getServices((Class<DefaultCopierConfiguration<?>>) (Class) DefaultCopierConfiguration.class);
+    if(copierConfigs.isEmpty()) {
       if(jsr107Configuration.isStoreByValue()) {
         if (xmlConfiguration != null) {
           DefaultCopyProviderConfiguration defaultCopyProviderConfiguration = findSingletonAmongst(DefaultCopyProviderConfiguration.class,
@@ -157,12 +159,12 @@ class ConfigurationMerger {
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
+              builder = builder.withService(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
             }
             if (defaults.containsKey(jsr107Configuration.getValueType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+              builder = builder.withService(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
             }
             if (matchingDefault) {
               LOG.info("CacheManager level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
@@ -189,15 +191,15 @@ class ConfigurationMerger {
     immutableTypes.add(Character.class);
     immutableTypes.add(Integer.class);
     if (immutableTypes.contains(keyType)) {
-      builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
+      builder = builder.withService(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
+      builder = builder.withService(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     }
 
     if (immutableTypes.contains(valueType)) {
-      builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
+      builder = builder.withService(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+      builder = builder.withService(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     }
     return builder;
   }

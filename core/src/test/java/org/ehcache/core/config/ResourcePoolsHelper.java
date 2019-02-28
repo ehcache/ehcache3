@@ -21,56 +21,60 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * @author Ludovic Orban
  */
 public class ResourcePoolsHelper {
 
-  public static ResourcePools createHeapOnlyPools() {
-    return createHeapOnlyPools(Long.MAX_VALUE);
-  }
+  public static ResourcePools createResourcePools(long size) {
+    return new ResourcePools() {
+      @Override @SuppressWarnings("unchecked")
+      public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+        if (ResourceType.Core.HEAP.equals(resourceType)) {
+          return (P) new SizedResourcePool() {
+            @Override
+            public long getSize() {
+              return size;
+            }
 
-  public static ResourcePools createHeapOnlyPools(long heapSize) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
-    return new ResourcePoolsImpl(poolsMap);
-  }
+            @Override
+            public ResourceUnit getUnit() {
+              return EntryUnit.ENTRIES;
+            }
 
-  public static ResourcePools createHeapOnlyPools(long heapSize, ResourceUnit resourceUnit) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, heapSize, resourceUnit, false));
-    return new ResourcePoolsImpl(poolsMap);
-  }
+            @Override
+            public ResourceType<?> getType() {
+              return ResourceType.Core.HEAP;
+            }
 
-  public static ResourcePools createOffheapOnlyPools(long offheapSizeInMb) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.OFFHEAP, new SizedResourcePoolImpl<>(ResourceType.Core.OFFHEAP, offheapSizeInMb, MemoryUnit.MB, false));
-    return new ResourcePoolsImpl(poolsMap);
-  }
+            @Override
+            public boolean isPersistent() {
+              return false;
+            }
 
-  public static ResourcePools createDiskOnlyPools(long diskSize, ResourceUnit resourceUnit) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl<>(ResourceType.Core.DISK, diskSize, resourceUnit, false));
-    return new ResourcePoolsImpl(poolsMap);
-  }
+            @Override
+            public void validateUpdate(ResourcePool newPool) {
+              //all updates are okay
+            }
+          };
+        } else {
+          return null;
+        }
+      }
 
-  public static ResourcePools createHeapDiskPools(long heapSize, long diskSizeInMb) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
-    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl<>(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
-    return new ResourcePoolsImpl(poolsMap);
-  }
+      @Override
+      public Set<ResourceType<?>> getResourceTypeSet() {
+        return Collections.singleton(ResourceType.Core.HEAP);
+      }
 
-  public static ResourcePools createHeapDiskPools(long heapSize, ResourceUnit heapResourceUnit, long diskSizeInMb) {
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
-    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, heapSize, heapResourceUnit, false));
-    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl<>(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
-    return new ResourcePoolsImpl(poolsMap);
+      @Override
+      public ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException {
+        return toBeUpdated;
+      }
+    };
   }
-
 }

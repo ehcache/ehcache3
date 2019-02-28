@@ -92,7 +92,7 @@ public class DestroyLoopTest extends ClusteredTests {
         .withCache(CACHE_NAME, newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
     return clusteredCacheManagerBuilder.build(true);
   }
 

@@ -36,12 +36,12 @@ public class DefaultCopierConfigurationParser implements CoreServiceConfiguratio
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keyCopier() != null) {
       Class<?> keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
+      cacheBuilder = cacheBuilder.withService(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
     }
 
     if (cacheDefinition.valueCopier() != null) {
       Class<?> valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+      cacheBuilder = cacheBuilder.withService(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     }
 
     return cacheBuilder;

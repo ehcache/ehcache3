@@ -108,7 +108,7 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
   }
 
   @Override
-  public B updateCache(String alias, UnaryOperator<FluentCacheConfigurationBuilder<?, ?>> update) {
+  public B updateCache(String alias, UnaryOperator<FluentCacheConfigurationBuilder<?, ?, ?>> update) {
     CacheConfiguration<?, ?> existing = getCache(alias);
     if (existing == null) {
       throw new IllegalArgumentException("Cache does not exist");

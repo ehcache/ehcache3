@@ -97,7 +97,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return services.get(serviceType);
   }
 
-  public boolean knowsServiceFor(ServiceConfiguration<?> serviceConfig) {
+  public boolean knowsServiceFor(ServiceConfiguration<?, ?> serviceConfig) {
     return services.contains(serviceConfig.getServiceType());
   }
 

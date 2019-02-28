@@ -131,7 +131,7 @@ public class GettingStarted {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                       .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)) // <1>
+          .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)) // <1>
           .build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
@@ -159,7 +159,7 @@ public class GettingStarted {
           ResourcePoolsBuilder.newResourcePoolsBuilder()
               .heap(2, MemoryUnit.MB) // <1>
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))) // <2>
-          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+          .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
           .build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache-tiered", config);
@@ -224,7 +224,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfigDedicated = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))  // <2>
-    .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+    .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
     .build();
 
     Cache<Long, String> cacheDedicated = cacheManager1.createCache("my-dedicated-cache", cacheConfigDedicated);  // <3>
@@ -240,7 +240,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfigUnspecified = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clustered()))  // <5>
-    .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+    .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
     .build();
 
     Cache<Long, String> cacheUnspecified = cacheManager2.createCache("my-dedicated-cache", cacheConfigUnspecified); // <6>

@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 
 public class ClusteredLoaderWriterStoreProviderTest {
 
-  private final CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
+  private final CacheLoaderWriterConfiguration<?> cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
 
   @Test
   public void testRank() {

@@ -66,7 +66,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
-        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();

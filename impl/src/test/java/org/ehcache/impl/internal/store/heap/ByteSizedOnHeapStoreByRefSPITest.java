@@ -105,8 +105,8 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override

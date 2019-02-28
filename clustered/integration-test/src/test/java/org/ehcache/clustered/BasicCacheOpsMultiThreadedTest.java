@@ -169,13 +169,13 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
           .newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(resourcePool))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)))
       .withCache(SYN_CACHE_NAME,
         CacheConfigurationBuilder
           .newCacheConfigurationBuilder(String.class, Boolean.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(resourcePool))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
     return clusteredCacheManagerBuilder.build(false);
   }
 

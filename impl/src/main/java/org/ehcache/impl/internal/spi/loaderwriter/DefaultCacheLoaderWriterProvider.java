@@ -50,8 +50,8 @@ public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<Stri
   }
 
   @Override
-  public CacheLoaderWriterConfiguration getPreConfiguredCacheLoaderWriterConfig(String alias) {
-    return (CacheLoaderWriterConfiguration) getPreconfigured(alias);
+  public CacheLoaderWriterConfiguration<?> getPreConfiguredCacheLoaderWriterConfig(String alias) {
+    return getPreconfigured(alias);
   }
 
   @Override

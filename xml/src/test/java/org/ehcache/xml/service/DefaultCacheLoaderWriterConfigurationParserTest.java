@@ -46,7 +46,7 @@ public class DefaultCacheLoaderWriterConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheLoaderWriterConfiguration(TestCacheLoaderWriter.class)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultCacheLoaderWriterConfiguration(TestCacheLoaderWriter.class)).build();
     CacheType cacheType = new DefaultCacheLoaderWriterConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType());
 
 
@@ -57,7 +57,7 @@ public class DefaultCacheLoaderWriterConfigurationParserTest {
   public void unparseServiceConfigurationWithInstance() {
     TestCacheLoaderWriter testCacheLoaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheLoaderWriterConfiguration(testCacheLoaderWriter)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultCacheLoaderWriterConfiguration(testCacheLoaderWriter)).build();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultCacheLoaderWriterConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
       .withMessage("%s", "XML translation for instance based initialization for " +

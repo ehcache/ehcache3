@@ -18,12 +18,11 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -55,7 +54,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -63,7 +61,6 @@ import java.util.function.Supplier;
 
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
 
 /**
  * Provides testing of basic CRUD operations on an {@code Ehcache}.
@@ -72,9 +69,7 @@ import static org.mockito.Mockito.spy;
  */
 public abstract class EhcacheBasicCrudBase {
 
-  protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION =
-    new BaseCacheConfiguration<>(String.class, String.class, null,
-      null, null, ResourcePoolsHelper.createHeapOnlyPools());
+  protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION = new TestCacheConfig<>(String.class, String.class);
 
   @Mock
   protected Store<String, String> store;

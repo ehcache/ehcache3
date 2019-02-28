@@ -154,13 +154,13 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
         try {
           CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
           PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
-          return new ServiceConfiguration<?>[] {space};
+          return new ServiceConfiguration<?, ?>[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
         }

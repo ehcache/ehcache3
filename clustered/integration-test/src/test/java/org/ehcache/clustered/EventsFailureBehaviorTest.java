@@ -99,7 +99,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
       .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
-      .add(CacheEventListenerConfigurationBuilder
+      .withService(CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
         .unordered().asynchronous())
       .withExpiry(expiryPolicy)

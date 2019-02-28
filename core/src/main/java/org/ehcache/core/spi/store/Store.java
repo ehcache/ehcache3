@@ -32,7 +32,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -531,7 +530,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @return the Store honoring the configurations passed in
      */
-    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
@@ -557,7 +556,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
      *      can not handle all types specified in {@code resourceTypes}
      */
-    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
   /**

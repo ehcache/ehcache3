@@ -66,7 +66,7 @@ public class ClusteredCacheExpirationTest {
                 .offheap(6, MemoryUnit.MB)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .withExpiry(expiry)
-            .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+            .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }
 
   private ExpiryPolicy<Object, Object> oneSecondExpiration() {

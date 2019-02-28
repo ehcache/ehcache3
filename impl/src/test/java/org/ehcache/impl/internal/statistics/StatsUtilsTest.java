@@ -65,7 +65,7 @@ public class StatsUtilsTest {
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

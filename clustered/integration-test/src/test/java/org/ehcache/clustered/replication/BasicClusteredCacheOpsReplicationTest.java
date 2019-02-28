@@ -96,7 +96,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
     CACHE1 = CACHE_MANAGER.createCache("clustered-cache", config);

@@ -61,7 +61,7 @@ public class ClusteredCacheDestroyTest {
           .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-              .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+              .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
   public void definePassthroughServer() throws Exception {

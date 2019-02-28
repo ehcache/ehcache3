@@ -56,7 +56,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
           .offheap(1, MemoryUnit.MB)
           .disk(2, MemoryUnit.MB, true))
         .withLoaderWriter(new SampleLoaderWriter<>())
-        .add(WriteBehindConfigurationBuilder
+        .withService(WriteBehindConfigurationBuilder
           .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
           .queueSize(3)
           .concurrencyLevel(1)

@@ -102,8 +102,8 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override

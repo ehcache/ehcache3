@@ -92,7 +92,7 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
       .withCache("test-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(resourcePool)
-      ).add(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
+      ).withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
   }
 
   private static Throwable getCause(Throwable e, Class<? extends Throwable> causeClass) {

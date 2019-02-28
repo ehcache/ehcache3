@@ -256,7 +256,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                                       TimeSource timeSource,
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
-      WriteBehindConfiguration writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, serviceConfigs);
+      WriteBehindConfiguration<?> writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, serviceConfigs);
       if (writeBehindConfiguration != null) {
         ExecutorService executorService =
           executionService.getOrderedExecutor(writeBehindConfiguration.getThreadPoolAlias(),
@@ -282,7 +282,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     }
 
     @Override
-    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       int parentRank = super.rank(resourceTypes, serviceConfigs);
       if (parentRank == 0 || serviceConfigs.stream().noneMatch(WriteBehindConfiguration.class::isInstance)) {
         return 0;
@@ -291,7 +291,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       int parentRank = super.rankAuthority(authorityResource, serviceConfigs);
       if (parentRank == 0 || serviceConfigs.stream().noneMatch(WriteBehindConfiguration.class::isInstance)) {
         return 0;

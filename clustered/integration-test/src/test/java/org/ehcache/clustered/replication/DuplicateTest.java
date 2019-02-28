@@ -89,7 +89,7 @@ public class DuplicateTest extends ClusteredTests {
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
         .withResilienceStrategy(failingResilienceStrategy())
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
     cacheManager =  builder.build(true);
 

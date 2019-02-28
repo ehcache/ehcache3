@@ -27,7 +27,7 @@ import java.util.Arrays;
 /**
  * {@link ServiceConfiguration} for the default {@link ResilienceStrategyProvider}.
  */
-public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfiguration<ResilienceStrategy<?, ?>> implements ServiceConfiguration<ResilienceStrategyProvider> {
+public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfiguration<ResilienceStrategy<?, ?>> implements ServiceConfiguration<ResilienceStrategyProvider, DefaultResilienceStrategyConfiguration> {
 
   /**
    * Creates a resilience strategy configuration that instantiates instances of the given class on demand.
@@ -59,6 +59,16 @@ public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfigu
   @Override
   public Class<ResilienceStrategyProvider> getServiceType() {
     return ResilienceStrategyProvider.class;
+  }
+
+  @Override
+  public DefaultResilienceStrategyConfiguration derive() {
+    return new DefaultResilienceStrategyConfiguration(this);
+  }
+
+  @Override
+  public DefaultResilienceStrategyConfiguration build(DefaultResilienceStrategyConfiguration config) {
+    return config;
   }
 
   /**

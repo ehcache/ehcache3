@@ -83,7 +83,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-          .add(cacheEventListenerConfiguration)
+          .withService(cacheEventListenerConfiguration)
           .build();
 
       cacheManager.createCache("test", config);
@@ -110,7 +110,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-          .add(cacheEventListenerConfiguration)
+          .withService(cacheEventListenerConfiguration)
           .build();
 
       cacheManager.createCache("test", config);
@@ -137,7 +137,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))
               )
-                  .add(new XAStoreConfiguration("xaCache"))
+                  .withService(new XAStoreConfiguration("xaCache"))
                   .build()
           )
           .build(true);

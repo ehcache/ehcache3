@@ -25,7 +25,6 @@ import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
