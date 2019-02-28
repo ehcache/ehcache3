@@ -665,6 +665,11 @@ public class ClusterTierManagerActiveEntityTest {
       return capacity;
     }
 
+    @Override
+    public boolean setCapacity(long size) throws IllegalArgumentException {
+      return false;
+    }
+
     private long getUsed() {
       return used;
     }
