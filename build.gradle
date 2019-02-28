@@ -222,7 +222,7 @@ subprojects {
 
   findbugsMain {
     reports {
-      // Switch from xml to html by changing these flags
+      // Switch from xml to html by changing these flagss
       xml.enabled = true
       html.enabled = false
     }
