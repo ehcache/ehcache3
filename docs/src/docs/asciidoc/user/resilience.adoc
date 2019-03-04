@@ -1,9 +1,9 @@
 ---
 ---
 = Resilience
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -64,7 +64,7 @@ Timeouts can be configured using a dedicated builder or in XML.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Resilience.java[tag=timeoutsExample]
+include::{sourcedir37}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Resilience.java[tag=timeoutsExample]
 ----
 
 <1> Start setting timeouts using the build
