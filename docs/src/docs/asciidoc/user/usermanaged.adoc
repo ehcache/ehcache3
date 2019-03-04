@@ -1,9 +1,9 @@
 ---
 ---
 = User managed caches
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -44,7 +44,7 @@ The interface definition is shown in this code:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
+include::{sourcedir37}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
 ----
 
 === User Managed Persistent Cache
@@ -63,7 +63,7 @@ The interface definition is shown in this code:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
+include::{sourcedir37}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
 ----
 
 [[code-examples]]
@@ -75,7 +75,7 @@ Here is a simple example showing a basic lifecycle of a user managed cache:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 
 <1> Create a `UserManagedCache` instance. You can either pass `true` to have the builder `init()` it for you,
@@ -102,7 +102,7 @@ If you want to use disk persistent cache, you will need to create and lifecycle 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
 ----
 
 <1> Create the persistence service to be used by the cache for storing data on disk.
@@ -125,7 +125,7 @@ For more information on cache event listeners, see the section <<cache-event-lis
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
 ----
 
 <1> Provide the `ExecutorService` for ordered and unordered event delivery.
