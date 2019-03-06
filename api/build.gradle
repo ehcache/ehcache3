@@ -27,3 +27,5 @@ jar {
     'Import-Package': '*'
   )
 }
+
+check.dependsOn(baseline)
