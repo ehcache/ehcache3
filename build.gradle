@@ -26,7 +26,7 @@ plugins {
   // Declare spotbugs at the top
   id 'com.github.spotbugs' version '1.6.9' apply false
   // Declare osgi-ds at the top
-  id 'org.jayware.osgi-ds' version '0.5.5' apply false
+  id 'org.jayware.osgi-ds' version '0.5.6' apply false
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck' version '4.0.2' apply false
   // Declare bnd at the top
