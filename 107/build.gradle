@@ -55,7 +55,6 @@ jar {
   bnd(
     'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
     'Import-Package': 'javax.cache.*;resolution:=optional, *',
-    'Service-Component': 'OSGI-INF/*.xml'
   )
 }
 
