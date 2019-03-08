@@ -18,6 +18,14 @@ apply plugin: EhDeploy
 apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'osgi-ds'
 
+sourceSets {
+  unsafe {
+    java {
+      srcDir 'src/unsafe/java'
+    }
+  }
+}
+
 dependencies {
   api project(':core')
   implementation group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
@@ -29,9 +37,16 @@ dependencies {
   testImplementation project(':core-spi-test')
   testImplementation 'org.ow2.asm:asm:6.2'
   testImplementation 'org.ow2.asm:asm-commons:6.2'
+
+  unsafeImplementation project(':api')
+  unsafeCompileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
+  api files(sourceSets.unsafe.output.classesDirs) {
+    builtBy compileUnsafeJava
+  }
 }
 
 jar {
+  from sourceSets.unsafe.output
   from "$rootDir/NOTICE"
   bnd (
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
@@ -41,7 +56,11 @@ jar {
   )
 }
 
-compileJava {
+sourceJar {
+  from sourceSets.unsafe.allSource
+}
+
+compileUnsafeJava {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }
