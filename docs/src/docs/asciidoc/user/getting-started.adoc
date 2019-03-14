@@ -1,7 +1,7 @@
 ---
 version: 3.6
 ---
-= Ehcache {{page.version}} Documentation
+= Ehcache 3.7 Documentation
 ifndef::sourcedir36[]
 include::common.adoc[]
 endif::sourcedir36[]
