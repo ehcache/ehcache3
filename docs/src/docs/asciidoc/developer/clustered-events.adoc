@@ -1,0 +1,90 @@
+= Ehcache events from clustered caches
+
+This document describes the core design of what is required to implement ehcache events from caches backed by a
+clustered store.
+
+== High-level requirements
+
+* Ehcache supports five types of cache events: on *eviction*, on *expiry*, on *removal*, on *update* and on *creation*.
+* When an event is fired, every connected client with a registered listener has to receive it.
+* Events must be delivered once and only once as long as the client(s), server(s) and network-in-between are all healthy.
+* What happens when there is a client disconnect, a passive take over, a split brain or any other hazard is yet to be
+determined.
+* No performance impact when the feature isn't used.
+
+=== Recommandations
+
+It must be made clear (documentation?) that the eventing mechanism is going to have a performance impact, sometimes
+a very noticeable one.
+
+Some features are undesirable because they are unlikely to be practical:
+
+* Synchronous events would require waiting for a round-trip to all clients before achieving a cache operation. This
+would pretty much make such cache unusably slow. Such config should throw *UnsupportedOperationException* when attempted.
+* Guaranteeing event delivery in all cases would require some form of stable store and a fairly complex and costly
+2-phase logic. This would also have an unsustainable performance impact. Instead, clients should have a way to figure out
+when such hazard happen to compensate for the possible lack of event delivery.
+
+== Technical facts
+
+Because of the current implementation:
+
+* Most events have to find their source from a client, more specifically from the clustered `Store` implementation:
+*expiry*, *removal*, *update* and *creation* are all client-triggered.
+* One event has to originate from the server: *eviction* is server-triggered.
+
+This means a cluster-wide listener mechanism has to be created with the following features:
+
+* Clients can register and unregister themselves.
+* Events can be fired from any client or any server.
+* Events have to be transported either from a server to all listening clients, or from one client to all clients
+(sometimes including the source client) via a server. AA topologies complicate client-sourced events transport as events
+have to be delivered only once.
+* Events can be fired from non-listening clients.
+
+== The transport mechanism
+
+An event delivery mechanism must be built to transport the events from the clients and servers to all clients registered
+as listeners. It requires the following:
+
+* API to (un)register a client as a listener
+* API for a client to fire an event
+* API for a server to fire an event
+* Implementation support of multiple servers
+
+A dedicated entity looks like the cleanest way ahead. This entity might need to be general-purpose enough to make
+it able to also transport invalidation events, and possibly any other type of notification logic between clients.
+Then refactor the invalidation mechanism to make use of this new notification entity. This should be regarded as a
+stretch goal once the implementation of this story is done.
+
+== The straightforward bits
+
+Assuming the event delivery mechanism is in place event firing logic for the following `Store` methods is going to be
+straightforward to implement as all the necessary data to decide what event to fire already is available handy:
+
+* putIfAbsent()
+* remove(1)
+* remove(2)
+* replace(2)
+* replace(3)
+
+The `Store` methods not listed above or below either throw `UnsupportedOperationException`, or delegate to other
+`Store` methods.
+
+== The complicated bits
+
+The following cases are going to be more complicated to implement:
+
+* All clients must be aware of the event firing logic, apply its rules and fire events even when some clients are not
+registered event listeners.
+* `Store.put()` needs to discriminate between *creation* and *update*. This means `resolve()` must be called, which also
+means that the current `append()` call must be replaced with the slower `getAndAppend()` one. This is going to put more
+strain on the client, the server and the network.
+* Since *expiration* is driven by `resolve()`, the latter's implementation must be modified to make the caller be able
+to discriminate between an empty value due to a removal or an expiration. The idea would then be that if the resolved
+result of `getAndAppend()` is expired, an expiration event can be fired with the guarantee that it's going to be unique.
+Hence, the extra importance that all operations must use `getAndAppend()` instead of the cheaper `append()`.
+* *Eviction*  is triggered by a server, and there already is an eviction listening mechanism that forwards such events
+to clients: [.underline]#invalidation#. The problem is that invalidation only sends the hash of the evicted K/V pairs
+(yes: 1+ pairs) while the events need all the K/V pairs. This means an evicted chain has to be forwarded to all clients
+so that they can resolve it to figure out the different keys and values for which to fire events.
