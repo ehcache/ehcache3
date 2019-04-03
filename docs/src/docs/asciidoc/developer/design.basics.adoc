@@ -17,7 +17,23 @@ means fulfilling a couple of roles:
 
 This diagram tries to summarize the different roles:
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/baseTypes.png[Base Types]
+[plantuml]
+....
+@startuml
+interface CacheManager
+interface Cache
+interface Service
+interface ServiceProvider
+
+CacheManager ..> Cache : <<manage>>
+Cache ..> Service : <<use>>
+CacheManager ..> Service : <<manage>>
+CacheManager ..> ServiceProvider : <<use>>
+ServiceProvider ..> Service : <<repository of>>
+
+hide members
+@enduml
+....
 
 A user will only mostly interact with the `CacheManager` and `Cache` API types... He may need to configure specific
 `Service` types for his `Cache` instances to use. See <<configuration-types-and-builders>>
@@ -43,7 +59,32 @@ on the `CacheConfiguration` used to configure the given `Cache`. That indirectio
 be loaded by the `ServiceProvider`, should none be explicitly provided. That in turn will resolve the required `Store`
 instance to be provided to the `Cache` being created.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/cacheStore.png[Cache's Store]
+[plantuml]
+....
+@startuml
+interface Cache
+interface Store
+
+Cache *--> Store
+Store <|-- OnHeapStore
+Store <|-- OffHeapStore
+
+package "on createCache()" <<Frame>> {
+  interface CacheManager
+  interface ServiceProvider
+  interface Service
+  interface Store.Provider
+
+  CacheManager ..> Cache : <<inject concrete store>>
+  CacheManager ..> ServiceProvider : <<use to locate required services>>
+  CacheManager ..> Store.Provider : <<use to create Store>>
+  Service "*" <--* ServiceProvider
+  Service     <|-- Store.Provider
+}
+
+hide members
+@enduml
+....
 
 The `Cache` also tries to never _fails_ on operations invoked, e.g. a get shouldn't result in throwing an exception if the
 `Store` that backs it up uses serialization and fails to retrieve the mapping. Instead, Ehcache tries to be resilient and
@@ -66,7 +107,19 @@ As the user manages that instance himself, he needs to provide all `Service` ins
 Also he'll need to invoke lifecycle methods on it (see <<state-transitions>>) and finally keep a reference to it, as it
 won't available in any `CacheManager`.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/userManagedCache.png[UserManagedCache]
+[plantuml]
+....
+@startuml
+interface Cache
+interface UserManagedCache
+interface Service
+
+UserManagedCache --|> Cache
+UserManagedCache ..>  Service : <<use>>
+
+hide members
+@enduml
+....
 
 == State transitions
 
@@ -78,7 +131,21 @@ A lifecycled instance, e.g. a `CacheManager` or a `UserManagedCache`, has three 
  operations can be performed on the instance;
  . `AVAILABLE`: The operational state of the instance, all operations can be performed by any amount of threads.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/stateTransitions.png[Statuses & transitions]
+[plantuml]
+....
+@startuml
+[*] --> UNINITIALIZED
+
+UNINITIALIZED --> UNINITIALIZED : transition failure
+
+UNINITIALIZED --> AVAILABLE : init()
+UNINITIALIZED --> MAINTENANCE : toMaintenance()
+
+AVAILABLE --> UNINITIALIZED : shutdown()
+MAINTENANCE --> UNINITIALIZED : shutdown()
+hide empty description
+@enduml
+....
 
 State should only be maintained at the _higher_ user-visible API instance, e.g. a concrete `Cache` instance like `Ehcache`.
 That means that it is the warrant for blocking operations during state transitions or on an _illegal state_. No need for
@@ -103,7 +170,35 @@ immutable. Instances of these types are used to configure some part of the syste
 configuration_ is introduced, e.g. `RuntimeCacheConfiguration`. That type will expose additional mutative methods for
 attributes that are mutable. Internally it will also let consumers of the type register listener for these attributes.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/config.png[Configuration types]
+[plantuml]
+....
+@startuml
+interface CacheManagerBuilder
+interface Configuration
+interface CacheConfiguration
+interface ServiceConfiguration
+interface ServiceCreationConfiguration
+
+CacheManagerBuilder ..> Configuration : <<configures>>
+Configuration *--> "*" ServiceCreationConfiguration
+Configuration *--> "*" CacheConfiguration
+CacheConfiguration *--> "*" ServiceConfiguration
+hide members
+
+package runtime <<Frame>> {
+  interface CacheManager
+  interface Service
+  interface RuntimeCacheConfiguration
+  interface Cache
+
+  CacheManager <.. CacheManagerBuilder : <<build>>
+  CacheManager ..> Service : <<manage>>
+  Cache ..> Service : <<use>>
+  Cache <.. CacheManager : <<manage>>
+  Cache ..> RuntimeCacheConfiguration : <<use>>
+}
+@enduml
+....
 
 ==== Services creation, `ServiceCreationConfiguration`, `ServiceProvider` and `ServiceConfiguration`
 
@@ -192,7 +287,36 @@ datastructures on disk to store. We think of states of those structures in these
  . Online: the datastructures are present (with or without any data), referenced by the `Store` and the `Cache` is usable;
  . Offline: the datastructures are present (with or without data), not referenced by any `Store` and nothing accesses it.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/persistentStateTransitions.jpg[Persistence and statuses & their transitions]
+[plantuml]
+....
+@startuml
+state store {
+[*] --> UNINITIALIZED
+
+UNINITIALIZED --> UNINITIALIZED : transition failure
+
+UNINITIALIZED --> AVAILABLE : init
+UNINITIALIZED --> MAINTENANCE : toMaintenance
+
+AVAILABLE --> UNINITIALIZED : shutdown
+MAINTENANCE --> UNINITIALIZED : shutdown
+
+MAINTENANCE --> MAINTENANCE : destroy
+MAINTENANCE --> MAINTENANCE : create
+}
+
+state data {
+  [*] --> ONLINE : create
+  ONLINE --> [*] : destroy
+
+  OFFLINE --> ONLINE : init
+  ONLINE --> OFFLINE : shutdown
+  OFFLINE --> [*] : destroy
+  OFFLINE --> OFFLINE : transition failure
+}
+hide empty description
+@enduml
+....
 
 The user can fallback to the maintenance mode and the `Maintainable` instance returned when transitioning to the
 maintenance state. That `Maintainable` can be used to:
