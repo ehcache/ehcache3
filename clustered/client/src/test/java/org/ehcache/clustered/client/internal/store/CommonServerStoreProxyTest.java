@@ -38,10 +38,10 @@ import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
@@ -165,18 +165,23 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
     ServerCallback serverCallback = mock(ServerCallback.class);
-    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(chainOf(buffer.duplicate()));
+    doAnswer(inv -> {
+      ServerStoreProxy.ChainEntry entry = inv.getArgument(0);
+      entry.replaceAtHead(chainOf(buffer.duplicate()));
+      return null;
+    }).when(serverCallback).compact(any(ServerStoreProxy.ChainEntry.class), any(long.class));
+
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
 
     for (int i = 0; i < 8; i++) {
       serverStoreProxy.append(1L, buffer.duplicate());
     }
-    verify(serverCallback, never()).compact(any(Chain.class));
+    verify(serverCallback, never()).compact(any(ServerStoreProxy.ChainEntry.class));
     assertThat(serverStoreProxy.get(1L), hasPayloads(42L, 42L, 42L, 42L, 42L, 42L, 42L, 42L));
 
     //trigger compaction at > 8 entries
     serverStoreProxy.append(1L, buffer.duplicate());
-    verify(serverCallback).compact(any(Chain.class), any(long.class));
+    verify(serverCallback).compact(any(ServerStoreProxy.ChainEntry.class), any(long.class));
     assertThat(serverStoreProxy.get(1L), hasPayloads(42L));
   }
 

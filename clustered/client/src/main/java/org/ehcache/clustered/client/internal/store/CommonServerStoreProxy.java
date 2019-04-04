@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAn
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,11 +97,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       }
     });
     entity.addResponseListener(EhcacheEntityResponse.ResolveRequest.class, response -> {
-      Chain incoming = response.getChain();
-      Chain compacted = invalidation.compact(incoming, response.getKey());
-      if (compacted != null) {
-        replaceAtHead(response.getKey(), incoming, compacted);
-      }
+      invalidation.compact(new SimpleEntry(response.getKey(), response.getChain()), response.getKey());
     });
   }
 
@@ -120,7 +117,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
       response = entity.invokeAndWaitForComplete(new GetMessage(key), false);
@@ -130,7 +127,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       throw new ServerStoreProxyException(e);
     }
     if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
-      return ((EhcacheEntityResponse.GetResponse)response).getChain();
+      return new SimpleEntry(key, ((EhcacheEntityResponse.GetResponse)response).getChain());
     } else {
       throw new ServerStoreProxyException("Response for get operation was invalid : " +
                                           (response != null ? response.getResponseType() : "null message"));
@@ -147,7 +144,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
       response = entity.invokeAndWaitForRetired(new GetAndAppendMessage(key, payLoad), true);
@@ -157,7 +154,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       throw new ServerStoreProxyException(e);
     }
     if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
-      return ((EhcacheEntityResponse.GetResponse)response).getChain();
+      return new SimpleEntry(key, ((EhcacheEntityResponse.GetResponse)response).getChain());
     } else {
       throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
                                           (response != null ? response.getResponseType() : "null message"));
@@ -250,6 +247,42 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     } else {
       throw new ServerStoreProxyException("Response for iterator operation was invalid : " +
         (response != null ? response.getResponseType() : "null message"));
+    }
+  }
+
+  private class SimpleEntry implements ChainEntry {
+
+    private final long key;
+    private final Chain chain;
+
+    public SimpleEntry(long key, Chain chain) {
+      this.key = key;
+      this.chain = chain;
+    }
+
+    @Override
+    public void append(ByteBuffer payLoad) throws TimeoutException {
+      CommonServerStoreProxy.this.append(key, payLoad);
+    }
+
+    @Override
+    public void replaceAtHead(Chain equivalent) {
+      CommonServerStoreProxy.this.replaceAtHead(key, chain, equivalent);
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return chain.isEmpty();
+    }
+
+    @Override
+    public int length() {
+      return chain.length();
+    }
+
+    @Override
+    public Iterator<Element> iterator() {
+      return chain.iterator();
     }
   }
 }

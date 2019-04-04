@@ -73,7 +73,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
@@ -89,8 +89,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
-        return chain;
+      public void compact(ServerStoreProxy.ChainEntry chain) {
       }
     });
 
@@ -144,7 +143,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
@@ -179,7 +178,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
@@ -213,7 +212,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });

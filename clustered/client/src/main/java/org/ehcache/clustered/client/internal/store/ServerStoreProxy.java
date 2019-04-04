@@ -16,12 +16,36 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author Ludovic Orban
  */
 public interface ServerStoreProxy extends ServerStore {
+
+  /**
+   * {@inheritDoc}
+   * <p>
+   * {@code ServerStoreProxy} instances return {@link ChainEntry} instances that support mutation of the associated store.
+   *
+   * @return the associated chain entry
+   */
+  @Override
+  ChainEntry get(long key) throws TimeoutException;
+
+  /**
+   * {@inheritDoc}
+   * <p>
+   * {@code ServerStoreProxy} instances return {@link ChainEntry} instances that support mutation of the associated store.
+   *
+   * @return the associated chain entry
+   */
+  @Override
+  ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException;
 
   /**
    * The invalidation listener
@@ -39,10 +63,10 @@ public interface ServerStoreProxy extends ServerStore {
      */
     void onInvalidateAll();
 
-    Chain compact(Chain chain);
+    void compact(ChainEntry chain);
 
-    default Chain compact(Chain chain, long hash) {
-      return compact(chain);
+    default void compact(ChainEntry chain, long hash) {
+      compact(chain);
     }
   }
 
@@ -58,4 +82,54 @@ public interface ServerStoreProxy extends ServerStore {
    */
   void close();
 
+  interface ChainEntry extends Chain {
+
+    /**
+     * Appends the provided binary to this Chain
+     * While appending, the payLoad is stored in {@link Element}.
+     * Note that the {@code payLoad}'s position and limit are left untouched.
+     *
+     * @param payLoad to be appended
+     *
+     * @throws TimeoutException if the append exceeds the timeout configured for write operations
+     */
+    void append(ByteBuffer payLoad) throws TimeoutException;
+
+
+    /**
+     * Replaces the provided Chain with the equivalent Chain present at the head.
+     * This operation is not guaranteed to succeed.
+     * The replaceAtHead is successful iff the Chain associated with the key has
+     * a sub-sequence of elements present as expected..
+     *
+     * If below mapping is present:
+     *
+     *    hash -> |payLoadA| - |payLoadB| - |payLoadC|
+     *
+     * And replaceAtHead(hash, |payLoadA| - |payLoadB| - |payLoadC|, |payLoadC'|) is invoked
+     * then this operation will succeed & the final mapping would be:
+     *
+     *    hash -> |payLoadC'|
+     *
+     * The same operation will also succeed if the mapping was modified by the time replace was invoked to
+     *
+     *    hash -> |payLoadA| - |payLoadB| - |payLoadC| - |payLoadD|
+     *
+     * Though the final mapping would be:
+     *
+     *    hash -> |payLoadC'| - |payLoadD|
+     *
+     * Failure case:
+     *
+     * But before replaceAtHead if it was modified to :
+     *
+     *    hash -> |payLoadC"| - |payLoadD|
+     *
+     * then replaceAtHead(hash, |payLoadA| - |payLoadB| - |payLoadC|, |payLoadC'|) will be ignored.
+     * Note that the payload's position and limit of all elements of both chains are left untouched.
+     *
+     * @param equivalent the new Chain to be replaced
+     */
+    void replaceAtHead(Chain equivalent);
+  }
 }

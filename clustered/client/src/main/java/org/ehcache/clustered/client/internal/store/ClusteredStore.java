@@ -31,7 +31,6 @@ import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperati
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
-import org.ehcache.clustered.common.internal.store.operations.Result;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
@@ -175,32 +174,12 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   protected ValueHolder<V> getInternal(K key) throws StoreAccessException, TimeoutException {
-    ClusteredValueHolder<V> holder = null;
     try {
-      Chain chain = storeProxy.get(extractLongKey(key));
-      if(!chain.isEmpty()) {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-        if (resolvedChain.isCompacted()) {
-          Chain compactedChain = resolvedChain.getCompactedChain();
-          storeProxy.replaceAtHead(extractLongKey(key), chain, compactedChain);
-        }
-
-        Result<K, V> resolvedResult = resolvedChain.getResolvedResult(key);
-        if (resolvedResult != null) {
-          V value = resolvedResult.getValue();
-          long expirationTime = resolvedChain.getExpirationTime();
-          if (expirationTime == Long.MAX_VALUE) {
-            holder = new ClusteredValueHolder<>(value);
-          } else {
-            holder = new ClusteredValueHolder<>(value, expirationTime);
-          }
-        }
-      }
+      ServerStoreProxy.ChainEntry entry = storeProxy.get(extractLongKey(key));
+      return resolver.resolve(entry, key, timeSource.getTimeMillis());
     } catch (RuntimeException re) {
       throw handleException(re);
     }
-    return holder;
   }
 
   protected long extractLongKey(K key) {
@@ -248,31 +227,23 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
     putIfAbsentObserver.begin();
-    V result = silentPutIfAbsent(key, value);
+    ValueHolder<V> result = silentPutIfAbsent(key, value);
     if(result == null) {
       putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
       return null;
     } else {
       putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
-      return new ClusteredValueHolder<>(result);
+      return result;
     }
   }
 
-  protected V silentPutIfAbsent(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentPutIfAbsent(K key, V value) throws StoreAccessException {
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      return result == null ? null : result.getValue();
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -295,33 +266,20 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       RemoveOperation<K, V> operation = new RemoveOperation<>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if(resolvedChain.getResolvedResult(key) != null) {
-        storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
-        return true;
-      } else {
-        return false;
-      }
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis()) != null;
     } catch (Exception re) {
       throw handleException(re);
     }
   }
 
-  protected V silentRemove(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentRemove(K key, V value) throws StoreAccessException {
     try {
       ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      if (result != null && value.equals(result.getValue())) {
-        storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
-      }
-      return result == null ? null : result.getValue();
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis());
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -330,9 +288,9 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
     conditionalRemoveObserver.begin();
-    V result = silentRemove(key, value);
+    ValueHolder<V> result = silentRemove(key, value);
     if(result != null) {
-      if(value.equals(result)) {
+      if(value.equals(result.get())) {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
         return RemoveStatus.REMOVED;
       } else {
@@ -349,52 +307,36 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
     replaceObserver.begin();
 
-    V result = silentReplace(key, value);
+    ValueHolder<V> result = silentReplace(key, value);
     if(result == null) {
       replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
       return null;
     } else {
       replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-      return new ClusteredValueHolder<>(result);
+      return result;
     }
   }
 
-  protected V silentReplace(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentReplace(K key, V value) throws StoreAccessException {
     try {
       ReplaceOperation<K, V> operation = new ReplaceOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      return result == null ? null : result.getValue();
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
     } catch (Exception re) {
       throw handleException(re);
     }
   }
 
-  protected V silentReplace(K key, V oldValue, V newValue) throws StoreAccessException {
+  protected ValueHolder<V> silentReplace(K key, V oldValue, V newValue) throws StoreAccessException {
     try {
       ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, timeSource
               .getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      return result == null ? null : result.getValue();
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -403,9 +345,9 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
     conditionalReplaceObserver.begin();
-    V result = silentReplace(key, oldValue, newValue);
+    ValueHolder<V> result = silentReplace(key, oldValue, newValue);
     if(result != null) {
-      if(oldValue.equals(result)) {
+      if(oldValue.equals(result.get())) {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
         return ReplaceStatus.HIT;
       } else {
@@ -459,18 +401,12 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
           try {
             while (true) {
-              Map<K, PutOperation<K, V>> chainContents = resolver.resolveChain(chainIterator.next(), timeSource.getTimeMillis());
+              Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
               if (!chainContents.isEmpty()) {
                 return chainContents.entrySet().stream().map(entry -> {
                   K key = entry.getKey();
 
-                  PutOperation<K, V> operation = entry.getValue();
-                  ValueHolder<V> valueHolder;
-                  if (operation.isExpiryAvailable()) {
-                    valueHolder = new ClusteredValueHolder<>(operation.getValue(), operation.expirationTime());
-                  } else {
-                    valueHolder = new ClusteredValueHolder<>(operation.getValue());
-                  }
+                  ValueHolder<V> valueHolder = entry.getValue();
                   return new Cache.Entry<K, ValueHolder<V>>() {
 
                     @Override
@@ -846,8 +782,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
         @Override
-        public Chain compact(Chain chain) {
-          return clusteredStore.resolver.compactChain(chain, clusteredStore.timeSource.getTimeMillis());
+        public void compact(ServerStoreProxy.ChainEntry chain) {
+          clusteredStore.resolver.compact(chain);
         }
       };
     }

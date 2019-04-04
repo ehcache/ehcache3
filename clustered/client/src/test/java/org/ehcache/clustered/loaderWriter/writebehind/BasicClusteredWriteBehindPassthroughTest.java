@@ -78,11 +78,10 @@ public class BasicClusteredWriteBehindPassthroughTest {
     try (PersistentCacheManager cacheManager = createCacheManager()) {
       Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
-      for (int i = 0; i < 10; i++) {
-        put(cache, String.valueOf(i));
-      }
+      put(cache, String.valueOf(0));
+      put(cache, String.valueOf(1));
 
-      assertValue(cache, String.valueOf(9));
+      assertValue(cache, String.valueOf(1));
 
       verifyRecords(cache);
       cache.clear();
