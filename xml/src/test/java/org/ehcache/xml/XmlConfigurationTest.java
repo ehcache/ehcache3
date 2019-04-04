@@ -850,6 +850,39 @@ public class XmlConfigurationTest {
     assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry[].class));
   }
 
+  @Test
+  public void testUnknownServiceCreation() throws Exception {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/unknown-service-creation.xml");
+    try {
+      new XmlConfiguration(resource);
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Cannot confirm XML sub-type correctness. You might be missing client side libraries."));
+      assertThat(e.getCause(), instanceOf(SAXParseException.class));
+    }
+  }
+
+  @Test
+  public void testUnknownService() throws Exception {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/unknown-service.xml");
+    try {
+      new XmlConfiguration(resource);
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Cannot confirm XML sub-type correctness. You might be missing client side libraries."));
+      assertThat(e.getCause(), instanceOf(SAXParseException.class));
+    }
+  }
+
+  @Test
+  public void testUnknownResource() throws Exception {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/unknown-resource.xml");
+    try {
+      new XmlConfiguration(resource);
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Cannot confirm XML sub-type correctness. You might be missing client side libraries."));
+      assertThat(e.getCause(), instanceOf(SAXParseException.class));
+    }
+  }
+
   private void checkListenerConfigurationExists(Collection<?> configuration) {
     int count = 0;
     for (Object o : configuration) {

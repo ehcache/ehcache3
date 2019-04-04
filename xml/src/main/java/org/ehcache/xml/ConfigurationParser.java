@@ -85,13 +85,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.lang.String.format;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Spliterators.spliterator;
 import static java.util.function.Function.identity;
+import static java.util.regex.Pattern.quote;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.of;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -366,19 +369,28 @@ public class ConfigurationParser {
 
   public static class FatalErrorHandler implements ErrorHandler {
 
+    private static final Pattern ABSTRACT_TYPE_FAILURES = of("service-creation-configuration", "service-configuration", "resource")
+      .map(element -> quote(format("\"http://www.ehcache.org/v3\":%s", element)))
+      .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile));
+
     @Override
     public void warning(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void error(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void fatalError(SAXParseException exception) throws SAXException {
-      throw exception;
+      if (ABSTRACT_TYPE_FAILURES.matcher(exception.getMessage()).matches()) {
+        throw new XmlConfigurationException(
+          "Cannot confirm XML sub-type correctness. You might be missing client side libraries.", exception);
+      } else {
+        throw exception;
+      }
     }
   }
 
