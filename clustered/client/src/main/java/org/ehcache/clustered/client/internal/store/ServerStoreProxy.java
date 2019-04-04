@@ -55,20 +55,35 @@ public interface ServerStoreProxy extends ServerStore {
      * Callback for invalidation of hash requests
      *
      * @param hash the hash of the keys to invalidate
+     * @param evictedChain the evicted chain, or null if it wasn't an eviction that triggered the invalidation but
+     *                     a change on a different client or when events are disabled.
      */
-    void onInvalidateHash(long hash);
+    void onInvalidateHash(long hash, Chain evictedChain);
 
     /**
      * Callback for invalidation of all requests
      */
     void onInvalidateAll();
 
+    /**
+     * Callback append events
+     */
+    void onAppend(Chain beforeAppend, ByteBuffer appended);
+
     void compact(ChainEntry chain);
 
     default void compact(ChainEntry chain, long hash) {
       compact(chain);
     }
+
   }
+
+  /**
+   * Enable or disable event firing from the server
+   * @param enable {@code true} to enable, {@code false} to disable
+   */
+  void enableEvents(boolean enable) throws TimeoutException;
+
 
   /**
    * Gets the identifier linking a client-side cache to a {@code ServerStore} instance.

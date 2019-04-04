@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.events;
+package org.ehcache.impl.store;
 
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.impl.internal.events.AbstractStoreEventDispatcher;
 
 /**
- * ScopedStoreEventDispatcher
+ * The default {@link org.ehcache.core.events.StoreEventDispatcher} implementation.
  */
-public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatcher<K, V> {
+public class DefaultStoreEventDispatcher<K, V> extends AbstractStoreEventDispatcher<K, V> {
 
-
-  public ScopedStoreEventDispatcher(int dispatcherConcurrency) {
+  public DefaultStoreEventDispatcher(int dispatcherConcurrency) {
     super(dispatcherConcurrency);
   }
 
@@ -35,7 +35,7 @@ public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatch
       StoreEventSink<K, V> noOpEventSink = (StoreEventSink<K, V>) NO_OP_EVENT_SINK;
       return noOpEventSink;
     } else {
-      return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+      return super.eventSink();
     }
   }
 }

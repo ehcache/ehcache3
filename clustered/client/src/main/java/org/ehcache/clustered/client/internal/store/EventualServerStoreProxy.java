@@ -55,6 +55,11 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    delegate.enableEvents(enable);
+  }
+
+  @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     delegate.replaceAtHead(key, expect, update);
   }

@@ -39,7 +39,7 @@ public class ReconnectMessageCodecTest {
   @Test
   public void testClusterTierReconnectCodec() {
 
-    ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
+    ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(false);
 
     Set<Long> setToInvalidate = new HashSet<>();
     setToInvalidate.add(1L);

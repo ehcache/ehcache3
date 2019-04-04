@@ -173,4 +173,14 @@ public class ServerStoreOpCodecTest {
     assertThat(decoded.getBatchSize(), is(42));
   }
 
+  @Test
+  public void testEnableEventListenerMessage() {
+    ServerStoreOpMessage enableEventListenerMessage = new ServerStoreOpMessage.EnableEventListenerMessage(true);
+
+    byte[] encoded = STORE_OP_CODEC.encode(enableEventListenerMessage);
+    ServerStoreOpMessage.EnableEventListenerMessage decoded = (ServerStoreOpMessage.EnableEventListenerMessage) STORE_OP_CODEC.decode(enableEventListenerMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decoded.getMessageType(), is(EhcacheMessageType.ENABLE_EVENT_LISTENER));
+    assertThat(decoded.isEnable(), is(true));
+  }
 }
