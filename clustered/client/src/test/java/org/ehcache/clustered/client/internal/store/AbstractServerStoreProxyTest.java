@@ -15,18 +15,22 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.terracotta.connection.Connection;
@@ -86,6 +90,17 @@ public abstract class AbstractServerStoreProxyTest {
       clientEntity.validate(configuration);
     }
     return clientEntity;
+  }
+
+  protected static SimpleClusterTierClientEntity createClientEntity(String name, Consistency consistency, boolean create) throws Exception {
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
+      .getName(),
+      Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
+      .getName(), consistency, false);
+
+    return createClientEntity(name, serverStoreConfiguration, create);
   }
 
 }

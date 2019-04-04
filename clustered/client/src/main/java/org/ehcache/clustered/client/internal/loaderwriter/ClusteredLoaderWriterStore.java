@@ -21,6 +21,7 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
 import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
@@ -28,12 +29,13 @@ import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
@@ -55,8 +57,8 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   private final boolean useLoaderInAtomics;
 
   public ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource,
-                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics) {
-    super(config, codec, resolver, timeSource);
+                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics, StoreEventDispatcher<K, V> storeEventDispatcher) {
+    super(config, codec, resolver, timeSource, storeEventDispatcher);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
@@ -66,7 +68,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
    */
   ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver,
                              ServerStoreProxy proxy, TimeSource timeSource, CacheLoaderWriter<? super K, V> loaderWriter) {
-    super(config, codec, resolver, proxy, timeSource);
+    super(config, codec, resolver, proxy, timeSource, null);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = true;
   }
@@ -300,8 +302,9 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
                                                       TimeSource timeSource,
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
+      StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
       return new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
-                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics);
+                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics, storeEventDispatcher);
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +80,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean connected = true;
+  private volatile boolean eventsEnabled;
 
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
                                        Timeouts timeouts, String storeIdentifier) {
@@ -96,7 +98,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(eventsEnabled);
           reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
@@ -143,6 +145,15 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void addReconnectListener(ReconnectListener reconnectListener) {
     this.reconnectListeners.add(reconnectListener);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws ClusterException, TimeoutException {
+    if (enable == this.eventsEnabled) {
+      return;
+    }
+    this.invokeAndWaitForReceive(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
+    this.eventsEnabled = enable;
   }
 
   @Override

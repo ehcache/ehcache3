@@ -36,7 +36,7 @@ import org.ehcache.clustered.server.ConcurrencyStrategies;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerSideServerStore;
-import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.ServerStoreEventListener;
 import org.ehcache.clustered.server.TestClientDescriptor;
 import org.ehcache.clustered.server.TestInvokeContext;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
@@ -51,6 +51,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
@@ -99,6 +100,7 @@ import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
@@ -196,6 +198,41 @@ public class ClusterTierActiveEntityTest {
     assertThat(activeEntity.getConnectedClients(), hasSize(0));
   }
 
+  @Test
+  public void testEventListenerEnabledTracking() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+
+    TestInvokeContext ctx1 = new TestInvokeContext();
+    ClientDescriptor client1 = ctx1.getClientDescriptor();
+    TestInvokeContext ctx2 = new TestInvokeContext();
+    ClientDescriptor client2 = ctx2.getClientDescriptor();
+
+    // check that connecting clients does not enable listeners by default
+    activeEntity.connected(client1);
+    activeEntity.connected(client2);
+    assertThat(activeEntity.getEventListeners().size(), is(0));
+
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(true)), succeeds());
+    assertThat(activeEntity.getEventListeners().size(), is(1));
+    // a client can register as many times as it wants, it's considered a single listener
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(true)), succeeds());
+    assertThat(activeEntity.getEventListeners().size(), is(1));
+    assertThat(activeEntity.invokeActive(ctx2, new ServerStoreOpMessage.EnableEventListenerMessage(true)), succeeds());
+    assertThat(activeEntity.getEventListeners().size(), is(2));
+
+    // check that disabling events is accounted for
+    assertThat(activeEntity.invokeActive(ctx2, new ServerStoreOpMessage.EnableEventListenerMessage(false)), succeeds());
+    assertThat(activeEntity.getEventListeners().size(), is(1));
+    // check that disabling events from a client that does not have events enabled is a noop
+    assertThat(activeEntity.invokeActive(ctx2, new ServerStoreOpMessage.EnableEventListenerMessage(false)), succeeds());
+    assertThat(activeEntity.getEventListeners().size(), is(1));
+
+    // check that disconnected clients are accounted for
+    activeEntity.disconnected(client1);
+    assertThat(activeEntity.getEventListeners().size(), is(0));
+  }
+
   /**
    * Ensures the disconnect of a connected client is properly tracked and does not affect others.
    */
@@ -229,7 +266,35 @@ public class ClusterTierActiveEntityTest {
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
-    verify(store).setEvictionListener(any(ServerStoreEvictionListener.class));
+    verify(store).setEventListener(any(ServerStoreEventListener.class));
+  }
+
+  @Test
+  public void testEnableEventListenerMessageEnablesOrDisablesEventsOnStore() throws Exception {
+    EhcacheStateService stateService = mock(EhcacheStateService.class);
+
+    ServerSideServerStore store = mock(ServerSideServerStore.class);
+    InOrder storeOrderVerifier = Mockito.inOrder(store);
+    when(stateService.createStore(eq(defaultStoreName), any(), anyBoolean())).thenReturn(store);
+    when(stateService.getStore(eq(defaultStoreName))).thenReturn(store);
+
+    IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
+    ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+
+    TestInvokeContext ctx1 = new TestInvokeContext();
+    ClientDescriptor client1 = ctx1.getClientDescriptor();
+
+    activeEntity.connected(client1);
+    // also check that duplicating enable/disable calls has no effect
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(true)), succeeds());
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(true)), succeeds());
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(false)), succeeds());
+    assertThat(activeEntity.invokeActive(ctx1, new ServerStoreOpMessage.EnableEventListenerMessage(false)), succeeds());
+
+    storeOrderVerifier.verify(store).enableEvents(eq(true));
+    storeOrderVerifier.verify(store).enableEvents(eq(false));
   }
 
   @Test

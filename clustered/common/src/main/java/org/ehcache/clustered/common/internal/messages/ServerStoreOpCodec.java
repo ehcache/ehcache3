@@ -100,6 +100,11 @@ public class ServerStoreOpCodec {
     .int32("batchSize", 30)
     .build();
 
+  private static final Struct ENABLE_EVENT_LISTENER_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .bool("enable", 20)
+    .build();
+
   public byte[] encode(ServerStoreOpMessage message) {
     switch (message.getMessageType()) {
       case GET_STORE:
@@ -162,6 +167,10 @@ public class ServerStoreOpCodec {
         return encodeMandatoryFields(ITERATOR_ADVANCE_STRUCT, message)
           .string("id", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getIdentity().toString())
           .int32("batchSize", ((ServerStoreOpMessage.IteratorAdvanceMessage) message).getBatchSize())
+          .encode().array();
+      case ENABLE_EVENT_LISTENER:
+        return encodeMandatoryFields(ENABLE_EVENT_LISTENER_STRUCT, message)
+          .bool("enable", ((ServerStoreOpMessage.EnableEventListenerMessage) message).isEnable())
           .encode().array();
       default:
         throw new RuntimeException("Unhandled message operation : " + message.getMessageType());
@@ -233,6 +242,11 @@ public class ServerStoreOpCodec {
         UUID identity = UUID.fromString(decoder.string("id"));
         int batchSize = decoder.int32("batchSize");
         return new ServerStoreOpMessage.IteratorAdvanceMessage(identity, batchSize);
+      }
+      case ENABLE_EVENT_LISTENER: {
+        StructDecoder<Void> decoder = ENABLE_EVENT_LISTENER_STRUCT.decoder(messageBuffer);
+        Boolean enable = decoder.bool("enable");
+        return new ServerStoreOpMessage.EnableEventListenerMessage(enable);
       }
       default:
         throw new RuntimeException("Unhandled message operation : " + opCode);

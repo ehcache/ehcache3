@@ -25,29 +25,31 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallba
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
+import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
 import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.core.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.impl.store.BaseStore;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -55,9 +57,14 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.Service;
@@ -106,6 +113,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   protected final ChainResolver<K, V> resolver;
 
   protected final TimeSource timeSource;
+  private final DelegatingStoreEventDispatcher<K, V> storeEventDispatcher;
 
   protected volatile ServerStoreProxy storeProxy;
   private volatile InvalidationValve invalidationValve;
@@ -122,13 +130,14 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource) {
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
     super(config);
 
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
     this.timeSource = timeSource;
+    this.storeEventDispatcher = new DelegatingStoreEventDispatcher<>(storeEventDispatcher);
 
     this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
     this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
@@ -144,8 +153,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   /**
    * For tests
    */
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
-    this(config, codec, resolver, timeSource);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
+    this(config, codec, resolver, timeSource, storeEventDispatcher);
     this.storeProxy = proxy;
   }
 
@@ -371,8 +380,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
   @Override
   public StoreEventSource<K, V> getStoreEventSource() {
-    // TODO: Is there a StoreEventSource for a ServerStore?
-    return new NullStoreEventDispatcher<>();
+    return storeEventDispatcher;
   }
 
   @Override
@@ -615,10 +623,16 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-
         CacheEventListenerConfiguration eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
         if (eventListenerConfiguration != null) {
-          throw new IllegalStateException("CacheEventListener is not supported with clustered tiers");
+          if (eventListenerConfiguration.firingMode() == EventFiring.SYNCHRONOUS) {
+            // Forget it. Never.
+            throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
+          }
+          if (eventListenerConfiguration.orderingMode() == EventOrdering.ORDERED) {
+            // this could be supported, but at least expiration events would need to be reordered
+            throw new IllegalStateException("Ordered CacheEventListener is not supported with clustered tiers");
+          }
         }
 
         if (clusteringService == null) {
@@ -669,7 +683,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
                                                       TimeSource timeSource,
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
-      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
+      StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
+      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher);
     }
 
     @Override
@@ -718,7 +733,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
             };
             CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
           });
-          clusteredStore.storeProxy = reconnectingServerStoreProxy;
+          clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
         }
@@ -749,10 +764,50 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
     }
 
-    protected ServerCallback getServerCallback(ClusteredStore<?, ?> clusteredStore) {
+    protected <K, V> ServerCallback getServerCallback(ClusteredStore<K, V> clusteredStore) {
       return new ServerCallback() {
         @Override
-        public void onInvalidateHash(long hash) {
+        public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+          StoreEventSink<K, V> sink = clusteredStore.storeEventDispatcher.eventSink();
+          try {
+            Operation<K, V> operation = clusteredStore.codec.decode(appended);
+            K key = operation.getKey();
+
+            PutOperation<K, V> resolvedBefore = clusteredStore.resolver.resolve(beforeAppend, key);
+            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedBefore, operation);
+
+            if (resolvedBefore == null) {
+              if (resolvedAfter == null) {
+                //a non-event
+              } else {
+                sink.created(key, resolvedAfter.getValue());
+              }
+            } else {
+              if (resolvedAfter != null) {
+                if (resolvedAfter == resolvedBefore) {
+                  //non-event
+                } else {
+                  sink.updated(key, resolvedBefore::getValue, resolvedAfter.getValue());
+                }
+              } else {
+                switch (operation.getOpCode()) {
+                  case TIMESTAMP:
+                    sink.expired(key, resolvedBefore::getValue);
+                    break;
+                  default:
+                    sink.removed(key, resolvedBefore::getValue);
+                }
+              }
+            }
+            clusteredStore.storeEventDispatcher.releaseEventSink(sink);
+          } catch (Exception e) {
+            clusteredStore.storeEventDispatcher.releaseEventSinkAfterFailure(sink, e);
+            LOGGER.warn("Error processing server append event", e);
+          }
+        }
+
+        @Override
+        public void onInvalidateHash(long hash, Chain evictedChain) {
           EvictionOutcome result = EvictionOutcome.SUCCESS;
           clusteredStore.evictionObserver.begin();
           if (clusteredStore.invalidationValve != null) {
@@ -764,6 +819,16 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
               LOGGER.error("Error invalidating hash {}", hash, sae);
               result = EvictionOutcome.FAILURE;
             }
+          }
+          if (evictedChain != null) {
+            StoreEventSink<K, V> sink = clusteredStore.storeEventDispatcher.eventSink();
+            Map<K, ValueHolder<V>> operationMap = clusteredStore.resolver.resolveAll(evictedChain, clusteredStore.timeSource.getTimeMillis());
+            for (Map.Entry<K, ValueHolder<V>> entry : operationMap.entrySet()) {
+              K key = entry.getKey();
+              V value = entry.getValue() == null ? null : entry.getValue().get();
+              sink.evicted(key, () -> value);
+            }
+            clusteredStore.storeEventDispatcher.releaseEventSink(sink);
           }
           clusteredStore.evictionObserver.end(result);
         }
@@ -853,6 +918,11 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
   }
 
+  private void setStoreProxy(ServerStoreProxy storeProxy) throws CachePersistenceException {
+    this.storeProxy = storeProxy;
+    this.storeEventDispatcher.setStoreProxy(storeProxy);
+  }
+
   private static class StoreConfig {
 
     private final ClusteredCacheIdentifier cacheIdentifier;
@@ -877,4 +947,83 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       return consistency;
     }
   }
+
+  static class DelegatingStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
+    private int listenerCounter;
+    private final StoreEventDispatcher<K, V> delegate;
+    private volatile ServerStoreProxy storeProxy;
+
+    DelegatingStoreEventDispatcher(StoreEventDispatcher<K, V> delegate) {
+      this.delegate = delegate;
+    }
+
+    synchronized void setStoreProxy(ServerStoreProxy storeProxy) throws CachePersistenceException {
+      if (storeProxy != null && listenerCounter > 0) {
+        try {
+          storeProxy.enableEvents(true);
+        } catch (TimeoutException te) {
+          throw new CachePersistenceException("Error enabling events", te);
+        }
+      }
+      this.storeProxy = storeProxy;
+    }
+
+    @Override
+    public StoreEventSink<K, V> eventSink() {
+      return delegate.eventSink();
+    }
+    @Override
+    public void releaseEventSink(StoreEventSink<K, V> eventSink) {
+      delegate.releaseEventSink(eventSink);
+    }
+    @Override
+    public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
+      delegate.releaseEventSinkAfterFailure(eventSink, throwable);
+    }
+    @Override
+    public void reset(StoreEventSink<K, V> eventSink) {
+      delegate.reset(eventSink);
+    }
+    @Override
+    public synchronized void addEventListener(StoreEventListener<K, V> eventListener) {
+      if (listenerCounter == 0 && storeProxy != null) {
+        try {
+          storeProxy.enableEvents(true);
+        } catch (TimeoutException te) {
+          throw new RuntimeException("Error enabling events", te);
+        }
+      }
+      if (listenerCounter < Integer.MAX_VALUE) {
+        listenerCounter++;
+      }
+      delegate.addEventListener(eventListener);
+    }
+    @Override
+    public synchronized void removeEventListener(StoreEventListener<K, V> eventListener) {
+      if (listenerCounter == 1 && storeProxy != null) {
+        try {
+          storeProxy.enableEvents(false);
+        } catch (TimeoutException te) {
+          throw new RuntimeException("Error disabling events", te);
+        }
+      }
+      if (listenerCounter > 0) {
+        listenerCounter--;
+      }
+      delegate.removeEventListener(eventListener);
+    }
+    @Override
+    public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
+      delegate.addEventFilter(eventFilter);
+    }
+    @Override
+    public void setEventOrdering(boolean ordering) {
+      delegate.setEventOrdering(ordering);
+    }
+    @Override
+    public boolean isEventOrdering() {
+      return delegate.isEventOrdering();
+    }
+  }
+
 }
