@@ -1,10 +1,10 @@
 = Ehcache {version} Documentation Overview
 ifndef::sourcedir38[]
-include::common.adoc[]
+include::{includedir}/common.adoc[]
 endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Table of Contents
