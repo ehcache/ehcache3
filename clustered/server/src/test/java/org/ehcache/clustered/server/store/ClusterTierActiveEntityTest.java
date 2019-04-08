@@ -1133,7 +1133,7 @@ public class ClusterTierActiveEntityTest {
         } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
           return (T) entityManagementRegistry;
         } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
-          return (T) new OOOMessageHandlerImpl<>(message -> true, 1, message -> 0);
+          return (T) new OOOMessageHandlerImpl<>(message -> true, 1, message -> 0, () -> {});
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1309,7 +1309,7 @@ public class ClusterTierActiveEntityTest {
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
         OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
         return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
-          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy(), () -> {});
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
