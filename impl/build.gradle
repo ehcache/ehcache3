@@ -52,7 +52,6 @@ jar {
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
       'org.ehcache.impl.internal.spi.loaderwriter', //ugly 107 induced internal export wart
     'Import-Package': '!sun.misc, !javax.annotation, *',
-    'Service-Component': 'OSGI-INF/*.xml'
   )
 }
 

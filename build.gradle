@@ -230,7 +230,7 @@ subprojects {
     }
   }
 
-  plugins.withType(aQute.bnd.gradle.BndBuilderPlugin) {
+  plugins.withId('biz.aQute.bnd.builder') {
     /*
      * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
      * to `x.y.0.SNAPSHOT`. This is bad since `x.y.0.SNAPSHOT` is considered to be less than *all* `x.y.z`. This means
@@ -248,12 +248,12 @@ subprojects {
         'Bundle-DocURL': 'http://ehcache.org',
         'Bundle-License': 'LICENSE',
         'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
-        'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
-        'Bundle-Version': fixedVersion
+        'Bundle-Version': fixedVersion,
+        'Service-Component': 'OSGI-INF/*.xml'
       )
     }
     dependencies {
-      baseline(group: group, name: jar.baseName, version: "(,${fixedVersion}[") {
+      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
         force = true
         transitive = false
       }
