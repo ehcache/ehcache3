@@ -316,12 +316,12 @@ This method destroys a given cache. The cache shouldn't be in use by another cac
 .Multiple tiers using Put
 [plantuml]
 ....
-include::../../uml/put.puml[]
+include::{sourcedir37}/docs/src/docs/uml/put.puml[]
 ....
 .Multiple tiers using Get
 [plantuml]
 ....
-include::../../uml/get.puml[]
+include::{sourcedir37}/docs/src/docs/uml/get.puml[]
 ....
 --
 In order to understand what happens for different cache operations when using multiple tiers, here are examples of _Put_ and _Get_ operations.
