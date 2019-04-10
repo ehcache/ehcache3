@@ -253,7 +253,11 @@ subprojects {
       )
     }
     dependencies {
-      baseline(group: group, name: jar.baseName, version: "(,${fixedVersion}[") {
+      baseline(group: group, name: jar.baseName) {
+        version {
+          require "(,${fixedVersion}["
+          reject "${fixedVersion}-internal+"
+        }
         force = true
         transitive = false
       }
