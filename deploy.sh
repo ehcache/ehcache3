@@ -117,7 +117,7 @@ else
   echo git checkout -b release-${version}
   echo git add gradle.properties dist/templates/github-release.md
   echo git commit -m "Version ${version}"
-  echo git tag -m ":ship: Release ${version}" -v${version}
+  echo git tag -m ":ship: Release ${version}" v${version}
   echo git push $git_origin v${version}
 fi
 
