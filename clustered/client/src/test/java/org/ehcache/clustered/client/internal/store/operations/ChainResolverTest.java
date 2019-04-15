@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsC
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
@@ -30,8 +31,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import static java.util.Arrays.asList;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.*;
 
 public class ChainResolverTest {
@@ -209,6 +214,20 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, SystemTimeSource.INSTANCE.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+  }
+
+  @Test
+  public void testResolveExpiresUsingOperationTime() {
+    Chain chain = getChainFromOperations(asList(
+        new PutOperation<Long, String>(1L, "Albin", 0),
+        new PutIfAbsentOperation<Long, String>(1L, "Chris", 900)
+    ));
+
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.timeToLiveExpiration(Duration.of(1, TimeUnit.SECONDS)));
+
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 1500);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertThat(result.getValue(), nullValue());
   }
 
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {
