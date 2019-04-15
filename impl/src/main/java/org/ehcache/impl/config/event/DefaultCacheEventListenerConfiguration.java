@@ -29,9 +29,8 @@ import java.util.Set;
 
 /**
  * {@link org.ehcache.spi.service.ServiceConfiguration} for the default {@link CacheEventListenerProvider}.
- * <P>
- *   Enables configuring a {@link CacheEventListener} for a given cache.
- * </P>
+ * <p>
+ * Enables configuring a {@link CacheEventListener} for a given cache.
  */
 public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfiguration<CacheEventListener<?, ?>>
     implements CacheEventListenerConfiguration {
@@ -42,12 +41,10 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
 
   /**
    * Creates a new {@code DefaultCacheEventListenerConfiguration} with the provided parameters.
-   * <P>
-   *   <UL>
-   *     <LI>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</LI>
-   *     <LI>Default event ordering mode is {@link EventOrdering#UNORDERED}</LI>
-   *   </UL>
-   * </P>
+   * <ul>
+   *   <li>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</li>
+   *   <li>Default event ordering mode is {@link EventOrdering#UNORDERED}</li>
+   * </ul>
    *
    * @param fireOn the events to fire on
    * @param clazz the cache event listener class
@@ -66,12 +63,10 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
 
   /**
    * Creates a new {@code DefaultCacheEventListenerConfiguration} with the provided parameters.
-   * <P>
-   *   <UL>
-   *     <LI>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</LI>
-   *     <LI>Default event ordering mode is {@link EventOrdering#UNORDERED}</LI>
-   *   </UL>
-   * </P>
+   * <ul>
+   *   <li>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</li>
+   *   <li>Default event ordering mode is {@link EventOrdering#UNORDERED}</li>
+   * </ul>
    *
    * @param fireOn the events to fire on
    * @param listener the cache event listener instance

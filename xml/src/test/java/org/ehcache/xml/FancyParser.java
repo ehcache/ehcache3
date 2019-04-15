@@ -42,13 +42,23 @@ public class FancyParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     return new FooConfiguration();
   }
 
   @Override
   public URI getNamespace() {
     return NAMESPACE;
+  }
+
+  @Override
+  public Class<Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<Service> serviceConfiguration) {
+    return null;
   }
 
 }

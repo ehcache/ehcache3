@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.server.store.impl;
 
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import java.nio.ByteBuffer;
 
@@ -38,6 +38,6 @@ public class HeapElementImpl implements Element {
 
   @Override
   public ByteBuffer getPayload() {
-    return this.data.duplicate();
+    return this.data.asReadOnlyBuffer();
   }
 }

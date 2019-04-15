@@ -33,13 +33,14 @@ public class SerializingCopierTest {
 
   @Test
   public void testCopy() throws Exception {
+    @SuppressWarnings("unchecked")
     Serializer<String> serializer = mock(Serializer.class);
     String in = new String("foo");
     ByteBuffer buff = mock(ByteBuffer.class);
     when(serializer.serialize(in)).thenReturn(buff);
     when(serializer.read(buff)).thenReturn(new String("foo"));
 
-    SerializingCopier<String> serializingCopier = new SerializingCopier<String>(serializer);
+    SerializingCopier<String> serializingCopier = new SerializingCopier<>(serializer);
     String copied = serializingCopier.copy("foo");
     assertNotSame(in, copied);
     assertEquals(in, copied);
@@ -47,6 +48,6 @@ public class SerializingCopierTest {
 
   @Test(expected = NullPointerException.class)
   public void testThrowsNPEWhenNoSerializerPassedToConstructor() {
-    new SerializingCopier<Object>(null);
+    new SerializingCopier<>(null);
   }
 }

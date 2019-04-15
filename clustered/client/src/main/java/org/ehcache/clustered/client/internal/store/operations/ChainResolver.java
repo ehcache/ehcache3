@@ -16,28 +16,34 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.ValueSupplier;
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ChainResolver<K, V> {
+/**
+ * An abstract chain resolver.
+ * <p>
+ * Operation application is performed in subclasses specialized for eternal and non-eternal caches.
+ *
+ * @see EternalChainResolver
+ * @see ExpiryChainResolver
+ *
+ * @param <K> key type
+ * @param <V> value type
+ */
+public abstract class ChainResolver<K, V> {
+  protected final OperationsCodec<K, V> codec;
 
-  private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
-  private final OperationsCodec<K, V> codec;
-  private final Expiry<? super K, ? super V> expiry;
-
-  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
+  public ChainResolver(final OperationsCodec<K, V> codec) {
     this.codec = codec;
-    this.expiry = expiry;
   }
 
   /**
@@ -50,53 +56,80 @@ public class ChainResolver<K, V> {
    *
    * @param chain a heterogeneous {@code Chain}
    * @param key a key
-   * @return an entry with the resolved operation for the provided key as the key
-   * and the compacted chain as the value
+   * @param now time when the chain is being resolved
+   * @return a resolved chain, result of resolution of chain provided
    */
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
-    Result<V> result = null;
-    ChainBuilder chainBuilder = new ChainBuilder();
+    PutOperation<K, V> result = null;
+    ChainBuilder newChainBuilder = new ChainBuilder();
+    boolean matched = false;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
-      final Result<V> previousResult = result;
-      Duration expiration;
+
       if(key.equals(operation.getKey())) {
-        result = operation.apply(result);
-        //TODO: get the condition for choosing creation correct.
-        if(result == null) {
-          continue;
-        }
-        if(previousResult == null) {
-          expiration = expiry.getExpiryForCreation(key, result.getValue());
-        } else {
-          expiration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
-            @Override
-            public V value() {
-              return previousResult != null ? previousResult.getValue() : null;
-            }
-          }, result.getValue());
-        }
-
-        if(expiration == null || expiration.isInfinite()) {
-          continue;
-        }
-
-        long time = TIME_UNIT.convert(expiration.getLength(), expiration.getTimeUnit());
-        if(now >= time + operation.expirationTimeStamp()) {
-          result = null;
-        }
+        matched = true;
+        result = applyOperation(key, result, operation, now);
       } else {
-        payload.flip();
-        chainBuilder = chainBuilder.add(payload);
+        payload.rewind();
+        newChainBuilder = newChainBuilder.add(payload);
       }
     }
-    Operation<K, V> resolvedOperation = null;
-    if(result != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), System.currentTimeMillis());
-      ByteBuffer payload = codec.encode(resolvedOperation);
-      chainBuilder = chainBuilder.add(payload);
+
+    if(result == null) {
+      if (matched) {
+        Chain newChain = newChainBuilder.build();
+        return new ResolvedChain.Impl<>(newChain, key, null, chain.length() - newChain.length(), Long.MAX_VALUE);
+      } else {
+        return new ResolvedChain.Impl<>(chain, key, null, 0, Long.MAX_VALUE);
+      }
+    } else {
+      Chain newChain = newChainBuilder.add(codec.encode(result)).build();
+      return new ResolvedChain.Impl<>(newChain, key, result, chain.length() - newChain.length(), result.expirationTime());
     }
-    return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result);
   }
+
+  /**
+   * Compacts the given chain by resolving every key within.
+   *
+   * @param chain a compacted heterogenous {@code Chain}
+   * @param now time when the chain is being resolved
+   * @return a compacted chain
+   */
+  public Chain compactChain(Chain chain, long now) {
+    ChainBuilder builder = new ChainBuilder();
+    for (PutOperation<K, V> operation : resolveChain(chain, now).values()) {
+      builder = builder.add(codec.encode(operation));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Resolves all keys within the given chain.
+   *
+   * @param chain a compacted heterogenous {@code Chain}
+   * @param now time when the chain is being resolved
+   * @return a compacted chain
+   */
+  public Map<K, PutOperation<K, V>> resolveChain(Chain chain, long now) {
+    //absent hash-collisions this should always be a 1 entry map
+    Map<K, PutOperation<K, V>> compacted = new HashMap<>(2);
+    for (Element element : chain) {
+      ByteBuffer payload = element.getPayload();
+      Operation<K, V> operation = codec.decode(payload);
+      compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation, now));
+    }
+    return compacted;
+  }
+
+  /**
+   * Applies the given operation to the current state at the time specified.
+   *
+   * @param key cache key
+   * @param existing current state
+   * @param operation operation to apply
+   * @param now current time
+   * @return an equivalent put operation
+   */
+  public abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
 }

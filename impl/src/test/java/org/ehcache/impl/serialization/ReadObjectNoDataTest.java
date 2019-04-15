@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,7 +37,8 @@ public class ReadObjectNoDataTest {
 
   @Test
   public void test() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
     ClassLoader loaderW = createClassNameRewritingLoader(C_W.class, B_W.class);
 
 

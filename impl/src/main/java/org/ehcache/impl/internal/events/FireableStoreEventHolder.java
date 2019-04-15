@@ -34,7 +34,7 @@ class FireableStoreEventHolder<K, V> {
   }
 
   private final Lock lock = new ReentrantLock();
-  private final AtomicReference<Status> status = new AtomicReference<Status>(Status.CREATED);
+  private final AtomicReference<Status> status = new AtomicReference<>(Status.CREATED);
   private volatile boolean failed = false;
 
   private final StoreEvent<K, V> event;

@@ -18,11 +18,10 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.CacheIterationException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -39,16 +38,17 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
- * <p/>
+ * <p>
  * The {@link Ehcache#iterator()} tests require the use of a {@link Store Store}
  * implementation which returns an {@link java.util.Iterator} from the
  * {@link Store#iterator() Store.iterator} method that does <b>not</b>
@@ -63,7 +63,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreGet() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
@@ -73,7 +73,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreHasNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(false));
@@ -84,7 +84,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -100,7 +100,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreRemoveBeforeNext() throws Exception {
-    this.store = new FakeStore(Collections.<String,String>emptyMap());
+    this.store = new FakeStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -207,13 +207,16 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorStoreAccessException() throws Exception {
+    @SuppressWarnings("unchecked")
     Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    doReturn("bar").when(valueHolder).value();
+    doReturn("bar").when(valueHolder).get();
 
+    @SuppressWarnings("unchecked")
     Cache.Entry<String, Store.ValueHolder<String>> storeEntry = mock(Cache.Entry.class);
     doReturn(valueHolder).when(storeEntry).getValue();
     doReturn("foo").when(storeEntry).getKey();
 
+    @SuppressWarnings("unchecked")
     Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> storeIterator = mock(Store.Iterator.class);
     doReturn(true).when(storeIterator).hasNext();
     doReturn(storeEntry).when(storeIterator).next();
@@ -225,20 +228,16 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
-    doThrow(new StoreAccessException("")).when(storeIterator).next();
+    StoreAccessException exception = new StoreAccessException("");
+    doThrow(exception).when(storeIterator).next();
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
 
-    doThrow(new StoreAccessException("")).when(storeIterator).next();
     doReturn(RemoveStatus.REMOVED).when(this.store).remove(anyString(), anyString());
 
-    try {
-      iterator.next();
-      fail();
-    } catch (CacheIterationException e) {
-      // Expected
-    }
+    iterator.next();
+    verify(resilienceStrategy).iteratorFailure(exception);
 
     assertThat(iterator.hasNext(), is(false));
 
@@ -264,7 +263,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   protected Map<String, String> getTestStoreEntries() {
-    final Map<String, String> storeEntries = new HashMap<String, String>();
+    final Map<String, String> storeEntries = new HashMap<>();
     storeEntries.put("key1", "value1");
     storeEntries.put("keyA", "valueA");
     storeEntries.put("key2", "value2");
@@ -278,11 +277,12 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
+  @SuppressWarnings("unchecked")
   protected InternalCache<String, String> getEhcache() throws Exception {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 

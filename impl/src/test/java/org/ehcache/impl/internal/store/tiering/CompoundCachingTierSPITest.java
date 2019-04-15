@@ -17,13 +17,13 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
@@ -32,7 +32,6 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -45,6 +44,7 @@ import java.util.Map;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * This factory instantiates a CachingTier
@@ -54,7 +54,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 public class CompoundCachingTierSPITest extends CachingTierSPITest<String, String> {
 
   private CachingTierFactory<String, String> cachingTierFactory;
-  private Map<CompoundCachingTier<?, ?>, OffHeapStore<?, ?>> map = new IdentityHashMap<CompoundCachingTier<?, ?>, OffHeapStore<?, ?>>();
+  private Map<CompoundCachingTier<?, ?>, OffHeapStore<?, ?>> map = new IdentityHashMap<>();
 
   @Override
   protected CachingTierFactory<String, String> getCachingTierFactory() {
@@ -76,15 +76,15 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
+          ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
 
         StoreEventDispatcher<String, String> eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
-        OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024);
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024);
         OffHeapStoreLifecycleHelper.init(offHeapStore);
-        IdentityCopier<String> copier = new IdentityCopier<String>();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher);
-        CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
+        IdentityCopier<String> copier = new IdentityCopier<>();
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher);
+        CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;
       }
@@ -119,28 +119,28 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
         OffHeapStore<?, ?> offHeapStore = map.remove(tier);
         OffHeapStoreLifecycleHelper.close(offHeapStore);
       }
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        return new ServiceLocator();
+        return dependencySet().build();
       }
 
     };

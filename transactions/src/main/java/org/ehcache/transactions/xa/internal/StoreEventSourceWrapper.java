@@ -16,18 +16,14 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.event.EventType;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.events.StoreEventImpl;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.event.EventType;
 
 import java.util.Map;
-
-import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * StoreEventSourceWrapper
@@ -35,26 +31,23 @@ import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
 class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   private final StoreEventSource<K, SoftLock<V>> underlying;
-  private final Map<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>> listenersMap = new ConcurrentHashMap<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>>(10);
+  private final Map<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>> listenersMap = new ConcurrentHashMap<>(10);
 
   StoreEventSourceWrapper(StoreEventSource<K, SoftLock<V>> underlying) {
     this.underlying = underlying;
-    underlying.addEventFilter(new StoreEventFilter<K, SoftLock<V>>() {
-      @Override
-      public boolean acceptEvent(EventType type, K key, SoftLock<V> oldValue, SoftLock<V> newValue) {
-        if (newValue != null) {
-          return newValue.getOldValue() != null;
-        } else if (oldValue != null) {
-          return oldValue.getOldValue() != null;
-        }
-        return false;
+    underlying.addEventFilter((type, key, oldValue, newValue) -> {
+      if (newValue != null) {
+        return newValue.getOldValue() != null;
+      } else if (oldValue != null) {
+        return oldValue.getOldValue() != null;
       }
+      return false;
     });
   }
 
   @Override
   public void addEventListener(final StoreEventListener<K, V> eventListener) {
-    StoreEventListenerWrapper<K, V> listenerWrapper = new StoreEventListenerWrapper<K, V>(eventListener);
+    StoreEventListenerWrapper<K, V> listenerWrapper = new StoreEventListenerWrapper<>(eventListener);
     listenersMap.put(eventListener, listenerWrapper);
     underlying.addEventListener(listenerWrapper);
   }
@@ -69,22 +62,19 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   @Override
   public void addEventFilter(final StoreEventFilter<K, V> eventFilter) {
-    underlying.addEventFilter(new StoreEventFilter<K, SoftLock<V>>() {
-      @Override
-      public boolean acceptEvent(EventType type, K key, SoftLock<V> oldValue, SoftLock<V> newValue) {
-        V unwrappedOldValue = null;
-        V unwrappedNewValue = null;
-        if (oldValue != null) {
-          unwrappedOldValue = oldValue.getOldValue();
-        }
-        if (newValue != null) {
-          unwrappedNewValue = newValue.getOldValue();
-        }
-        if (unwrappedNewValue == null && unwrappedOldValue == null) {
-          return false;
-        }
-        return eventFilter.acceptEvent(type, key, unwrappedOldValue, unwrappedNewValue);
+    underlying.addEventFilter((type, key, oldValue, newValue) -> {
+      V unwrappedOldValue = null;
+      V unwrappedNewValue = null;
+      if (oldValue != null) {
+        unwrappedOldValue = oldValue.getOldValue();
       }
+      if (newValue != null) {
+        unwrappedNewValue = newValue.getOldValue();
+      }
+      if (unwrappedNewValue == null && unwrappedOldValue == null) {
+        return false;
+      }
+      return eventFilter.acceptEvent(type, key, unwrappedOldValue, unwrappedNewValue);
     });
   }
 
@@ -111,22 +101,7 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
     @Override
     public void onEvent(StoreEvent<K, SoftLock<V>> event) {
-      StoreEvent<K, V> eventToPropagate = null;
-      switch (event.getType()) {
-        case CREATED:
-          eventToPropagate = createEvent(event.getKey(), event.getNewValue().getOldValue());
-          break;
-        case UPDATED:
-          eventToPropagate = updateEvent(event.getKey(), event.getOldValue().getOldValue(), event.getNewValue()
-                .getOldValue());
-          break;
-        case REMOVED:
-        case EXPIRED:
-        case EVICTED:
-          eventToPropagate = new StoreEventImpl<K, V>(event.getType(), event.getKey(), event.getOldValue().getOldValue(), null);
-          break;
-      }
-      wrappedOne.onEvent(eventToPropagate);
+      wrappedOne.onEvent(new XaEvent<>(event));
     }
 
     @Override
@@ -143,6 +118,45 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
     @Override
     public int hashCode() {
       return wrappedOne.hashCode();
+    }
+  }
+
+  static class XaEvent<K, V> implements StoreEvent<K, V> {
+
+    private final StoreEvent<K, SoftLock<V>> delegate;
+
+    XaEvent(StoreEvent<K, SoftLock<V>> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public EventType getType() {
+      return delegate.getType();
+    }
+
+    @Override
+    public K getKey() {
+      return delegate.getKey();
+    }
+
+    @Override
+    public V getNewValue() {
+      SoftLock<V> newValue = delegate.getNewValue();
+      if (newValue == null) {
+        return null;
+      } else {
+        return newValue.getOldValue();
+      }
+    }
+
+    @Override
+    public V getOldValue() {
+      SoftLock<V> oldValue = delegate.getOldValue();
+      if (oldValue == null) {
+        return null;
+      } else {
+        return oldValue.getOldValue();
+      }
     }
   }
 }

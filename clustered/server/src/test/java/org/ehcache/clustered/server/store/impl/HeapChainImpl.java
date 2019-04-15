@@ -15,8 +15,8 @@
  */
 package org.ehcache.clustered.server.store.impl;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,13 +39,18 @@ public class HeapChainImpl implements Chain {
   }
 
   @Override
-  public Iterator<Element> reverseIterator() {
-    return new ReverseChainIterator();
+  public boolean isEmpty() {
+    return first == null;
   }
 
   @Override
-  public boolean isEmpty() {
-    return first == null;
+  public int length() {
+    int length = 0;
+    while (iterator().hasNext()) {
+      iterator().next();
+      length++;
+    }
+    return length;
   }
 
   @Override
@@ -58,7 +63,7 @@ public class HeapChainImpl implements Chain {
    * @param element to be appended to the chain
    */
   Chain append(Element element) {
-    List<Element> presentElements = new LinkedList<Element>();
+    List<Element> presentElements = new LinkedList<>();
     for (Element l : this) {
       presentElements.add(l);
     }
@@ -71,21 +76,18 @@ public class HeapChainImpl implements Chain {
 
     if (elements != null && elements.length != 0) {
       List<Element> reordered = Arrays.asList(elements);
-      Collections.sort(reordered, new Comparator<Element>() {
-        @Override
-        public int compare(Element o1, Element o2) {
-          HeapElementImpl oh1 = (HeapElementImpl)o1;
-          HeapElementImpl oh2 = (HeapElementImpl)o2;
-          if (oh1.getSequenceNumber() > oh2.getSequenceNumber()) {
-            return 1;
-          } else if (oh1.getSequenceNumber() < oh2.getSequenceNumber()) {
-            return -1;
-          } else {
-            return 0;
-          }
+      Collections.sort(reordered, (o1, o2) -> {
+        HeapElementImpl oh1 = (HeapElementImpl)o1;
+        HeapElementImpl oh2 = (HeapElementImpl)o2;
+        if (oh1.getSequenceNumber() > oh2.getSequenceNumber()) {
+          return 1;
+        } else if (oh1.getSequenceNumber() < oh2.getSequenceNumber()) {
+          return -1;
+        } else {
+          return 0;
         }
       });
-      List<Element> sortedList = new ArrayList<Element>(reordered);
+      List<Element> sortedList = new ArrayList<>(reordered);
       if (!sortedList.isEmpty()) {
         createFirst(sortedList.remove(0));
       }
@@ -127,37 +129,6 @@ public class HeapChainImpl implements Chain {
       Node temp = this.current;
       this.current = this.current.nextLink;
       return temp.element;
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("Remove operation is not supported");
-    }
-  }
-
-  private class ReverseChainIterator implements Iterator<Element> {
-
-    private Node current;
-
-    ReverseChainIterator() {
-      this.current = last;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return current != null;
-    }
-
-    @Override
-    public Element next() {
-      Node temp = this.current;
-      this.current = this.current.prevLink;
-      return temp.element;
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("Remove operation is not supported");
     }
   }
 

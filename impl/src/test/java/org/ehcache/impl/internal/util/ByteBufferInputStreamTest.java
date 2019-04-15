@@ -18,6 +18,8 @@ package org.ehcache.impl.internal.util;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
+
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -290,11 +292,7 @@ public class ByteBufferInputStreamTest {
     }
     ByteBufferInputStream bin = new ByteBufferInputStream(buffer);
     for (int i = 0; i < prePadSize; i++) {
-      try {
-        assertThat(bin.read(), is(0));
-      } catch (IOException e) {
-        throw new AssertionError(e);
-      }
+      assertThat(bin.read(), is(0));
     }
     return bin;
   }

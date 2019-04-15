@@ -31,6 +31,6 @@ public interface BatchOperation<K, V> {
    * Perform the batch operation for a particular batch writer
    *
    */
-  void performBatchOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception;
+  void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception;
 
 }

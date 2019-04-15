@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -35,7 +35,8 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithOkayObject() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);
     Serializable a = (Serializable) loaderW.loadClass(newClassName(Foo_W.class)).getConstructor(Object.class).newInstance("foo");
@@ -50,7 +51,8 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithIncompatibleObject() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);
 

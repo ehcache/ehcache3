@@ -16,15 +16,16 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Albin Suresh
  */
+@Component
 public class DefaultCopyProviderFactory implements ServiceFactory<CopyProvider> {
 
   @Override

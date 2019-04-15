@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.config;
 
+import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -38,9 +39,8 @@ public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Serv
 
   /**
    * Indicates if management is to be enabled.
-   * <P>
-   *   A {@code null} return value indicates that cache manager level config is to be taken.
-   * </P>
+   * <p>
+   * A {@code null} return value indicates that cache manager level config is to be taken.
    *
    * @return {@code true} if management is enabled, {@code false} if disabled, {@code null} to keep cache manager level
    */
@@ -50,9 +50,8 @@ public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Serv
 
   /**
    * Indicates if statistics are to be enabled.
-   * <P>
-   *   A {@code null} return value indicates that cache manager level config is to be taken.
-   * </P>
+   * <p>
+   * A {@code null} return value indicates that cache manager level config is to be taken.
    *
    * @return {@code true} if statistics are enabled, {@code false} if disabled, {@code null} to keep cache manager level
    */

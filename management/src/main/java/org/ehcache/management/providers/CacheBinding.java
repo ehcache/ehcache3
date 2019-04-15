@@ -16,30 +16,32 @@
 package org.ehcache.management.providers;
 
 import org.ehcache.Cache;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
+
+import java.util.Objects;
 
 /**
  * Class representing an association between an object and an alias, name, identifier
- *
- * @author Mathieu Carbou
  */
+@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
 public final class CacheBinding {
 
   private final String alias;
-  private final Cache cache;
+  private final Cache<?, ?> cache;
 
   public CacheBinding(String alias, Cache<?, ?> cache) {
-    if (alias == null) throw new NullPointerException();
-    if (cache == null) throw new NullPointerException();
-    this.alias = alias;
-    this.cache = cache;
+    this.alias = Objects.requireNonNull(alias);
+    this.cache = Objects.requireNonNull(cache);
   }
 
   public String getAlias() {
     return alias;
   }
 
-  public Cache getCache() {
-    return cache;
+  @SuppressWarnings("unchecked")
+  public <K, V> Cache<K, V> getCache() {
+    return (Cache<K, V>) cache;
   }
 
   @Override

@@ -17,15 +17,13 @@ package org.ehcache.jsr107;
 
 import org.ehcache.core.InternalCache;
 import org.ehcache.Status;
-import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
@@ -39,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.cache.Cache;
+import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
@@ -63,25 +62,25 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
-  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
+  private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
+             InternalCache<K, V> ehCache, StatisticsService statisticsService, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
     this.cacheManager = cacheManager;
     this.name = name;
     this.cacheResources = cacheResources;
-    this.managementBean = new Eh107CacheMXBean(name, cacheManager, config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache);
+    this.managementBean = new Eh107CacheMXBean(name, cacheManager.getURI(), config);
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(), statisticsService);
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ehCache.getJsr107Cache();
+    this.jsr107Cache = ehCache.createJsr107Cache();
   }
 
   @Override
@@ -132,45 +131,41 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<K, V>>() {
-        @Override
-        public Map<K, V> apply(Iterable<? extends K> keys) {
-          try {
-            Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAll(keys);
-            HashMap<K, V> resultMap = new HashMap<K, V>();
-            for (K key : keys) {
-              resultMap.put(key, loadResult.get(key));
-            }
-            return resultMap;
-          } catch (Exception e) {
-            final CacheLoaderException cle;
-            if (e instanceof CacheLoaderException) {
-              cle = (CacheLoaderException) e;
-            } else if (e.getCause() instanceof CacheLoaderException) {
-              cle = (CacheLoaderException) e.getCause();
-            } else {
-              cle = new CacheLoaderException(e);
-            }
-
-            throw cle;
-          }
-        }
-      });
+      jsr107Cache.loadAll(keys, replaceExistingValues, this::loadAllFunction);
     } catch (Exception e) {
       final CacheLoaderException cle;
-      if (e instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e;
-      } else if (e.getCause() instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e.getCause();
-      } else {
-        cle = new CacheLoaderException(e);
-      }
-
+      cle = getCacheLoaderException(e);
       completionListener.onException(cle);
       return;
     }
 
     completionListener.onCompletion();
+  }
+
+  private CacheLoaderException getCacheLoaderException(Exception e) {
+    CacheLoaderException cle;
+    if (e instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e;
+    } else if (e.getCause() instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e.getCause();
+    } else {
+      cle = new CacheLoaderException(e);
+    }
+    return cle;
+  }
+
+  private Map<K, V> loadAllFunction(Iterable<? extends K> keysIterable) {
+    try {
+      Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
+      HashMap<K, V> resultMap = new HashMap<>();
+      for (K key : keysIterable) {
+        resultMap.put(key, loadResult.get(key));
+      }
+      return resultMap;
+    } catch (Exception e) {
+      CacheLoaderException cle = getCacheLoaderException(e);
+      throw cle;
+    }
   }
 
   @Override
@@ -339,47 +334,35 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       throw new NullPointerException();
     }
 
-    final AtomicReference<MutableEntry> mutableEntryRef = new AtomicReference<MutableEntry>();
-    final AtomicReference<T> invokeResult = new AtomicReference<T>();
+    final AtomicReference<MutableEntry> mutableEntryRef = new AtomicReference<>();
+    final AtomicReference<T> invokeResult = new AtomicReference<>();
 
-    jsr107Cache.compute(key, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        MutableEntry mutableEntry = new MutableEntry(mappedKey, mappedValue);
-        mutableEntryRef.set(mutableEntry);
+    jsr107Cache.compute(key, (mappedKey, mappedValue) -> {
+      MutableEntry mutableEntry = new MutableEntry(mappedKey, mappedValue);
+      mutableEntryRef.set(mutableEntry);
 
-        T processResult;
-        try {
-          processResult = entryProcessor.process(mutableEntry, arguments);
-        } catch (Exception e) {
-          if (e instanceof EntryProcessorException) {
-            throw new StorePassThroughException(e);
-          }
-          throw new StorePassThroughException(new EntryProcessorException(e));
+      T processResult;
+      try {
+        processResult = entryProcessor.process(mutableEntry, arguments);
+      } catch (Exception e) {
+        if (e instanceof EntryProcessorException) {
+          throw new StorePassThroughException(e);
         }
+        throw new StorePassThroughException(new EntryProcessorException(e));
+      }
 
-        invokeResult.set(processResult);
+      invokeResult.set(processResult);
 
-        return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldReplace();
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldInvokeWriter();
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldGenerateEvent();
-      }
+      return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldReplace();
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldInvokeWriter();
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldGenerateEvent();
     });
 
     return invokeResult.get();
@@ -400,7 +383,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
     }
 
-    Map<K, EntryProcessorResult<T>> results = new HashMap<K, EntryProcessorResult<T>>(keys.size());
+    Map<K, EntryProcessorResult<T>> results = new HashMap<>(keys.size());
     for (K key : keys) {
       EntryProcessorResult<T> result = null;
       try {
@@ -432,9 +415,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public void close() {
-    MultiCacheException closeException = new MultiCacheException();
-    cacheManager.close(this, closeException);
-    closeException.throwIfNotEmpty();
+    cacheManager.close(this);
   }
 
   @Override
@@ -442,33 +423,40 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     return syncedIsClose();
   }
 
-  void closeInternal(MultiCacheException closeException) {
-    closeInternal(false, closeException);
+  CacheException closeInternalAfter(CacheException failure) {
+    if (hypotheticallyClosed.compareAndSet(false, true)) {
+      return cacheResources.closeResourcesAfter(failure);
+    } else {
+      return failure;
+    }
   }
 
-  private void closeInternal(boolean destroy, MultiCacheException closeException) {
+  void closeInternal() {
+    closeInternal(false);
+  }
+
+  private void closeInternal(boolean destroy) {
     if (hypotheticallyClosed.compareAndSet(false, true)) {
       if (destroy) {
         try {
           clear(false);
         } catch (Throwable t) {
-          closeException.addThrowable(t);
+          throw cacheResources.closeResourcesAfter(new CacheException(t));
         }
       }
-
-      cacheResources.closeResources(closeException);
+      cacheResources.closeResources();
     }
   }
 
   private boolean syncedIsClose() {
-    if (((UserManagedCache)ehCache).getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
+    if (ehCache.getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
       close();
     }
     return hypotheticallyClosed.get();
   }
 
-  void destroy(MultiCacheException destroyException) {
-    closeInternal(true, destroyException);
+  void destroy() {
+    closeInternal(true);
   }
 
   @Override
@@ -539,7 +527,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       public Entry<K, V> next() {
         checkClosed();
         org.ehcache.Cache.Entry<K, V> next = specIterator.next();
-        return next == null ? null : new WrappedEhcacheEntry<K, V>(next);
+        return next == null ? null : new WrappedEhcacheEntry<>(next);
       }
 
       @Override
@@ -596,23 +584,15 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       throw new NullPointerException();
     }
 
-    return new EntryProcessorResult<T>() {
-      @Override
-      public T get() throws EntryProcessorException {
-        return result;
-      }
-    };
+    return () -> result;
   }
 
   private static <T> EntryProcessorResult<T> newErrorThrowingEntryProcessorResult(final Exception e) {
-    return new EntryProcessorResult<T>() {
-      @Override
-      public T get() throws EntryProcessorException {
-        if (e instanceof EntryProcessorException) {
-          throw (EntryProcessorException) e;
-        }
-        throw new EntryProcessorException(e);
+    return () -> {
+      if (e instanceof EntryProcessorException) {
+        throw (EntryProcessorException) e;
       }
+      throw new EntryProcessorException(e);
     };
   }
 
@@ -640,8 +620,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
   }
 
-  private static enum MutableEntryOperation {
-    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE;
+  private enum MutableEntryOperation {
+    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE
   }
 
   private static final Object UNDEFINED = new Object();

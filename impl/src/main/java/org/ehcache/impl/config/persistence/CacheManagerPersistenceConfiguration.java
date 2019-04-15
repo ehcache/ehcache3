@@ -20,7 +20,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheManagerConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.HumanReadable;
 
 import java.io.File;
 
@@ -28,12 +28,12 @@ import java.io.File;
  * Convenience configuration type that enables the {@link CacheManagerBuilder} to return a more specific type of
  * {@link CacheManager}, that is a {@link PersistentCacheManager}.
  */
-public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConfiguration implements CacheManagerConfiguration<PersistentCacheManager> {
+public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConfiguration implements CacheManagerConfiguration<PersistentCacheManager>, HumanReadable {
 
   /**
    * Creates a new configuration object with the provided parameters.
    *
-   * @param rootDirectory the root directory to use for local persistence
+   * @param rootDirectory the root directory to use for disk storage
    */
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
     super(rootDirectory);
@@ -43,7 +43,14 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
    * Transforms the builder received in one that returns a {@link PersistentCacheManager}.
    */
   @Override
+  @SuppressWarnings("unchecked")
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>)other.using(this);
+  }
+
+  @Override
+  public String readableString() {
+    return this.getClass().getName() + ":\n    " +
+        "rootDirectory: " + getRootDirectory();
   }
 }

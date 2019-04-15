@@ -16,23 +16,24 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.SizedResourcePool;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
+import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
@@ -43,7 +44,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -51,7 +52,6 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
@@ -68,7 +68,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.mockito.Mockito.mock;
+import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
+import static org.ehcache.test.MockitoUtil.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link TieredStore} compliance to the
@@ -79,11 +84,13 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
   private final TieredStore.Provider provider = new TieredStore.Provider();
-  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private LocalPersistenceService persistenceService;
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
+
+  @Rule
+  public TestDiskResourceService diskResourceService = new TestDiskResourceService();
 
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
@@ -92,55 +99,56 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   @Before
   public void setUp() throws IOException {
-    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
 
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
 
       @Override
       public Store<String, String> newStore() {
-        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public Store<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      public Store<String, String> newStoreWithExpiry(ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
       public Store<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
-      private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
+      private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
+        Serializer<String> keySerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+          evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
-        final Copier defaultCopier = new IdentityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        Copier<String> defaultCopier = IdentityCopier.identityCopier();
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
         try {
+          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
-          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
-                  persistenceContext,
-                  new OnDemandExecutionService(), null, 1,
-                  config, timeSource,
-                  new TestStoreEventDispatcher<String, String>(),
-                  sizeInBytes);
-          TieredStore<String, String> tieredStore = new TieredStore<String, String>(onHeapStore, diskStore);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<>(
+            persistenceContext,
+            new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+            config, timeSource,
+            new TestStoreEventDispatcher<>(),
+            sizeInBytes);
+          TieredStore<String, String> tieredStore = new TieredStore<>(onHeapStore, diskStore);
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override
             public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
@@ -216,38 +224,28 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         return new Store.ValueHolder<String>() {
 
           @Override
-          public String value() {
+          public String get() {
             return value;
           }
 
           @Override
-          public long creationTime(TimeUnit unit) {
+          public long creationTime() {
             return creationTime;
           }
 
           @Override
-          public long expirationTime(TimeUnit unit) {
+          public long expirationTime() {
             return 0;
           }
 
           @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
+          public boolean isExpired(long expirationTime) {
             return false;
           }
 
           @Override
-          public long lastAccessTime(TimeUnit unit) {
+          public long lastAccessTime() {
             return 0;
-          }
-
-          @Override
-          public float hitRate(long now, TimeUnit unit) {
-            return 0;
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
           }
 
           @Override
@@ -269,7 +267,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -289,7 +287,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         String spaceName = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          persistenceService.destroy(spaceName);
+          diskResourceService.destroy(spaceName);
         } catch (CachePersistenceException e) {
           throw new AssertionError(e);
         } finally {
@@ -299,23 +297,19 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(new FakeCachingTierProvider());
-        serviceLocator.addService(new FakeAuthoritativeTierProvider());
-        return serviceLocator;
+        ServiceLocator.DependencySet dependencySet = dependencySet();
+        dependencySet.with(new FakeCachingTierProvider());
+        dependencySet.with(new FakeAuthoritativeTierProvider());
+        return dependencySet.build();
       }
     };
   }
 
   @After
   public void tearDown() throws CachePersistenceException {
-    try {
-      for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-        provider.releaseStore(entry.getKey());
-        persistenceService.destroy(entry.getValue());
-      }
-    } finally {
-      persistenceService.stop();
+    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+      provider.releaseStore(entry.getKey());
+      diskResourceService.destroy(entry.getValue());
     }
   }
 
@@ -323,11 +317,12 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     if (capacityConstraint == null) {
       capacityConstraint = 16L;
     }
-    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MemoryUnit.MB).build();
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
@@ -360,6 +355,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }

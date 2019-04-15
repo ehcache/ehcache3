@@ -16,96 +16,79 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
-import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
-import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
-import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
-import org.ehcache.clustered.client.internal.store.ClusteredStore;
-import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
-import org.ehcache.clustered.common.ClusteredStoreCreationException;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.client.internal.loaderwriter.writebehind.ClusteredWriteBehindStore;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
+import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.lock.LockManager;
+import org.ehcache.clustered.client.internal.store.lock.LockManagerImpl;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
+import org.ehcache.clustered.client.service.ClientEntityFactory;
+import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.service.EntityService;
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
-
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
-import org.terracotta.connection.ConnectionException;
-import org.terracotta.connection.ConnectionFactory;
-import org.terracotta.connection.ConnectionPropertyNames;
-import org.terracotta.exception.EntityAlreadyExistsException;
-import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.connection.entity.Entity;
+
+import java.util.Collection;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * Provides support for accessing server-based cluster services.
  */
-@ServiceDependencies(ClusteredStore.Provider.class)
-class DefaultClusteringService implements ClusteringService {
+class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
-  private static final String AUTO_CREATE_QUERY = "auto-create";
   static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
-  private final URI clusterUri;
-  private final String entityIdentifier;
-  private final ServerSideConfiguration serverConfiguration;
-  private final boolean autoCreate;
+  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
+  private final ConnectionState connectionState;
 
-  private Connection clusterConnection;
-  private EhcacheClientEntityFactory entityFactory;
-  private EhcacheClientEntity entity;
+  private final Set<String> reconnectSet = ConcurrentHashMap.newKeySet();
+  private final Collection<Runnable> connectionRecoveryListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean inMaintenance = false;
 
-  DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
+  DefaultClusteringService(ClusteringServiceConfiguration configuration) {
     this.configuration = configuration;
-    URI ehcacheUri = configuration.getClusterUri();
-    this.clusterUri = extractClusterUri(ehcacheUri);
-    this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.serverConfiguration =
-        new ServerSideConfiguration(configuration.getDefaultServerResource(), extractResourcePools(configuration));
-    this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
+    Properties properties = configuration.getProperties();
+    this.connectionState = new ConnectionState(configuration.getTimeouts(), properties, configuration);
+    this.connectionState.setConnectionRecoveryListener(() -> connectionRecoveryListeners.forEach(Runnable::run));
   }
 
-  private static URI extractClusterUri(URI uri) {
-    try {
-      return new URI(uri.getScheme(), uri.getAuthority(), null, null, null);
-    } catch (URISyntaxException e) {
-      throw new AssertionError(e);
-    }
+  @Override
+  public void addConnectionRecoveryListener(Runnable runnable) {
+    connectionRecoveryListeners.add(runnable);
+  }
+
+  @Override
+  public void removeConnectionRecoveryListener(Runnable runnable) {
+    connectionRecoveryListeners.remove(runnable);
   }
 
   @Override
@@ -114,70 +97,41 @@ class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
-    try {
-      Properties properties = new Properties();
-      properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + this.entityIdentifier);
-      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
-    } catch (ConnectionException ex) {
-      throw new RuntimeException(ex);
-    }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection);
-    try {
-      EhcacheEntityCreationException failure = null;
-      if (autoCreate) {
-        try {
-          entityFactory.create(entityIdentifier, serverConfiguration);
-        } catch (EhcacheEntityCreationException e) {
-          failure = e;
-        } catch (EntityAlreadyExistsException e) {
-          //ignore - entity already exists
+  public <E extends Entity, C> ClientEntityFactory<E, C> newClientEntityFactory(String entityIdentifier, Class<E> entityType, long entityVersion, C configuration) {
+    return new AbstractClientEntityFactory<E, C, Void>(entityIdentifier, entityType, entityVersion, configuration) {
+      @Override
+      protected Connection getConnection() {
+        if (!isConnected()) {
+          throw new IllegalStateException(getClass().getSimpleName() + " not started.");
         }
+        return connectionState.getConnection();
       }
-      try {
-        entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
-      } catch (EntityNotFoundException e) {
-        /*
-         * If the connection failed because of a creation failure, re-throw the creation failure.
-         */
-        throw new IllegalStateException(failure == null ? e : failure);
-      }
-    } catch (RuntimeException e) {
-      entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException ex) {
-        LOGGER.warn("Error closing cluster connection: " + ex);
-      }
-      throw e;
-    }
+    };
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    try {
-      clusterConnection = ConnectionFactory.connect(clusterUri, new Properties());
-    } catch (ConnectionException ex) {
-      throw new RuntimeException(ex);
-    }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection);
-    if (!entityFactory.acquireLeadership(entityIdentifier)) {
-      entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException e) {
-        LOGGER.warn("Error closing cluster connection: " + e);
-      }
-      throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
+  public boolean isConnected() {
+    return connectionState.getConnection() != null;
+  }
+
+  @Override
+  public void start(final ServiceProvider<Service> serviceProvider) {
+    connectionState.initClusterConnection();
+    connectionState.initializeState();
+  }
+
+  @Override
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    connectionState.initClusterConnection();
+    if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
+      connectionState.acquireLeadership();
     }
     inMaintenance = true;
   }
 
   @Override
   public void stop() {
-    LOGGER.info("stop called for clustered caches on {}", this.clusterUri);
+    LOGGER.info("Closing connection to cluster {}", configuration.getConnectionSource());
 
     /*
      * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
@@ -186,19 +140,9 @@ class DefaultClusteringService implements ClusteringService {
      * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
      * take care of server-side cleanup in the event the server is connected.
      */
-    entityFactory = null;
+    connectionState.destroyState(true);
     inMaintenance = false;
-
-    entity = null;
-
-    try {
-      if (clusterConnection != null) {
-        clusterConnection.close();
-        clusterConnection = null;
-      }
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
+    connectionState.closeConnection();
   }
 
   @Override
@@ -206,55 +150,82 @@ class DefaultClusteringService implements ClusteringService {
     if (!inMaintenance) {
       throw new IllegalStateException("Maintenance mode required");
     }
-    LOGGER.info("destroyAll called for clustered caches on {}", this.clusterUri);
-
-    try {
-      entityFactory.destroy(entityIdentifier);
-    } catch (EhcacheEntityNotFoundException e) {
-      throw new CachePersistenceException("Clustered caches on " + this.clusterUri + " not found", e);
-    } catch (EhcacheEntityBusyException e) {
-      throw new CachePersistenceException("Can not delete clustered caches on " + this.clusterUri + ": " + e.toString(), e);
-    }
+    connectionState.destroyAll();
   }
 
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return (Arrays.asList(ClusteredResourceType.Types.values()).contains(resourceType));
+    return Stream.of(ClusteredResourceType.Types.values()).anyMatch(t -> t.equals(resourceType));
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
-    return Collections.<ServiceConfiguration<?>>singleton(new DefaultClusterCacheIdentifier(alias));
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+    ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
+    if(clusteredSpace != null) {
+      return clusteredSpace.identifier;
+    } else {
+      ClusteredCacheIdentifier cacheIdentifier = new DefaultClusterCacheIdentifier(name);
+      clusteredSpace = knownPersistenceSpaces.putIfAbsent(name, new ClusteredSpace(cacheIdentifier));
+      if(clusteredSpace == null) {
+        return cacheIdentifier;
+      } else {
+        return clusteredSpace.identifier;
+      }
+    }
   }
 
   @Override
-  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    throw new UnsupportedOperationException("create() not supported for clustered caches");
+  public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+    ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
+    if (knownPersistenceSpaces.remove(clusterCacheIdentifier.getId()) == null) {
+      throw new CachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
+    }
+  }
+
+  @Override
+  public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
+    ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(clusterCacheIdentifier.getId());
+    if (clusteredSpace == null) {
+      throw new CachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
+    }
+    ConcurrentMap<String, ClusterStateRepository> stateRepositories = clusteredSpace.stateRepositories;
+    ClusterStateRepository currentRepo = stateRepositories.get(name);
+    if(currentRepo != null) {
+      return currentRepo;
+    } else {
+      ClusterStateRepository newRepo = new ClusterStateRepository(clusterCacheIdentifier, name,
+              connectionState.getClusterTierClientEntity(clusterCacheIdentifier.getId()));
+      currentRepo = stateRepositories.putIfAbsent(name, newRepo);
+      if (currentRepo == null) {
+        return newRepo;
+      } else {
+        return currentRepo;
+      }
+    }
+  }
+
+  private void checkStarted() {
+    if(!isStarted()) {
+      throw new IllegalStateException(getClass().getName() + " should be started to call destroy");
+    }
   }
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    entity.destroyCache(name);
+    checkStarted();
+    connectionState.destroy(name);
   }
 
-  private Map<String, ServerSideConfiguration.Pool> extractResourcePools(ClusteringServiceConfiguration configuration) {
-    Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
-    for (Map.Entry<String, PoolDefinition> e : configuration.getPools().entrySet()) {
-      PoolDefinition poolDef = e.getValue();
-      long size = poolDef.getUnit().toBytes(poolDef.getSize());
-      if (poolDef.getServerResource() == null) {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(configuration.getDefaultServerResource(), size));
-      } else {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(poolDef.getServerResource(), size));
-      }
-    }
-    return Collections.unmodifiableMap(pools);
+  private boolean isStarted() {
+    return connectionState.getEntityFactory() != null;
   }
 
   @Override
-  public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                     final Store.Configuration<K, V> storeConfig,
-                                                     Consistency configuredConsistency) {
+  public <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier,
+                                                     Store.Configuration<K, V> storeConfig,
+                                                     Consistency configuredConsistency,
+                                                     ServerCallback invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -278,55 +249,56 @@ class DefaultClusteringService implements ClusteringService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
-    final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
-        clusteredResourcePool.getPoolAllocation(),
-        storeConfig.getKeyType().getName(),
-        storeConfig.getValueType().getName(),
-        null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
-        null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
-        (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
-        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-        configuredConsistency
-    );
+    ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
+      clusteredResourcePool.getPoolAllocation(),
+      storeConfig.getKeyType().getName(),
+      storeConfig.getValueType().getName(),
+      (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
+      (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
+      configuredConsistency, storeConfig.getCacheLoaderWriter() != null,
+      invalidation instanceof ClusteredWriteBehindStore.WriteBehindServerCallback);
 
-    if (autoCreate) {
-      try {
-        this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (CachePersistenceException e) {
-        try {
-          this.entity.createCache(cacheId, clientStoreConfiguration);
-        } catch (CachePersistenceException ex) {
-          throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, ex);
-        }
-      }
-    } else {
-      try {
-        this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (CachePersistenceException e) {
-        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, e);
-      }
-    }
+    ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
+    ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
       case STRONG:
-        return new StrongServerStoreProxy(messageFactory, entity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        break;
       case EVENTUAL:
-        return new EventualServerStoreProxy(messageFactory, entity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);
     }
 
+    try {
+      storeClientEntity.validate(clientStoreConfiguration);
+    } catch (ClusterTierException e) {
+      serverStoreProxy.close();
+      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+                                          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
+    } catch (TimeoutException e) {
+      serverStoreProxy.close();
+      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+                                          + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
+    }
+
+    if (storeConfig.getCacheLoaderWriter() != null) {
+      LockManager lockManager = new LockManagerImpl(storeClientEntity);
+      serverStoreProxy = new LockingServerStoreProxy(serverStoreProxy, lockManager);
+    }
+
+    return serverStoreProxy;
   }
 
   @Override
-  public void releaseServerStoreProxy(ServerStoreProxy storeProxy) {
-    final String cacheId = storeProxy.getCacheId();
-
-    try {
-      this.entity.releaseCache(cacheId);
-    } catch (CachePersistenceException e) {
-      throw new IllegalStateException(e);
+  public void releaseServerStoreProxy(ServerStoreProxy storeProxy, boolean isReconnect) {
+    connectionState.removeClusterTierClientEntity(storeProxy.getCacheId());
+    if (!isReconnect) {
+      storeProxy.close();
+    } else {
+      reconnectSet.add(storeProxy.getCacheId());
     }
   }
 
@@ -337,7 +309,7 @@ class DefaultClusteringService implements ClusteringService {
 
     private final String id;
 
-    private DefaultClusterCacheIdentifier(final String id) {
+    DefaultClusterCacheIdentifier(final String id) {
       this.id = id;
     }
 
@@ -350,6 +322,27 @@ class DefaultClusteringService implements ClusteringService {
     public Class<ClusteringService> getServiceType() {
       return ClusteringService.class;
     }
+
+    @Override
+    public String toString() {
+      return getClass().getSimpleName() + "@" + id;
+    }
+  }
+
+  private static class ClusteredSpace {
+
+    private final ClusteredCacheIdentifier identifier;
+    private final ConcurrentMap<String, ClusterStateRepository> stateRepositories;
+
+    ClusteredSpace(final ClusteredCacheIdentifier identifier) {
+      this.identifier = identifier;
+      this.stateRepositories = new ConcurrentHashMap<>();
+    }
+  }
+
+  // for test purposes
+  public ConnectionState getConnectionState() {
+    return connectionState;
   }
 
 }

@@ -18,13 +18,12 @@ package org.ehcache.impl.internal.concurrent;
 
 import org.junit.Test;
 
-import java.util.Comparator;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionAdvisor;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
@@ -40,7 +39,7 @@ public class ConcurrentHashMapTest {
     public void testRemoveAllWithHash() throws Exception {
         final int totalCount = 10037;
 
-        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<>();
 
         int lastHash = 0;
 
@@ -50,35 +49,36 @@ public class ConcurrentHashMapTest {
             map.put(o, "val#" + i);
         }
 
-        Map<Comparable<?>, String> removed = map.removeAllWithHash(lastHash);
+        Collection<Entry<Comparable<?>, String>> removed = map.removeAllWithHash(lastHash);
 
         assertThat(removed.size(), greaterThan(0));
         assertThat(map.size() + removed.size(), is(totalCount));
-        for (Comparable<?> key : map.keySet()) {
-            assertThat(removed.containsKey(key), is(false));
-        }
+        assertRemovedEntriesAreRemoved(map, removed);
     }
 
     @Test
     public void testRemoveAllWithHashUsingBadHashes() throws Exception {
         final int totalCount = 10037;
 
-        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<>();
 
         for(int i = 0; i < totalCount; i++) {
             BadHashKey o = new BadHashKey(i);
             map.put(o, "val#" + i);
         }
 
-        Map<Comparable<?>, String> removed = map.removeAllWithHash(BadHashKey.HASH_CODE);
+        Collection<Map.Entry<Comparable<?>, String>> removed = map.removeAllWithHash(BadHashKey.HASH_CODE);
 
         assertThat(removed.size(), is(totalCount));
         assertThat(map.size(), is(0));
-        for (Comparable<?> removedKey : removed.keySet()) {
-            assertThat(map.containsKey(removedKey), is(false));
-        }
+        assertRemovedEntriesAreRemoved(map, removed);
     }
 
+    private void assertRemovedEntriesAreRemoved(ConcurrentHashMap<Comparable<?>, String> map, Collection<Entry<Comparable<?>, String>> removed) {
+        for (Entry<Comparable<?>, String> entry : map.entrySet()) {
+            assertThat(removed.contains(entry), is(false));
+        }
+    }
     static class BadHashKey implements Comparable<BadHashKey> {
 
         static final int HASH_CODE = 42;
@@ -116,86 +116,65 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testRandomSampleOnEmptyMap() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>noAdvice()), nullValue());
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
+        assertThat(map.getEvictionCandidate(new Random(), 1, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testEmptyRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(new Random(), 0, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testOversizedRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, Eviction.<String, String>noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, noAdvice());
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
 
     @Test
     public void testUndersizedRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, new Comparator<String>() {
-          @Override
-          public int compare(String t, String t1) {
-            return 0;
-          }
-        }, Eviction.<String, String>noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, (t, t1) -> 0, noAdvice());
         assertThat(candidate, notNullValue());
     }
 
     @Test
     public void testFullyAdvisedAgainstEvictionRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, new EvictionAdvisor<String, String>() {
-            @Override
-            public boolean adviseAgainstEviction(String key, String value) {
-                return true;
-            }
-        });
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, (key, value) -> true);
         assertThat(candidate, nullValue());
     }
 
     @Test
     public void testSelectivelyAdvisedAgainstEvictionRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, new Comparator<String>() {
-          @Override
-          public int compare(String t, String t1) {
-            return 0;
-          }
-        }, new EvictionAdvisor<String, String>() {
-
-          @Override
-          public boolean adviseAgainstEviction(String key, String value) {
-            return key.length() > 1;
-          }
-        });
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, (t, t1) -> 0, (key, value) -> key.length() > 1);
         assertThat(candidate.getKey().length(), is(1));
     }
 
     @Test
     public void testReplaceWithWeirdBehavior() {
-        ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<String, Element>();
+        ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<>();
         final Element initialElement = new Element("key", "foo");
         elementMap.put("key", initialElement);
         assertThat(elementMap.replace("key", initialElement, new Element("key", "foo")), is(true));
         assertThat(elementMap.replace("key", initialElement, new Element("key", "foo")), is(false));
 
-        ConcurrentHashMap<String, String> stringMap = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> stringMap = new ConcurrentHashMap<>();
         final String initialString = "foo";
         stringMap.put("key", initialString);
         assertThat(stringMap.replace("key", initialString, new String(initialString)), is(true));
@@ -207,7 +186,7 @@ public class ConcurrentHashMapTest {
 
         final String key = "ourKey";
 
-        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<String, Object>();
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
 
         String value = new String("key");
         String valueAgain = new String("key");

@@ -19,7 +19,6 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.Consistency;
@@ -27,16 +26,24 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.Serializable;
+import java.math.BigInteger;
 import java.net.URI;
+import java.util.Random;
+import java.util.concurrent.atomic.LongAdder;
 
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -46,7 +53,7 @@ import static org.junit.Assert.assertThat;
  */
 public class BasicClusteredCacheTest {
 
-  private static final URI CLUSTER_URI = URI.create("http://example.com:9540/my-application?auto-create");
+  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -67,10 +74,10 @@ public class BasicClusteredCacheTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
@@ -85,10 +92,10 @@ public class BasicClusteredCacheTest {
   public void testClusteredCacheTwoClients() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
@@ -101,7 +108,7 @@ public class BasicClusteredCacheTest {
     assertThat(cache2.get(1L), nullValue());
     cache1.put(1L, "value1");
     assertThat(cache2.get(1L), is("value1"));
-    assertThat(cache2.get(1L), is("value1"));
+    assertThat(cache1.get(1L), is("value1"));
     cache1.put(1L, "value2");
     assertThat(cache2.get(1L), is("value2"));
     assertThat(cache1.get(1L), is("value2"));
@@ -114,10 +121,10 @@ public class BasicClusteredCacheTest {
   public void testClustered3TierCacheTwoClients() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
@@ -167,10 +174,10 @@ public class BasicClusteredCacheTest {
   public void testTieredClusteredCache() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                     heap(2)
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
@@ -179,5 +186,63 @@ public class BasicClusteredCacheTest {
     assertThat(cache.get(1L), is("value"));
 
     cacheManager.close();
+  }
+
+  @Test
+  public void testClusteredCacheWithSerializableValue() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate())
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, Person.class,
+                    newResourcePoolsBuilder().with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+
+    Cache<Long, Person> cache = cacheManager.getCache("clustered-cache", Long.class, Person.class);
+
+    cache.put(38L, new Person("Clustered Joe", 28));
+
+    cacheManager.close();
+
+    cacheManager = clusteredCacheManagerBuilder.build(true);
+    cache = cacheManager.getCache("clustered-cache", Long.class, Person.class);
+
+    assertThat(cache.get(38L).name, is("Clustered Joe"));
+  }
+
+  @Test
+  public void testLargeValues() throws Exception {
+    DefaultStatisticsService statisticsService = new DefaultStatisticsService();
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+            newCacheManagerBuilder()
+                    .using(statisticsService)
+                    .with(cluster(CLUSTER_URI).autoCreate())
+                    .withCache("small-cache", newCacheConfigurationBuilder(Long.class, BigInteger.class,
+                            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                                    .with(clusteredDedicated("secondary-server-resource", 4, MemoryUnit.MB))));
+
+    // The idea here is to add big things in the cache, and cause eviction of them to see if something crashes
+
+    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
+
+      Cache<Long, BigInteger> cache = cacheManager.getCache("small-cache", Long.class, BigInteger.class);
+
+      Random random = new Random();
+      for (long i = 0; i < 100; i++) {
+        BigInteger value = new BigInteger(30 * 1024 * 128 * (1 + random.nextInt(10)), random);
+        cache.put(i, value);
+      }
+    }
+  }
+
+  public static class Person implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    final String name;
+    final int age;
+
+    public Person(String name, int age) {
+      this.name = name;
+      this.age = age;
+    }
   }
 }

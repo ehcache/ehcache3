@@ -31,7 +31,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  */
 public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
-  private final Map<K, List<V>> data = new HashMap<K, List<V>>();
+  private final Map<K, List<V>> data = new HashMap<>();
   private CountDownLatch latch;
 
   public synchronized void setLatch(CountDownLatch latch) {
@@ -39,7 +39,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
   }
 
   @Override
-  public synchronized  V load(K key) throws Exception {
+  public synchronized  V load(K key) {
     List<V> values = getValueList(key);
     if (values.isEmpty()) {
       return null;
@@ -49,8 +49,8 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
   }
 
   @Override
-  public synchronized Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-    Map<K, V> loaded = new HashMap<K, V>();
+  public synchronized Map<K, V> loadAll(Iterable<? extends K> keys) {
+    Map<K, V> loaded = new HashMap<>();
     for (K k : keys) {
       loaded.put(k, load(k));
     }
@@ -58,26 +58,26 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
   }
 
   @Override
-  public synchronized void write(K key, V value) throws Exception {
+  public synchronized void write(K key, V value) {
     getValueList(key).add(value);
     if(latch != null) latch.countDown();
   }
 
   @Override
-  public synchronized void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+  public synchronized void writeAll(Iterable<? extends Entry<? extends K, ? extends V>> entries) {
     for (Entry<? extends K, ? extends V> entry : entries) {
       write(entry.getKey(), entry.getValue());
     }
   }
 
   @Override
-  public synchronized void delete(K key) throws Exception {
+  public synchronized void delete(K key) {
     getValueList(key).add(null);
     if(latch != null) latch.countDown();
   }
 
   @Override
-  public synchronized void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+  public synchronized void deleteAll(Iterable<? extends K> keys) {
     for (K k : keys) {
       delete(k);
     }
@@ -90,7 +90,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
   protected List<V> getValueList(K key) {
     List<V> values = data.get(key);
     if (values == null) {
-      values = new ArrayList<V>();
+      values = new ArrayList<>();
       data.put(key, values);
     }
     return values;

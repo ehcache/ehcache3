@@ -22,6 +22,7 @@ import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,17 +46,18 @@ public class CacheConfigurationChangeListenerTest {
   private CacheEventDispatcher<Object, Object> eventNotifier;
   private EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration;
   private CacheConfiguration<Object, Object> config;
-  private EhcacheWithLoaderWriter<Object, Object> cache;
+  private Ehcache<Object, Object> cache;
 
   @SuppressWarnings({ "unchecked"})
   @Before
   public void setUp() throws Exception {
     this.store = mock(Store.class);
     this.eventNotifier = mock(CacheEventDispatcher.class);
+    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
-    this.config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
-    this.cache = new EhcacheWithLoaderWriter<Object, Object>(config, store, loaderWriter, eventNotifier,
-        LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "CacheConfigurationListenerTest"));
+    this.config = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
+    this.cache = new Ehcache<>(config, store, resilienceStrategy, eventNotifier,
+      LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"), loaderWriter);
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
@@ -69,7 +71,7 @@ public class CacheConfigurationChangeListenerTest {
   public void testCacheConfigurationChangeFiresEvent () {
     Listener configurationListener = new Listener();
     List<CacheConfigurationChangeListener> cacheConfigurationChangeListeners
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
     this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(10));
@@ -80,7 +82,7 @@ public class CacheConfigurationChangeListenerTest {
   public void testRemovingCacheConfigurationListener() {
     Listener configurationListener = new Listener();
     List<CacheConfigurationChangeListener> cacheConfigurationChangeListeners
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
     this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(20));
@@ -91,12 +93,12 @@ public class CacheConfigurationChangeListenerTest {
   }
 
   private class Listener implements CacheConfigurationChangeListener {
-    private final Set<CacheConfigurationChangeEvent> eventSet = new HashSet<CacheConfigurationChangeEvent>();
+    private final Set<CacheConfigurationChangeEvent> eventSet = new HashSet<>();
 
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
       this.eventSet.add(event);
-      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "GettingStarted");
+      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
       logger.info("Setting size: "+event.getNewValue().toString());
     }
   }

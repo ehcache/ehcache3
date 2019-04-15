@@ -27,11 +27,10 @@ import bitronix.tm.resource.common.XAResourceProducer;
 import bitronix.tm.resource.common.XAStatefulHolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -46,7 +45,7 @@ class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProdu
   private static final long serialVersionUID = -6421881731950504009L;
 
   @SuppressFBWarnings("SE_BAD_FIELD")
-  private final Map<XAResource, Ehcache3XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, Ehcache3XAResourceHolder>();
+  private final Map<XAResource, Ehcache3XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<>();
   private volatile transient RecoveryXAResourceHolder recoveryXAResourceHolder;
 
   Ehcache3XAResourceProducer() {
@@ -79,7 +78,7 @@ class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProdu
     return xaResourceHolders.isEmpty();
   }
 
-  public void endRecovery() throws RecoveryException {
+  public void endRecovery() {
     recoveryXAResourceHolder = null;
   }
 
@@ -110,12 +109,12 @@ class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProdu
   }
 
   @Override
-  public XAStatefulHolder createPooledConnection(Object xaFactory, ResourceBean bean) throws Exception {
+  public XAStatefulHolder createPooledConnection(Object xaFactory, ResourceBean bean) {
     throw new UnsupportedOperationException("Ehcache is not connection-oriented");
   }
 
   @Override
-  public Reference getReference() throws NamingException {
+  public Reference getReference() {
     return new Reference(Ehcache3XAResourceProducer.class.getName(),
         new StringRefAddr("uniqueName", getUniqueName()),
         ResourceObjectFactory.class.getName(), null);

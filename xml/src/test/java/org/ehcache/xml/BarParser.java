@@ -18,12 +18,16 @@ package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -46,7 +50,22 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     return new BarConfiguration();
+  }
+
+  @Override
+  public Class<Service> getServiceType() {
+    return Service.class;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service> serviceCreationConfiguration) {
+    try {
+      Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
+      return document.createElementNS(NAMESPACE.toString(), "bar:bar");
+    } catch (SAXException | ParserConfigurationException | IOException e) {
+      throw new XmlConfigurationException(e);
+    }
   }
 }

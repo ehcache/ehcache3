@@ -16,28 +16,25 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * A CacheLoaderWriter is used to keep a {@link org.ehcache.Cache Cache} in sync with another system.
- * <P>
+ * <p>
  * Instances of this class should be thread safe.
- * </P>
- * <P>
+ * <p>
  * Any {@link Exception} thrown by the loading methods of this interface will be wrapped into a
  * {@link CacheLoadingException} by the {@link org.ehcache.Cache Cache} and will need to be handled by
  * the user. Any {@code java.lang.Exception} thrown by the writing methods will
  * be wrapped into a {@link CacheWritingException}.
- * </P>
- * <P>  WTF?
- *   A similar thing will happen for the bulk version of the loading and writing methods and create the bulk version of
- *   the related exceptions.
- * </P>
+ * <p>
+ * A similar thing will happen for the bulk version of the loading and writing methods and create the bulk version of
+ * the related exceptions.
  *
  * @param <K> the key type processed by this loader-writer
  * @param <V> the value type processed by this loader-writer
  *
- * //These are already linked
  * @see CacheLoadingException
  * @see CacheWritingException
  * @see BulkCacheLoadingException
@@ -47,10 +44,9 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Loads a single value.
-   * <P>
-   *   When used with a cache any exception thrown by this method will be thrown
-   *   back to the user as a {@link CacheLoadingException}.
-   * </P>
+   * <p>
+   * When used with a cache any exception thrown by this method will be thrown
+   * back to the user as a {@link CacheLoadingException}.
    *
    * @param key the key for which to load the value
    *
@@ -62,18 +58,15 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Loads multiple values.
-   * <P>
+   * <p>
    * The returned {@link Map} should contain {@code null} values for the keys
    * that could not be found.
-   * </P>
-   * <P>
+   * <p>
    * When used with a cache the mappings that will be installed are the keys as found in {@code keys}
    * mapped to the results of {@code loadAllResult.get(key)}. Any other mappings will be ignored.
-   * </P>
-   * <P>
-   *   By using a {@link BulkCacheLoadingException} implementors can report partial success. Any other exceptions will
-   *   be thrown back to the {@code Cache} user through a {@link BulkCacheLoadingException} indicating a complete failure.
-   * </P>
+   * <p>
+   * By using a {@link BulkCacheLoadingException} implementors can report partial success. Any other exceptions will
+   * be thrown back to the {@code Cache} user through a {@link BulkCacheLoadingException} indicating a complete failure.
    *
    * @param keys the keys to load
    *
@@ -83,17 +76,21 @@ public interface CacheLoaderWriter<K, V> {
    * @throws BulkCacheLoadingException in case of partial success
    * @throws Exception in case no values could be loaded
    */
-  Map<K, V> loadAll(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception;
+  default Map<K, V> loadAll(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception {
+    Map<K, V> entries = new HashMap<>();
+    for (K k : keys) {
+      entries.put(k, load(k)) ;
+    }
+    return entries;
+  }
 
   /**
    * Writes a single mapping.
-   * <P>
-   *   The write may represent a brand new value or an update to an existing value.
-   * </P>
-   * <P>
-   *   When used with a {@code Cache} any exception thrown by this method will
-   *   be thrown back to the user through a {@link CacheWritingException}.
-   * </P>
+   * <p>
+   * The write may represent a brand new value or an update to an existing value.
+   * <p>
+   * When used with a {@code Cache} any exception thrown by this method will
+   * be thrown back to the user through a {@link CacheWritingException}.
    *
    * @param key the key to write
    * @param value the value to write
@@ -104,20 +101,22 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Writes multiple mappings.
-   * <P>
-   *   The writes may represent a mix of brand new values and updates to existing values.
-   * </P>
-   * <P>
-   *   By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
-   *   be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating a complete failure.
-   * </P>
+   * <p>
+   * The writes may represent a mix of brand new values and updates to existing values.
+   * <p>
+   * By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
+   * be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating a complete failure.
    *
    * @param entries the mappings to write
    *
    * @throws BulkCacheWritingException in case of partial success
    * @throws Exception in case no values could be written
    */
-  void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception;
+  default void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      write(entry.getKey(), entry.getValue());
+    }
+  }
 
   /**
    * Deletes a single mapping.
@@ -130,16 +129,19 @@ public interface CacheLoaderWriter<K, V> {
 
   /**
    * Deletes multiple mappings.
-   * <P>
-   *   By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
-   *   be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating all deletes failed.
-   * </P>
+   * <p>
+   * By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
+   * be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating all deletes failed.
    *
    * @param keys the keys to delete
    *
    * @throws BulkCacheWritingException in case of partial success
    * @throws Exception in case no values can be loaded
    */
-  void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception;
+  default void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    for (K k : keys) {
+      delete(k);
+    }
+  }
 
 }

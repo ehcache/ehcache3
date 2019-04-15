@@ -31,9 +31,11 @@ public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatch
   @Override
   public StoreEventSink<K, V> eventSink() {
     if (getListeners().isEmpty()) {
-      return NO_OP_EVENT_SINK;
+      @SuppressWarnings("unchecked")
+      StoreEventSink<K, V> noOpEventSink = (StoreEventSink<K, V>) NO_OP_EVENT_SINK;
+      return noOpEventSink;
     } else {
-      return new InvocationScopedEventSink<K, V>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+      return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
     }
   }
 }

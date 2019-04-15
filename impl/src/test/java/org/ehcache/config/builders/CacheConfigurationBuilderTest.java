@@ -16,88 +16,70 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourceType;
-import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.*;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
+import org.ehcache.spi.resilience.RecoveryStore;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.SerializerException;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.ehcache.test.MockitoUtil.mock;
 
 public class CacheConfigurationBuilderTest {
 
   @Test
   public void testEvictionAdvisor() throws Exception {
-    EvictionAdvisor<Object, Object> evictionAdvisor = new EvictionAdvisor<Object, Object>() {
-      @Override
-      public boolean adviseAgainstEviction(Object key, Object value) {
-        return false;
-      }
-    };
+    EvictionAdvisor<Object, Object> evictionAdvisor = (key, value) -> false;
 
     CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withEvictionAdvisor(evictionAdvisor)
         .build();
 
-    assertThat(evictionAdvisor, (Matcher)sameInstance(cacheConfiguration.getEvictionAdvisor()));
+    @SuppressWarnings("unchecked")
+    Matcher<EvictionAdvisor<Object, Object>> evictionAdvisorMatcher = sameInstance(cacheConfiguration
+      .getEvictionAdvisor());
+    assertThat(evictionAdvisor, evictionAdvisorMatcher);
   }
 
   @Test
   public void testLoaderWriter() throws Exception {
     CacheLoaderWriter<Object, Object> loaderWriter = new CacheLoaderWriter<Object, Object>() {
       @Override
-      public Object load(Object key) throws Exception {
+      public Object load(Object key) {
         return null;
       }
 
       @Override
-      public Map<Object, Object> loadAll(Iterable keys) throws Exception {
-        return null;
-      }
-
-      @Override
-      public void write(Object key, Object value) throws Exception {
+      public void write(Object key, Object value) {
 
       }
 
       @Override
-      public void writeAll(Iterable iterable) throws BulkCacheWritingException, Exception {
-
-      }
-
-      @Override
-      public void delete(Object key) throws Exception {
-
-      }
-
-      @Override
-      public void deleteAll(Iterable keys) throws BulkCacheWritingException, Exception {
+      public void delete(Object key) {
 
       }
     };
@@ -106,9 +88,9 @@ public class CacheConfigurationBuilderTest {
         .withLoaderWriter(loaderWriter)
         .build();
 
-    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
-    assertThat(instance, Matchers.<Object>sameInstance(loaderWriter));
+    assertThat(instance, Matchers.sameInstance(loaderWriter));
   }
 
   @Test
@@ -135,10 +117,10 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
     Object instance = serializerConfiguration.getInstance();
-    assertThat(instance, Matchers.<Object>sameInstance(keySerializer));
+    assertThat(instance, Matchers.sameInstance(keySerializer));
   }
 
   @Test
@@ -165,10 +147,10 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
-    assertThat(instance, Matchers.<Object>sameInstance(valueSerializer));
+    assertThat(instance, Matchers.sameInstance(valueSerializer));
   }
 
   @Test
@@ -190,10 +172,10 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.<Object>sameInstance(keyCopier));
+    assertThat(instance, Matchers.sameInstance(keyCopier));
   }
 
   @Test
@@ -215,25 +197,20 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.<Object>sameInstance(valueCopier));
+    assertThat(instance, Matchers.sameInstance(valueCopier));
   }
 
   @Test
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
     builder
-        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
-          @Override
-          public boolean adviseAgainstEviction(Long key, CharSequence value) {
-            return value.charAt(0) == 'A';
-          }
-        })
+        .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
         .withExpiry(expiry)
         .build();
   }
@@ -244,19 +221,14 @@ public class CacheConfigurationBuilderTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
             .offheap(10, MemoryUnit.MB));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
+    final ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(ExpiryPolicy.INFINITE);
 
-    CacheConfiguration config = builder
-        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
-          @Override
-          public boolean adviseAgainstEviction(Long key, CharSequence value) {
-            return value.charAt(0) == 'A';
-          }
-        })
+    CacheConfiguration<Long, CharSequence> config = builder
+        .withEvictionAdvisor((key, value) -> value.charAt(0) == 'A')
         .withExpiry(expiry)
         .build();
-    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));
-    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.is(ResourceType.Core.OFFHEAP));
+    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.is(MemoryUnit.MB));
   }
 
   @Test
@@ -266,7 +238,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -275,8 +247,70 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
+  }
+
+  @Test
+  public void testCopyingOfExistingConfiguration() {
+    Class<Integer> keyClass = Integer.class;
+    Class<String> valueClass = String.class;
+    ClassLoader loader = mock(ClassLoader.class);
+    @SuppressWarnings("unchecked")
+    EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
+    @SuppressWarnings("unchecked")
+    ExpiryPolicy<Integer, String> expiry = mock(ExpiryPolicy.class);
+    ServiceConfiguration<?> service = mock(ServiceConfiguration.class);
+
+    CacheConfiguration<Integer, String> configuration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, heap(10))
+      .withClassLoader(loader)
+      .withEvictionAdvisor(eviction)
+      .withExpiry(expiry)
+      .add(service)
+      .build();
+
+    CacheConfiguration<Integer, String> copy = CacheConfigurationBuilder.newCacheConfigurationBuilder(configuration).build();
+
+    assertThat(copy.getKeyType(), equalTo(keyClass));
+    assertThat(copy.getValueType(), equalTo(valueClass));
+    assertThat(copy.getClassLoader(), equalTo(loader));
+
+    assertThat(copy.getEvictionAdvisor(), IsSame.sameInstance(eviction));
+    assertThat(copy.getExpiryPolicy(), IsSame.sameInstance(expiry));
+    assertThat(copy.getServiceConfigurations(), contains(IsSame.sameInstance(service)));
+  }
+
+  @Test
+  public void testResilienceStrategyInstance() throws Exception {
+    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
+
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
+      .withResilienceStrategy(resilienceStrategy)
+      .build();
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = ServiceUtils.findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    Object instance = resilienceStrategyConfiguration.getInstance();
+    assertThat(instance, sameInstance(resilienceStrategy));
+  }
+
+  @Test
+  public void testResilienceStrategyClass() throws Exception {
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
+      .withResilienceStrategy(CustomResilience.class, "Hello World")
+      .build();
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = ServiceUtils.findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getInstance(), nullValue());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(CustomResilience.class));
+    assertThat(resilienceStrategyConfiguration.getArguments(), arrayContaining("Hello World"));
+
+  }
+
+  static class CustomResilience<K, V> extends RobustResilienceStrategy<K, V> {
+
+    public CustomResilience(RecoveryStore<K> store, String blah) {
+      super(store);
+    }
   }
 }

@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -33,36 +33,35 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
-import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
  */
-public class ClassInstanceProvider<K, T> {
+public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? extends T>, T> {
 
   /**
    * The order in which entries are put in is kept.
    */
-  protected final Map<K, ClassInstanceConfiguration<T>> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, ClassInstanceConfiguration<T>>());
+  protected final Map<K, C> preconfigured = Collections.synchronizedMap(new LinkedHashMap<K, C>());
 
   /**
    * Instances provided by this provider vs their counts.
    */
-  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
+  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   protected final Set<T> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<T, Boolean>());
 
-  private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
+  private final Class<C> cacheLevelConfig;
   private final boolean uniqueClassLevelConfig;
 
-  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig,
-                                  Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
+  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, C> factoryConfig,
+                                  Class<C> cacheLevelConfig) {
     this(factoryConfig, cacheLevelConfig, false);
   }
 
-  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig,
-                                  Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig,
-                                  boolean uniqueClassLevelConfig) {
+  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, C> factoryConfig,
+                                  Class<C> cacheLevelConfig, boolean uniqueClassLevelConfig) {
     this.uniqueClassLevelConfig = uniqueClassLevelConfig;
     if (factoryConfig != null) {
       preconfigured.putAll(factoryConfig.getDefaults());
@@ -70,16 +69,16 @@ public class ClassInstanceProvider<K, T> {
     this.cacheLevelConfig = cacheLevelConfig;
   }
 
-  protected ClassInstanceConfiguration<T> getPreconfigured(K alias) {
+  protected C getPreconfigured(K alias) {
     return preconfigured.get(alias);
   }
 
   protected T newInstance(K alias, CacheConfiguration<?, ?> cacheConfiguration) {
-    ClassInstanceConfiguration<T> config = null;
+    C config = null;
     if (uniqueClassLevelConfig) {
       config = findSingletonAmongst(cacheLevelConfig, cacheConfiguration.getServiceConfigurations());
     } else {
-      Iterator<? extends ClassInstanceConfiguration<T>> iterator =
+      Iterator<? extends C> iterator =
           findAmongst(cacheLevelConfig, cacheConfiguration.getServiceConfigurations()).iterator();
       if (iterator.hasNext()) {
         config = iterator.next();
@@ -88,15 +87,24 @@ public class ClassInstanceProvider<K, T> {
     return newInstance(alias, config);
   }
 
+  protected T newInstance(K alias, ServiceConfiguration<?>... serviceConfigurations) {
+    C config = null;
+    Iterator<C> iterator = findAmongst(cacheLevelConfig, (Object[]) serviceConfigurations).iterator();
+    if (iterator.hasNext()) {
+      config = iterator.next();
+    }
+    return newInstance(alias, config);
+  }
+
   protected T newInstance(K alias, ServiceConfiguration<?> serviceConfiguration) {
-    ClassInstanceConfiguration<T> config = null;
+    C config = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
       config = cacheLevelConfig.cast(serviceConfiguration);
     }
     return newInstance(alias, config);
   }
 
-  private T newInstance(K alias, ClassInstanceConfiguration<T> config) {
+  private T newInstance(K alias, ClassInstanceConfiguration<? extends T> config) {
     if (config == null) {
       config = getPreconfigured(alias);
       if (config == null) {
@@ -104,7 +112,7 @@ public class ClassInstanceProvider<K, T> {
       }
     }
 
-    T instance = null;
+    T instance;
 
     if(config.getInstance() != null) {
       instance = config.getInstance();
@@ -112,13 +120,7 @@ public class ClassInstanceProvider<K, T> {
       try {
         instance = invokeConstructor(config.getClazz(), config.getArguments());
         instantiated.add(instance);
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
         throw new RuntimeException(e);
       }
     }

@@ -21,7 +21,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class XmlConfigTest {
     final URL myUrl = this.getClass().getResource("/configs/template-xa.xml");
     Configuration xmlConfig = new XmlConfiguration(myUrl);
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfig.getCacheConfigurations().get("xaCache1");
-    XAStoreConfiguration xaStoreConfiguration = ServiceLocator.findSingletonAmongst(XAStoreConfiguration.class, cacheConfiguration
+    XAStoreConfiguration xaStoreConfiguration = ServiceUtils.findSingletonAmongst(XAStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertThat(xaStoreConfiguration.getUniqueXAResourceId(), is("xaCache1"));

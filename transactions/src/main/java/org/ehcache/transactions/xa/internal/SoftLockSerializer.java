@@ -17,7 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
@@ -31,12 +31,14 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
+
 /**
  * The stateless {@link Serializer} used to serialize {@link SoftLock}s.
  *
  * @author Ludovic Orban
  */
-class SoftLockSerializer implements Serializer<SoftLock> {
+class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
 
   private final ClassLoader classLoader;
 
@@ -45,7 +47,7 @@ class SoftLockSerializer implements Serializer<SoftLock> {
   }
 
   @Override
-  public ByteBuffer serialize(SoftLock object) {
+  public ByteBuffer serialize(SoftLock<T> object) {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try {
       ObjectOutputStream oout = new ObjectOutputStream(bout);
@@ -62,16 +64,12 @@ class SoftLockSerializer implements Serializer<SoftLock> {
     return ByteBuffer.wrap(bout.toByteArray());
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public SoftLock read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
+  public SoftLock<T> read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      OIS ois = new OIS(bin, classLoader);
-      try {
-        return (SoftLock) ois.readObject();
-      } finally {
-        ois.close();
+      try (OIS ois = new OIS(bin, classLoader)) {
+        return uncheckedCast(ois.readObject());
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -85,7 +83,7 @@ class SoftLockSerializer implements Serializer<SoftLock> {
   }
 
   @Override
-  public boolean equals(SoftLock object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
+  public boolean equals(SoftLock<T> object, ByteBuffer binary) throws SerializerException, ClassNotFoundException {
     return object.equals(read(binary));
   }
 
@@ -99,7 +97,7 @@ class SoftLockSerializer implements Serializer<SoftLock> {
     }
 
     @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+    protected Class<?> resolveClass(ObjectStreamClass desc) throws ClassNotFoundException {
       try {
         return Class.forName(desc.getName(), false, classLoader);
       } catch (ClassNotFoundException cnfe) {
@@ -112,8 +110,8 @@ class SoftLockSerializer implements Serializer<SoftLock> {
     }
 
     @Override
-    protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
-      Class<?>[] interfaceClasses = new Class[interfaces.length];
+    protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
+      Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }
@@ -121,7 +119,7 @@ class SoftLockSerializer implements Serializer<SoftLock> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
 
     static {
       primitiveClasses.put("boolean", boolean.class);

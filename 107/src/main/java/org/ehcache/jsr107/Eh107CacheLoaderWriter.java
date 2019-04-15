@@ -19,7 +19,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import static java.util.Collections.emptyMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,34 +27,51 @@ import javax.cache.Cache;
 
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
+
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import static java.util.Collections.emptyMap;
 
 /**
  * @author teck
  */
-class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable {
+class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Closeable {
 
   private final CacheLoader<K, V> cacheLoader;
+  private final boolean readThrough;
   private final CacheWriter<K, V> cacheWriter;
 
-  Eh107CacheLoaderWriter(CacheLoader<K, V> cacheLoader, CacheWriter<K, V> cacheWriter) {
+  Eh107CacheLoaderWriter(CacheLoader<K, V> cacheLoader, boolean readThrough, CacheWriter<K, V> cacheWriter, boolean writeThrough) {
     this.cacheLoader = cacheLoader;
-    this.cacheWriter = cacheWriter;
-  }
-
-  @Override
-  public V load(K key) throws Exception {
-    if (cacheLoader == null) {
-      return null;
+    this.readThrough = cacheLoader != null && readThrough;
+    if (writeThrough) {
+      this.cacheWriter = cacheWriter;
     } else {
-      return cacheLoader.load(key);
+      this.cacheWriter = null;
     }
   }
 
   @Override
-  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+  public V load(K key) {
+    if (readThrough) {
+      return cacheLoader.load(key);
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public Map<K, V> loadAll(Iterable<? extends K> keys) {
+    if (readThrough) {
+      return loadAllAlways(keys);
+    } else {
+      return emptyMap();
+    }
+  }
+
+  @Override
+  public Map<K, V> loadAllAlways(Iterable<? extends K> keys) {
     if (cacheLoader == null) {
       return emptyMap();
     } else {
@@ -64,23 +80,23 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
   }
 
   @Override
-  public void write(K key, V value) throws Exception {
+  public void write(K key, V value) {
     if (cacheWriter != null) {
       cacheWriter.write(cacheEntryFor(key, value));
     }
   }
 
   @Override
-  public void delete(K key) throws Exception {
+  public void delete(K key) {
     if (cacheWriter != null) {
       cacheWriter.delete(key);
     }
   }
 
   @Override
-  public void deleteAll(Iterable<? extends K> keys) throws Exception {
+  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException {
     if (cacheWriter != null) {
-      Set<K> allKeys = new HashSet<K>();
+      Set<K> allKeys = new HashSet<>();
       for (K key : keys) {
         allKeys.add(key);
       }
@@ -97,7 +113,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
   }
 
   private Set<?> successes(Iterable<? extends K> keys, Set<?> failures) {
-    Set<K> set = new HashSet<K>();
+    Set<K> set = new HashSet<>();
     for (K key : keys) {
       if (!failures.contains(key)) {
         set.add(key);
@@ -107,7 +123,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
   }
 
   private Map<?, Exception> failures(Set<K> keys, Exception e) {
-    Map<K, Exception> map = new HashMap<K, Exception>(keys.size());
+    Map<K, Exception> map = new HashMap<>(keys.size());
     for (K key : keys) {
       map.put(key, e);
     }
@@ -115,9 +131,9 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
   }
 
   @Override
-  public void writeAll(Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) throws Exception {
+  public void writeAll(Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
     if (cacheWriter != null) {
-      Collection<Cache.Entry<? extends K, ? extends V>> toWrite = new ArrayList<Cache.Entry<? extends K, ? extends V>>();
+      Collection<Cache.Entry<? extends K, ? extends V>> toWrite = new ArrayList<>();
       for (Map.Entry<? extends K, ? extends V> entry : entries) {
         toWrite.add(cacheEntryFor(entry.getKey(), entry.getValue()));
       }
@@ -126,12 +142,12 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
         cacheWriter.writeAll(toWrite);
       } catch (Exception e) {
         // the remaining entries were not written per 107 spec
-        Map<K, Exception> failures = new HashMap<K, Exception>();
+        Map<K, Exception> failures = new HashMap<>();
         for (Cache.Entry<? extends K, ? extends V> entry : toWrite) {
           failures.put(entry.getKey(), e);
         }
 
-        Set<K> successes = new HashSet<K>();
+        Set<K> successes = new HashSet<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           K key = entry.getKey();
           if (!failures.containsKey(key)) {
@@ -158,7 +174,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
   }
 
   private static <K, V> Cache.Entry<K, V> cacheEntryFor(K key, V value) {
-    return new Entry<K, V>(key, value);
+    return new Entry<>(key, value);
   }
 
   static class Entry<K, V> implements Cache.Entry<K, V> {
@@ -195,7 +211,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
     @Override
     public boolean equals(Object obj) {
       if (obj instanceof Entry) {
-        Entry other = (Entry) obj;
+        Entry<?, ?> other = (Entry<?, ?>) obj;
 
         Object key1 = getKey();
         Object key2 = other.getKey();

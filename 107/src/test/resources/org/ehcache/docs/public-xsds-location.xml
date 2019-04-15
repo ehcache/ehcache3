@@ -20,7 +20,7 @@
     xmlns:eh='http://www.ehcache.org/v3'
     xmlns:jsr107='http://www.ehcache.org/v3/jsr107'
     xsi:schemaLocation="
-        http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
-        http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
+        http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.3.xsd
+        http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.3.xsd">
 </eh:config>
 <!-- end::xsdLocations[] -->

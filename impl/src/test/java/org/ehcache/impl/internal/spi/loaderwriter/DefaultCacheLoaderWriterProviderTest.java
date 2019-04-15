@@ -24,6 +24,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -60,7 +61,7 @@ public class DefaultCacheLoaderWriterProviderTest {
     final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .build();
 
-    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
     caches.put("foo", cacheConfiguration);
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));
@@ -76,7 +77,7 @@ public class DefaultCacheLoaderWriterProviderTest {
         .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .build();
 
-    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
     caches.put("foo", cacheConfiguration);
     final DefaultConfiguration configuration = new DefaultConfiguration(caches, null, new DefaultCacheLoaderWriterProviderConfiguration()
         .addLoaderFor("foo", MyLoader.class));
@@ -108,13 +109,17 @@ public class DefaultCacheLoaderWriterProviderTest {
     configuration.addLoaderFor("cache", MyLoader.class);
     DefaultCacheLoaderWriterProvider loaderWriterProvider = new DefaultCacheLoaderWriterProvider(configuration);
 
-    loaderWriterProvider.start(mock(ServiceProvider.class));
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    loaderWriterProvider.start(serviceProvider);
+    @SuppressWarnings("unchecked")
+    CacheConfiguration<Object, Object> cacheConfiguration = mock(CacheConfiguration.class);
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
 
     loaderWriterProvider.stop();
-    loaderWriterProvider.start(mock(ServiceProvider.class));
+    loaderWriterProvider.start(serviceProvider);
 
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", mock(CacheConfiguration.class)), CoreMatchers.instanceOf(MyLoader.class));
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {
@@ -127,34 +132,34 @@ public class DefaultCacheLoaderWriterProviderTest {
     };
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public Map<Object, Object> loadAll(final Iterable<?> keys) throws Exception {
+    public Map<Object, Object> loadAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     private static Object lastWritten;
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+    public void write(final Object key, final Object value) {
+      lastWritten = value;
     }
 
     @Override
-    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void delete(final Object key) throws Exception {
+    public void delete(final Object key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void deleteAll(final Iterable<?> keys) throws Exception {
+    public void deleteAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
@@ -171,13 +176,13 @@ public class DefaultCacheLoaderWriterProviderTest {
     private static Object lastWritten;
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
-      this.lastWritten = value;
+    public void write(final Object key, final Object value) {
+      lastWritten = value;
     }
 
   }

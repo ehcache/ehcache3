@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 
 import java.util.concurrent.TimeUnit;
 
@@ -24,8 +24,6 @@ import java.util.concurrent.TimeUnit;
  * @author Ludovic Orban
  */
 public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
-
-  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final boolean evictionAdvice;
   private long size;
@@ -53,11 +51,6 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
       throw new UnsupportedOperationException("Cannot change the size if it is done already");
     }
     this.size = size;
-  }
-
-  @Override
-  final protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
   }
 
   @Override

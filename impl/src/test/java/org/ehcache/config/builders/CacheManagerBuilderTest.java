@@ -18,54 +18,62 @@ package org.ehcache.config.builders;
 
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.JavaSerializer;
+import org.ehcache.spi.serialization.Serializer;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class CacheManagerBuilderTest {
 
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
   @Test
   public void testIsExtensible() {
 
-    final AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger counter = new AtomicInteger(0);
 
-    final PersistentCacheManager cacheManager = newCacheManagerBuilder().with(new CacheManagerConfiguration<PersistentCacheManager>() {
-      @SuppressWarnings("unchecked")
-      @Override
-      public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
-        counter.getAndIncrement();
-        return mock(CacheManagerBuilder.class);
-      }
-    }).build(true);
+    @SuppressWarnings("unchecked")
+    CacheManagerConfiguration<PersistentCacheManager> managerConfiguration = other -> {
+      counter.getAndIncrement();
+      return mock(CacheManagerBuilder.class);
+    };
 
-    assertThat(cacheManager, nullValue());
-    assertThat(counter.get(), is(1));
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(managerConfiguration).build(true);
+
+    assertThat(cacheManager).isNull();
+    assertThat(counter.get()).isEqualTo(1);
   }
 
   @Test
   public void testCanOverrideCopierInConfig() {
+    @SuppressWarnings("unchecked")
     CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
         .withCopier(Long.class, (Class) IdentityCopier.class);
-    assertNotNull(managerBuilder.withCopier(Long.class, (Class) SerializingCopier.class));
+    assertThat(managerBuilder.withCopier(Long.class, SerializingCopier.<Long>asCopierClass())).isNotNull();
   }
 
   @Test
   public void testCanOverrideSerializerConfig() {
-    CacheManagerBuilder managerBuilder = newCacheManagerBuilder()
-        .withSerializer(String.class, (Class) JavaSerializer.class);
-    assertNotNull(managerBuilder.withSerializer(String.class, (Class) CompactJavaSerializer.class));
+    @SuppressWarnings("unchecked")
+    Class<Serializer<String>> serializer1 = (Class) JavaSerializer.class;
+    CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
+        .withSerializer(String.class, serializer1);
+    @SuppressWarnings("unchecked")
+    Class<Serializer<String>> serializer2 = (Class) CompactJavaSerializer.class;
+    assertThat(managerBuilder.withSerializer(String.class, serializer2)).isNotNull();
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -76,8 +84,23 @@ public class CacheManagerBuilderTest {
 
   @Test
   public void testDuplicateServiceCreationConfigurationOkWhenExplicit() {
-    assertNotNull(newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
-        .replacing(new DefaultCopyProviderConfiguration()));
+    assertThat(newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
+        .replacing(new DefaultCopyProviderConfiguration())).isNotNull();
   }
 
+  @Test
+  public void testShouldNotBeAllowedToRegisterTwoCachesWithSameAlias() {
+    String cacheAlias = "cacheAliasSameName";
+
+    CacheConfiguration<Long, String> cacheConfig = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
+      .build();
+
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Cache alias 'cacheAliasSameName' already exists");
+
+    CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheAlias, cacheConfig)
+      .withCache(cacheAlias, cacheConfig);
+  }
 }

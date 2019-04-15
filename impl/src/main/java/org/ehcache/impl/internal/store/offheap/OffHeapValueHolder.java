@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 
 import java.util.concurrent.TimeUnit;
@@ -26,33 +26,26 @@ import java.util.concurrent.TimeUnit;
 */
 public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
 
-  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
   public OffHeapValueHolder(long id, long creationTime, long expireTime) {
     super(id, creationTime, expireTime);
   }
 
   @Override
-  final protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
-  }
-
-  @Override
   public boolean equals(Object other) {
     if (this == other) return true;
-    if (other == null || !(other instanceof OffHeapValueHolder)) return false;
+    if (other == null || !(other instanceof OffHeapValueHolder<?>)) return false;
 
-    OffHeapValueHolder that = (OffHeapValueHolder)other;
+    OffHeapValueHolder<?> that = (OffHeapValueHolder<?>)other;
 
     if (!super.equals(that)) return false;
-    return value().equals(that.value());
+    return get().equals(that.get());
 
   }
 
   @Override
   public int hashCode() {
     int result = 1;
-    result = 31 * result + value().hashCode();
+    result = 31 * result + get().hashCode();
     result = 31 * result + super.hashCode();
     return result;
   }

@@ -16,12 +16,14 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.function.Function;
 
 /**
  * Interface for the lower tier of a multi-tier {@link CachingTier}.
@@ -34,10 +36,9 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   /**
    * Either return the {@link org.ehcache.core.spi.store.Store.ValueHolder} currently in the caching tier
    * or installs and returns the result of the passed in function.
-   * <P>
-   *   Note that in case of expired {@link org.ehcache.core.spi.store.Store.ValueHolder} {@code null} will be returned
-   *   and the mapping will be invalidated.
-   * </P>
+   * <p>
+   * Note that in case of expired {@link org.ehcache.core.spi.store.Store.ValueHolder} {@code null} will be returned
+   * and the mapping will be invalidated.
    *
    * @param key the key
    * @param source the function that computes the value
@@ -46,6 +47,16 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping cannot be accessed, installed or removed
    */
   Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
+
+  /**
+   * Return the value holder currently in this tier.
+   *
+   * @param key the key
+   * @return the value holder, or {@code null}
+   *
+   * @throws StoreAccessException if the mapping cannot be access
+   */
+  Store.ValueHolder<V> get(K key) throws StoreAccessException;
 
   /**
    * Return the value holder currently in this tier and removes it atomically.
@@ -100,6 +111,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   /**
    * {@link Service} interface for providing {@link LowerCachingTier} instances.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

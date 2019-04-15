@@ -22,25 +22,24 @@ import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Defines all operational methods to create, access, update and delete mappings of key to value.
- * <P>
- *   In order to function, cache keys must respect the {@link Object#hashCode() hash code} and
- *   {@link Object#equals(Object) equals} contracts. This contract is what will be used to lookup values based on key.
- * </P>
- * <P>
- *   A {@code Cache} is not a map, mostly because it has the following two concepts linked to mappings:
- *   <UL>
- *     <LI>Eviction: A {@code Cache} has a capacity constraint and in order to honor it, a {@code Cache} can
- *     evict (remove) a mapping at any point in time. Note that eviction may occur before maximum capacity is
- *     reached.</LI>
- *     <LI>Expiry: Data in a {@code Cache} can be configured to expire after some time. There is no way for a
- *     {@code Cache} user to differentiate from the API between a mapping being absent or expired.</LI>
- *   </UL>
- * </P>
+ * <p>
+ * In order to function, cache keys must respect the {@link Object#hashCode() hash code} and
+ * {@link Object#equals(Object) equals} contracts. This contract is what will be used to lookup values based on key.
+ * <p>
+ * A {@code Cache} is not a map, mostly because it has the following two concepts linked to mappings:
+ * <ul>
+ *   <li>Eviction: A {@code Cache} has a capacity constraint and in order to honor it, a {@code Cache} can
+ *   evict (remove) a mapping at any point in time. Note that eviction may occur before maximum capacity is
+ *   reached.</li>
+ *   <li>Expiry: Data in a {@code Cache} can be configured to expire after some time. There is no way for a
+ *   {@code Cache} user to differentiate from the API between a mapping being absent or expired.</li>
+ * </ul>
  *
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
@@ -127,18 +126,17 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Removes all mappings currently present in the {@code Cache}.
-   * <P>
+   * <p>
    * It does so without invoking the {@link CacheLoaderWriter} or any registered
    * {@link org.ehcache.event.CacheEventListener} instances.
    * <em>This is not an atomic operation and can potentially be very expensive.</em>
-   * </P>
    */
   void clear();
 
   /**
    * Maps the specified key to the specified value in this cache, unless a non-expired mapping
    * already exists.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (!cache.containsKey(key))
@@ -148,11 +146,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *       return cache.get(key);
    * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * The value can be retrieved by calling the {@code get} method
    * with a key that is equal to the original key.
-   * </P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
    *
    * @param key key with which the specified value is to be associated
@@ -172,7 +169,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   /**
    * Removes the entry for a key only if currently mapped to the given value
    * and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(value)) {
@@ -181,10 +178,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *   } else return false;
    * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * The key cannot be {@code null}.
-   * </P>
    *
    * @param key key with which the specified value is associated
    * @param value value expected to be removed
@@ -199,7 +194,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   V oldValue = cache.get(key);
@@ -208,10 +203,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *   }
    *   return oldValue; </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
-   * </P>
    *
    * @param key of the value to be replaced
    * @param value the new value
@@ -230,7 +223,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
     /**
    * Replaces the entry for a key only if currently mapped to the given value
    * and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(oldValue)) {
@@ -238,10 +231,8 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *       return true;
    *   } else return false;</pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
-   * </P>
    *
    * @param key key with which the specified value is associated
    * @param oldValue value expected to be associated with the specified key
@@ -264,6 +255,16 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
 
+  /**
+   * Returns an iterator over the cache entries.
+   * <p>
+   * Due to the interactions of the cache and iterator contracts it is possible
+   * for iteration to return expired entries.
+   *
+   * @return an Iterator over the cache entries.
+   */
+  @Override
+  Iterator<Entry<K, V>> iterator();
 
   /**
    * A mapping of key to value held in a {@link Cache}.

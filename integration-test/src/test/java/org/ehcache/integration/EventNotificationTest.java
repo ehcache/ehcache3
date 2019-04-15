@@ -18,7 +18,8 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
+import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -28,21 +29,20 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -80,7 +80,7 @@ public class EventNotificationTest {
     assertEquals(0, listener2.updated.get());
     assertEquals(0, listener2.removed.get());
 
-    Map<Long, String> entries = new HashMap<Long, String>();
+    Map<Long, String> entries = new HashMap<>();
     entries.put(2L, "2");
     entries.put(3L, "3");
     cache.putAll(entries);
@@ -147,7 +147,7 @@ public class EventNotificationTest {
     assertEquals(4, listener2.updated.get());
     assertEquals(1, listener2.removed.get());
 
-    Set<Long> keys = new HashSet<Long>();
+    Set<Long> keys = new HashSet<>();
     keys.add(1L);
     cache.getAll(keys);
     assertEquals(3, listener1.created.get());
@@ -241,11 +241,11 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
     CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build())
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)))
         .build();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .using(new TimeSourceConfiguration(testTimeSource))
@@ -261,12 +261,12 @@ public class EventNotificationTest {
     cache.put(4L, "4");
     cache.put(5L, "5");
     assertThat(listener1.expired.get(), is(0));
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
     testTimeSource.setTimeMillis(2000);
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
@@ -282,7 +282,7 @@ public class EventNotificationTest {
 
     CacheConfiguration<Number, Number> cacheConfiguration = newCacheConfigurationBuilder(Number.class, Number.class,
         newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
@@ -401,11 +401,11 @@ public class EventNotificationTest {
     private AtomicInteger removed = new AtomicInteger();
     private AtomicInteger expired = new AtomicInteger();
     private AtomicInteger eventCounter = new AtomicInteger();
-    private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<EventType, Integer>();
+    private HashMap<EventType, Integer> eventTypeHashMap = new HashMap<>();
 
     @Override
-    public void onEvent(CacheEvent<Object, Object> event) {
-      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+    public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
+      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();
@@ -440,7 +440,7 @@ public class EventNotificationTest {
     }
 
     @Override
-    public void onEvent(final CacheEvent<Object, Object> event) {
+    public void onEvent(final CacheEvent<? extends Object, ? extends Object> event) {
       Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       if(event.getType() == EventType.EVICTED){
@@ -463,6 +463,9 @@ public class EventNotificationTest {
   }
 
   public static class SerializableObject implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private int size;
     private Byte [] data;
 

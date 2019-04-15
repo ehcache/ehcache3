@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.copy;
 
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -25,6 +26,17 @@ import org.ehcache.spi.serialization.Serializer;
 public final class SerializingCopier<T> extends ReadWriteCopier<T> {
 
   private final Serializer<T> serializer;
+
+  /**
+   * Convenience method allowing to represent this copier's class as the expected type in configuration.
+   *
+   * @param <T> The type to work on
+   * @return the proper type
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> Class<? extends Copier<T>> asCopierClass() {
+    return (Class) SerializingCopier.class;
+  }
 
   /**
    * Creates a new copier that will using the provided {@link Serializer}.

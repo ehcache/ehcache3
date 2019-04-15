@@ -31,7 +31,11 @@ public interface StoreOperationOutcomes {
     /**
      * miss
      */
-    MISS
+    MISS,
+    /**
+     * timeout
+     */
+    TIMEOUT
   }
 
   /**
@@ -43,13 +47,13 @@ public interface StoreOperationOutcomes {
      */
     PUT,
     /**
-     * replaced
-     */
-    REPLACED,
-    /**
      * no-op
      */
-    NOOP
+    NOOP,
+    /**
+     * failure
+     */
+    FAILURE
   }
 
   /**
@@ -170,7 +174,7 @@ public interface StoreOperationOutcomes {
     SUCCESS,
     /** failure */
     FAILURE
-  };
+  }
 
   /**
    * Outcomes for expiration

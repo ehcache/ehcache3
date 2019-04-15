@@ -20,6 +20,8 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -32,7 +34,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -41,15 +43,16 @@ import static org.mockito.Mockito.verify;
  * LoadAtomicsWith107Test
  */
 public class LoadAtomicsWith107Test {
+  @Mock
   private CacheLoader<Number, CharSequence> cacheLoader;
+  @Mock
   private CacheWriter<Number, CharSequence> cacheWriter;
   private Cache<Number, CharSequence> testCache;
   private CacheManager cacheManager;
 
   @Before
   public void setUp() throws Exception {
-    cacheLoader = mock(CacheLoader.class);
-    cacheWriter = mock(CacheWriter.class);
+    MockitoAnnotations.initMocks(this);
 
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107-load-atomics.xml").toURI(), getClass().getClassLoader());
@@ -57,18 +60,8 @@ public class LoadAtomicsWith107Test {
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
-          @Override
-          public CacheLoader<Number, CharSequence> create() {
-            return cacheLoader;
-          }
-        })
-        .setCacheWriterFactory(new Factory<CacheWriter<? super Number, ? super CharSequence>>() {
-          @Override
-          public CacheWriter<? super Number, ? super CharSequence> create() {
-            return cacheWriter;
-          }
-        })
+        .setCacheLoaderFactory(() -> cacheLoader)
+        .setCacheWriterFactory(() -> cacheWriter)
         .setTypes(Number.class, CharSequence.class));
   }
 

@@ -44,7 +44,7 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testShutdownOfIdleExecutor() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
     executor.shutdown();
@@ -55,7 +55,7 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
     assertThat(executor.shutdownNow(), empty());
@@ -66,19 +66,15 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testTerminatedExecutorRejectsJob() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = mock(ExecutorService.class);
     PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
     executor.shutdown();
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
 
     try {
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          //no-op
-        }
+      executor.execute(() -> {
+        //no-op
       });
       fail("Expected RejectedExecutionException");
     } catch (RejectedExecutionException e) {
@@ -88,27 +84,17 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testShutdownButNonTerminatedExecutorRejectsJob() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          semaphore.acquireUninterruptibly();
-        }
-      });
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       try {
-        executor.execute(new Runnable() {
-
-          @Override
-          public void run() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-          }
+        executor.execute(() -> {
+          throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         });
         fail("Expected RejectedExecutionException");
       } catch (RejectedExecutionException e) {
@@ -124,19 +110,13 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testShutdownLeavesJobRunning() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          semaphore.acquireUninterruptibly();
-        }
-      });
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -155,7 +135,7 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testQueuedJobRunsAfterShutdown() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
@@ -163,23 +143,11 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
-      });
+      executor.submit((Runnable) jobSemaphore::acquireUninterruptibly);
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
@@ -204,7 +172,7 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testQueuedJobIsStoppedAfterShutdownNow() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
@@ -212,23 +180,14 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          jobSemaphore.acquireUninterruptibly();
-          return null;
-        }
+      executor.submit(() -> {
+        testSemaphore.release();
+        jobSemaphore.acquireUninterruptibly();
       });
       final AtomicBoolean called = new AtomicBoolean();
-      Callable<?> leftBehind = new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          called.set(true);
-          return null;
-        }
+      Callable<?> leftBehind = (Callable<Void>) () -> {
+        called.set(true);
+        return null;
       };
       executor.submit(leftBehind);
       testSemaphore.acquireUninterruptibly();
@@ -251,7 +210,7 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testRunningJobIsInterruptedAfterShutdownNow() throws InterruptedException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newSingleThreadExecutor();
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
@@ -260,17 +219,12 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
 
-      executor.submit(new Callable<Void>() {
-
-        @Override
-        public Void call() throws Exception {
-          testSemaphore.release();
-          try {
-            jobSemaphore.acquire();
-          } catch (InterruptedException e) {
-            interrupted.set(true);
-          }
-          return null;
+      executor.submit(() -> {
+        testSemaphore.release();
+        try {
+          jobSemaphore.acquire();
+        } catch (InterruptedException e) {
+          interrupted.set(true);
         }
       });
       testSemaphore.acquireUninterruptibly();
@@ -288,22 +242,18 @@ public class PartitionedOrderedExecutorTest {
 
   @Test
   public void testJobsAreExecutedInOrder() throws InterruptedException, ExecutionException {
-    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
+    BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
     ExecutorService service = Executors.newFixedThreadPool(2);
     try {
       PartitionedOrderedExecutor executor = new PartitionedOrderedExecutor(queue, service);
 
       final AtomicInteger sequence = new AtomicInteger(-1);
-      List<Future<?>> tasks = new ArrayList<Future<?>>();
+      List<Future<?>> tasks = new ArrayList<>();
       for (int i = 0; i < 100; i++) {
         final int index = i;
-        tasks.add(executor.submit(new Callable() {
-
-          @Override
-          public Object call() throws Exception {
-            assertThat(sequence.getAndSet(index), is(index -1));
-            return null;
-          }
+        tasks.add(executor.submit(() -> {
+          assertThat(sequence.getAndSet(index), is(index -1));
+          return null;
         }));
       }
 

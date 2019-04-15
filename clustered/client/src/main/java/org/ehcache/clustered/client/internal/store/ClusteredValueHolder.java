@@ -16,18 +16,20 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 
 import java.util.concurrent.TimeUnit;
 
 public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
-  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
   private final V value;
 
   public ClusteredValueHolder(V value) {
-    super(0, 0);
+    this(value, NO_EXPIRE);
+  }
+
+  public ClusteredValueHolder(V value, long expirationTime) {
+    super(0, 0, expirationTime);
     if(value == null) {
       throw new NullPointerException("Value can not be null");
     }
@@ -35,12 +37,7 @@ public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
   }
 
   @Override
-  protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
-  }
-
-  @Override
-  public V value() {
+  public V get() {
     return value;
   }
 }

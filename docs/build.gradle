@@ -14,34 +14,38 @@
  * limitations under the License.
  */
 
-buildscript {
-  repositories {
-    jcenter()
-  }
+plugins {
+  id 'org.asciidoctor.convert' version '1.6.0'
+  id 'org.kordamp.gradle.livereload' version '0.2.1'
+  id 'com.github.jruby-gradle.base' version '1.6.0'
+}
 
-  dependencies {
-    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
+dependencies {
+  gems 'rubygems:asciidoctor-diagram:1.5.15'
+}
+
+configurations.asciidoctor {
+  resolutionStrategy {
+    force 'com.github.jnr:jnr-enxio:0.19'
+    force 'com.github.jnr:jnr-posix:3.0.49'
+    force 'com.github.jnr:jnr-constants:0.9.12'
   }
 }
 
-apply plugin: 'org.asciidoctor.convert'
-
-/*
- * BEGIN https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
-task copyResources(type: Copy) {
-  from ("css") {
+task copyCSS(type: Copy) {
+  from ('css') {
     include '**'
   }
   into("${buildDir}/asciidoc/user/css")
 }
-asciidoctor.dependsOn copyResources
-/*
- * END https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
+
+asciidoctor.dependsOn copyCSS
 
 asciidoctor {
-  separateOutputDirs = false;
+  dependsOn jrubyPrepare
+  gemPath = jrubyPrepare.outputDir
+  requires = ['asciidoctor-diagram']
+  separateOutputDirs = false
   attributes 'skip-front-matter': 'true'
 
   resources {
@@ -51,3 +55,12 @@ asciidoctor {
     }
   }
 }
+
+liveReload {
+  docRoot asciidoctor.outputDir.canonicalPath
+}
+
+dependencyCheck {
+  skip = true
+}
+

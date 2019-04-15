@@ -20,7 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
@@ -38,9 +37,8 @@ public class StringSerializer implements Serializer<String> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link String} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link String} is a base java type.
    *
    * @param classLoader the classloader to use
    *
@@ -50,32 +48,20 @@ public class StringSerializer implements Serializer<String> {
   }
 
   /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@link String} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
-   *
-   * @see Serializer
-   */
-  public StringSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
   public ByteBuffer serialize(String object) {
-    ByteArrayOutputStream bout = new ByteArrayOutputStream(object.length());
-    try {
-      int length = object.length();
+    int length = object.length();
+
+    try(ByteArrayOutputStream bout = new ByteArrayOutputStream(length)) {
       int i = 0;
 
       for (; i < length; i++) {
         char c = object.charAt(i);
-        if ((c == 0x0000) || (c > 0x007f)) break;
+        if (c == 0x0000 || c > 0x007f) {
+          break;
+        }
         bout.write(c);
       }
 
@@ -95,14 +81,12 @@ public class StringSerializer implements Serializer<String> {
           bout.write(0x80 | (c & 0x3f));
         }
       }
-    } finally {
-      try {
-        bout.close();
-      } catch (IOException ex) {
-        throw new AssertionError(ex);
-      }
+
+      return ByteBuffer.wrap(bout.toByteArray());
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return ByteBuffer.wrap(bout.toByteArray());
   }
 
   /**

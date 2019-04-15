@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,7 +37,8 @@ public class ArrayPackageScopeTest {
 
   @Test
   public void testArrayPackageScope() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
 

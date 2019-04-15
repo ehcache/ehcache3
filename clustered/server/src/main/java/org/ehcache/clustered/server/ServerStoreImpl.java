@@ -16,26 +16,44 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.ServerStore;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
+import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
+import com.tc.classloader.CommonComponent;
+
 import java.nio.ByteBuffer;
+import java.util.AbstractList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
-class ServerStoreImpl implements ServerStore {
-
-  private static final int OFFHEAP_CHAIN_SEGMENTS = 16;
+@CommonComponent
+public class ServerStoreImpl implements ServerSideServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
-  private final PageSource pageSource;
-  private final ServerStore store;
+  private final ResourcePageSource pageSource;
+  private final OffHeapServerStore store;
 
-  ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
+  public ServerStoreImpl(ServerStoreConfiguration configuration, ResourcePageSource source, KeySegmentMapper mapper,
+                         List<OffHeapChainMap<Long>> recoveredMaps) {
+    this.storeConfiguration = configuration;
+    this.pageSource = source;
+    this.store = new OffHeapServerStore(recoveredMaps, mapper);
+  }
+
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, ResourcePageSource pageSource, KeySegmentMapper mapper, boolean writeBehindConfigured) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+    this.store = new OffHeapServerStore(pageSource, mapper, writeBehindConfigured);
+  }
+
+  public void setEvictionListener(ServerStoreEvictionListener listener) {
+    store.setEvictionListener(listener);
   }
 
   /**
@@ -43,11 +61,11 @@ class ServerStoreImpl implements ServerStore {
    *
    * @return the {@code PageSource} used by this {@code ServerStore}
    */
-  PageSource getPageSource() {
+  public PageSource getPageSource() {
     return pageSource;
   }
 
-  ServerStoreConfiguration getStoreConfiguration() {
+  public ServerStoreConfiguration getStoreConfiguration() {
     return storeConfiguration;
   }
 
@@ -58,11 +76,13 @@ class ServerStoreImpl implements ServerStore {
 
   @Override
   public void append(long key, ByteBuffer payLoad) {
+    checkPayLoadSize(payLoad);
     store.append(key, payLoad);
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    checkPayLoadSize(payLoad);
     return store.getAndAppend(key, payLoad);
   }
 
@@ -71,8 +91,117 @@ class ServerStoreImpl implements ServerStore {
     store.replaceAtHead(key, expect, update);
   }
 
+  public void put(long key, Chain chain) {
+    store.put(key, chain);
+  }
+
+  @Override
+  public void remove(long key) {
+    store.remove(key);
+  }
+
   @Override
   public void clear() {
     store.clear();
+  }
+
+  public void close() {
+    store.close();
+  }
+
+  @Override
+  public List<Set<Long>> getSegmentKeySets() {
+
+    return new AbstractList<Set<Long>>() {
+      @Override
+      public Set<Long> get(int index) {
+        return store.getSegments().get(index).keySet();
+      }
+      @Override
+      public int size() {
+        return store.getSegments().size();
+      }
+    };
+  }
+
+  // stats
+
+
+  @Override
+  public long getSize() {
+    return store.getSize();
+  }
+
+  @Override
+  public long getTableCapacity() {
+    return store.getTableCapacity();
+  }
+
+  @Override
+  public long getUsedSlotCount() {
+    return store.getUsedSlotCount();
+  }
+
+  @Override
+  public long getRemovedSlotCount() {
+    return store.getRemovedSlotCount();
+  }
+
+  @Override
+  public long getAllocatedMemory() {
+    return store.getAllocatedMemory();
+  }
+
+  @Override
+  public long getOccupiedMemory() {
+    return store.getOccupiedMemory();
+  }
+
+  @Override
+  public long getVitalMemory() {
+    return store.getVitalMemory();
+  }
+
+  @Override
+  public long getDataAllocatedMemory() {
+    return store.getDataAllocatedMemory();
+  }
+
+  @Override
+  public long getDataOccupiedMemory() {
+    return store.getDataOccupiedMemory();
+  }
+
+  @Override
+  public long getDataVitalMemory() {
+    return store.getDataVitalMemory();
+  }
+
+  @Override
+  public long getDataSize() {
+    return store.getDataSize();
+  }
+
+  @Override
+  public int getReprobeLength() {
+    //TODO
+    //MapInternals Interface may need to change to implement this function correctly.
+    //Currently MapInternals Interface contains function: int getReprobeLength();
+    //however OffHeapServerStore.reprobeLength() returns a long
+    //Thus there could be data loss
+
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  private void checkPayLoadSize(ByteBuffer payLoad) {
+    if (payLoad.remaining() > pageSource.getPool().getSize()) {
+      throw new OversizeMappingException("Payload (" + payLoad.remaining() +
+                                         ") bigger than pool size (" + pageSource.getPool().getSize() + ")");
+    }
+  }
+
+  @Override
+  public Iterator<Chain> iterator() {
+    return store.iterator();
   }
 }

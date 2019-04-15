@@ -16,14 +16,13 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration.Type;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -36,10 +35,11 @@ import java.util.Collection;
 /**
  * @author Albin Suresh
  */
-public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<?>> implements CopyProvider {
+public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, DefaultCopierConfiguration<?>, Copier<?>> implements CopyProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultCopyProvider.class);
 
+  @SuppressWarnings("unchecked")
   public DefaultCopyProvider(DefaultCopyProviderConfiguration configuration) {
     super(configuration, (Class) DefaultCopierConfiguration.class);
   }
@@ -66,19 +66,19 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
-    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz);
+    final DefaultCopierConfiguration<?> preConfigured = preconfigured.get(clazz);
     if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else if (conf == null &&  preConfigured != null && preConfigured.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else {
       copier = createCopier(clazz, conf, type);
     }
@@ -87,9 +87,12 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   }
 
   private <T> Copier<T> createCopier(Class<T> clazz, DefaultCopierConfiguration<T> config, Type type) {
+    @SuppressWarnings("unchecked")
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
-      copier = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration((Class) IdentityCopier.class, type));
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration<>((Class<Copier<T>>) (Class) IdentityCopier.class, type));
+      copier = defaultInstance;
     }
     return copier;
   }
@@ -98,14 +101,15 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultCopierConfiguration<T> result = null;
 
-    Collection<DefaultCopierConfiguration> copierConfigurations =
-        ServiceLocator.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
-    for (DefaultCopierConfiguration copierConfiguration : copierConfigurations) {
+    @SuppressWarnings("rawtypes")
+    Collection<DefaultCopierConfiguration<?>> copierConfigurations = (Collection)
+        ServiceUtils.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
+    for (DefaultCopierConfiguration<?> copierConfiguration : copierConfigurations) {
       if (copierConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " copier : " + copierConfiguration);
         }
-        result = copierConfiguration;
+        result = (DefaultCopierConfiguration<T>) copierConfiguration;
       }
     }
 

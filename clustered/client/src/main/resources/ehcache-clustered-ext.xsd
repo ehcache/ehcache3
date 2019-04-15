@@ -46,10 +46,32 @@
 
   <xs:complexType name="cluster-spec">
     <xs:sequence minOccurs="1" maxOccurs="1">
-      <xs:element name="connection" type="tc:connection-spec" minOccurs="1" maxOccurs="1">
+      <xs:choice>
+        <xs:element name="cluster-connection" type="tc:cluster-connection-spec"/>
+        <xs:element name="connection" type="tc:connection-spec"/>
+      </xs:choice>
+
+      <xs:element name="read-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
-            Specifies the server endpoint to use for identifying cluster configuration.
+            Specifies the amount of time a cache read operation will wait for a response from a cluster
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="write-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache write operation will wait for a response from a cluster
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="connection-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache will wait to connect to a cluster
+            server before abandoning the cluster operation.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -69,7 +91,52 @@
 
   <xs:simpleType name="connectionUrl">
     <xs:restriction base="xs:anyURI">
-      <xs:pattern value="terracotta://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(/[^\?#]*)?(\?[^#]*)?(#.*)?"/>
+      <xs:pattern value="\w+://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(,([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?)*(/[^\?#]*)?(\?[^#]*)?(#.*)?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="cluster-connection-spec">
+    <xs:sequence>
+      <xs:element name="server" type="tc:server" maxOccurs="unbounded"/>
+    </xs:sequence>
+
+    <xs:attribute name="cluster-tier-manager" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          Cluster Tier Manager identifier.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="server">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        Data specific to a particular server.
+      </xs:documentation>
+    </xs:annotation>
+
+    <xs:attribute name="host" type="tc:host" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The host that the server is running on.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="port" type="xs:positiveInteger">
+      <xs:annotation>
+        <xs:documentation>
+          The port that the server is listening on.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:simpleType name="host">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="collapse" />
+      <xs:minLength value="1" />
+      <xs:maxLength value="255" />
     </xs:restriction>
   </xs:simpleType>
 
@@ -90,6 +157,13 @@
         </xs:annotation>
       </xs:element>
     </xs:sequence>
+    <xs:attribute name="auto-create" type="xs:boolean" use="optional" default="false">
+      <xs:annotation>
+        <xs:documentation> xml:lang="en">
+          True if server side components should be automatically created if they are absent.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
 
 
@@ -112,15 +186,15 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:element name="cluster-fixed" type="tc:cluster-fixed-resource-type" substitutionGroup="eh:resource">
+  <xs:element name="clustered-dedicated" type="tc:clustered-dedicated-resource-type" substitutionGroup="eh:resource">
     <xs:annotation>
       <xs:documentation>
-        Clustered cache resource with a fixed size.
+        Clustered cache resource with a dedicated size.
       </xs:documentation>
     </xs:annotation>
   </xs:element>
 
-  <xs:complexType name="cluster-fixed-resource-type">
+  <xs:complexType name="clustered-dedicated-resource-type">
     <xs:complexContent>
       <xs:extension base="eh:memory-type">
         <xs:attributeGroup ref="tc:from-optional"/>
@@ -128,7 +202,7 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:element name="cluster-shared" type="tc:cluster-shared-resource-type" substitutionGroup="eh:resource">
+  <xs:element name="clustered-shared" type="tc:clustered-shared-resource-type" substitutionGroup="eh:resource">
     <xs:annotation>
       <xs:documentation>
         Clustered cache resource sharing a pool with other cache resources.
@@ -136,7 +210,7 @@
     </xs:annotation>
   </xs:element>
 
-  <xs:complexType name="cluster-shared-resource-type">
+  <xs:complexType name="clustered-shared-resource-type">
     <xs:attribute name="sharing" type="xs:string" use="required">
       <xs:annotation>
         <xs:documentation>
@@ -145,6 +219,15 @@
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
+
+  <xs:element name="clustered" substitutionGroup="eh:resource">
+    <xs:annotation>
+      <xs:documentation>
+        Clustered cache resource which inherits the resource pool configured on the server.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType/>
+  </xs:element>
 
   <xs:attributeGroup name="from-optional">
     <xs:attribute name="from" type="xs:string" use="optional">

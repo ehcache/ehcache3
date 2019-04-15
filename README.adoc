@@ -1,10 +1,10 @@
 = The Ehcache 3.x line is currently the development line.
 
-Status of the build: image:https://ehcache.ci.cloudbees.com/buildStatus/icon?job=ehcache3[Ehcache@Cloudbees, link="https://ehcache.ci.cloudbees.com/job/ehcache3/"]
+Status of the build: 
+[link="https://dev.azure.com/TerracottaCI/ehcache/_build/latest?definitionId=14"]
+image::https://dev.azure.com/TerracottaCI/ehcache/_apis/build/status/ehcache3[Build Status]
 
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
-
-image:https://www.cloudbees.com/sites/default/files/styles/large/public/Button-Powered-by-CB.png?itok=uMDWINfY[Cloudbees, link="http://www.cloudbees.com/resources/foss"]
 
 == Getting started with the new API
 
@@ -12,13 +12,27 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.0.2 on June 6th 2016.
+We released 3.7.0 on February 25th 2019.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.1[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.7.0[release notes] contain the links to the artifacts and the documentation to help you get started.
+
+You should consider upgrading to 3.7.x as it does all previous 3.x do and more with a fully compatible API.
+The only thing to note compared to 3.0.x is that transactional support has been moved to a separate jar.
 
 == Current development & next release
 
-We are now working on the clustering tier of Ehcache 3 which will be included in the 3.1.0 release.
-You can also expect bug fix releases on the 3.0.x line.
+We released the missing features of the clustering tier of Ehcache 3 in 3.7.0.
+
+Starting with version 3.5, Ehcache only supports Java 8 and later.
+
+Version 3.5 is now in maintenance mode. We are no longer planning to perform release of earlier versions.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.
+
+== Contribute
+
+With great pleasure! Have a look at our link:CONTRIBUTING.adoc[Contributing policy].
+
+== Reporting issues
+
+Oh no! We have no bugs! (but if we really do, see details for reporting link:CONTRIBUTING.adoc#reporting-issues[here]).

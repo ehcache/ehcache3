@@ -20,9 +20,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,7 +33,9 @@ public class SerializeAfterEvolutionTest {
 
   @Test
   public void test() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_old.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(A_old.class)).newInstance();

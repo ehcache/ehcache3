@@ -18,18 +18,18 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 /**
  * Test the {@link Store#remove(Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -41,7 +41,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
+  protected Store<K, V> kvStore2;
 
   @After
   public void tearDown() {
@@ -68,8 +68,8 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     K equalKey = factory.createKey(1L);
     V equalValue = factory.createValue(1L);
 
-    assertThat(key.equals(equalKey), is(true));
-    assertThat(value.equals(equalValue), is(true));
+    assertThat(key, is(equalKey));
+    assertThat(value, is(equalValue));
 
     try {
       kvStore.remove(equalKey, equalValue);
@@ -110,7 +110,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     V notEqualValue = factory.createValue(2L);
 
-    assertThat(value.equals(notEqualValue), is(false));
+    assertThat(value, not(notEqualValue));
 
     try {
       assertThat(kvStore.remove(key, notEqualValue), is(RemoveStatus.KEY_PRESENT));
@@ -192,7 +192,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings("unchecked" )
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore();
@@ -201,9 +201,9 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore2.remove(1.0f, value);
+        kvStore2.remove((K) (Object) 1.0f, value);
       } else {
-        kvStore2.remove("key", value);
+        kvStore2.remove((K) "key", value);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -214,7 +214,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings("unchecked")
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore();
@@ -223,9 +223,9 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore2.remove(key, 1.0f);
+        kvStore2.remove(key, (V) (Object) 1.0f);
       } else {
-        kvStore2.remove(key, "value");
+        kvStore2.remove(key, (V) "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {

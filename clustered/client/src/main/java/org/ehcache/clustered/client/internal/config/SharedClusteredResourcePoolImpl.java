@@ -18,7 +18,8 @@ package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.core.config.AbstractResourcePool;
 
 /**
@@ -46,11 +47,6 @@ public class SharedClusteredResourcePoolImpl
   }
 
   @Override
-  public ClusteredResourceType<SharedClusteredResourcePool> getType() {
-    return super.getType();
-  }
-
-  @Override
   public String getSharedResourcePool() {
     return this.sharedResourcePool;
   }
@@ -61,9 +57,14 @@ public class SharedClusteredResourcePoolImpl
   }
 
   @Override
+  public void validateUpdate(final ResourcePool newPool) {
+    throw new UnsupportedOperationException("Updating CLUSTERED resource is not supported");
+  }
+
+  @Override
   public String toString() {
     return "Pool {"
         + "sharedResourcePool='" + sharedResourcePool + '\''
-        + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+        + " " + getType() + "}";
   }
 }

@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap.factories;
 
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
@@ -24,6 +25,9 @@ import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.storage.StorageEngine;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.nio.IntBuffer;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -48,7 +52,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
   public PinnableSegment<K, V> newInstance() {
     StorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcacheSegment<K, V>(tableSource, storageEngine, tableSize, evictionAdvisor, evictionListener);
+      return new EhcacheSegment<>(tableSource, storageEngine, tableSize, evictionAdvisor, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;
@@ -105,8 +109,33 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
       }
     }
 
+    @Override
+    protected Set<Entry<K, V>> createEntrySet() {
+      return new EntrySet();
+    }
+
     public interface EvictionListener<K, V> {
       void onEviction(K key, V value);
+    }
+
+    private class EntrySet extends LockedEntrySet {
+      @Override
+      public Iterator<Entry<K, V>> iterator() {
+        readLock().lock();
+        try {
+          return new LockedEntryIterator() {
+
+            @Override
+            protected Entry<K, V> create(IntBuffer entry) {
+              Entry<K, V> entryObject = super.create(entry);
+              ((Store.ValueHolder<?>) entryObject.getValue()).get();
+              return entryObject;
+            }
+          };
+        } finally {
+          readLock().unlock();
+        }
+      }
     }
   }
 }

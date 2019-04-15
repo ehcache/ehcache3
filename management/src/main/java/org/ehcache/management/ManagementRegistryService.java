@@ -21,11 +21,9 @@ import org.terracotta.management.registry.ManagementRegistry;
 /**
  * Repository of objects exposing capabilities via the
  * management and monitoring facilities.
- * <p/>
+ * <p>
  * A ManagementRegistry manages one and only one cache manager.
  * If you need to manage or monitor several cache managers at a time, you can use the {@link SharedManagementService} and register it into several cache managers.
- *
- * @author Ludovic Orban
  */
 public interface ManagementRegistryService extends ManagementRegistry, Service {
 

@@ -19,28 +19,18 @@ import java.nio.ByteBuffer;
 
 /**
  * Defines the contract used to transform type instances to and from a serial form.
- * <P>
- *   Implementations must be thread-safe.
- * </P>
- * <P>
- * When used within the default serialization provider, there are additional requirements.
- * The implementations must define either or both of the two constructors:
- * <dl>
- *   <dt><code><i>Serializer</i>(ClassLoader loader)</code>
- *   <dd>This constructor is used to initialize the serializer for transient caches.
- *   <dt><code><i>Serializer</i>(ClassLoader loader, org.ehcache.core.spi.service.FileBasedPersistenceContext context)</code>
- *   <dd>This constructor is used to initialize the serializer for persistent caches.
- * </dl>
+ * <p>
+ * Implementations must be thread-safe.
+ * <p>
+ * When used within the default serialization provider, there is an additional requirement.
+ * The implementations must define a constructor that takes in a {@code ClassLoader}.
  * The {@code ClassLoader} value may be {@code null}.  If not {@code null}, the class loader
  * instance provided should be used during deserialization to load classes needed by the deserialized objects.
- * </P>
  * <p>
- *   The serialized object's class must be preserved; deserialization of the serial form of an object must
- *   return an object of the same class. The following contract must always be true:
- *   <p>
- *   <code>object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass() )</code>
- *   </p>
- * </p>
+ * The serialized object's class must be preserved; deserialization of the serial form of an object must
+ * return an object of the same class. The following contract must always be true:
+ * <p>
+ * {@code object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass())}
  *
  * @param <T> the type of the instances to serialize
  *

@@ -38,10 +38,27 @@ import java.util.Map;
  * @since 2.0
  */
 public class ClassUtils {
+
+    /**
+     * Maps names of primitives to their corresponding primitive {@code Class}es.
+     */
+    private static final Map<String, Class<?>> namePrimitiveMap = new HashMap<>();
+    static {
+         namePrimitiveMap.put("boolean", Boolean.TYPE);
+         namePrimitiveMap.put("byte", Byte.TYPE);
+         namePrimitiveMap.put("char", Character.TYPE);
+         namePrimitiveMap.put("short", Short.TYPE);
+         namePrimitiveMap.put("int", Integer.TYPE);
+         namePrimitiveMap.put("long", Long.TYPE);
+         namePrimitiveMap.put("double", Double.TYPE);
+         namePrimitiveMap.put("float", Float.TYPE);
+         namePrimitiveMap.put("void", Void.TYPE);
+    }
+
     /**
      * Maps primitive {@code Class}es to their corresponding wrapper {@code Class}.
      */
-    private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>();
+    private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<>();
     static {
          primitiveWrapperMap.put(Boolean.TYPE, Boolean.class);
          primitiveWrapperMap.put(Byte.TYPE, Byte.class);
@@ -57,7 +74,7 @@ public class ClassUtils {
     /**
      * Maps wrapper {@code Class}es to their corresponding primitive types.
      */
-    private static final Map<Class<?>, Class<?>> wrapperPrimitiveMap = new HashMap<Class<?>, Class<?>>();
+    private static final Map<Class<?>, Class<?>> wrapperPrimitiveMap = new HashMap<>();
     static {
         for (final Map.Entry<Class<?>, Class<?>> entry : primitiveWrapperMap.entrySet()) {
             final Class<?> primitiveClass = entry.getKey();
@@ -68,17 +85,8 @@ public class ClassUtils {
         }
     }
 
-    /**
-     * <p>ClassUtils instances should NOT be constructed in standard programming.
-     * Instead, the class should be used as
-     * {@code ClassUtils.getShortClassName(cls)}.</p>
-     *
-     * <p>This constructor is public to permit tools that require a JavaBean
-     * instance to operate.</p>
-     */
-    public ClassUtils() {
-      super();
-    }
+    // Is assignable
+    // ----------------------------------------------------------------------
 
     /**
      * <p>Checks if an array of Classes can be assigned to another array of Classes.</p>
@@ -88,7 +96,7 @@ public class ClassUtils {
      * (the first parameter) are suitably compatible with a set of method parameter types
      * (the second parameter).</p>
      *
-     * <p>Unlike the {@link Class#isAssignableFrom(java.lang.Class)} method, this
+     * <p>Unlike the {@link Class#isAssignableFrom(Class)} method, this
      * method takes into account widenings of primitive classes and
      * {@code null}s.</p>
      *
@@ -113,7 +121,7 @@ public class ClassUtils {
      * @return {@code true} if assignment possible
      */
     public static boolean isAssignable(Class<?>[] classArray, Class<?>[] toClassArray, final boolean autoboxing) {
-        if (ArrayUtils.isSameLength(classArray, toClassArray) == false) {
+        if (!ArrayUtils.isSameLength(classArray, toClassArray)) {
             return false;
         }
         if (classArray == null) {
@@ -123,7 +131,7 @@ public class ClassUtils {
             toClassArray = ArrayUtils.EMPTY_CLASS_ARRAY;
         }
         for (int i = 0; i < classArray.length; i++) {
-            if (isAssignable(classArray[i], toClassArray[i], autoboxing) == false) {
+            if (!isAssignable(classArray[i], toClassArray[i], autoboxing)) {
                 return false;
             }
         }
@@ -134,7 +142,7 @@ public class ClassUtils {
      * <p>Checks if one {@code Class} can be assigned to a variable of
      * another {@code Class}.</p>
      *
-     * <p>Unlike the {@link Class#isAssignableFrom(java.lang.Class)} method,
+     * <p>Unlike the {@link Class#isAssignableFrom(Class)} method,
      * this method takes into account widenings of primitive classes and
      * {@code null}s.</p>
      *
@@ -162,14 +170,14 @@ public class ClassUtils {
      * @return {@code true} if assignment possible
      */
     public static boolean isAssignable(final Class<?> cls, final Class<?> toClass) {
-        return isAssignable(cls, toClass, SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_5));
+        return isAssignable(cls, toClass, true);
     }
 
     /**
      * <p>Checks if one {@code Class} can be assigned to a variable of
      * another {@code Class}.</p>
      *
-     * <p>Unlike the {@link Class#isAssignableFrom(java.lang.Class)} method,
+     * <p>Unlike the {@link Class#isAssignableFrom(Class)} method,
      * this method takes into account widenings of primitive classes and
      * {@code null}s.</p>
      *
@@ -219,7 +227,7 @@ public class ClassUtils {
             return true;
         }
         if (cls.isPrimitive()) {
-            if (toClass.isPrimitive() == false) {
+            if (!toClass.isPrimitive()) {
                 return false;
             }
             if (Integer.TYPE.equals(cls)) {
@@ -305,6 +313,8 @@ public class ClassUtils {
         return wrapperPrimitiveMap.get(cls);
     }
 
+    // ----------------------------------------------------------------------
+
     /**
      * <p>Converts an array of {@code Object} in to an array of {@code Class} objects.
      * If any of these objects is null, a null element will be inserted into the array.</p>
@@ -321,7 +331,7 @@ public class ClassUtils {
         } else if (array.length == 0) {
             return ArrayUtils.EMPTY_CLASS_ARRAY;
         }
-        final Class<?>[] classes = new Class[array.length];
+        final Class<?>[] classes = new Class<?>[array.length];
         for (int i = 0; i < array.length; i++) {
             classes[i] = array[i] == null ? null : array[i].getClass();
         }

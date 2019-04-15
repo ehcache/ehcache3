@@ -1,0 +1,73 @@
+@startuml
+skinparam sequenceMessageAlign center
+
+participant "SERVER" as S
+
+title CLUSTERED WRITE-BEHIND
+
+|||
+== PUT ==
+
+[o-> C1: PUT(K1, V1)
+C1 -> S: APPENDWITHWRITER(K1, V1)
+
+note over S
+  Server pins the hash entry
+end note
+
+|||
+== GET ==
+
+[o-> C1: GET(K1)
+C1 -> S: GET(H(K1))
+
+note over C1
+  Client resolve the chain as usual
+  but replaceAtHead won't be called
+end note
+
+alt if its a miss
+  critical
+    C1 -> S: LOCK(H(K1))
+    note over S
+      LOCK returns chain
+    end note
+    alt if chain is empty
+      C1 -> SOR: LOAD(K1)
+      SOR --> C1: V3
+      C1 -> S: APPEND(K1, V3)
+      C1 -> S: UNLOCK(H(K1))
+    end
+  end
+end
+
+|||
+== Update SOR ==
+
+note over S
+  When a chain size is greater than configured queue size,
+  server selects a random client to update SOR
+end note
+
+S -> C1: UPDATE-SOR(Hash)
+note over C1
+  Client crashes may cause duplicate writes to SOR
+end note
+
+critical
+  C1 -> S: LOCK(Hash)
+  activate S
+    loop through APPENDWITHWRITER \n operations in the chain
+      C1 -> SOR: OP
+    end
+    C1 -> S: replaceAtHead with resolved chain
+    note over S
+      Server unpins the hash entry if there were no appends
+      since last lock acquire
+    end note
+    C1 -> S: UNLOCK(Hash)
+  deactivate S
+end
+
+@enduml
+

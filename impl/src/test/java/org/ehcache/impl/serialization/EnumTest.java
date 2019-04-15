@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.IsSame;
 import org.junit.Assert;
 import org.junit.Test;
@@ -36,26 +36,29 @@ public class EnumTest {
 
   @Test
   public void basicInstanceSerialization() throws ClassNotFoundException {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
-    Assert.assertThat(s.read(s.serialize(People.Alice)), IsSame.<Serializable>sameInstance(People.Alice));
-    Assert.assertThat(s.read(s.serialize(People.Bob)), IsSame.<Serializable>sameInstance(People.Bob));
-    Assert.assertThat(s.read(s.serialize(People.Eve)), IsSame.<Serializable>sameInstance(People.Eve));
+    Assert.assertThat(s.read(s.serialize(People.Alice)), IsSame.sameInstance(People.Alice));
+    Assert.assertThat(s.read(s.serialize(People.Bob)), IsSame.sameInstance(People.Bob));
+    Assert.assertThat(s.read(s.serialize(People.Eve)), IsSame.sameInstance(People.Eve));
   }
 
   @Test
   public void classSerialization() throws ClassNotFoundException {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
-    Assert.assertThat(s.read(s.serialize(Enum.class)), IsSame.<Serializable>sameInstance(Enum.class));
-    Assert.assertThat(s.read(s.serialize(Dogs.Handel.getClass())), IsSame.<Serializable>sameInstance(Dogs.Handel.getClass()));
-    Assert.assertThat(s.read(s.serialize(Dogs.Cassie.getClass())), IsSame.<Serializable>sameInstance(Dogs.Cassie.getClass()));
-    Assert.assertThat(s.read(s.serialize(Dogs.Penny.getClass())), IsSame.<Serializable>sameInstance(Dogs.Penny.getClass()));
+    Assert.assertThat(s.read(s.serialize(Enum.class)), IsSame.sameInstance(Enum.class));
+    Assert.assertThat(s.read(s.serialize(Dogs.Handel.getClass())), IsSame.sameInstance(Dogs.Handel.getClass()));
+    Assert.assertThat(s.read(s.serialize(Dogs.Cassie.getClass())), IsSame.sameInstance(Dogs.Cassie.getClass()));
+    Assert.assertThat(s.read(s.serialize(Dogs.Penny.getClass())), IsSame.sameInstance(Dogs.Penny.getClass()));
   }
 
   @Test
   public void shiftingInstanceSerialization() throws ClassNotFoundException {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader wLoader = createClassNameRewritingLoader(Foo_W.class);
     ClassLoader rLoader = createClassNameRewritingLoader(Foo_R.class);

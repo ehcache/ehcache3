@@ -15,6 +15,7 @@
  */
 package com.pany.ehcache.serializer;
 
+import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -26,7 +27,9 @@ public class TestSerializer<T> implements Serializer<T> {
   private final Serializer<T> serializer;
 
   public TestSerializer(ClassLoader classLoader) {
-    serializer = new CompactJavaSerializer<T>(classLoader);
+    CompactJavaSerializer<T> compactJavaSerializer = new CompactJavaSerializer<>(classLoader);
+    compactJavaSerializer.init(new TransientStateRepository());
+    serializer = compactJavaSerializer;
   }
 
   @Override

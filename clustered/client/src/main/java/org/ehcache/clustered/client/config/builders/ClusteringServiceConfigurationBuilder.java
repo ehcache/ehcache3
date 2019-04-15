@@ -15,25 +15,31 @@
  */
 package org.ehcache.clustered.client.config.builders;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
-import org.ehcache.config.Builder;
-import org.ehcache.config.units.MemoryUnit;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.internal.ConnectionSource;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.config.Builder;
+
+import static org.ehcache.clustered.client.config.ClusteringServiceConfiguration.DEFAULT_AUTOCREATE;
 
 /**
  * A builder of ClusteringService configurations.
  */
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
-  private final URI clusterUri;
-  private final String defaultServerResource;
-  private final Map<String, PoolDefinition> pools;
+  private final ConnectionSource connectionSource;
+  private final Timeouts timeouts;
+  private final boolean autoCreate;
 
   /**
    * Creates a new builder connecting to the given cluster.
@@ -43,83 +49,129 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(clusterUri);
-  }
-
-  private ClusteringServiceConfigurationBuilder(URI clusterUri) {
-    this.clusterUri = clusterUri;
-    this.defaultServerResource = null;
-    this.pools = emptyMap();
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String poolName, PoolDefinition poolDefinition) {
-    this.clusterUri = original.clusterUri;
-    this.defaultServerResource = original.defaultServerResource;
-    Map<String, PoolDefinition> pools = new HashMap<String, PoolDefinition>(original.pools);
-    if (pools.put(poolName, poolDefinition) != null) {
-      throw new IllegalArgumentException("Pool '" + poolName + "' already defined");
-    }
-    this.pools = unmodifiableMap(pools);
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String defaultServerResource) {
-    this.clusterUri = original.clusterUri;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = original.pools;
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
   }
 
   /**
-   * Sets the default server resource for pools and caches.
+   * Creates a new builder connecting to the given cluster.
    *
-   * @param defaultServerResource default server resource
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder defaultServerResource(String defaultServerResource) {
-    return new ClusteringServiceConfigurationBuilder(this, defaultServerResource);
+  public static ClusteringServiceConfigurationBuilder cluster(Iterable<InetSocketAddress> servers, String clusterTierManager) {
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
+  }
+
+  private ClusteringServiceConfigurationBuilder(ConnectionSource connectionSource, Timeouts timeouts, boolean autoCreate) {
+    this.connectionSource = connectionSource;
+    this.timeouts = Objects.requireNonNull(timeouts, "Timeouts can't be null");
+    this.autoCreate = autoCreate;
   }
 
   /**
-   * Adds a resource pool with the given name and size and consuming the given server resource.
-   *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
-   * @param serverResource server resource to consume
+   * Support connection to an existing entity or create if the entity if absent.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit, String serverResource) {
-    return resourcePool(name, new PoolDefinition(size, unit, serverResource));
+  public ServerSideConfigurationBuilder autoCreate() {
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, true));
   }
 
   /**
-   * Adds a resource pool with the given name and size and consuming the default server resource.
-   *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
+   * Only support connection to an existing entity.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit) {
-    return resourcePool(name, new PoolDefinition(size, unit));
+  public ServerSideConfigurationBuilder expecting() {
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, false));
   }
 
   /**
-   * Adds a resource pool with the given name and definition
+   * Adds timeouts.
+   * Read operations which time out return a result comparable to a cache miss.
+   * Write operations which time out won't do anything.
+   * Lifecycle operations which time out will fail with exception
    *
-   * @param name pool name
-   * @param definition pool definition
+   * @param timeouts the amount of time permitted for all operations
    *
    * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code timeouts} is {@code null}
    */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, PoolDefinition definition) {
-    return new ClusteringServiceConfigurationBuilder(this, name, definition);
+  public ClusteringServiceConfigurationBuilder timeouts(Timeouts timeouts) {
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, timeouts, this.autoCreate);
+  }
+
+  /**
+   * Adds timeouts.
+   * Read operations which time out return a result comparable to a cache miss.
+   * Write operations which time out won't do anything.
+   * Lifecycle operations which time out will fail with exception
+   *
+   * @param timeoutsBuilder the builder for amount of time permitted for all operations
+   *
+   * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code timeouts} is {@code null}
+   */
+  public ClusteringServiceConfigurationBuilder timeouts(Builder<? extends Timeouts> timeoutsBuilder) {
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, timeoutsBuilder.build(), this.autoCreate);
+  }
+
+  /**
+   * Adds a read operation timeout.  Read operations which time out return a result comparable to
+   * a cache miss.
+   *
+   * @param duration the amount of time permitted for read operations
+   * @param unit the time units for {@code duration}
+   *
+   * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code unit} is {@code null}
+   * @throws IllegalArgumentException if {@code amount} is negative
+   *
+   * @deprecated Use {@link #timeouts(Timeouts)}. Note that calling this method will override any timeouts previously set
+   * by setting the read operation timeout to the specified value and everything else to its default.
+   */
+  @Deprecated
+  public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
+    Duration readTimeout = Duration.of(duration, toChronoUnit(unit));
+    return timeouts(TimeoutsBuilder.timeouts().read(readTimeout).build());
   }
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri, defaultServerResource, pools);
+    return build(null);
   }
+
+  /**
+   * Internal method to build a new {@link ClusteringServiceConfiguration} from the {@link ServerSideConfigurationBuilder}.
+   *
+   * @param serverSideConfiguration the {@code ServerSideConfiguration} to use
+   *
+   * @return a new {@code ClusteringServiceConfiguration} instance built from {@code this}
+   *        {@code ClusteringServiceConfigurationBuilder} and the {@code serverSideConfiguration} provided
+   */
+  ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
+    return new ClusteringServiceConfiguration(connectionSource, timeouts, autoCreate, serverSideConfiguration, new Properties());
+  }
+
+  private static ChronoUnit toChronoUnit(TimeUnit unit) {
+    if(unit == null) {
+      return null;
+    }
+    switch (unit) {
+      case NANOSECONDS:  return ChronoUnit.NANOS;
+      case MICROSECONDS: return ChronoUnit.MICROS;
+      case MILLISECONDS: return ChronoUnit.MILLIS;
+      case SECONDS:      return ChronoUnit.SECONDS;
+      case MINUTES:      return ChronoUnit.MINUTES;
+      case HOURS:        return ChronoUnit.HOURS;
+      case DAYS:         return ChronoUnit.DAYS;
+      default: throw new AssertionError("Unknown unit: " + unit);
+    }
+  }
+
 }

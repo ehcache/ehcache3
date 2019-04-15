@@ -17,11 +17,11 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
@@ -29,7 +29,6 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -43,6 +42,7 @@ import java.util.Arrays;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<String, String> {
 
@@ -57,8 +57,8 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
-      final Serializer<String> defaultSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-      final Copier<String> defaultCopier = new SerializingCopier<String>(defaultSerializer);
+      final Serializer<String> defaultSerializer = new JavaSerializer<>(getClass().getClassLoader());
+      final Copier<String> defaultCopier = new SerializingCopier<>(defaultSerializer);
 
       @Override
       public CachingTier<String, String> newCachingTier() {
@@ -71,22 +71,22 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-            ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
-            new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,
-            new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
+          ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0,
+          new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,
+          new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
+        return new SerializedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
       }
 
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new OnHeapStore.Provider();
-        service.start(new ServiceLocator());
+        service.start(dependencySet().build());
         return service;
       }
 
@@ -109,7 +109,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -125,12 +125,12 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
       }
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        return new ServiceLocator();
+        return dependencySet().build();
       }
 
     };

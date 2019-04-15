@@ -16,15 +16,21 @@
 
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.jsr107.Jsr107Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 
+import static java.util.Objects.requireNonNull;
+
+@ServiceDependencies(StatisticsService.class)
 public class DefaultJsr107Service implements Jsr107Service {
 
   private final Jsr107Configuration configuration;
+  private volatile StatisticsService statisticsService;
 
   public DefaultJsr107Service(Jsr107Configuration configuration) {
     this.configuration = configuration;
@@ -32,7 +38,7 @@ public class DefaultJsr107Service implements Jsr107Service {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    // no-op
+    this.statisticsService = serviceProvider.getService(StatisticsService.class);
   }
 
   @Override
@@ -78,5 +84,10 @@ public class DefaultJsr107Service implements Jsr107Service {
     } else {
       return configuration.isEnableStatisticsAll();
     }
+  }
+
+  @Override
+  public StatisticsService getStatistics() {
+    return requireNonNull(statisticsService);
   }
 }

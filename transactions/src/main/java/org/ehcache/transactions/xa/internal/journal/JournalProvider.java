@@ -16,8 +16,8 @@
 
 package org.ehcache.transactions.xa.internal.journal;
 
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 
 /**
@@ -35,6 +35,5 @@ public interface JournalProvider extends Service {
    * @param <K> the store's key type.
    * @return a {@link Journal} implementation.
    */
-  <K> Journal<K> getJournal(LocalPersistenceService.PersistenceSpaceIdentifier persistentSpaceId, Serializer<K> keySerializer);
-
+  <K> Journal<K> getJournal(PersistableResourceService.PersistenceSpaceIdentifier<?> persistentSpaceId, Serializer<K> keySerializer);
 }

@@ -42,6 +42,7 @@ public class DefaultCopyProviderTest {
   public void testCreateKeyCopierWithCustomCopierConfig() {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
+    @SuppressWarnings("unchecked")
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
         (Class)TestCopier.class, DefaultCopierConfiguration.Type.KEY);
 
@@ -58,16 +59,19 @@ public class DefaultCopyProviderTest {
   @Test
   public void testCreateKeyCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY);
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
 
-    assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
+    @SuppressWarnings("unchecked")
+    Serializer<Long> serializer = mock(Serializer.class);
+    assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
   }
 
   @Test
   public void testCreateValueCopierWithCustomCopierConfig() {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
+    @SuppressWarnings("unchecked")
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
         (Class)TestCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
@@ -84,19 +88,23 @@ public class DefaultCopyProviderTest {
   @Test
   public void testCreateValueCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
 
-    assertThat(copyProvider.createValueCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
+    @SuppressWarnings("unchecked")
+    Serializer<Long> serializer = mock(Serializer.class);
+    assertThat(copyProvider.createValueCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
   }
 
   @Test
   public void testUserProvidedCloseableCopierInstanceDoesNotCloseOnRelease() throws Exception {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<Long>();
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
+    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<>();
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
 
-    assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), sameInstance((Copier)testCloseableCopier));
+    @SuppressWarnings("unchecked")
+    Serializer<Long> serializer = mock(Serializer.class);
+    assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), sameInstance((Copier)testCloseableCopier));
 
     copyProvider.releaseCopier(testCloseableCopier);
 

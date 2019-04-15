@@ -52,23 +52,23 @@ class EventListenerAdaptors {
   @SuppressWarnings("unchecked")
   static <K, V> List<EventListenerAdaptor<K, V>> ehListenersFor(CacheEntryListener<? super K, ? super V> listener,
       CacheEntryEventFilter<? super K, ? super V> filter, Cache<K, V> source, boolean requestsOld) {
-    List<EventListenerAdaptor<K, V>> rv = new ArrayList<EventListenerAdaptor<K, V>>();
+    List<EventListenerAdaptor<K, V>> rv = new ArrayList<>();
 
     if (listener instanceof CacheEntryUpdatedListener) {
-      rv.add(new UpdatedAdaptor<K, V>(source, (CacheEntryUpdatedListener<K, V>) listener,
-          (CacheEntryEventFilter<K, V>) filter, requestsOld));
+      rv.add(new UpdatedAdaptor<>(source, (CacheEntryUpdatedListener<K, V>) listener,
+        (CacheEntryEventFilter<K, V>) filter, requestsOld));
     }
     if (listener instanceof CacheEntryCreatedListener) {
-      rv.add(new CreatedAdaptor<K, V>(source, (CacheEntryCreatedListener<K, V>) listener,
-          (CacheEntryEventFilter<K, V>) filter, requestsOld));
+      rv.add(new CreatedAdaptor<>(source, (CacheEntryCreatedListener<K, V>) listener,
+        (CacheEntryEventFilter<K, V>) filter, requestsOld));
     }
     if (listener instanceof CacheEntryRemovedListener) {
-      rv.add(new RemovedAdaptor<K, V>(source, (CacheEntryRemovedListener<K, V>) listener,
-          (CacheEntryEventFilter<K, V>) filter, requestsOld));
+      rv.add(new RemovedAdaptor<>(source, (CacheEntryRemovedListener<K, V>) listener,
+        (CacheEntryEventFilter<K, V>) filter, requestsOld));
     }
     if (listener instanceof CacheEntryExpiredListener) {
-      rv.add(new ExpiredAdaptor<K, V>(source, (CacheEntryExpiredListener<K, V>) listener,
-          (CacheEntryEventFilter<K, V>) filter, requestsOld));
+      rv.add(new ExpiredAdaptor<>(source, (CacheEntryExpiredListener<K, V>) listener,
+        (CacheEntryEventFilter<K, V>) filter, requestsOld));
     }
 
     return rv;
@@ -95,8 +95,8 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.UPDATED, ehEvent, requestsOld);
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<>(source, EventType.UPDATED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onUpdated((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -121,8 +121,8 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.REMOVED, ehEvent, requestsOld);
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<>(source, EventType.REMOVED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onRemoved((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -147,8 +147,8 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.EXPIRED, ehEvent, requestsOld);
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<>(source, EventType.EXPIRED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onExpired((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);
@@ -173,8 +173,8 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.CREATED, ehEvent, requestsOld);
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<>(source, EventType.CREATED, ehEvent, false);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onCreated((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);

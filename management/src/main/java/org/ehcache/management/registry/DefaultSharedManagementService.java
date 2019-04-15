@@ -18,14 +18,13 @@ package org.ehcache.management.registry;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.store.InternalCacheManager;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
@@ -38,24 +37,24 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * This service can be registered across several cache managers and provides a way to access per-cache manager management registry
- *
- * @author Mathieu Carbou
  */
 @ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class})
 public class DefaultSharedManagementService implements SharedManagementService {
 
-  private final ConcurrentMap<Context, ManagementRegistryService> delegates = new ConcurrentHashMap<Context, ManagementRegistryService>();
+  private final ConcurrentMap<Context, ManagementRegistryService> delegates = new ConcurrentHashMap<>();
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     final Context cmContext = managementRegistry.getConfiguration().getContext();
     final InternalCacheManager cacheManager =
-        serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+      serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     cacheManager.registerListener(new CacheManagerListener() {
       @Override
@@ -84,7 +83,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
             break;
 
           default:
-            throw new AssertionError(to);
+            throw new AssertionError("Unsupported state: " + to);
         }
       }
     });
@@ -96,7 +95,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
 
   @Override
   public Map<Context, ContextContainer> getContextContainers() {
-    Map<Context, ContextContainer> contexts = new HashMap<Context, ContextContainer>();
+    Map<Context, ContextContainer> contexts = new HashMap<>();
     for (Map.Entry<Context, ManagementRegistryService> entry : delegates.entrySet()) {
       contexts.put(entry.getKey(), entry.getValue().getContextContainer());
     }
@@ -104,8 +103,26 @@ public class DefaultSharedManagementService implements SharedManagementService {
   }
 
   @Override
-  public Map<Context, Collection<Capability>> getCapabilities() {
-    Map<Context, Collection<Capability>> capabilities = new HashMap<Context, Collection<Capability>>();
+  public Collection<? extends Capability> getCapabilities() {
+    Collection<Capability> capabilities = new ArrayList<>();
+    for (ManagementRegistryService registryService : delegates.values()) {
+      capabilities.addAll(registryService.getCapabilities());
+    }
+    return capabilities;
+  }
+
+  @Override
+  public Collection<String> getCapabilityNames() {
+    Collection<String> names = new TreeSet<>();
+    for (ManagementRegistryService registryService : delegates.values()) {
+      names.addAll(registryService.getCapabilityNames());
+    }
+    return names;
+  }
+
+  @Override
+  public Map<Context, Collection<? extends Capability>> getCapabilitiesByContext() {
+    Map<Context, Collection<? extends Capability>> capabilities = new HashMap<>();
     for (Map.Entry<Context, ManagementRegistryService> entry : delegates.entrySet()) {
       capabilities.put(entry.getKey(), entry.getValue().getCapabilities());
     }
@@ -114,7 +131,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
 
   @Override
   public Collection<ManagementProvider<?>> getManagementProvidersByCapability(String capabilityName) {
-    List<ManagementProvider<?>> allProviders = new ArrayList<ManagementProvider<?>>();
+    List<ManagementProvider<?>> allProviders = new ArrayList<>();
     for (ManagementRegistryService managementRegistry : delegates.values()) {
       allProviders.addAll(managementRegistry.getManagementProvidersByCapability(capabilityName));
     }

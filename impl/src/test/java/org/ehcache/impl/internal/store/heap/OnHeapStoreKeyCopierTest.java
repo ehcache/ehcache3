@@ -17,14 +17,12 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
@@ -36,8 +34,8 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
@@ -58,18 +56,8 @@ public class OnHeapStoreKeyCopierTest {
 
   private static final Key KEY = new Key("WHat?");
   public static final String VALUE = "TheAnswer";
-  public static final NullaryFunction<Boolean> NOT_REPLACE_EQUAL = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return false;
-    }
-  };
-  public static final NullaryFunction<Boolean> REPLACE_EQUAL = new NullaryFunction<Boolean>() {
-    @Override
-    public Boolean apply() {
-      return true;
-    }
-  };
+  public static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
+  public static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
 
   @Parameterized.Parameters(name = "copyForRead: {0} - copyForWrite: {1}")
   public static Collection<Object[]> config() {
@@ -86,13 +74,14 @@ public class OnHeapStoreKeyCopierTest {
 
   private OnHeapStore<Key, String> store;
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    Store.Configuration<Key, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Key.class);
     when(configuration.getValueType()).thenReturn(String.class);
-    when(configuration.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(configuration.getExpiry()).thenReturn((ExpiryPolicy) ExpiryPolicyBuilder.noExpiration());
 
     Copier<Key> keyCopier = new Copier<Key>() {
       @Override
@@ -112,7 +101,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<Key, String>(configuration, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
   }
 
   @Test
@@ -125,39 +114,33 @@ public class OnHeapStoreKeyCopierTest {
     Store.ValueHolder<String> firstStoreValue = store.get(KEY);
     Store.ValueHolder<String> secondStoreValue = store.get(copyKey);
     if (copyForWrite) {
-      assertThat(firstStoreValue.value(), is(VALUE));
+      assertThat(firstStoreValue.get(), is(VALUE));
       assertThat(secondStoreValue, nullValue());
     } else {
       assertThat(firstStoreValue, nullValue());
-      assertThat(secondStoreValue.value(), is(VALUE));
+      assertThat(secondStoreValue.get(), is(VALUE));
     }
   }
 
   @Test
   public void testCompute() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        assertThat(key, is(copyKey));
-        return VALUE;
-      }
+    store.getAndCompute(copyKey, (key, value) -> {
+      assertThat(key, is(copyKey));
+      return VALUE;
     });
     copyKey.state = "Different!";
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        if (copyForWrite) {
-          assertThat(value, nullValue());
-        } else {
-          assertThat(value, is(VALUE));
-          assertThat(key, is(copyKey));
-          if (copyForRead) {
-            key.state = "Changed!";
-          }
+    store.getAndCompute(copyKey, (key, value) -> {
+      if (copyForWrite) {
+        assertThat(value, nullValue());
+      } else {
+        assertThat(value, is(VALUE));
+        assertThat(key, is(copyKey));
+        if (copyForRead) {
+          key.state = "Changed!";
         }
-        return value;
       }
+      return value;
     });
 
     if (copyForRead) {
@@ -168,29 +151,23 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        assertThat(key, is(copyKey));
-        return VALUE;
-      }
-    }, NOT_REPLACE_EQUAL);
+    store.computeAndGet(copyKey, (key, value) -> {
+      assertThat(key, is(copyKey));
+      return VALUE;
+    }, NOT_REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        if (copyForWrite) {
-          assertThat(value, nullValue());
-        } else {
-          assertThat(value, is(VALUE));
-          assertThat(key, is(copyKey));
-          if (copyForRead) {
-            key.state = "Changed!";
-          }
+    store.computeAndGet(copyKey, (key, value) -> {
+      if (copyForWrite) {
+        assertThat(value, nullValue());
+      } else {
+        assertThat(value, is(VALUE));
+        assertThat(key, is(copyKey));
+        if (copyForRead) {
+          key.state = "Changed!";
         }
-        return value;
       }
-    }, NOT_REPLACE_EQUAL);
+      return value;
+    }, NOT_REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {
       assertThat(copyKey.state, is("Different!"));
@@ -200,29 +177,23 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        assertThat(key, is(copyKey));
-        return VALUE;
-      }
-    }, REPLACE_EQUAL);
+    store.computeAndGet(copyKey, (key, value) -> {
+      assertThat(key, is(copyKey));
+      return VALUE;
+    }, REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, new BiFunction<Key, String, String>() {
-      @Override
-      public String apply(Key key, String value) {
-        if (copyForWrite) {
-          assertThat(value, nullValue());
-        } else {
-          assertThat(value, is(VALUE));
-          assertThat(key, is(copyKey));
-          if (copyForRead) {
-            key.state = "Changed!";
-          }
+    store.computeAndGet(copyKey, (key, value) -> {
+      if (copyForWrite) {
+        assertThat(value, nullValue());
+      } else {
+        assertThat(value, is(VALUE));
+        assertThat(key, is(copyKey));
+        if (copyForRead) {
+          key.state = "Changed!";
         }
-        return value;
       }
-    }, REPLACE_EQUAL);
+      return value;
+    }, REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {
       assertThat(copyKey.state, is("Different!"));
@@ -246,89 +217,71 @@ public class OnHeapStoreKeyCopierTest {
 
   @Test
   public void testComputeIfAbsent() throws StoreAccessException {
-    store.computeIfAbsent(KEY, new Function<Key, String>() {
-      @Override
-      public String apply(Key key) {
-        if (copyForRead || copyForWrite) {
-          assertThat(key, not(sameInstance(KEY)));
-        } else {
-          assertThat(key, sameInstance(KEY));
-        }
-        return VALUE;
+    store.computeIfAbsent(KEY, key -> {
+      if (copyForRead || copyForWrite) {
+        assertThat(key, not(sameInstance(KEY)));
+      } else {
+        assertThat(key, sameInstance(KEY));
       }
+      return VALUE;
     });
   }
 
   @Test
   public void testBulkCompute() throws StoreAccessException {
-    final AtomicReference<Key> keyRef = new AtomicReference<Key>();
-    store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Key, ? extends String>>, Iterable<? extends Map.Entry<? extends Key, ? extends String>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Key, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Key, ? extends String>> entries) {
-        Key key = entries.iterator().next().getKey();
-        if (copyForRead || copyForWrite) {
-          assertThat(key, not(sameInstance(KEY)));
-        } else {
-          assertThat(key, sameInstance(KEY));
-        }
-        keyRef.set(key);
-        return singletonMap(KEY, VALUE).entrySet();
+    final AtomicReference<Key> keyRef = new AtomicReference<>();
+    store.bulkCompute(singleton(KEY), entries -> {
+      Key key = entries.iterator().next().getKey();
+      if (copyForRead || copyForWrite) {
+        assertThat(key, not(sameInstance(KEY)));
+      } else {
+        assertThat(key, sameInstance(KEY));
       }
+      keyRef.set(key);
+      return singletonMap(KEY, VALUE).entrySet();
     });
 
-    store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Key, ? extends String>>, Iterable<? extends Map.Entry<? extends Key, ? extends String>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Key, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Key, ? extends String>> entries) {
-        if (copyForRead) {
-          assertThat(entries.iterator().next().getKey(), not(sameInstance(keyRef.get())));
-        }
-        return singletonMap(KEY, VALUE).entrySet();
+    store.bulkCompute(singleton(KEY), entries -> {
+      if (copyForRead) {
+        assertThat(entries.iterator().next().getKey(), not(sameInstance(keyRef.get())));
       }
+      return singletonMap(KEY, VALUE).entrySet();
     });
   }
 
   @Test
   public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
-    store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Key, ? extends String>>, Iterable<? extends Map.Entry<? extends Key, ? extends String>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Key, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Key, ? extends String>> entries) {
-        if (copyForRead || copyForWrite) {
-          assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
-        } else {
-          assertThat(entries.iterator().next().getKey(), sameInstance(KEY));
-        }
-        return singletonMap(KEY, VALUE).entrySet();
+    store.bulkCompute(singleton(KEY), entries -> {
+      if (copyForRead || copyForWrite) {
+        assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
+      } else {
+        assertThat(entries.iterator().next().getKey(), sameInstance(KEY));
       }
+      return singletonMap(KEY, VALUE).entrySet();
     }, NOT_REPLACE_EQUAL);
   }
 
   @Test
   public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
-    store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Key, ? extends String>>, Iterable<? extends Map.Entry<? extends Key, ? extends String>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Key, ? extends String>> apply(Iterable<? extends Map.Entry<? extends Key, ? extends String>> entries) {
-        if (copyForRead || copyForWrite) {
-          assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
-        } else {
-          assertThat(entries.iterator().next().getKey(), sameInstance(KEY));
-        }
-        return singletonMap(KEY, VALUE).entrySet();
+    store.bulkCompute(singleton(KEY), entries -> {
+      if (copyForRead || copyForWrite) {
+        assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
+      } else {
+        assertThat(entries.iterator().next().getKey(), sameInstance(KEY));
       }
+      return singletonMap(KEY, VALUE).entrySet();
     }, REPLACE_EQUAL);
   }
 
   @Test
   public void testBulkComputeIfAbsent() throws StoreAccessException {
-    store.bulkComputeIfAbsent(singleton(KEY), new Function<Iterable<? extends Key>, Iterable<? extends Map.Entry<? extends Key, ? extends String>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Key, ? extends String>> apply(Iterable<? extends Key> keys) {
-        if (copyForWrite || copyForRead) {
-          assertThat(keys.iterator().next(), not(sameInstance(KEY)));
-        } else {
-          assertThat(keys.iterator().next(), sameInstance(KEY));
-        }
-        return singletonMap(KEY, VALUE).entrySet();
+    store.bulkComputeIfAbsent(singleton(KEY), keys -> {
+      if (copyForWrite || copyForRead) {
+        assertThat(keys.iterator().next(), not(sameInstance(KEY)));
+      } else {
+        assertThat(keys.iterator().next(), sameInstance(KEY));
       }
+      return singletonMap(KEY, VALUE).entrySet();
     });
   }
 

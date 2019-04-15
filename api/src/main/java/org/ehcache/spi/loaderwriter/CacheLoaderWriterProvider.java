@@ -21,15 +21,13 @@ import org.ehcache.spi.service.Service;
 
 /**
  * A {@link Service} that creates {@link CacheLoaderWriter} instances.
- * <P>
- *   A {@code CacheManager} will use the {@link #createCacheLoaderWriter(java.lang.String, org.ehcache.config.CacheConfiguration)}
- *   method to create {@code CacheLoaderWriter} instances for each {@code Cache} it
- *   manages.
- * </P>
- * <P>
- *   For any non {@code null} value returned, the {@code Cache} will be configured to use the
- *   {@code CacheLoaderWriter} instance returned.
- * </P>
+ * <p>
+ * A {@code CacheManager} will use the {@link #createCacheLoaderWriter(java.lang.String, org.ehcache.config.CacheConfiguration)}
+ * method to create {@code CacheLoaderWriter} instances for each {@code Cache} it
+ * manages.
+ * <p>
+ * For any non {@code null} value returned, the {@code Cache} will be configured to use the
+ * {@code CacheLoaderWriter} instance returned.
  */
 public interface CacheLoaderWriterProvider extends Service {
 
@@ -49,13 +47,32 @@ public interface CacheLoaderWriterProvider extends Service {
   /**
    * Releases a {@code CacheLoaderWriter} when the associated {@link org.ehcache.Cache Cache}
    * is finished with it.
-   * <P>
-   *   If the {@code CacheLoaderWriter} instance was user provided {@link java.io.Closeable#close() close}
-   *   will not be invoked.
-   * </P>
+   * <p>
+   * If the {@code CacheLoaderWriter} instance was user provided {@link java.io.Closeable#close() close}
+   * will not be invoked.
+   *
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} being released
    * @throws Exception when the release fails
    */
-  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
+  void releaseCacheLoaderWriter(String alias, CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
+
+  /**
+   * Returns preconfigured {@link org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration} for the given alias
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
+   *
+   * @return {@code CacheLoaderWriterConfiguration} configured for the {@code Cache}, otherwise null
+   */
+  CacheLoaderWriterConfiguration getPreConfiguredCacheLoaderWriterConfig(String alias);
+
+  /**
+   * Checks whether  {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter} was provided using jsr api
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
+   * @return {@code true} if {@code CacheLoaderWriter} was provided using jsr api, otherwise false.
+   */
+  boolean isLoaderJsrProvided(String alias);
 
 }

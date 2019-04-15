@@ -46,6 +46,7 @@ public class UserManagedPersistenceContext<K, V> implements UserManagedCacheConf
    * Transforms the builder received in one that returns a {@link PersistentUserManagedCache}.
    */
   @Override
+  @SuppressWarnings("unchecked")
   public UserManagedCacheBuilder<K, V, PersistentUserManagedCache<K, V>> builder(UserManagedCacheBuilder<K, V, ? extends UserManagedCache<K, V>> builder) {
     return (UserManagedCacheBuilder<K, V, PersistentUserManagedCache<K, V>>) builder.identifier(identifier).using(persistenceService);
   }

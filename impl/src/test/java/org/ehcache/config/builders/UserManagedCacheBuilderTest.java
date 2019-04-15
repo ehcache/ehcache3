@@ -22,16 +22,14 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -45,15 +43,10 @@ public class UserManagedCacheBuilderTest {
   @Test
   public void testIsExtensible() {
 
-    final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = new UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>>() {
+    final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = builder -> new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
       @Override
-      public UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>> builder(final UserManagedCacheBuilder<String, Object, ? extends UserManagedCache<String, Object>> builder) {
-        return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
-          @Override
-          TestUserManagedCache<String, Object> build(final ServiceLocator serviceProvider) {
-            return new TestUserManagedCache<String, Object>();
-          }
-        };
+      TestUserManagedCache<String, Object> build(final ServiceLocator.DependencySet dependencySet) {
+        return new TestUserManagedCache<>();
       }
     };
 
@@ -85,13 +78,10 @@ public class UserManagedCacheBuilderTest {
 
   @Test
   public void testTypedCacheWithExpirationPolicy() {
-    UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
-        .withExpiry(Expirations.timeToIdleExpiration(new Duration(30, TimeUnit.SECONDS)))
-        .build(true);
-    try {
+    try (UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
+      .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(30)))
+      .build(true)) {
       assertThat(cache, notNullValue());
-    } finally {
-      cache.close();
     }
   }
 

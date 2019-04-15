@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store.Iterator#next()} contract of the
  * {@link Store.Iterator Store.Iterator} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -67,7 +66,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
     try {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iterator.next();
       assertThat(entry.getKey(), is(equalTo(key)));
-      assertThat(entry.getValue().value(), is(equalTo(value)));
+      assertThat(entry.getValue().get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

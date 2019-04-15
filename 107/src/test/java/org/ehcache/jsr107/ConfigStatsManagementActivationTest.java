@@ -16,6 +16,8 @@
 
 package org.ehcache.jsr107;
 
+import java.lang.management.ManagementFactory;
+
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
@@ -28,6 +30,9 @@ import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -38,6 +43,11 @@ import static org.junit.Assert.assertThat;
  * ConfigStatsManagementActivationTest
  */
 public class ConfigStatsManagementActivationTest {
+
+  private static final String MBEAN_MANAGEMENT_TYPE = "CacheConfiguration";
+  private static final String MBEAN_STATISTICS_TYPE = "CacheStatistics";
+
+  private MBeanServer server = ManagementFactory.getPlatformMBeanServer();
 
   private CachingProvider provider;
 
@@ -57,10 +67,14 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("stringCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(true));
+
+    assertThat(isMbeanRegistered("stringCache", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("stringCache", MBEAN_STATISTICS_TYPE), is(true));
   }
 
   @Test
@@ -69,10 +83,14 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("stringCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(true));
+
+    assertThat(isMbeanRegistered("stringCache", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("stringCache", MBEAN_STATISTICS_TYPE), is(true));
   }
 
   @Test
@@ -81,10 +99,14 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(false));
     assertThat(configuration.isStatisticsEnabled(), is(false));
+
+    assertThat(isMbeanRegistered("overrideCache", MBEAN_MANAGEMENT_TYPE), is(false));
+    assertThat(isMbeanRegistered("overrideCache", MBEAN_STATISTICS_TYPE), is(false));
   }
 
   @Test
@@ -93,10 +115,14 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideOneCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(false));
+
+    assertThat(isMbeanRegistered("overrideOneCache", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("overrideOneCache", MBEAN_STATISTICS_TYPE), is(false));
   }
 
   @Test
@@ -107,9 +133,18 @@ public class ConfigStatsManagementActivationTest {
         .add(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
     Cache<Long, String> cache = cacheManager.createCache("test", Eh107Configuration.fromEhcacheCacheConfiguration(configurationBuilder));
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(true));
+
+    assertThat(isMbeanRegistered("test", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("test", MBEAN_STATISTICS_TYPE), is(true));
+  }
+
+  private boolean isMbeanRegistered(String cacheName, String type) throws MalformedObjectNameException {
+    String query = "javax.cache:type=" + type + ",CacheManager=*,Cache=" + cacheName;
+    return server.queryMBeans(ObjectName.getInstance(query), null).size() == 1;
   }
 
   @Test
@@ -118,16 +153,20 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(false);
     configuration.setStatisticsEnabled(false);
 
     Cache<Long, String> cache = cacheManager.createCache("enables-mbeans", configuration);
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));
+
+    assertThat(isMbeanRegistered("enables-mbeans", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("enables-mbeans", MBEAN_STATISTICS_TYPE), is(true));
   }
 
   @Test
@@ -136,31 +175,39 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);
 
     Cache<Long, String> cache = cacheManager.createCache("disables-mbeans", configuration);
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(eh107Configuration.isManagementEnabled(), is(false));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(false));
+
+    assertThat(isMbeanRegistered("disables-mbeans", MBEAN_MANAGEMENT_TYPE), is(false));
+    assertThat(isMbeanRegistered("disables-mbeans", MBEAN_STATISTICS_TYPE), is(false));
   }
 
   @Test
   public void basicJsr107StillWorks() throws Exception {
     CacheManager cacheManager = provider.getCacheManager();
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);
 
     Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
-    Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    @SuppressWarnings("unchecked")
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));
+
+    assertThat(isMbeanRegistered("cache", MBEAN_MANAGEMENT_TYPE), is(true));
+    assertThat(isMbeanRegistered("cache", MBEAN_STATISTICS_TYPE), is(true));
   }
 }

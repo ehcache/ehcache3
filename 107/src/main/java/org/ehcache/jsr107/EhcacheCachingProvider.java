@@ -18,39 +18,45 @@ package org.ehcache.jsr107;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
-import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.UnaryOperator;
 
+import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
 
+import static org.ehcache.jsr107.CloseUtil.chain;
+
 /**
  * {@link CachingProvider} implementation for Ehcache.
  */
+@Component
 public class EhcacheCachingProvider implements CachingProvider {
 
   private static final String DEFAULT_URI_STRING = "urn:X-ehcache:jsr107-default-config";
 
   private static final URI URI_DEFAULT;
 
-  private final Map<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>> cacheManagers = new WeakHashMap<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>>();
+  private final Map<ClassLoader, ConcurrentMap<URI, Eh107CacheManager>> cacheManagers = new WeakHashMap<>();
 
   static {
     try {
@@ -76,18 +82,7 @@ public class EhcacheCachingProvider implements CachingProvider {
       }
     }
 
-    Configuration config;
-    try {
-      if (URI_DEFAULT.equals(uri)) {
-        config = new DefaultConfiguration(classLoader);
-      } else {
-        config = new XmlConfiguration(uri.toURL(), classLoader);
-      }
-    } catch (Exception e) {
-      throw new javax.cache.CacheException(e);
-    }
-
-    return getCacheManager(uri, config, properties);
+    return getCacheManager(new ConfigSupplier(uri, classLoader), properties);
   }
 
   /**
@@ -98,13 +93,13 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
-    return getCacheManager(uri, config, new Properties());
+  public CacheManager getCacheManager(URI uri, Configuration config) {
+    return getCacheManager(new ConfigSupplier(uri, config), new Properties());
   }
 
   /**
    * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
-   * provided {@Link Properties}.
+   * provided {@link Properties}.
    *
    * @param uri the URI identifying this cache manager
    * @param config the Ehcache configuration to use
@@ -112,15 +107,20 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+  public CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+    return getCacheManager(new ConfigSupplier(uri, config), properties);
+  }
+
+  Eh107CacheManager getCacheManager(ConfigSupplier configSupplier, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
-    ClassLoader classLoader = config.getClassLoader();
+    final ClassLoader classLoader = configSupplier.getClassLoader();
+    final URI uri = configSupplier.getUri();
 
     synchronized (cacheManagers) {
       byURI = cacheManagers.get(classLoader);
       if (byURI == null) {
-        byURI = new ConcurrentHashMap<URI, Eh107CacheManager>();
+        byURI = new ConcurrentHashMap<>();
         cacheManagers.put(classLoader, byURI);
       }
 
@@ -131,7 +131,7 @@ public class EhcacheCachingProvider implements CachingProvider {
           byURI.remove(uri, cacheManager);
         }
 
-        cacheManager = createCacheManager(uri, config, properties);
+        cacheManager = createCacheManager(uri, configSupplier.getConfiguration(), properties);
         byURI.put(uri, cacheManager);
       }
     }
@@ -140,20 +140,25 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
+    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = config.getServiceCreationConfigurations();
+
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
-    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
+    @SuppressWarnings("unchecked")
+    DefaultSerializationProviderConfiguration serializerConfiguration = new DefaultSerializationProviderConfiguration().addSerializerFor(Object.class, (Class) PlainJavaSerializer.class);
 
-    Collection<Service> services = new ArrayList<Service>();
-    services.add(cacheLoaderWriterFactory);
-    services.add(jsr107Service);
-    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
-      services.add(new DefaultJsr107SerializationProvider());
-    }
+    UnaryOperator<ServiceLocator.DependencySet> customization = dependencies -> {
+      ServiceLocator.DependencySet d = dependencies.with(jsr107Service).with(cacheLoaderWriterFactory);
+      if (ServiceUtils.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
+        d = d.with(serializerConfiguration);
+      }
+      return d;
+    };
 
-    EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
+    org.ehcache.CacheManager ehcacheManager = new EhcacheManager(config, customization, !jsr107Service.jsr107CompliantAtomics());
     ehcacheManager.init();
 
-    return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
+    return new Eh107CacheManager(this, ehcacheManager, jsr107Service, properties, config.getClassLoader(), uri,
             new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
   }
 
@@ -221,17 +226,16 @@ public class EhcacheCachingProvider implements CachingProvider {
       throw new NullPointerException();
     }
 
-    MultiCacheException closeException = new MultiCacheException();
     synchronized (cacheManagers) {
       final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.remove(classLoader);
       if (map != null) {
-        for (Eh107CacheManager cacheManager : map.values()) {
-          cacheManager.closeInternal(closeException);
+        try {
+          chain(map.values().stream().map(cm -> cm::closeInternal));
+        } catch (Throwable t) {
+          throw new CacheException(t);
         }
       }
     }
-
-    closeException.throwIfNotEmpty();
   }
 
   /**
@@ -243,17 +247,15 @@ public class EhcacheCachingProvider implements CachingProvider {
       throw new NullPointerException();
     }
 
-    MultiCacheException closeException = new MultiCacheException();
     synchronized (cacheManagers) {
       final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(classLoader);
       if (map != null) {
         final Eh107CacheManager cacheManager = map.remove(uri);
         if (cacheManager != null) {
-          cacheManager.closeInternal(closeException);
+          cacheManager.closeInternal();
         }
       }
     }
-    closeException.throwIfNotEmpty();
   }
 
   /**
@@ -275,16 +277,12 @@ public class EhcacheCachingProvider implements CachingProvider {
     throw new IllegalArgumentException("Unknown OptionalFeature: " + optionalFeature.name());
   }
 
-  void close(Eh107CacheManager cacheManager, MultiCacheException closeException) {
-    try {
-      synchronized (cacheManagers) {
-        final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(cacheManager.getClassLoader());
-        if (map != null && map.remove(cacheManager.getURI()) != null) {
-          cacheManager.closeInternal(closeException);
-        }
+  void close(Eh107CacheManager cacheManager) {
+    synchronized (cacheManagers) {
+      final ConcurrentMap<URI, Eh107CacheManager> map = cacheManagers.get(cacheManager.getClassLoader());
+      if (map != null && map.remove(cacheManager.getURI()) != null) {
+        cacheManager.closeInternal();
       }
-    } catch (Throwable t) {
-      closeException.addThrowable(t);
     }
   }
 
@@ -294,6 +292,47 @@ public class EhcacheCachingProvider implements CachingProvider {
       clone.put(entry.getKey(), entry.getValue());
     }
     return clone;
+  }
+
+  static class ConfigSupplier {
+    private final URI uri;
+    private final ClassLoader classLoader;
+    private Configuration configuration;
+
+    public ConfigSupplier(URI uri, ClassLoader classLoader) {
+      this.uri = uri;
+      this.classLoader = classLoader;
+      this.configuration = null;
+    }
+
+    public ConfigSupplier(URI uri, Configuration configuration) {
+      this.uri = uri;
+      this.classLoader = configuration.getClassLoader();
+      this.configuration = configuration;
+    }
+
+    public URI getUri() {
+      return uri;
+    }
+
+    public ClassLoader getClassLoader() {
+      return classLoader;
+    }
+
+    public Configuration getConfiguration() {
+      if(configuration == null) {
+        try {
+          if (URI_DEFAULT.equals(uri)) {
+            configuration = new DefaultConfiguration(classLoader);
+          } else {
+            configuration = new XmlConfiguration(uri.toURL(), classLoader);
+          }
+        } catch (Exception e) {
+          throw new javax.cache.CacheException(e);
+        }
+      }
+      return configuration;
+    }
   }
 
 }

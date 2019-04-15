@@ -17,23 +17,81 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.ServerStore;
+import java.util.NoSuchElementException;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
+
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.KeySegmentMapper;
+import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
-public class OffHeapServerStore implements ServerStore {
+public class OffHeapServerStore implements ServerStore, MapInternals {
+
+  private static final long MAX_PAGE_SIZE_IN_KB = KILOBYTES.convert(8, MEGABYTES);
 
   private final List<OffHeapChainMap<Long>> segments;
+  private final KeySegmentMapper mapper;
 
-  public OffHeapServerStore(PageSource source, int concurrency) {
-    segments = new ArrayList<OffHeapChainMap<Long>>(concurrency);
-    for (int i = 0; i < concurrency; i++) {
-      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+  public OffHeapServerStore(List<OffHeapChainMap<Long>> segments, KeySegmentMapper mapper) {
+    this.mapper = mapper;
+    this.segments = segments;
+  }
+
+  OffHeapServerStore(PageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
+    this.mapper = mapper;
+    segments = new ArrayList<>(mapper.getSegments());
+    for (int i = 0; i < mapper.getSegments(); i++) {
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      }
+    }
+  }
+
+  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
+    this.mapper = mapper;
+    segments = new ArrayList<>(mapper.getSegments());
+    long maxSize = getMaxSize(source.getPool().getSize());
+    for (int i = 0; i < mapper.getSegments(); i++) {
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int)KILOBYTES.toBytes(maxSize), false));
+      }
+    }
+  }
+
+  public List<OffHeapChainMap<Long>> getSegments() {
+    return segments;
+  }
+
+  static long getMaxSize(long poolSize) {
+    long l = Long.highestOneBit(poolSize);
+    long sizeInKb = KILOBYTES.convert(l, BYTES);
+    long maxSize = sizeInKb >> 5;
+
+    if (maxSize >= MAX_PAGE_SIZE_IN_KB) {
+      maxSize = MAX_PAGE_SIZE_IN_KB;
+    }
+    return maxSize;
+  }
+
+  public void setEvictionListener(final ServerStoreEvictionListener listener) {
+    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = listener::onEviction;
+    for (OffHeapChainMap<Long> segment : segments) {
+      segment.setEvictionListener(chainMapEvictionListener);
     }
   }
 
@@ -47,29 +105,7 @@ public class OffHeapServerStore implements ServerStore {
     try {
       segmentFor(key).append(key, payLoad);
     } catch (OversizeMappingException e) {
-      if (handleOversizeMappingException(key)) {
-        try {
-          segmentFor(key).append(key, payLoad);
-          return;
-        } catch (OversizeMappingException ex) {
-          //ignore
-        }
-      }
-
-      writeLockAll();
-      try {
-        do {
-          try {
-            segmentFor(key).append(key, payLoad);
-            return;
-          } catch (OversizeMappingException ex) {
-            e = ex;
-          }
-        } while (handleOversizeMappingException(key));
-        throw e;
-      } finally {
-        writeUnlockAll();
-      }
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
     }
   }
 
@@ -78,27 +114,7 @@ public class OffHeapServerStore implements ServerStore {
     try {
       return segmentFor(key).getAndAppend(key, payLoad);
     } catch (OversizeMappingException e) {
-      if (handleOversizeMappingException(key)) {
-        try {
-          return segmentFor(key).getAndAppend(key, payLoad);
-        } catch (OversizeMappingException ex) {
-          //ignore
-        }
-      }
-
-      writeLockAll();
-      try {
-        do {
-          try {
-            return segmentFor(key).getAndAppend(key, payLoad);
-          } catch (OversizeMappingException ex) {
-            e = ex;
-          }
-        } while (handleOversizeMappingException(key));
-        throw e;
-      } finally {
-        writeUnlockAll();
-      }
+      return handleOversizeMappingException(key, (long k) -> segmentFor(k).getAndAppend(k, payLoad));
     }
   }
 
@@ -107,30 +123,23 @@ public class OffHeapServerStore implements ServerStore {
     try {
       segmentFor(key).replaceAtHead(key, expect, update);
     } catch (OversizeMappingException e) {
-      if (handleOversizeMappingException(key)) {
-        try {
-          segmentFor(key).replaceAtHead(key, expect, update);
-          return;
-        } catch (OversizeMappingException ex) {
-          //ignore
-        }
-      }
-
-      writeLockAll();
-      try {
-        do {
-          try {
-            segmentFor(key).replaceAtHead(key, expect, update);
-            return;
-          } catch (OversizeMappingException ex) {
-            e = ex;
-          }
-        } while (handleOversizeMappingException(key));
-        throw e;
-      } finally {
-        writeUnlockAll();
-      }
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).replaceAtHead(k, expect, update));
     }
+  }
+
+  public void put(long key, Chain chain) {
+    try {
+      try {segmentFor(key).put(key, chain);
+    } catch (OversizeMappingException e) {
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));}
+    } catch (Throwable t) {
+      segmentFor(key).remove(key);
+      throw t;
+    }
+  }
+
+  public void remove(long key) {
+    segmentFor(key).remove(key);
   }
 
   @Override
@@ -140,8 +149,8 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
-  private OffHeapChainMap<Long> segmentFor(long key) {
-    return segments.get(Math.abs((int) (key % segments.size())));
+  OffHeapChainMap<Long> segmentFor(long key) {
+    return segments.get(mapper.getSegmentForKey(key));
   }
 
   private void writeLockAll() {
@@ -156,10 +165,51 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
-  private boolean handleOversizeMappingException(long hash) {
+  private void consumeOversizeMappingException(long key, LongConsumer operation) {
+    handleOversizeMappingException(key, k -> {
+      operation.accept(k);
+      return null;
+    });
+  }
+
+  /**
+   * Force eviction from other segments until {@code operation} succeeds or no further eviction is possible.
+   *
+   * @param key the target key
+   * @param operation the previously failed operation
+   * @param <R> operation result type
+   * @return the operation result
+   * @throws OversizeMappingException if the operation cannot be made to succeed
+   */
+  private <R> R handleOversizeMappingException(long key, LongFunction<R> operation) throws OversizeMappingException {
+    if (tryShrinkOthers(key)) {
+      try {
+        return operation.apply(key);
+      } catch (OversizeMappingException ex) {
+        //ignore
+      }
+    }
+
+    writeLockAll();
+    try {
+      OversizeMappingException e;
+      do {
+        try {
+          return operation.apply(key);
+        } catch (OversizeMappingException ex) {
+          e = ex;
+        }
+      } while (tryShrinkOthers(key));
+      throw e;
+    } finally {
+      writeUnlockAll();
+    }
+  }
+
+  boolean tryShrinkOthers(long key) {
     boolean evicted = false;
 
-    OffHeapChainMap<Long> target = segmentFor(hash);
+    OffHeapChainMap<Long> target = segmentFor(key);
     for (OffHeapChainMap<Long> s : segments) {
       if (s != target) {
         evicted |= s.shrink();
@@ -167,5 +217,199 @@ public class OffHeapServerStore implements ServerStore {
     }
 
     return evicted;
+  }
+
+  public void close() {
+    writeLockAll();
+    try {
+      clear();
+    } finally {
+      writeUnlockAll();
+    }
+    segments.clear();
+  }
+
+  // stats
+
+  @Override
+  public long getAllocatedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getAllocatedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getOccupiedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getOccupiedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataAllocatedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataAllocatedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataOccupiedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataOccupiedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataSize() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataSize();
+    }
+    return total;
+  }
+
+  @Override
+  public long getSize() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getSize();
+    }
+    return total;
+  }
+
+  @Override
+  public long getTableCapacity() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getTableCapacity();
+    }
+    return total;
+  }
+
+  @Override
+  public long getUsedSlotCount() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getUsedSlotCount();
+    }
+    return total;
+  }
+
+  @Override
+  public long getRemovedSlotCount() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getRemovedSlotCount();
+    }
+    return total;
+  }
+
+  @Override
+  public int getReprobeLength() {
+    int total = 0;
+    for (MapInternals segment : segments) {
+      total += segment.getReprobeLength();
+    }
+    return total;
+  }
+
+  @Override
+  public long getVitalMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getVitalMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataVitalMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataVitalMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public Iterator<Chain> iterator() {
+    return new AggregateIterator<Chain>() {
+      @Override
+      protected Iterator<Chain> getNextIterator() {
+        return listIterator.next().iterator();
+      }
+    };
+  }
+
+
+  protected abstract class AggregateIterator<T> implements Iterator<T> {
+
+    protected final Iterator<OffHeapChainMap<Long>> listIterator;
+    protected Iterator<T>               currentIterator;
+
+    protected abstract Iterator<T> getNextIterator();
+
+    public AggregateIterator() {
+      listIterator = segments.iterator();
+      while (listIterator.hasNext()) {
+        currentIterator = getNextIterator();
+        if (currentIterator.hasNext()) {
+          return;
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (currentIterator == null) {
+        return false;
+      }
+
+      if (currentIterator.hasNext()) {
+        return true;
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+          if (currentIterator.hasNext()) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    @Override
+    public T next() {
+      if (currentIterator == null) {
+        throw new NoSuchElementException();
+      }
+
+      if (currentIterator.hasNext()) {
+        return currentIterator.next();
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+
+          if (currentIterator.hasNext()) {
+            return currentIterator.next();
+          }
+        }
+      }
+
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void remove() {
+      currentIterator.remove();
+    }
   }
 }

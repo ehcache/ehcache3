@@ -1,0 +1,97 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+configurations {
+  osgiModule
+  testCompileOnly.extendsFrom osgiModule
+}
+
+dependencies {
+  osgiModule project(':api')
+  osgiModule project(':core')
+  osgiModule project(':impl')
+  osgiModule project(':xml')
+
+  osgiModule project(':dist')
+  osgiModule project(':clustered:clustered-dist')
+  osgiModule "javax.cache:cache-api:$parent.jcacheVersion"
+  osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
+  osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
+
+  //IDEs cannot handle the :dist or :clustered:clustered-dist dependencies
+  testCompileOnly project(':clustered:client')
+  testCompileOnly project(':clustered:common')
+
+  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.1'
+  testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+
+  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.4.5") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+
+}
+
+configurations.all {
+  resolutionStrategy {
+    force 'org.ops4j.base:ops4j-base-lang:1.5.0'
+    force 'org.ops4j.base:ops4j-base-net:1.5.0'
+    force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
+  }
+}
+
+sourceSets {
+  test {
+    // Needed for PaxExam which makes the dynamic bundle load content of a single dir
+    // matching the package of the test class
+    output.resourcesDir = java.outputDir
+  }
+}
+
+configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
+  test.dependsOn it.dependencyProject.tasks.jar
+}
+
+task unzipKit(type: Copy) {
+  dependsOn project(':clustered:clustered-dist').distZip
+  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
+  into 'build/ehcache-kit'
+}
+
+test {
+  dependsOn unzipKit
+
+  if (testJava.javaVersion.isJava9Compatible()) {
+    //Deploying the jaxb-runtime as an OSGi module is currently impossible - don't ask... sigh.
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+    //Servers need JAXB too.
+    jvmArgs += ['-Dtc-server-opts=--add-modules java.xml.bind']
+  }
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+}.doFirst {
+  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 11")
+
+  configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+    systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+  })
+}

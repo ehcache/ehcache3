@@ -15,7 +15,7 @@
  */
 package org.ehcache.docs.plugs;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
 public class ListenerObject implements CacheEventListener<Object, Object> {
   private int evicted;
   @Override
-  public void onEvent(CacheEvent<Object, Object> event) {
-    Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "GettingStarted");
+  public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
+    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
     logger.info(event.getType().toString());
     if(event.getType() == EventType.EVICTED){
       evicted++;

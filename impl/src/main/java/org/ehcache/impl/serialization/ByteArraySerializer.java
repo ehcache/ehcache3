@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -28,7 +27,6 @@ import java.nio.ByteBuffer;
  * <p>
  * Note that {@link #equals(byte[], ByteBuffer)} does not follow the {@code byte[].equals(Object)} contract but does
  * byte-to-byte comparison of both byte arrays.
- * </p>
  */
 public class ByteArraySerializer implements Serializer<byte[]> {
 
@@ -40,30 +38,14 @@ public class ByteArraySerializer implements Serializer<byte[]> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@code byte[]} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@code byte[]} is a base java type.
    *
    * @param classLoader the classloader to use
    *
    * @see Serializer
    */
   public ByteArraySerializer(ClassLoader classLoader) {
-  }
-
-  /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@code byte[]} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
-   *
-   * @see Serializer
-   */
-  public ByteArraySerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
-
   }
 
   /**
@@ -78,7 +60,7 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * {@inheritDoc}
    */
   @Override
-  public byte[] read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+  public byte[] read(ByteBuffer binary) {
     byte[] bytes = new byte[binary.remaining()];
     binary.get(bytes);
     return bytes;
@@ -88,7 +70,7 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(byte[] object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+  public boolean equals(byte[] object, ByteBuffer binary) {
     boolean equals = binary.equals(serialize(object));
     binary.position(binary.limit());
     return equals;

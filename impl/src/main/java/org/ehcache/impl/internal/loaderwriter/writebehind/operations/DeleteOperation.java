@@ -15,9 +15,6 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind.operations;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -49,16 +46,8 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
     this.creationTime = creationTime;
   }
 
-  public void performSingleOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws Exception {
+  public void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws Exception {
     cacheLoaderWriter.delete(key);
-  }
-
-  public BatchOperation<K, V> createBatchOperation(List<? extends SingleOperation<K, V>> operations) {
-    final List<K> keys = new ArrayList<K>();
-      for (KeyBasedOperation<K> operation : operations) {
-        keys.add(operation.getKey());
-      }
-    return new DeleteAllOperation<K, V>(keys);
   }
 
   @Override
@@ -78,8 +67,8 @@ public class DeleteOperation<K, V> implements SingleOperation<K, V> {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof DeleteOperation<?, ?>) {
-      return getCreationTime() == ((DeleteOperation<K, V>) other).getCreationTime() && getKey().equals(((DeleteOperation<K, V>) other).getKey());
+    if (other instanceof DeleteOperation) {
+      return getCreationTime() == ((DeleteOperation<?, ?>) other).getCreationTime() && getKey().equals(((DeleteOperation<?, ?>) other).getKey());
     } else {
       return false;
     }

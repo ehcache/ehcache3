@@ -21,22 +21,15 @@ package org.ehcache.config;
  */
 public final class Eviction {
 
-  private static final EvictionAdvisor<?, ?> NO_ADVICE = new EvictionAdvisor<Object, Object>() {
-    @Override
-    public boolean adviseAgainstEviction(Object key, Object value) {
-      return false;
-    }
-  };
+  private static final EvictionAdvisor<Object, Object> NO_ADVICE = (key, value) -> false;
 
   /**
    * Returns an {@link EvictionAdvisor} where no mappings are advised against eviction.
    *
-   * @param <K> the key type for the advisor
-   * @param <V> the value type for the advisor
    * @return an advisor where no mappings are advised against eviction
    */
-  public static <K, V> EvictionAdvisor<K, V> noAdvice() {
-    return (EvictionAdvisor<K, V>) NO_ADVICE;
+  public static EvictionAdvisor<Object, Object> noAdvice() {
+    return NO_ADVICE;
   }
 
 }

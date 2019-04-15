@@ -30,7 +30,6 @@ import java.util.HashSet;
 import static java.util.Collections.EMPTY_LIST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
 /**
  * Basic tests for {@link org.ehcache.impl.internal.store.heap.OnHeapStore.Provider}.
@@ -73,6 +72,7 @@ public class OnHeapStoreProviderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     OnHeapStore.Provider provider = new OnHeapStore.Provider();
 
@@ -82,7 +82,7 @@ public class OnHeapStoreProviderTest {
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
-        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+      new HashSet<>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         is(expectedRank));
   }

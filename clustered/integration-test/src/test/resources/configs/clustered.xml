@@ -10,7 +10,8 @@
 
   <ehcache:service>
     <tc:cluster>
-      <tc:connection url="${cluster-uri}/testAutoCreatedCacheManagerUsingXml?auto-create"/>
+      <tc:connection url="${cluster-uri}/testAutoCreatedCacheManagerUsingXml"/>
+      <tc:server-side-config auto-create="true"/>
     </tc:cluster>
   </ehcache:service>
 

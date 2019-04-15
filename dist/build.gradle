@@ -18,17 +18,29 @@ group = 'org.ehcache'
 archivesBaseName = 'ehcache'
 
 dependencies {
-  compile project(':api')
-  compile project(':core')
-  compile project(':impl')
-  compile project(':107')
-  compile project(':xml')
-  compile project(':transactions')
+  compileOnly project(':api')
+  compileOnly project(':core')
+  compileOnly project(':impl')
+  compileOnly project(':107')
+  compileOnly project(':xml')
 }
 
 apply plugin: EhDistribute
 
 dependencies {
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
+  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowCompile "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  shadowProvided "javax.cache:cache-api:$parent.jcacheVersion"
+}
+
+jar {
+  bnd (
+    'Bundle-Name': 'Ehcache 3',
+    'Bundle-SymbolicName': 'org.ehcache',
+    'Bundle-Description': 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.',
+
+    'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*, org.terracotta.statistics.*, org.terracotta.context',
+    'Import-Package': 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, *'
+  )
 }

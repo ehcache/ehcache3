@@ -33,10 +33,9 @@ public interface ResourceType<T extends ResourcePool> {
 
   /**
    * Indicates whether this {@code ResourceType} supports persistence.
-   * <P>
-   *   Persistence in this context means that a {@link ResourcePool} of this {@code ResourceType} can be configured
-   *   so that data stored in it will survive a JVM restart.
-   * </P>
+   * <p>
+   * Persistence in this context means that a {@link ResourcePool} of this {@code ResourceType} can be configured
+   * so that data stored in it will survive a JVM restart.
    *
    * @return {@code true} if it supports persistence, {@code false} otherwise
    */
@@ -52,9 +51,8 @@ public interface ResourceType<T extends ResourcePool> {
 
   /**
    * Indicates the level this resource sits in the tiering system.
-   * <P>
-   *   Higher means resource is faster and less abundant, lower means resource is slower but potentially larger.
-   * </P>
+   * <p>
+   * Higher means resource is faster and less abundant, lower means resource is slower but potentially larger.
    *
    * @return the resource tier height
    */
@@ -112,7 +110,6 @@ public interface ResourceType<T extends ResourcePool> {
     public String toString() {
       return name().toLowerCase();
     }
-
 
   }
 

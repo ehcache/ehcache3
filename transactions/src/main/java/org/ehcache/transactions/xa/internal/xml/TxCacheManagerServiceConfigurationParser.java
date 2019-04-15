@@ -19,25 +19,34 @@ package org.ehcache.transactions.xa.internal.xml;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
+import static org.ehcache.core.util.ClassLoading.delegationChain;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
+
 /**
  * @author Ludovic Orban
  */
-public class TxCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<TransactionManagerProvider> {
-
+@Component
+public class TxCacheManagerServiceConfigurationParser extends BaseConfigParser<LookupTransactionManagerProviderConfiguration> implements CacheManagerServiceConfigurationParser<TransactionManagerProvider> {
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
+  public static final String TRANSACTION_NAMESPACE_PREFIX = "tx:";
+  private static final String TRANSACTION_ELEMENT_NAME = "jta-tm";
+  private static final String TRANSACTION_LOOKUP_CLASS = "transaction-manager-lookup-class";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -50,14 +59,18 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
   }
 
   @Override
-  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("jta-tm".equals(localName)) {
       String transactionManagerProviderConfigurationClassName = fragment.getAttribute("transaction-manager-lookup-class");
       try {
-        ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-        Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, defaultClassLoader);
-        return new LookupTransactionManagerProviderConfiguration((Class<? extends TransactionManagerLookup>) aClass);
+        Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, delegationChain(
+          () -> Thread.currentThread().getContextClassLoader(),
+          getClass().getClassLoader(),
+          classLoader
+        ));
+        Class<? extends TransactionManagerLookup> clazz = uncheckedCast(aClass);
+        return new LookupTransactionManagerProviderConfiguration(clazz);
       } catch (Exception e) {
         throw new XmlConfigurationException("Error configuring XA transaction manager", e);
       }
@@ -66,4 +79,23 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<TransactionManagerProvider> getServiceType() {
+    return TransactionManagerProvider.class;
+  }
+
+  @Override
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<TransactionManagerProvider> serviceCreationConfiguration) {
+    return unparseConfig(serviceCreationConfiguration);
+  }
+
+  @Override
+  protected Element createRootElement(Document doc, LookupTransactionManagerProviderConfiguration lookupTransactionManagerProviderConfiguration) {
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX + TRANSACTION_ELEMENT_NAME);
+    rootElement.setAttribute(TRANSACTION_LOOKUP_CLASS, lookupTransactionManagerProviderConfiguration.getTransactionManagerLookup()
+      .getName());
+    return rootElement;
+  }
+
 }

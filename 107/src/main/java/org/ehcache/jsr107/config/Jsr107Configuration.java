@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.config;
 
+import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.Map;
@@ -37,8 +38,8 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    *  @param defaultTemplate the default template
    * @param templates cache alias to template name map
    * @param jsr107CompliantAtomics behaviour of loader writer in atomic operations
-   * @param enableManagementAll
-   * @param enableStatisticsAll
+   * @param enableManagementAll enable management JMX
+   * @param enableStatisticsAll enable statistics JMX
    */
   public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
                              boolean jsr107CompliantAtomics, ConfigurationElementState enableManagementAll, ConfigurationElementState enableStatisticsAll) {
@@ -46,7 +47,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
     this.enableManagementAll = enableManagementAll;
     this.enableStatisticsAll = enableStatisticsAll;
-    this.templates = new ConcurrentHashMap<String, String>(templates);
+    this.templates = new ConcurrentHashMap<>(templates);
   }
 
   /**
@@ -69,9 +70,8 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
 
   /**
    * Indicates loader writer behaviour in atomic methods.
-   * <P>
-   *   If {@code true} then loader writer will <EM>NOT</EM> be used in atomic methods, if {@code false} it will be.
-   * </P>
+   * <p>
+   * If {@code true} then loader writer will <em>NOT</em> be used in atomic methods, if {@code false} it will be.
    *
    * @return {@code true} or {@code false} depending on configuration
    */

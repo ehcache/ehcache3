@@ -15,30 +15,27 @@
  */
 package org.ehcache.management.providers.actions;
 
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.model.context.Context;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.registry.action.AbstractActionManagementProvider;
-import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.ExposedObject;
 
-/**
- * @author Ludovic Orban
- */
 @Named("ActionsCapability")
 @RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
 public class EhcacheActionProvider extends AbstractActionManagementProvider<CacheBinding> {
 
-  private final Context cmContext;
+  private final ManagementRegistryServiceConfiguration registryServiceConfiguration;
 
-  public EhcacheActionProvider(Context cmContext) {
+  public EhcacheActionProvider(ManagementRegistryServiceConfiguration registryServiceConfiguration) {
     super(CacheBinding.class);
-    this.cmContext = cmContext;
+    this.registryServiceConfiguration = registryServiceConfiguration;
   }
 
   @Override
   protected ExposedObject<CacheBinding> wrap(CacheBinding managedObject) {
-    return new EhcacheActionWrapper(cmContext.with("cacheName", managedObject.getAlias()), managedObject);
+    return new EhcacheActionWrapper(registryServiceConfiguration, managedObject);
   }
 
 }

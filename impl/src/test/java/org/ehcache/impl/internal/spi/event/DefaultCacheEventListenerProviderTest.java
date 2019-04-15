@@ -46,7 +46,7 @@ public class DefaultCacheEventListenerProviderTest {
 
   @Test
   public void testCacheConfigUsage() {
-    Set<EventType> eventTypeSet = new HashSet<EventType>();
+    Set<EventType> eventTypeSet = new HashSet<>();
     eventTypeSet.add(EventType.CREATED);
     eventTypeSet.add(EventType.UPDATED);
 
@@ -86,7 +86,7 @@ public class DefaultCacheEventListenerProviderTest {
     };
 
     @Override
-    public void onEvent(CacheEvent<Object, Object> event) {
+    public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
       //noop
     }
   }

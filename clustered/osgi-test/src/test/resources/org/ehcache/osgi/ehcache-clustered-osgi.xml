@@ -1,0 +1,41 @@
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<config
+  xmlns='http://www.ehcache.org/v3'
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:tc='http://www.ehcache.org/v3/clustered'
+  xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../../../../xml/src/main/resources/ehcache-core.xsd
+                        http://www.ehcache.org/v3/clustered ../../../../../../../client/src/main/resources/ehcache-clustered-ext.xsd">
+
+  <service>
+    <tc:cluster>
+      <tc:connection url="example.com"/>
+      <tc:server-side-config auto-create="true">
+        <tc:default-resource from="main"/>
+      </tc:server-side-config>
+    </tc:cluster>
+  </service>
+
+  <cache alias="clustered-cache">
+    <key-type>java.lang.Long</key-type>
+    <value-type>org.ehcache.osgi.Person</value-type>
+    <resources>
+      <heap>100</heap>
+      <tc:clustered-dedicated unit="MB">1</tc:clustered-dedicated>
+    </resources>
+  </cache>
+</config>

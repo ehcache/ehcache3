@@ -24,12 +24,11 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,21 +39,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-/**
- * @author Mathieu Carbou
- */
 public class DefaultCollectorServiceTest {
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
-    final Queue<Object> messages = new ConcurrentLinkedQueue<Object>();
-    final List<String> notifs = new ArrayList<String>(6);
-    final CountDownLatch num = new CountDownLatch(5);
+    final Queue<Object> messages = new ConcurrentLinkedQueue<>();
+    final List<String> notifs = new ArrayList<>(7);
+    final CountDownLatch num = new CountDownLatch(6);
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
         newResourcePoolsBuilder()
@@ -62,21 +57,23 @@ public class DefaultCollectorServiceTest {
             .offheap(1, MemoryUnit.MB))
         .build();
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(
-        1, TimeUnit.MINUTES,
-        100, 1, TimeUnit.SECONDS,
-        2, TimeUnit.SECONDS);
-
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration()
-        .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
-    CollectorService collectorService = new DefaultCollectorService(new CollectorService.EventListener() {
+    CollectorService collectorService = new DefaultCollectorService(new CollectorService.Collector() {
       @Override
-      public void onEvent(String type, Object event) {
-        System.out.println(type + " - " + event);
+      public void onNotification(ContextualNotification notification) {
+        onEvent(notification);
+      }
+
+      @Override
+      public void onStatistics(Collection<ContextualStatistics> statistics) {
+        onEvent(statistics);
+      }
+
+      void onEvent(Object event) {
         messages.offer(event);
-        if (type.equals("NOTIFICATION")) {
+        if (event instanceof ContextualNotification) {
           notifs.add(((ContextualNotification) event).getType());
         }
         num.countDown();
@@ -95,16 +92,9 @@ public class DefaultCollectorServiceTest {
     cacheManager.init();
 
     managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("updateCollectedStatistics",
-            new Parameter("StatisticsCapability"),
-            new Parameter(asList("PutCounter", "InexistingRate"), Collection.class.getName()))
-        .on(Context.create("cacheManagerName", "my-cm-1"))
-        .build()
-        .execute()
-        .getSingleResult();
-
-    managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("startStatisticCollector")
+        .call("startStatisticCollector",
+          new Parameter(1L, long.class.getName()),
+          new Parameter(TimeUnit.SECONDS, TimeUnit.class.getName()))
         .on(Context.create("cacheManagerName", "my-cm-1"))
         .build()
         .execute()
@@ -112,14 +102,14 @@ public class DefaultCollectorServiceTest {
 
     Cache<String, String> cache = cacheManager.createCache("my-cache", cacheConfiguration);
     cache.put("key", "val");
+    cache.clear();
 
     num.await();
-
     cacheManager.removeCache("my-cache");
     cacheManager.close();
 
-    assertThat(notifs, equalTo(Arrays.asList("CACHE_MANAGER_AVAILABLE", "CACHE_MANAGER_CLOSED", "CACHE_MANAGER_AVAILABLE", "CACHE_ADDED", "CACHE_REMOVED", "CACHE_MANAGER_CLOSED")));
-    assertThat(messages.size(), equalTo(7));
+    assertThat(notifs, equalTo(Arrays.asList("CACHE_MANAGER_AVAILABLE", "CACHE_MANAGER_CLOSED", "CACHE_MANAGER_AVAILABLE", "CACHE_ADDED", "CACHE_CLEARED", "CACHE_REMOVED", "CACHE_MANAGER_CLOSED")));
+    assertThat(messages.size(), equalTo(8));
   }
 
 }

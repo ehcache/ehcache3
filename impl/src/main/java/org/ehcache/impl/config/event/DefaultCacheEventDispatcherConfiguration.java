@@ -21,10 +21,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * {@link ServiceConfiguration} for the default {@link CacheEventDispatcherFactory} implementation.
- * <P>
- *   Enables configuring the thread pool to be used by a {@link org.ehcache.core.events.CacheEventDispatcher} for
- *   a given cache.
- * </P>
+ * <p>
+ * Enables configuring the thread pool to be used by a {@link org.ehcache.core.events.CacheEventDispatcher} for
+ * a given cache.
  */
 public class DefaultCacheEventDispatcherConfiguration implements ServiceConfiguration<CacheEventDispatcherFactory> {
 

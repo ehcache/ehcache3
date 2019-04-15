@@ -17,31 +17,28 @@ package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
+import org.ehcache.management.providers.statistics.LatencyHistogramConfiguration;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.ManagementProvider;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * @author Ludovic Orban
- */
 public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private final Collection<String> tags = new TreeSet<>();
+  private final String instanceId = UUID.randomUUID().toString();
   private Context context = Context.empty();
-  private String statisticsExecutorAlias;
-  private String collectorExecutorAlias;
+  private String collectorExecutorAlias = "collectorExecutor";
+  private LatencyHistogramConfiguration latencyHistogramConfiguration = LatencyHistogramConfiguration.DEFAULT;
 
   public DefaultManagementRegistryConfiguration() {
     setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
-    addConfiguration(new EhcacheStatisticsProviderConfiguration(1, TimeUnit.MINUTES, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
   }
 
   public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
@@ -56,20 +53,18 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
-  public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
-    this.statisticsExecutorAlias = alias;
-    return this;
-  }
-
   public DefaultManagementRegistryConfiguration setCollectorExecutorAlias(String collectorExecutorAlias) {
     this.collectorExecutorAlias = collectorExecutorAlias;
     return this;
   }
 
-  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
-    Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
-    configurationMap.put(serviceType, configuration);
+  public DefaultManagementRegistryConfiguration addTags(String... tags) {
+    this.tags.addAll(Arrays.asList(tags));
     return this;
+  }
+
+  public DefaultManagementRegistryConfiguration addTag(String tag) {
+    return addTags(tag);
   }
 
   @Override
@@ -77,9 +72,8 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return context;
   }
 
-  @Override
-  public String getStatisticsExecutorAlias() {
-    return this.statisticsExecutorAlias;
+  public String getCacheManagerAlias() {
+    return getContext().get("cacheManagerName");
   }
 
   @Override
@@ -88,13 +82,55 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass) {
-    return configurationMap.get(managementProviderClass);
+  public Collection<String> getTags() {
+    return tags;
+  }
+
+  @Override
+  public String getInstanceId() {
+    return instanceId;
+  }
+
+  @Override
+  public LatencyHistogramConfiguration getLatencyHistogramConfiguration() {
+    return latencyHistogramConfiguration;
+  }
+
+  public DefaultManagementRegistryConfiguration setLatencyHistogramConfiguration(LatencyHistogramConfiguration latencyHistogramConfiguration) {
+    this.latencyHistogramConfiguration = Objects.requireNonNull(latencyHistogramConfiguration);
+    return this;
   }
 
   @Override
   public Class<ManagementRegistryService> getServiceType() {
     return ManagementRegistryService.class;
+  }
+
+  @Override
+  public String toString() {
+    return "DefaultManagementRegistryConfiguration{" + "context=" + context +
+      ", tags=" + tags +
+      ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
+      ", instanceId='" + instanceId + '\'' +
+      ", latencyHistogramConfiguration='" + latencyHistogramConfiguration + '\'' +
+      '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    DefaultManagementRegistryConfiguration that = (DefaultManagementRegistryConfiguration) o;
+    return Objects.equals(tags, that.tags) &&
+      Objects.equals(instanceId, that.instanceId) &&
+      Objects.equals(context, that.context) &&
+      Objects.equals(collectorExecutorAlias, that.collectorExecutorAlias) &&
+      Objects.equals(latencyHistogramConfiguration, that.latencyHistogramConfiguration);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(tags, instanceId, context, collectorExecutorAlias);
   }
 
 }

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,7 +41,8 @@ public class AddedFieldTest {
 
   @Test
   public void addingSerializableField() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_write.class, IncompatibleSerializable_write.class, Serializable_write.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(A_write.class)).newInstance();
@@ -58,7 +59,8 @@ public class AddedFieldTest {
 
   @Test
   public void addingExternalizableField() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(B_write.class, Externalizable_write.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(B_write.class)).newInstance();
@@ -75,6 +77,8 @@ public class AddedFieldTest {
 
   public static class Serializable_write implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     int k;
 
     Serializable_write(int value) {
@@ -84,13 +88,15 @@ public class AddedFieldTest {
 
   public static class IncompatibleSerializable_write implements Serializable {
 
-    private static long serialVersionUID = 3L;
+    private static final long serialVersionUID = 4L;
+
     int x = 5;
   };
 
   public static class IncompatibleSerializable_read implements Serializable {
 
-    private static long serialVersionUID = 4L;
+    private static final long serialVersionUID = 4L;
+
     int x = 5;
   };
 
@@ -116,6 +122,8 @@ public class AddedFieldTest {
   }
 
   public static class Externalizable_write implements Externalizable {
+
+    private static final long serialVersionUID = 1L;
 
     byte l;
 

@@ -20,13 +20,10 @@ import java.io.Serializable;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,18 +41,19 @@ public class CompactJavaSerializerClassUnloadingTest {
 
   @Before
   public void createSpecialObject() throws Exception {
-    ClassLoader duplicate = new URLClassLoader(((URLClassLoader) SpecialClass.class.getClassLoader()).getURLs(), null);
+    ClassLoader duplicate = new DuplicateClassLoader(SpecialClass.class.getClassLoader());
 
     @SuppressWarnings("unchecked")
     Class<? extends Serializable> special = (Class<? extends Serializable>) duplicate.loadClass(SpecialClass.class.getName());
-    classRef = new WeakReference<Class<?>>(special);
+    classRef = new WeakReference<>(special);
 
     specialObject = special.newInstance();
   }
 
   @Test
   public void testClassUnloadingAfterSerialization() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     serializer.serialize(specialObject);
 
@@ -75,7 +73,8 @@ public class CompactJavaSerializerClassUnloadingTest {
   public void testClassUnloadingAfterSerializationAndDeserialization() throws Exception {
     Thread.currentThread().setContextClassLoader(specialObject.getClass().getClassLoader());
     try {
-      Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+      StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+      serializer.init(new TransientStateRepository());
       specialObject = serializer.read(serializer.serialize(specialObject));
       Assert.assertEquals(SpecialClass.class.getName(), specialObject.getClass().getName());
       Assert.assertNotSame(SpecialClass.class, specialObject.getClass());
@@ -95,11 +94,11 @@ public class CompactJavaSerializerClassUnloadingTest {
   }
 
   private static void packHeap() {
-    List<SoftReference<?>> packing = new ArrayList<SoftReference<?>>();
-    ReferenceQueue<byte[]> queue = new ReferenceQueue<byte[]>();
-    packing.add(new SoftReference<byte[]>(new byte[PACKING_UNIT], queue));
+    List<SoftReference<?>> packing = new ArrayList<>();
+    ReferenceQueue<byte[]> queue = new ReferenceQueue<>();
+    packing.add(new SoftReference<>(new byte[PACKING_UNIT], queue));
     while (queue.poll() == null) {
-      packing.add(new SoftReference<byte[]>(new byte[PACKING_UNIT]));
+      packing.add(new SoftReference<>(new byte[PACKING_UNIT]));
     }
   }
 

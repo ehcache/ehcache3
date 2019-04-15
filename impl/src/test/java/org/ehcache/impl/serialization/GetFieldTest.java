@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -37,7 +37,9 @@ public class GetFieldTest {
 
   @Test
   public void testGetField() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(Foo_A.class)).newInstance();

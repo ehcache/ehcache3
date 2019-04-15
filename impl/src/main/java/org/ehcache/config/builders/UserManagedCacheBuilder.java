@@ -17,53 +17,57 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
-import org.ehcache.config.Builder;
-import org.ehcache.core.Ehcache;
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.InternalCache;
-import org.ehcache.core.PersistentUserManagedEhcache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.UserManagedCache;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.PersistentUserManagedEhcache;
+import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
-import org.ehcache.CachePersistenceException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreSupport;
+import org.ehcache.core.util.ClassLoading;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.events.CacheEventDispatcherImpl;
+import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,38 +78,31 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * The {@code UserManagedCacheBuilder} enables building {@link UserManagedCache}s using a fluent style.
- * <P>
+ * <p>
  * {@link UserManagedCache}s are {@link Cache}s that are not linked to a {@link org.ehcache.CacheManager}.
- * </P>
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
- * </P>
  *
  * @param <K>  the cache key type
  * @param <V>  the cache value type
  * @param <T>  the specific {@code UserManagedCache} type
  */
 public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> implements Builder<T> {
-
-  @ServiceDependencies(Store.Provider.class)
-  private static class ServiceDeps {
-    private ServiceDeps() {
-      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
-    }
-  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UserManagedCacheBuilder.class);
 
@@ -114,13 +111,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Class<K> keyType;
   private final Class<V> valueType;
   private String id;
-  private final Set<Service> services = new HashSet<Service>();
-  private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<ServiceCreationConfiguration<?>>();
-  private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
+  private final Set<Service> services = new HashSet<>();
+  private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
+  private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private CacheEventDispatcher<K, V> eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
+  private CacheEventDispatcher<K, V> eventDispatcher = new DisabledCacheEventNotificationService<>();
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
   private Copier<K> keyCopier;
   private boolean useKeySerializingCopier;
@@ -129,7 +126,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
   private int dispatcherConcurrency = 4;
-  private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<CacheEventListenerConfiguration>();
+  private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
   private long objectGraphSize = DEFAULT_OBJECT_GRAPH_SIZE;
@@ -168,35 +165,39 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.sizeOfUnit = toCopy.sizeOfUnit;
   }
 
-  T build(ServiceLocator serviceLocator) throws IllegalStateException {
+  T build(ServiceLocator.DependencySet serviceLocatorBuilder) throws IllegalStateException {
 
     validateListenerConfig();
 
+    ServiceLocator serviceLocator;
     try {
       for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
-        Service service = serviceLocator.getOrCreateServiceFor(serviceCreationConfig);
-        if (service == null) {
-          throw new IllegalArgumentException("Couldn't resolve Service " + serviceCreationConfig.getServiceType().getName());
-        }
+        serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
-      serviceLocator.loadDependenciesOf(ServiceDeps.class);
+      serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
+      serviceLocator = serviceLocatorBuilder.build();
       serviceLocator.startAllServices();
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
 
-    List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<ServiceConfiguration<?>>();
+    List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<>();
 
     if (keyCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     } else if (useKeySerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     }
     if (valueCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     } else if (useValueSerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     }
+
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<>(keyType, valueType, evictionAdvisor,
+      classLoader, expiry, resourcePools);
+
+    List<LifeCycled> lifeCycledList = new ArrayList<>();
 
     Set<ResourceType<?>> resources = resourcePools.getResourceTypeSet();
     boolean persistent = resources.contains(DISK);
@@ -204,31 +205,36 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
       }
-      LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      final DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
       if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
-          persistenceService.destroy(id);
+          diskResourceService.destroy(id);
         } catch (CachePersistenceException cpex) {
           throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
         }
       }
       try {
-        serviceConfigsList.add(persistenceService.getOrCreatePersistenceSpace(id));
+        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = diskResourceService.getPersistenceSpaceIdentifier(id, cacheConfig);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            diskResourceService.releasePersistenceSpaceIdentifier(identifier);
+          }
+        });
+        serviceConfigsList.add(identifier);
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
       }
     }
 
-    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
-
     Serializer<K> keySerializer = this.keySerializer;
     Serializer<V> valueSerializer = this.valueSerializer;
 
     if (keySerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<K>(this.keySerializer, DefaultSerializerConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<>(this.keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
     if (valueSerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
     ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
@@ -264,57 +270,65 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.debug("Could not create serializers for user managed cache {}", id, e);
+          LOGGER.debug("Serializers for cache '{}' failed creation ({}). However, depending on the configuration, they might not be needed", id, e.getMessage());
         }
       }
     }
 
-    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    if (cacheLoaderWriter != null) {
+      serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
+    }
 
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionAdvisor, classLoader,
-            expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
-    final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
+    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigsList);
+    if (storeProvider == null) {
+      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    }
 
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
-        classLoader, expiry, resourcePools);
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
+      expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
+    Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
+
+    AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() throws Exception {
-        storeProvider.initStore(store);
+      public void init() {
+        storeProviderRef.get().initStore(store);
       }
 
       @Override
-      public void close() throws Exception {
-        storeProvider.releaseStore(store);
+      public void close() {
+        storeProviderRef.get().releaseStore(store);
       }
     });
 
     if (this.eventDispatcher instanceof DisabledCacheEventNotificationService && (orderedExecutor != null & unOrderedExecutor != null)) {
-      this.eventDispatcher = new CacheEventDispatcherImpl<K, V>(unOrderedExecutor, orderedExecutor);
+      this.eventDispatcher = new CacheEventDispatcherImpl<>(unOrderedExecutor, orderedExecutor);
     }
     eventDispatcher.setStoreEventSource(store.getStoreEventSource());
 
+    ResilienceStrategy<K, V> resilienceStrategy;
+    if (cacheLoaderWriter == null) {
+      resilienceStrategy = new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(store));
+    } else {
+      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
+    }
+
     if (persistent) {
-      LocalPersistenceService persistenceService = serviceLocator
-          .getService(LocalPersistenceService.class);
-      if (persistenceService == null) {
+      DiskResourceService diskResourceService = serviceLocator
+          .getService(DiskResourceService.class);
+      if (diskResourceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, persistenceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
       return cast(cache);
     } else {
-      final InternalCache<K, V> cache;
-      if (cacheLoaderWriter == null) {
-        cache = new Ehcache<K, V>(cacheConfig, store, eventDispatcher, getLoggerFor(Ehcache.class));
-      } else {
-        cache = new EhcacheWithLoaderWriter<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
-      }
+      InternalCache<K, V> cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         (cache).addHook(lifeCycled);
@@ -324,7 +338,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   }
 
-  private Logger getLoggerFor(Class clazz) {
+  private Logger getLoggerFor(Class<?> clazz) {
     String loggerName;
     if (id != null) {
       loggerName = clazz.getName() + "-" + id;
@@ -358,7 +372,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
           lifeCycledList.add(new LifeCycled() {
 
             @Override
-            public void init() throws Exception {
+            public void init() {
 
             }
 
@@ -386,7 +400,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(new ServiceLocator(services.toArray(new Service[services.size()])));
+    final T build = build(dependencySet().withoutMandatoryServices().with(services));
     if (init) {
       build.init();
     }
@@ -420,14 +434,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds an identifier to the returned builder.
-   * <P>
-   *   The identifier will be used in services and logging the way a cache alias would be inside a {@code CacheManager}
-   * </P>
+   * <p>
+   * The identifier will be used in services and logging the way a cache alias would be inside a {@code CacheManager}
    * @param identifier the identifier
    * @return a new builder with the added identifier
    */
   public final UserManagedCacheBuilder<K, V, T> identifier(String identifier) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.id = identifier;
     return otherBuilder;
   }
@@ -442,31 +455,48 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (classLoader == null) {
       throw new NullPointerException("Null classloader");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.classLoader = classLoader;
     return otherBuilder;
   }
 
   /**
-   * Adds {@link Expiry} configuration to the returned builder.
+   * Adds {@link org.ehcache.expiry.Expiry} configuration to the returned builder.
+   *
+   * @param expiry the expiry to use
+   * @return a new builer with the added expiry
+   *
+   * @deprecated Use {@link #withExpiry(ExpiryPolicy)} instead
+   */
+  @Deprecated
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(org.ehcache.expiry.Expiry<? super K, ? super V> expiry) {
+    if (expiry == null) {
+      throw new NullPointerException("Null expiry");
+    }
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
+    otherBuilder.expiry = ExpiryUtils.convertToExpiryPolicy(expiry);
+    return otherBuilder;
+  }
+
+  /**
+   * Adds {@link ExpiryPolicy} configuration to the returned builder.
    *
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
    */
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(ExpiryPolicy<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.expiry = expiry;
     return otherBuilder;
   }
 
   /**
    * Adds an {@link CacheEventDispatcher} to the returned builder.
-   * <P>
-   *   This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
-   * </P>
+   * <p>
+   * This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
    *
    * @param eventDispatcher the event dispatcher to use
    * @return a new builder with the configured event dispatcher
@@ -476,7 +506,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withEventListeners(CacheEventListenerConfigurationBuilder)
    */
   public final UserManagedCacheBuilder<K, V, T> withEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.orderedExecutor = null;
     otherBuilder.unOrderedExecutor = null;
     otherBuilder.eventDispatcher = eventDispatcher;
@@ -485,9 +515,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds the default {@link CacheEventDispatcher} using the provided {@link ExecutorService} to the returned builder.
-   * <P>
-   *   This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
-   * </P>
+   * <p>
+   * This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
    *
    * @param orderedExecutor the ordered event executor service
    * @param unOrderedExecutor the unordered event executor service
@@ -498,8 +527,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withEventListeners(CacheEventListenerConfigurationBuilder)
    */
   public final UserManagedCacheBuilder<K, V, T> withEventExecutors(ExecutorService orderedExecutor, ExecutorService unOrderedExecutor) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    otherBuilder.eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
+    otherBuilder.eventDispatcher = new DisabledCacheEventNotificationService<>();
     otherBuilder.orderedExecutor = orderedExecutor;
     otherBuilder.unOrderedExecutor = unOrderedExecutor;
     return otherBuilder;
@@ -531,7 +560,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withEventListeners(CacheEventListenerConfigurationBuilder)
    */
   public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration... cacheEventListenerConfigurations) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.eventListenerConfigurations.addAll(Arrays.asList(cacheEventListenerConfigurations));
     return otherBuilder;
   }
@@ -545,7 +574,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withResourcePools(ResourcePoolsBuilder)
    */
   public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.resourcePools = resourcePools;
     return otherBuilder;
   }
@@ -584,7 +613,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (evictionAdvisor == null) {
       throw new NullPointerException("Null eviction advisor");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
@@ -599,7 +628,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (loaderWriter == null) {
       throw new NullPointerException("Null loaderWriter");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.cacheLoaderWriter = loaderWriter;
     return otherBuilder;
   }
@@ -613,7 +642,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withKeySerializer(Serializer)
    */
   public UserManagedCacheBuilder<K, V, T> withKeySerializingCopier() {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.keyCopier = null;
     otherBuilder.useKeySerializingCopier = true;
     return otherBuilder;
@@ -628,7 +657,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withValueSerializer(Serializer)
    */
   public UserManagedCacheBuilder<K, V, T> withValueSerializingCopier() {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.valueCopier = null;
     otherBuilder.useValueSerializingCopier = true;
     return otherBuilder;
@@ -646,7 +675,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (keyCopier == null) {
       throw new NullPointerException("Null key copier");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.keyCopier = keyCopier;
     otherBuilder.useKeySerializingCopier = false;
     return otherBuilder;
@@ -664,7 +693,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (valueCopier == null) {
       throw new NullPointerException("Null value copier");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.valueCopier = valueCopier;
     otherBuilder.useValueSerializingCopier = false;
     return otherBuilder;
@@ -680,7 +709,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (keySerializer == null) {
       throw new NullPointerException("Null key serializer");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.keySerializer = keySerializer;
     return otherBuilder;
   }
@@ -695,7 +724,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (valueSerializer == null) {
       throw new NullPointerException("Null value serializer");
     }
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.valueSerializer = valueSerializer;
     return otherBuilder;
   }
@@ -703,14 +732,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified object graph maximum size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
    * @return a new builder with the added / updated configuration
    */
   public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectGraph(long size) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     removeAnySizeOfEngine(otherBuilder);
     otherBuilder.objectGraphSize = size;
     otherBuilder.serviceCreationConfigurations.add(new DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
@@ -720,7 +749,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified maximum mapping size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size
@@ -728,7 +757,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @return a new builder with the added / updated configuration
    */
   public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     removeAnySizeOfEngine(otherBuilder);
     otherBuilder.maxObjectSize = size;
     otherBuilder.sizeOfUnit = unit;
@@ -746,16 +775,15 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @return the new builder
    */
   public static <K, V> UserManagedCacheBuilder<K, V, UserManagedCache<K, V>> newUserManagedCacheBuilder(Class<K> keyType, Class<V> valueType) {
-    return new UserManagedCacheBuilder<K, V, UserManagedCache<K, V>>(keyType, valueType);
+    return new UserManagedCacheBuilder<>(keyType, valueType);
   }
 
   /**
    * Adds a {@link Service} to be made available to the returned builder.
-   * <P>
-   *   Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
-   *   operations will be performed on them. It is the responsibility of the developer to properly stop
-   *   {@code Service}s once they are no longer required.
-   * </P>
+   * <p>
+   * Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
+   * operations will be performed on them. It is the responsibility of the developer to properly stop
+   * {@code Service}s once they are no longer required.
    *
    * @param service the service to add
    * @return a new builder with the added service
@@ -763,7 +791,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #using(ServiceCreationConfiguration)
    */
   public UserManagedCacheBuilder<K, V, T> using(Service service) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     if (service instanceof SizeOfEngineProvider) {
       removeAnySizeOfEngine(otherBuilder);
     }
@@ -774,12 +802,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds a {@link ServiceCreationConfiguration}, to trigger a service loading and its configuration, to the returned
    * builder.
-   * <P>
-   *   Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
-   *   operations will be performed on them. It is the responsibility of the developer to properly stop
-   *   {@code Service}s once they are no longer required. Which means that this method should not be used to get
-   *   services that require a stop.
-   * </P>
+   * <p>
+   * Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
+   * operations will be performed on them. It is the responsibility of the developer to properly stop
+   * {@code Service}s once they are no longer required. Which means that this method should not be used to get
+   * services that require a stop.
    *
    * @param serviceConfiguration the service creation configuration to add
    * @return a new builder with the added service creation configuration
@@ -787,7 +814,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #using(Service)
    */
   public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);
     }
@@ -795,7 +822,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     return otherBuilder;
   }
 
-  private static void removeAnySizeOfEngine(UserManagedCacheBuilder builder) {
+  private static void removeAnySizeOfEngine(UserManagedCacheBuilder<?, ?, ?> builder) {
     builder.services.remove(findSingletonAmongst(SizeOfEngineProvider.class, builder.services));
     builder.serviceCreationConfigurations.remove(findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
   }

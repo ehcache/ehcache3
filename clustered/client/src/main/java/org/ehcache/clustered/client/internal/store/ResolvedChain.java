@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.store.operations.Result;
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.util.Collections;
 import java.util.Map;
@@ -33,7 +33,25 @@ public interface ResolvedChain<K, V> {
 
   Chain getCompactedChain();
 
-  Result<V> getResolvedResult(K key);
+  Result<K, V> getResolvedResult(K key);
+
+  /**
+   * Indicates whether the {@link #getCompactedChain()} is effectively compacted
+   * compared to the original chain it was built from.
+   *
+   * @return {@code true} if the chain has been compacted during resolution, {@code false} otherwise
+   */
+  boolean isCompacted();
+
+  /**
+   * @return the number of chain elements that were compacted if there was any compaction
+   */
+  int getCompactionCount();
+
+  /**
+   * @return the unix epoch at which the entry should expire
+   */
+  long getExpirationTime();
 
   /**
    * Represents the {@link ResolvedChain} result of a resolver that resolves
@@ -42,23 +60,41 @@ public interface ResolvedChain<K, V> {
   class Impl<K, V> implements ResolvedChain<K, V> {
 
     private final Chain compactedChain;
-    private final Map<K, Result<V>> resolvedOperations;
+    private final Map<K, Result<K, V>> resolvedOperations;
+    private final int compactionCount;
+    private final long expirationTime;
 
-    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations) {
+    public Impl(Chain compactedChain, Map<K, Result<K, V>> resolvedOperations, int compactionCount, long expirationTime) {
       this.compactedChain = compactedChain;
       this.resolvedOperations = resolvedOperations;
+      this.compactionCount = compactionCount;
+      this.expirationTime = expirationTime;
     }
 
-    public Impl(Chain compactedChain, K key, Result<V> result) {
-      this(compactedChain, Collections.singletonMap(key, result));
+    public Impl(Chain compactedChain, K key, Result<K, V> result, int compactedSize, long expirationTime) {
+      this(compactedChain, Collections.singletonMap(key, result), compactedSize, expirationTime);
     }
 
     public Chain getCompactedChain() {
       return this.compactedChain;
     }
 
-    public Result<V> getResolvedResult(K key) {
+    public Result<K, V> getResolvedResult(K key) {
       return resolvedOperations.get(key);
+    }
+
+    @Override
+    public boolean isCompacted() {
+      return compactionCount > 0;
+    }
+
+    public int getCompactionCount() {
+      return compactionCount;
+    }
+
+    @Override
+    public long getExpirationTime() {
+      return expirationTime;
     }
   }
 }

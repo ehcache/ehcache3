@@ -16,8 +16,15 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -29,13 +36,15 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.Test;
 
+import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
+import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.storage.portability.StringPortability;
 
 import static java.util.Arrays.asList;
-import static org.ehcache.clustered.server.offheap.OffHeapChainMap.chain;
+import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
@@ -46,6 +55,7 @@ import static org.junit.Assert.fail;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
 @RunWith(Parameterized.class)
+@SuppressWarnings("unchecked") // To replace by @SafeVarargs in JDK7
 public class ChainMapTest {
 
   @Parameters(name = "stealing={0}, min-page-size={1}, max-page-size={2}")
@@ -66,14 +76,14 @@ public class ChainMapTest {
 
   @Test
   public void testInitiallyEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     assertThat(map.get("foo"), emptyIterable());
   }
 
   @Test
   public void testAppendToEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     map.append("foo", buffer(1));
     assertThat(map.get("foo"), contains(element(1)));
@@ -81,7 +91,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     assertThat(map.getAndAppend("foo", buffer(1)), emptyIterable());
     assertThat(map.get("foo"), contains(element(1)));
@@ -89,7 +99,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
     map.append("foo", buffer(2));
@@ -98,7 +108,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
     assertThat(map.getAndAppend("foo", buffer(2)), contains(element(1)));
@@ -107,7 +117,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -117,7 +127,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -127,7 +137,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -138,7 +148,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -149,10 +159,10 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnEmptyChainFails() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     try {
-      map.replaceAtHead("foo", chain(), chain(buffer(1)));
+      map.replaceAtHead("foo", chainOf(), chainOf(buffer(1)));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -161,11 +171,11 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnNonEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
     try {
-      map.replaceAtHead("foo", chain(), chain(buffer(2)));
+      map.replaceAtHead("foo", chainOf(), chainOf(buffer(2)));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -174,107 +184,107 @@ public class ChainMapTest {
 
   @Test
   public void testMismatchingReplaceSingletonChainAtHeadOnSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(2)), chain(buffer(42))), is(false));
+    map.replaceAtHead("foo", chainOf(buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1)));
   }
 
   @Test
   public void testReplaceSingletonChainAtHeadOnSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42))), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
   }
 
   @Test
   public void testReplaceSingletonChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42))), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2)));
   }
 
   @Test
   public void testReplaceSingletonChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42))), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2), element(3)));
   }
 
   @Test
   public void testMismatchingReplacePluralChainAtHead() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1), buffer(3)), chain(buffer(42))), is(false));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(3)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1), element(2)));
   }
 
   @Test
   public void testReplacePluralChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain(buffer(42))), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
   }
 
   @Test
   public void testReplacePluralChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    assertThat(map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain(buffer(42))), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(3)));
   }
 
   @Test
   public void testReplacePluralChainAtHeadWithEmpty() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
     long before = map.getDataOccupiedMemory();
-    assertThat(map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain()), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf());
     assertThat(map.getDataOccupiedMemory(), lessThan(before));
     assertThat(map.get("foo"), contains(element(3)));
   }
 
   @Test
   public void testSequenceBasedChainComparison() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    assertThat(map.replaceAtHead("foo", map.get("foo"), chain()), is(true));
+    map.replaceAtHead("foo", map.get("foo"), chainOf());
     assertThat(map.get("foo"), emptyIterable());
   }
 
   @Test
   public void testReplaceFullPluralChainAtHeadWithEmpty() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
     assertThat(map.getDataOccupiedMemory(), greaterThan(0L));
-    assertThat(map.replaceAtHead("foo", chain(buffer(1), buffer(2), buffer(3)), chain()), is(true));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2), buffer(3)), chainOf());
     assertThat(map.getDataOccupiedMemory(), is(0L));
     assertThat(map.get("foo"), emptyIterable());
   }
@@ -283,8 +293,8 @@ public class ChainMapTest {
   public void testContinualAppendCausingEvictionIsStable() {
     UpfrontAllocatingPageSource pageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), KILOBYTES.toBytes(1024L), KILOBYTES.toBytes(1024));
     if (steal) {
-      OffHeapChainMap<String> mapA = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, true);
-      OffHeapChainMap<String> mapB = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, true);
+      OffHeapChainMap<String> mapA = new OffHeapChainMap<>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, true);
+      OffHeapChainMap<String> mapB = new OffHeapChainMap<>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, true);
 
       for (int c = 0; ; c++) {
         long before = mapA.getOccupiedMemory();
@@ -303,7 +313,7 @@ public class ChainMapTest {
         }
       }
     } else {
-      OffHeapChainMap<String> map = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, false);
+      OffHeapChainMap<String> map = new OffHeapChainMap<>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, false);
 
       for (int c = 0; ; c++) {
         long before = map.getOccupiedMemory();
@@ -320,6 +330,98 @@ public class ChainMapTest {
         }
       }
     }
+  }
+
+  @Test
+  public void testPutWhenKeyIsNotNull() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("key", buffer(3));
+    map.put("key", chainOf(buffer(1), buffer(2)));
+
+    assertThat(map.get("key"), contains(element(1), element(2)));
+  }
+
+  @Test
+  public void testPutWhenKeyIsNull() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.put("key", chainOf(buffer(1), buffer(2)));
+
+    assertThat(map.get("key"), contains(element(1), element(2)));
+  }
+
+  @Test
+  public void testActiveChainsThreadSafety() throws ExecutionException, InterruptedException {
+    UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
+    OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
+
+    ReadWriteLockedOffHeapClockCache<String, InternalChain> heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(callable -> {}, source, chainStorage);
+
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
+
+    map.put("key", chainOf(buffer(1), buffer(2)));
+
+    int nThreads = 10;
+    ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+
+    List<Future<Chain>> futures = new ArrayList<>();
+
+    for (int i = 0; i < nThreads ; i++) {
+      futures.add(executorService.submit(() -> map.get("key")));
+    }
+
+    for (Future<Chain> f : futures) {
+      f.get();
+    }
+
+    assertThat(chainStorage.getActiveChains().size(), is(0));
+
+  }
+
+  @Test
+  public void testPutDoesNotLeakWhenMappingIsNotNull() {
+    UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
+    OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
+
+    ReadWriteLockedOffHeapClockCache<String, InternalChain> heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(callable -> {}, source, chainStorage);
+
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
+
+    map.put("key", chainOf(buffer(1)));
+    map.put("key", chainOf(buffer(2)));
+
+    assertThat(chainStorage.getActiveChains().size(), is(0));
+
+  }
+
+  @Test
+  public void testRemoveMissingKey() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+  }
+
+  @Test
+  public void testRemoveSingleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("bar", buffer(2));
+    assertThat(map.get("foo"), contains(element(1)));
+    assertThat(map.get("bar"), contains(element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+    assertThat(map.get("bar"), contains(element(2)));
+  }
+
+  @Test
+  public void testRemoveDoubleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("foo", buffer(2));
+    assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
   }
 
   private static ByteBuffer buffer(int i) {

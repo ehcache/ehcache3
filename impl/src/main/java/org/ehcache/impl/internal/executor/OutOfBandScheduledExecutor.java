@@ -21,12 +21,13 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableScheduledFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 
 /**
  *
@@ -34,16 +35,16 @@ import java.util.concurrent.TimeoutException;
  */
 class OutOfBandScheduledExecutor {
 
-  private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1) {
+  private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1, ThreadFactoryUtil.threadFactory("scheduled")) {
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Callable<V> clbl, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf(((ExecutorCarrier) clbl).executor(), rsf);
+      return new OutOfBandRsf<>(((ExecutorCarrier) clbl).executor(), rsf);
     }
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Runnable r, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf(((ExecutorCarrier) r).executor(), rsf);
+      return new OutOfBandRsf<>(((ExecutorCarrier) r).executor(), rsf);
     }
   };
 
@@ -58,7 +59,7 @@ class OutOfBandScheduledExecutor {
 
   public <V> ScheduledFuture<V> schedule(ExecutorService using, Callable<V> callable,
                                          long delay, TimeUnit unit) {
-    return scheduler.schedule(new ExecutorCarryingCallable<V>(using, callable), delay, unit);
+    return scheduler.schedule(new ExecutorCarryingCallable<>(using, callable), delay, unit);
   }
 
   public ScheduledFuture<?> scheduleAtFixedRate(ExecutorService using, Runnable command,
@@ -75,8 +76,28 @@ class OutOfBandScheduledExecutor {
     return scheduler.scheduleWithFixedDelay(new ExecutorCarryingRunnable(using, command), initialDelay, delay, unit);
   }
 
-  static interface ExecutorCarrier {
+  public void shutdownNow() {
+    scheduler.shutdownNow();
+  }
 
+  public boolean awaitTermination(long timeout, TimeUnit unit)
+    throws InterruptedException {
+    return scheduler.awaitTermination(timeout, unit);
+  }
+
+  public boolean isShutdown() {
+    return scheduler.isShutdown();
+  }
+
+  public boolean isTerminating() {
+    return scheduler.isTerminating();
+  }
+
+  public boolean isTerminated() {
+    return scheduler.isTerminated();
+  }
+
+  interface ExecutorCarrier {
     ExecutorService executor();
   }
 

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   ~ Copyright Terracotta, Inc.
   ~
@@ -24,7 +25,7 @@
 
   <service>
     <tc:cluster>
-      <tc:connection url="terracotta://example.com/myCacheManager?auto-create"/>
+      <tc:connection url="terracotta://example.com/myCacheManager"/>
       <tc:server-side-config>
         <tc:default-resource from="primary"/>
       </tc:server-side-config>
@@ -33,20 +34,20 @@
 
   <cache alias="default-consistency-cache">
     <resources>
-      <tc:cluster-fixed unit="MB">5</tc:cluster-fixed>
+      <tc:clustered-dedicated unit="MB">5</tc:clustered-dedicated>
     </resources>
   </cache>
 
   <cache alias="eventual-consistency-cache">
     <resources>
-      <tc:cluster-fixed unit="MB">5</tc:cluster-fixed>
+      <tc:clustered-dedicated unit="MB">5</tc:clustered-dedicated>
     </resources>
     <tc:clustered-store consistency="eventual"/>
   </cache>
 
   <cache alias="strong-consistency-cache">
     <resources>
-      <tc:cluster-fixed unit="MB">5</tc:cluster-fixed>
+      <tc:clustered-dedicated unit="MB">5</tc:clustered-dedicated>
     </resources>
     <tc:clustered-store consistency="strong"/>
   </cache>
@@ -59,7 +60,7 @@
 
   <cache-template name="strong-consistency-template">
     <resources>
-      <tc:cluster-fixed unit="MB">5</tc:cluster-fixed>
+      <tc:clustered-dedicated unit="MB">5</tc:clustered-dedicated>
     </resources>
     <tc:clustered-store consistency="strong"/>
   </cache-template>

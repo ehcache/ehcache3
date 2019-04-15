@@ -19,7 +19,6 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.Status;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -41,7 +40,7 @@ import org.junit.Before;
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
-  private static final String CLUSTER_URI = "terracotta://example.com:9540/cachemanager?auto-create";
+  private static final String CLUSTER_URI = "terracotta://example.com:9540/cachemanager";
 
   @Before
   public void resetPassthroughServer() throws Exception {

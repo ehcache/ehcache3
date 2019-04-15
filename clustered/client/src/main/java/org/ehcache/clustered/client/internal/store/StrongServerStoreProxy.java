@@ -15,216 +15,180 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+import java.time.Duration;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 
-/**
- * @author Ludovic Orban
- */
+import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
+
 public class StrongServerStoreProxy implements ServerStoreProxy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StrongServerStoreProxy.class);
 
-  private final ServerStoreProxy delegate;
-  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
-  private final Lock invalidateAllLock = new ReentrantLock();
-  private CountDownLatch invalidateAllLatch;
-  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
-  private final EhcacheClientEntity entity;
+  private final CommonServerStoreProxy delegate;
+  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<>();
+  private final AtomicReference<CountDownLatch> invalidateAllLatch = new AtomicReference<>();
+  private final ClusterTierClientEntity entity;
 
-  public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
-    this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
+  public StrongServerStoreProxy(final String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
+    this.delegate = new CommonServerStoreProxy(cacheId, entity, invalidation);
     this.entity = entity;
-    entity.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
-        if (response.getCacheId().equals(messageFactory.getCacheId())) {
-          long key = response.getKey();
-          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", messageFactory.getCacheId(), key);
-          CountDownLatch countDownLatch = hashInvalidationsInProgress.remove(key);
-          if (countDownLatch != null) {
-            countDownLatch.countDown();
-          }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
-        }
-      }
-    });
-    entity.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.AllInvalidationDone response) {
-        if (response.getCacheId().equals(messageFactory.getCacheId())) {
-          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated all", messageFactory.getCacheId());
+    delegate.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, this::hashInvalidationDoneResponseListener);
+    delegate.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
 
-          CountDownLatch countDownLatch;
-          invalidateAllLock.lock();
-          try {
-            countDownLatch = invalidateAllLatch;
-            invalidateAllLatch = null;
-          } finally {
-            invalidateAllLock.unlock();
-          }
-
-          if (countDownLatch != null) {
-            LOGGER.debug("CLIENT: on cache {}, count down", messageFactory.getCacheId());
-            countDownLatch.countDown();
-          }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
-        }
-      }
-    });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final String cacheId = response.getCacheId();
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
-
-        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
-
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
-        }
-      }
-    });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
-        final String cacheId = response.getCacheId();
-        final int invalidationId = response.getInvalidationId();
-
-        LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateAll();
-        }
-
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-          entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
-        }
-      }
-    });
-    entity.addDisconnectionListener(new EhcacheClientEntity.DisconnectionListener() {
-      @Override
-      public void onDisconnection() {
-        for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {
-          entry.getValue().countDown();
-        }
-        hashInvalidationsInProgress.clear();
-
-        invalidateAllLock.lock();
-        try {
-          if (invalidateAllLatch != null) {
-            invalidateAllLatch.countDown();
-          }
-        } finally {
-          invalidateAllLock.unlock();
-        }
-      }
-    });
+    entity.addReconnectListener(this::reconnectListener);
+    entity.addDisconnectionListener(this::disconnectionListener);
   }
 
-  private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException {
+  private void disconnectionListener() {
+    for (CountDownLatch latch : hashInvalidationsInProgress.values()) {
+      latch.countDown();
+    }
+    hashInvalidationsInProgress.clear();
+
+    CountDownLatch countDownLatch = invalidateAllLatch.get();
+    if (countDownLatch != null) {
+      countDownLatch.countDown();
+    }
+  }
+
+  private void allInvalidationDoneResponseListener(EhcacheEntityResponse.AllInvalidationDone response) {
+    LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated all", getCacheId());
+
+    CountDownLatch countDownLatch = invalidateAllLatch.getAndSet(null);
+    if (countDownLatch != null) {
+      LOGGER.debug("CLIENT: on cache {}, count down", getCacheId());
+      countDownLatch.countDown();
+    }
+  }
+
+  private void hashInvalidationDoneResponseListener(EhcacheEntityResponse.HashInvalidationDone response) {
+    long key = response.getKey();
+    LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated hash {}", getCacheId(), key);
+    CountDownLatch countDownLatch = hashInvalidationsInProgress.remove(key);
+    if (countDownLatch != null) {
+      countDownLatch.countDown();
+    }
+  }
+
+  private void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
+    Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
+    reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
+    if (invalidateAllLatch.get() != null) {
+      reconnectMessage.clearInProgress();
+    }
+  }
+
+  private <T> T performWaitingForHashInvalidation(long key, Callable<T> c, Duration timeout) throws TimeoutException {
+    LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
+
     CountDownLatch latch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
-        throw new IllegalStateException("Entity disconnected");
+        throw new IllegalStateException("Cluster tier manager disconnected");
       }
       CountDownLatch countDownLatch = hashInvalidationsInProgress.putIfAbsent(key, latch);
       if (countDownLatch == null) {
         break;
       }
-      awaitOnLatch(countDownLatch);
+      awaitOnLatch(countDownLatch, nanosRemaining);
     }
 
     try {
-      T result = c.apply();
-      awaitOnLatch(latch);
+      T result = c.call();
+      LOGGER.debug("CLIENT: Waiting for invalidations on key {}", key);
+      awaitOnLatch(latch, nanosRemaining);
       LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking call", key);
       return result;
     } catch (Exception ex) {
       hashInvalidationsInProgress.remove(key);
       latch.countDown();
+
+      if (ex instanceof TimeoutException) {
+        throw (TimeoutException)ex;
+      }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
 
-  private <T> T performWaitingForAllInvalidation(NullaryFunction<T> c) throws InterruptedException {
+  private <T> T performWaitingForAllInvalidation(Callable<T> c, Duration timeout) throws TimeoutException {
+    LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
+
     CountDownLatch newLatch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
-        throw new IllegalStateException("Entity disconnected");
+        throw new IllegalStateException("Cluster tier manager disconnected");
       }
 
-      CountDownLatch existingLatch;
-      invalidateAllLock.lock();
-      try {
-        existingLatch = invalidateAllLatch;
-        if (existingLatch == null) {
-          invalidateAllLatch = newLatch;
-          break;
+      if (invalidateAllLatch.compareAndSet(null, newLatch)) {
+        break;
+      } else {
+        CountDownLatch existingLatch = invalidateAllLatch.get();
+        if (existingLatch != null) {
+          awaitOnLatch(existingLatch, nanosRemaining);
         }
-      } finally {
-        invalidateAllLock.unlock();
       }
-
-      awaitOnLatch(existingLatch);
     }
 
     try {
-      T result = c.apply();
-      awaitOnLatch(newLatch);
+      T result = c.call();
+      awaitOnLatch(newLatch, nanosRemaining);
       LOGGER.debug("CLIENT: all invalidated on all clients, unblocking call");
       return result;
     } catch (Exception ex) {
-      invalidateAllLock.lock();
-      try {
-        invalidateAllLatch = null;
-      } finally {
-        invalidateAllLock.unlock();
-      }
+      invalidateAllLatch.set(null);
       newLatch.countDown();
+
+      if (ex instanceof TimeoutException) {
+        throw (TimeoutException)ex;
+      }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
 
-  private void awaitOnLatch(CountDownLatch countDownLatch) throws InterruptedException {
-    int totalAwaitTime = 0;
-    int backoff = 1;
-    while (!countDownLatch.await(backoff, TimeUnit.SECONDS)) {
-      totalAwaitTime += backoff;
-      backoff = (backoff >= 10) ? 10 : backoff * 2;
-      LOGGER.debug("Waiting for the server's InvalidationDone message for {}s, backing off {}s...", totalAwaitTime, backoff);
-    }
-    if (!entity.isConnected()) {
-      throw new IllegalStateException("Entity disconnected");
+  private void awaitOnLatch(CountDownLatch countDownLatch, LongSupplier nanosRemaining) throws TimeoutException {
+    boolean interrupted = Thread.interrupted();
+    try {
+      while (true) {
+        try {
+          if (countDownLatch.await(nanosRemaining.getAsLong(), TimeUnit.NANOSECONDS)) {
+            if (!entity.isConnected()) {
+              throw new IllegalStateException("Cluster tier manager disconnected");
+            } else {
+              return;
+            }
+          } else {
+            throw new TimeoutException();
+          }
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 
@@ -235,47 +199,26 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void addInvalidationListener(InvalidationListener listener) {
-    invalidationListeners.add(listener);
+  public void close() {
+    delegate.close();
   }
 
   @Override
-  public boolean removeInvalidationListener(InvalidationListener listener) {
-    return invalidationListeners.remove(listener);
-  }
-
-  @Override
-  public Chain get(long key) {
+  public Chain get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) {
-    try {
-      performWaitingForHashInvalidation(key, new NullaryFunction<Void>() {
-        @Override
-        public Void apply() {
-          delegate.append(key, payLoad);
-          return null;
-        }
-      });
-    } catch (InterruptedException ie) {
-      throw new RuntimeException(ie);
-    }
+  public void append(final long key, final ByteBuffer payLoad) throws TimeoutException {
+    performWaitingForHashInvalidation(key, () -> {
+      delegate.append(key, payLoad);
+      return null;
+    }, entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
-    try {
-      return performWaitingForHashInvalidation(key, new NullaryFunction<Chain>() {
-        @Override
-        public Chain apply() {
-          return delegate.getAndAppend(key, payLoad);
-        }
-      });
-    } catch (InterruptedException ie) {
-      throw new RuntimeException(ie);
-    }
+  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+    return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
@@ -284,17 +227,15 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void clear() {
-    try {
-      performWaitingForAllInvalidation(new NullaryFunction<Object>() {
-        @Override
-        public Object apply() {
-          delegate.clear();
-          return null;
-        }
-      });
-    } catch (InterruptedException ie) {
-      throw new RuntimeException(ie);
-    }
+  public void clear() throws TimeoutException {
+    performWaitingForAllInvalidation(() -> {
+      delegate.clear();
+      return null;
+    }, entity.getTimeouts().getWriteOperationTimeout());
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

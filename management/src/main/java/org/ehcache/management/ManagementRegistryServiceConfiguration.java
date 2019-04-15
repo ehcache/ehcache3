@@ -15,15 +15,14 @@
  */
 package org.ehcache.management;
 
-import org.ehcache.management.config.StatisticsProviderConfiguration;
+import org.ehcache.management.providers.statistics.LatencyHistogramConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.ManagementProvider;
+
+import java.util.Collection;
 
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
- *
- * @author Mathieu Carbou
  */
 public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
 
@@ -33,13 +32,6 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
   Context getContext();
 
   /**
-   * Gets the alias of the executor to use for asynchronous statistics tasks.
-   *
-   * @return The static executor alias
-   */
-  String getStatisticsExecutorAlias();
-
-  /**
    * Gets the alias of the executor to use for asynchronous collector service tasks.
    *
    * @return The static colector executor alias
@@ -47,10 +39,20 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
   String getCollectorExecutorAlias();
 
   /**
-   * Returns the configuration of a specific {@link ManagementProvider} type.
-   *
-   * @param managementProviderClass The type of the class managing statistics, capabilities, actions, etc.
-   * @return The configuration class to use for this manager type
+   * The users tags that can be used to filter this client's management registry amongst others
    */
-  StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass);
+  Collection<String> getTags();
+
+  /**
+   * @return an identifier used to identify this running instance. It will be the same even if a clustered Ehcache client reconnects (and clientId changes).
+   */
+  String getInstanceId();
+
+  /**
+   * Configuration of the latency histogram derived property. It is used to setup
+   * different resolution parameters of the histogram.
+   *
+   * @return configuration of the latency histogram
+   */
+  LatencyHistogramConfiguration getLatencyHistogramConfiguration();
 }

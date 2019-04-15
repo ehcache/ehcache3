@@ -41,7 +41,7 @@ public class DeleteAllOperation<K, V> implements BatchOperation<K, V> {
   /**
    * {@inheritDoc}
    */
-  public void performBatchOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception {
+  public void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception {
     cacheLoaderWriter.deleteAll(entries);
   }
 

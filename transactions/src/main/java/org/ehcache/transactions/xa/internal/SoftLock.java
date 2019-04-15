@@ -34,6 +34,7 @@ import java.nio.ByteBuffer;
  */
 public class SoftLock<V> implements Serializable {
 
+  private static final long serialVersionUID = -7281781343721739009L;
   private final TransactionId transactionId;
   private final V oldValue;
   private final byte[] oldValueSerialized;
@@ -67,7 +68,7 @@ public class SoftLock<V> implements Serializable {
     if (newValueHolder != null) {
       serializedXaValueHolder = newValueHolder.copyForSerialization(valueSerializer);
     }
-    return new SoftLock<V>(transactionId, serializedOldValue, serializedXaValueHolder);
+    return new SoftLock<>(transactionId, serializedOldValue, serializedXaValueHolder);
   }
 
   protected SoftLock<V> copyAfterDeserialization(Serializer<V> valueSerializer, SoftLock<V> serializedSoftLock) throws ClassNotFoundException {
@@ -79,7 +80,7 @@ public class SoftLock<V> implements Serializable {
     if (this.newValueHolder != null) {
       newValueHolder = this.newValueHolder.copyAfterDeserialization(valueSerializer);
     }
-    return new SoftLock<V>(transactionId, oldValue, newValueHolder);
+    return new SoftLock<>(transactionId, oldValue, newValueHolder);
   }
 
   public V getOldValue() {

@@ -23,9 +23,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * {@link ServiceConfiguration} for the default {@link CopyProvider} implementation.
- * <P>
- *   Enables configuring a {@link Copier} for the key or value of a given cache.
- * </P>
+ * <p>
+ * Enables configuring a {@link Copier} for the key or value of a given cache.
  *
  * @param <T> the type which the configured copier can handle
  */

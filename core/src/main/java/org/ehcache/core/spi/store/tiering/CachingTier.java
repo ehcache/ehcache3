@@ -17,8 +17,7 @@
 package org.ehcache.core.spi.store.tiering;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
@@ -27,13 +26,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Caching tier is the abstraction for tiers sitting atop the {@link AuthoritativeTier}.
- * <P>
- *   As soon as there is more than one tier in a {@link Store}, one will be the {@link AuthoritativeTier} while others
- *   will be regrouped under the {@code CachingTier}
- * </P>
+ * <p>
+ * As soon as there is more than one tier in a {@link Store}, one will be the {@link AuthoritativeTier} while others
+ * will be regrouped under the {@code CachingTier}
  *
  * @param <K> the key type
  * @param <V> the value type
@@ -42,9 +41,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
-   * <P>
-   *   Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
-   * </P>
+   * <p>
+   * Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
    *
    * @param key the key
    * @param source the function that computes the value when absent from this tier
@@ -54,6 +52,20 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping cannot be retrieved or stored
    */
   Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
+
+  /**
+   * Either return the value holder currently in the caching tier, or return the provided default.
+   * <p>
+   * Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
+   *
+   * @param key the key
+   * @param source the function that computes the default value when absent from this tier
+   *
+   * @return the value holder, or {@code null}
+   *
+   * @throws StoreAccessException if the mapping cannot be retrieved or stored
+   */
+  Store.ValueHolder<V> getOrDefault(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
 
   /**
    * Removes a mapping, triggering the {@link InvalidationListener} if registered.
@@ -81,9 +93,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Empty out the caching tier.
-   * <P>
-   *   Note that this operation is not atomic.
-   * </P>
+   * <p>
+   * Note that this operation is not atomic.
    *
    * @throws StoreAccessException if mappings cannot be removed
    */
@@ -98,9 +109,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Caching tier invalidation listener.
-   * <P>
-   *   Used to notify the {@link AuthoritativeTier} when a mapping is removed so that it can be flushed.
-   * </P>
+   * <p>
+   * Used to notify the {@link AuthoritativeTier} when a mapping is removed so that it can be flushed.
    *
    * @param <K> the key type
    * @param <V> the value type
@@ -119,9 +129,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * {@link Service} interface for providing {@link CachingTier} instances.
-   * <P>
-   *   Multiple providers may exist in a single {@link org.ehcache.CacheManager}.
-   * </P>
+   * <p>
+   * Multiple providers may exist in a single {@link org.ehcache.CacheManager}.
    */
   @PluralService
   interface Provider extends Service {
@@ -157,9 +166,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
     /**
      * Gets the internal ranking for the {@link CachingTier} instances provided by this {@code Provider} of the
      * caching tier's ability to handle the specified resources.
-     * <P>
-     *   A higher rank value indicates a more capable {@code CachingTier}.
-     * </P>
+     * <p>
+     * A higher rank value indicates a more capable {@code CachingTier}.
      *
      * @param resourceTypes the set of {@code ResourceType}s for the store to handle
      * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute

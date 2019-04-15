@@ -1,0 +1,97 @@
+---
+---
+= OSGi Deployment
+ifndef::sourcedir37[]
+include::common.adoc[]
+endif::sourcedir37[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== OSGi Compatible Bundles
+
+The following Ehcache artifacts are also valid OSGi bundles:
+
+* `org.ehcache:ehcache`
++
+includes: `api`, `core`, `impl`, `xml`, `107`
+
+* `org.ehcache:ehcache-clustered`
+* `org.ehcache:ehcache-transactions`
+* `org.ehcache.modules:ehcache-api`
+* `org.ehcache.modules:ehcache-core`
+* `org.ehcache.modules:ehcache-impl`
+* `org.ehcache.modules:ehcache-xml`
+* `org.ehcache.modules:ehcache-107`
+
+== Ehcache Service Lookup & OSGi
+
+To allow for the extension of its feature set and to support the internal modularity of the source code, Ehcache uses
+a `java.util.ServiceLoader` based lookup system to discover the set of available functionalities at runtime. When
+deployed as bundles in an OSGi environment this lookup mechanism is replaced by a lookup mechanism based on OSGi
+components. Activation of the bundle containing the Ehcache core code will result in the following logging
+[source,log]
+----
+org.ehcache[org.ehcache.core.osgi.EhcacheActivator] : Detected OSGi Environment (core is in bundle: org.ehcache [13]): Using OSGi Based Service Loading
+----
+In this mode, to enable transactional and/or clustered caching it is sufficient to just provision the
+`org.ehcache:ehcache-transactions` and/or `org.ehcache:ehcache-clustered` bundles alongside the `org.ehcache:ehcache`
+main bundle
+
+When in this mode of operation it is also possible to provision the Ehcache modules as independent bundles. A minimal
+Ehcache configuration will need:
+
+* `org.ehcache.modules:ehcache-api`
+* `org.ehcache.modules:ehcache-core`
+* `org.ehcache.modules:ehcache-impl`
+
+Additional features can then be added by including one or more of:
+
+* `org.ehcache.modules:ehcache-xml`
+* `org.ehcache.modules:ehcache-107`
+* `org.ehcache:ehcache-clustered`
+* `org.ehcache:ehcache-transactions`
+
+=== Reverting to JDK Service Lookup
+
+If the `org.ehcache.core.osgi` property is set to `"false"` as either a framework or system property then Ehcache will
+fall back to the JDK based service lookup mechanism. This will result in the following log line:
+[source,log]
+----
+org.ehcache[org.ehcache.core.osgi.EhcacheActivator] : Detected OSGi Environment (core is in bundle: org.ehcache [13]): OSGi Based Service Loading Disabled Via System/Framework Property - Extensions Outside This Bundle Will Not Be Detected
+----
+Enabling debug logging will show the detected set of services:
+[source,log]
+----
+org.ehcache[org.ehcache.core.osgi.EhcacheActivator] : JDK Service Loading Sees:
+	org.ehcache.impl.internal.store.heap.OnHeapStore$Provider
+	org.ehcache.impl.internal.store.offheap.OffHeapStore$Provider
+	org.ehcache.impl.internal.store.disk.OffHeapDiskStore$Provider
+	org.ehcache.impl.internal.store.tiering.TieredStore$Provider
+	org.ehcache.impl.internal.store.tiering.CompoundCachingTier$Provider
+	org.ehcache.core.spi.time.TimeSourceService
+	org.ehcache.spi.serialization.SerializationProvider
+	org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider
+	org.ehcache.core.events.CacheEventListenerProvider
+	org.ehcache.core.spi.service.ExecutionService
+	org.ehcache.core.spi.service.LocalPersistenceService
+	org.ehcache.impl.persistence.DefaultDiskResourceService
+	org.ehcache.spi.loaderwriter.WriteBehindProvider
+	org.ehcache.impl.internal.events.CacheEventDispatcherFactoryImpl
+	org.ehcache.spi.copy.CopyProvider
+	org.ehcache.core.spi.store.heap.SizeOfEngineProvider
+	org.ehcache.core.spi.service.StatisticsService
+	org.ehcache.spi.resilience.ResilienceStrategyProvider
+----
+
+In this configuration only features in the bundle with the Ehcache core classes are available. Using this service lookup
+mechanism only the `org.ehcache:ehcache` (bundle symbolic name: `org.ehcache`) bundle can be succesfully deployed. Use
+of this bundle provides for most of the regular Ehcache features, but *does not support transactional or clustered
+caching*.
+
+In order to use transactional or clustered caches in this environment the user must create their own bundle by merging
+the `org.ehcache:ehcache` bundle with the `org.ehcache:ehcache-clustered` and/or `org.ehcache:ehcache-transactions`
+bundles.  Care must be taken when creating the custom bundle that all of the `META-INF/services` files are correctly
+merged to allow for correct service discovery.
+

@@ -15,7 +15,8 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.store.ServerStore;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.ServerStore;
 
 /**
  * @author Ludovic Orban
@@ -25,7 +26,7 @@ public interface ServerStoreProxy extends ServerStore {
   /**
    * The invalidation listener
    */
-  interface InvalidationListener {
+  interface ServerCallback {
     /**
      * Callback for invalidation of hash requests
      *
@@ -37,6 +38,12 @@ public interface ServerStoreProxy extends ServerStore {
      * Callback for invalidation of all requests
      */
     void onInvalidateAll();
+
+    Chain compact(Chain chain);
+
+    default Chain compact(Chain chain, long hash) {
+      return compact(chain);
+    }
   }
 
   /**
@@ -47,17 +54,8 @@ public interface ServerStoreProxy extends ServerStore {
   String getCacheId();
 
   /**
-   * Add a listener called when invalidation requests arrive.
-   *
-   * @param listener the listener to add
+   * Closes this proxy.
    */
-  void addInvalidationListener(InvalidationListener listener);
-
-  /**
-   * Remove a listener
-   *
-   * @param listener the listener to remove
-   */
-  boolean removeInvalidationListener(InvalidationListener listener);
+  void close();
 
 }

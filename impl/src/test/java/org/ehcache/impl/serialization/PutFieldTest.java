@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,7 +39,8 @@ public class PutFieldTest {
 
   @Test
   public void testWithAllPrimitivesAndString() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(Foo_A.class)).newInstance();
@@ -65,7 +66,8 @@ public class PutFieldTest {
 
   @Test
   public void testWithTwoStrings() throws Exception {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
+    s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Bar_A.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(Bar_A.class)).newInstance();
@@ -137,7 +139,7 @@ public class PutFieldTest {
       ObjectOutputStream.PutField fields = out.putFields();
       fields.put("s1", "qwerty");
       fields.put("s2", "asdfg");
-      fields.write(out);
+      out.writeFields();
     }
   }
 

@@ -17,7 +17,17 @@
 
 <xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="2.0"
+           xmlns:annox="http://annox.dev.java.net" jaxb:extensionBindingPrefixes="annox"
            elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
+
+  <xs:annotation>
+    <xs:appinfo>
+      <jaxb:schemaBindings>
+        <jaxb:package name="org.ehcache.xml.model"/>
+      </jaxb:schemaBindings>
+    </xs:appinfo>
+  </xs:annotation>
+
   <xs:element name="config" type="ehcache:config-type"/>
 
   <xs:complexType name="config-type">
@@ -34,8 +44,8 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             This element represents Serializers.
-            It is a collection of serializer tags that require a type and fully qualified class names of serializers 
-            that are to be registered 
+            It is a collection of serializer tags that require a type and fully qualified class names of serializers
+            that are to be registered
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -43,7 +53,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             This element represents Copiers.
-            It is a collection of copier tags that require a type and fully qualified class names of copiers 
+            It is a collection of copier tags that require a type and fully qualified class names of copiers
             that are to be registered
           </xs:documentation>
         </xs:annotation>
@@ -68,14 +78,14 @@
             The element configures the default thread pool used for cache event dispatch.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:element name="write-behind" type="ehcache:thread-pool-reference-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element configures the default thread pool used for write behind caches.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:element name="heap-store" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -89,7 +99,7 @@
             The element configures the default thread pool used for writing to disk resources.
           </xs:documentation>
         </xs:annotation>
-      </xs:element> 
+      </xs:element>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element name="cache" type="ehcache:cache-type">
           <xs:annotation>
@@ -167,7 +177,7 @@
       </xs:element>
     </xs:sequence>
   </xs:complexType>
-  
+
   <xs:complexType name="thread-pool-reference-type">
     <xs:attribute name="thread-pool" use="required" type="xs:string"/>
   </xs:complexType>
@@ -260,6 +270,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="resilience" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures the resilience strategy used when the cache's underlying storage fails.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="listeners" type="ehcache:listeners-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -348,7 +365,6 @@
       </xs:element>
     </xs:sequence>
     <xs:attribute name="dispatcher-thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="dispatcher-concurrency" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-loader-writer-type">
@@ -375,7 +391,9 @@
                   <xs:attribute name="coalesce" type="xs:boolean" default="false" use="optional"/>
                 </xs:complexType>
               </xs:element>
-              <xs:element name="non-batching"/>
+              <xs:element name="non-batching">
+                <xs:complexType/>
+              </xs:element>
             </xs:choice>
           </xs:sequence>
           <xs:attribute name="concurrency" type="xs:positiveInteger" default="1" use="optional"/>
@@ -413,7 +431,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
-            org.ehcache.expiry.Expiry and has a public default no argument constructor.
+            org.ehcache.expiry.ExpiryPolicy and has a public default no argument constructor.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -505,6 +523,9 @@
       <xs:appinfo>
         <jaxb:class/>
       </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+      </xs:appinfo>
     </xs:annotation>
   </xs:element>
   <xs:element name="offheap" type="ehcache:memory-type" substitutionGroup="ehcache:resource">
@@ -512,12 +533,18 @@
       <xs:appinfo>
         <jaxb:class/>
       </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+      </xs:appinfo>
     </xs:annotation>
   </xs:element>
   <xs:element name="disk" type="ehcache:persistable-memory-type" substitutionGroup="ehcache:resource">
     <xs:annotation>
       <xs:appinfo>
         <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>
@@ -531,6 +558,7 @@
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
     <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
+    <xs:attribute name="disk-segments" type="xs:positiveInteger" use="optional" default="16"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">

@@ -15,6 +15,12 @@
  */
 
 dependencies {
-    compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    testCompile project(':impl'), project(':transactions')
+  testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
+  testImplementation project(':107')
+  testImplementation project(':impl')
+  testImplementation project(':transactions')
+  testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testImplementation "org.terracotta:statistics:$parent.statisticVersion"
 }

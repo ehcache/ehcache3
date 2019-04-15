@@ -17,15 +17,13 @@
 package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -35,14 +33,20 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
 
 /**
  * The {@code Store} interface represents the backing storage of a {@link Cache}. It abstracts the support for multiple
  * tiers, eventing, eviction and expiry.
- * <P>
- *   It maps key of type {@code K} to {@link ValueHolder value holder} which contains value of type {@code V} and
- *   associated metadata.
- * </P>
+ * <p>
+ * It maps key of type {@code K} to {@link ValueHolder value holder} which contains value of type {@code V} and
+ * associated metadata.
+ * <p>
  * Store implementations must not handle {@code null} keys or values.
  *
  * @param <K> the key type
@@ -55,13 +59,13 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * which the specified key is mapped, or {@code null} if this store contains no
    * mapping for the key or if it was evicted (or became expired) since it was
    * initially installed.
-   * <P>
+   * <p>
    * More formally, if this store contains a non-expired mapping from a key
    * {@code k} to a {@link Store.ValueHolder ValueHolder}
    * {@code v} such that {@code key.equals(k)},
    * then this method returns {@code v}; otherwise it returns
    * {@code null}.  (There can be at most one such mapping.)
-   * </P>
+   * <p>
    * The key cannot be {@code null}.
    *
    * @param key the key of the mapping to lookup
@@ -76,10 +80,10 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Returns {@code true} if this store contains the specified key
    * and the entry is not expired.
-   * <P>
+   * <p>
    * More formally, returns {@code true} if and only if this store
    * contains a key {@code k} such that {@code (o.equals(k))}.
-   * </P>
+   * <p>
    * The key cannot be {@code null}.
    *
    * @param key key whose presence in this store is to be tested
@@ -94,10 +98,10 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Maps the specified key to the specified value in this store.
    * Neither the key nor the value can be null.
-   * <P>
+   * <p>
    * The ValueHolder can be retrieved by calling the {@code get} method
    * with a key that is equal to the original key.
-   * </P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
    *
    * @param key   key with which the specified value is to be associated
@@ -113,7 +117,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
    * already exists.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (!store.containsKey(key))
@@ -123,15 +127,15 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *       return store.get(key);
    * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * The ValueHolder can be retrieved by calling the {@code get} method
    * with a key that is equal to the original key.
-   * </P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
    *
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
+   * @param put lambda to be consumed if value has been put
    * @return the {@link Store.ValueHolder ValueHolder} to
    * which the specified key was previously mapped, or {@code null} if no such mapping existed or the mapping was expired
    *
@@ -141,14 +145,13 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @see #replace(Object, Object)
    */
-  ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException;
+  ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException;
 
   /**
    * Removes the key (and its corresponding value) from this store.
    * This method does nothing if the key is not mapped.
-   * <P>
-   *   The key cannot be {@code null}.
-   * </P>
+   * <p>
+   * The key cannot be {@code null}.
    *
    * @param key the key that needs to be removed
    * @return {@code true} if the mapping existed and was successfully removed, {@code false} otherwise
@@ -162,7 +165,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Removes the entry for a key only if currently mapped to the given value
    * and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (store.containsKey(key)) {
@@ -172,10 +175,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *     } else return KEY_PRESENT;
    *   } else return KEY_MISSING;</pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * The key cannot be {@code null}.
-   * </P>
    *
    * @param key key with which the specified value is associated
    * @param value value expected to be associated with the specified key
@@ -189,7 +190,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   ValueHolder&lt;V&gt; oldValue = store.get(key);
@@ -198,10 +199,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *   }
    *   return oldValue; </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
-   * </P>
    *
    * @param key key with which the specified value is associated
    * @param value value expected to be associated with the specified key
@@ -217,7 +216,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Replaces the entry for a key only if currently mapped to the given value
    * and the entry is not expired.
-   * <P>
+   * <p>
    * This is equivalent to
    * <pre>
    *   if (store.containsKey(key)) {
@@ -231,10 +230,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *     return MISS_NOT_PRESENT;
    *   }</pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the value can be {@code null}.
-   * </P>
    *
    * @param key key with which the specified value is associated
    * @param oldValue value expected to be associated with the specified key
@@ -249,9 +246,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Removes all of the mappings from this {@code Store}.
-   * <P>
+   * <p>
    * This method provides no guarantee of atomicity.
-   * </P>
    *
    * @throws StoreAccessException if the store couldn't be partially or entirely be cleared.
    */
@@ -266,9 +262,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Returns an iterator over the elements in this store.
-   * <P>
-   *   The elements are returned in no particular order.
-   * </P>
+   * <p>
+   * The elements are returned in no particular order.
    *
    * @return an iterator over the mappings in this Store
    */
@@ -276,116 +271,102 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
-   * <P>
+   * <p>
    * The function will be supplied with the key and existing value (or {@code null} if no entry exists) as parameters.
    * The function should return the desired new value for the entry or {@code null} to remove the entry.
    * If the function throws an unchecked exception the Store will not be modified and a {@link StoreAccessException} will
    * be thrown.
-   * </P>
-   * <P>
-   *   This is equivalent to
-   *   <PRE>
-   *     V newValue = mappingFunction.apply(key, store.get(key));
-   *     if (newValue != null) {
-   *       store.put(key, newValue);
-   *     } else {
-   *       store.remove(key);
-   *     }
-   *     return newValue;
-   *   </PRE>
+   * <p>
+   * This is equivalent to
+   * <pre>
+   *   V oldValue = store.get(key;
+   *   V newValue = mappingFunction.apply(key, oldValue);
+   *   if (newValue != null) {
+   *     store.put(key, newValue);
+   *   } else {
+   *     store.remove(key);
+   *   }
+   *   return oldValue;
+   * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
-   * This is equivalent to calling {@link Store#compute(Object, BiFunction, NullaryFunction)}
-   * with a "replaceEquals" function that returns {@link Boolean#TRUE true}.
-   * </P>
    * Neither the key nor the function can be {@code null}
    *
    * @param key the key to update the mapping for
    * @param mappingFunction the function that will produce the new value.
-   * @return the new value associated with the key or {@code null} if none
+   * @return the existing value associated with the key or {@code null} if none
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws StoreAccessException if the mapping can't be changed
    *
-   * @see #compute(Object, BiFunction, NullaryFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
+  ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
-   * <P>
+   * <p>
    * The {@code mappingFunction} will be supplied with the key and existing value (or {@code null} if no entry exists) as parameters.
    * The {@code mappingFunction} should return the desired new value for the entry or {@code null} to remove the entry.
-   * </P>
-   * <P>
+   * <p>
    * The {@code replaceEqual} function will be invoked if the {@code mappingFunction} returns a value that is
    * {@link Object#equals(Object) equal} to the existing value. If the {@code replaceEqual} function returns
    * {@code false} then the existing mapping will not be replaced and will have its metadata updated.
-   * </P>
-   * <P>
+   * <p>
    * If either function throws an unchecked exception the {@code Store} will not be modified and a {@link StoreAccessException}
    * will be thrown.
-   * </P>
-   * <P>
-   *   This is equivalent to
-   *   <PRE>
-   *     V oldValue = store.get(key);
-   *     V newValue = mappingFunction.apply(key, oldValue);
-   *     if (newValue != null) {
-   *       if (!newValue.equals(oldValue) || replaceEqual.apply()) {
-   *         store.put(key, newValue);
-   *       }
-   *     } else {
-   *       store.remove(key);
+   * <p>
+   * This is equivalent to
+   * <pre>
+   *   V oldValue = store.get(key);
+   *   V newValue = mappingFunction.apply(key, oldValue);
+   *   if (newValue != null) {
+   *     if (!newValue.equals(oldValue) || replaceEqual.apply()) {
+   *       store.put(key, newValue);
    *     }
-   *     return newValue;
-   *   </PRE>
+   *   } else {
+   *     store.remove(key);
+   *   }
+   *   return newValue;
+   * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the functions can be {@code null}
-   * </P>
    *
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the new value.
    * @param replaceEqual indicates if an equal value replaces the existing one
+   * @param invokeWriter indicates if the writer should be invoked
    * @return the new value associated with the key or {@code null} if none
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws StoreAccessException if the mapping can't be changed
    *
-   * @see #compute(Object, BiFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
+  ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException;
 
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
-   * <P>
+   * <p>
    *   The function will be supplied with the key only if no mapping exists.
    *   The function should return the desired new value for the entry. {@code null} will result in a no-op.
    *   If the function throws an unchecked exception the Store will not be modified and a {@link StoreAccessException}
    *   will be thrown.
-   * </P>
-   * <P>
-   *   This is equivalent to
-   *   <PRE>
-   *     if (!store.containsKey(key)) {
-   *       V newValue = mappingFunction.apply(key);
-   *       if (newValue != null) {
-   *         store.put(key, newValue);
-   *       }
-   *       return newValue;
+   * <p>
+   * This is equivalent to
+   * <pre>
+   *   if (!store.containsKey(key)) {
+   *     V newValue = mappingFunction.apply(key);
+   *     if (newValue != null) {
+   *       store.put(key, newValue);
    *     }
-   *     return store.get(key);
-   *   </PRE>
+   *     return newValue;
+   *   }
+   *   return store.get(key);
+   * </pre>
    * except that the action is performed atomically.
-   * </P>
-   * <P>
+   * <p>
    * Neither the key nor the function can be {@code null}
-   * </P>
    *
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the value.
@@ -400,24 +381,20 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
-   * <P>
+   * <p>
    * The function gets an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value,
    * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link java.util.Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    * If an entry's value is null, its mapping will be removed from the store.
-   * </P>
-   * <P>
-   *   Note that the remapping function can be invoked multiple times with key subsets but that it will never the see
-   *   the same key in different invocations.
-   * </P>
-   * <P>
-   *   Behaviour is equivalent to compute invocations in an external loop. There is no cross key atomicity
-   *   guarantee / requirement. Implementations may provide coarser grained guarantees.
-   * </P>
-   * <P>
-   * This is equivalent to calling {@link Store#bulkCompute(Set, Function, NullaryFunction)}
+   * <p>
+   * Note that the remapping function can be invoked multiple times with key subsets but that it will never the see
+   * the same key in different invocations.
+   * <p>
+   * Behaviour is equivalent to compute invocations in an external loop. There is no cross key atomicity
+   * guarantee / requirement. Implementations may provide coarser grained guarantees.
+   * <p>
+   * This is equivalent to calling {@link Store#bulkCompute(Set, Function, Supplier)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE true}
-   * </P>
    *
    * @param keys the set of keys on which to compute values
    * @param remappingFunction the function that generates new values
@@ -432,20 +409,17 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
-   * <P>
+   * <p>
    * The function gets an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value,
    * or null if nothing is stored under the key. It is expected that the function returns an {@link Iterable} of {@link java.util.Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
    * If an entry's value is null, its mapping will be removed from the store.
-   * </P>
-   * <P>
-   *   Note that the remapping function can be invoked multiple times with key subsets but that it will never the see
-   *   the same key in different invocations.
-   * </P>
-   * <P>
-   *   Behaviour is equivalent to compute invocations in an external loop. There is no cross key atomicity
-   *   guarantee / requirement. Implementations may provide coarser grained guarantees.
-   * </P>
+   * <p>
+   * Note that the remapping function can be invoked multiple times with key subsets but that it will never the see
+   * the same key in different invocations.
+   * <p>
+   * Behaviour is equivalent to compute invocations in an external loop. There is no cross key atomicity
+   * guarantee / requirement. Implementations may provide coarser grained guarantees.
    *
    * @param keys the set of keys on which to compute values
    * @param remappingFunction the function that generates new values
@@ -460,18 +434,18 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws NullPointerException if any of the arguments is null
    * @throws StoreAccessException if mappings can't be changed
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} <code>keys</code> argument using the <code>mappingFunction</code>
    * to compute the value.
-   *
+   * <p>
    * The function gets an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value
    * for each key that is not mapped in the store. It is expected that the function returns an {@link Iterable} of {@link java.util.Map.Entry}
    * key/value pairs containing an entry for each key that was passed to it. This returned {@link Iterable} should also iterate in the same order as the input {@link Iterable}.
-   *
+   * <p>
    * The function may be called multiple times per <code>bulkComputeIfAbsent</code> call, depending on how the store wants or does not want to batch computations.
-   *
+   * <p>
    * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
    *
    * @param keys the keys to compute a new value for, if they're not in the store.
@@ -479,7 +453,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
-   * @throws StoreAccessException
+   * @throws StoreAccessException when a failure occurs when accessing the store
    */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException;
 
@@ -488,7 +462,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param <V> the value type
    */
-  interface ValueHolder<V> extends ValueSupplier<V> {
+  interface ValueHolder<V> extends Supplier<V> {
 
     /**
      * Constant value indicating no expiration - an eternal mapping.
@@ -498,49 +472,31 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * Accessor to the creation time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the given unit
+     * @return the creation time in milliseconds
      */
-    long creationTime(TimeUnit unit);
+    long creationTime();
 
     /**
      * Accessor to the expiration time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the expiration time in the given unit. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
+     * @return the expiration time in milliseconds. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
      */
-    long expirationTime(TimeUnit unit);
+    long expirationTime();
 
     /**
      * Check if the ValueHolder is expired relative to the specified time
      *
-     * @param expirationTime the expiration time relative to which the expiry check must be made
-     * @param unit the unit of the expiration time
+     * @param expirationTime the expiration time (in ms) relative to which the expiry check must be made
      * @return true if the ValueHolder expired relative to the given expiration time
      */
-    boolean isExpired(long expirationTime, TimeUnit unit);
+    boolean isExpired(long expirationTime);
 
     /**
      * Accessor to the last access time of the Value held in this ValueHolder
      *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the given unit
+     * @return the last access time in milliseconds
      */
-    long lastAccessTime(TimeUnit unit);
-
-    /**
-     * Accessor to the hit rate of the value held in this {@code ValueHolder}.
-     *
-     * @param now the time in {@link TimeUnit#MILLISECONDS} upto which the rate needs to be calculated
-     * @param unit the {@link TimeUnit} in which the rate is to returned
-     * @return the hit rate in the given unit
-     */
-    float hitRate(long now, TimeUnit unit);
-
-    /**
-     * @return hit counter of the Value held in this ValueHolder
-     */
-    long hits();
+    long lastAccessTime();
 
     /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be
@@ -551,11 +507,19 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     long getId();
 
+    /**
+     * Returns the value held by this value holder. This value can't be {@code null}.
+     *
+     * @return the value held
+     */
+    @Nonnull
+    @Override
+    V get();
   }
 
   /**
    * The Service used to create Stores.
-   * Implementation of {@link Provider} have be thread-safe.
+   * Implementation of {@link Provider} have to be thread-safe.
    */
   @PluralService
   interface Provider extends Service {
@@ -620,9 +584,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
     /**
      * The {@link EvictionAdvisor} indicates if mappings should be advised against eviction.
-     * <P>
-     *   The {@code Store} will use best effort to prevent eviction of advised mappings.
-     * </P>
+     * <p>
+     * The {@code Store} will use best effort to prevent eviction of advised mappings.
      *
      * @return the eviction advisor
      */
@@ -636,7 +599,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * The expiration policy instance for this store
      */
-    Expiry<? super K, ? super V> getExpiry();
+    ExpiryPolicy<? super K, ? super V> getExpiry();
 
     /**
      * The resource pools this store can make use of
@@ -657,6 +620,28 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The concurrency level of the dispatcher that processes events
      */
     int getDispatcherConcurrency();
+
+    /**
+     * If operation statistics (e.g. get/put count) should be enabled. It is
+     * a default method to keep the original behavior which was enabled all the time.
+     */
+    default boolean isOperationStatisticsEnabled() {
+      return true;
+    }
+
+    /**
+     *
+     * Cache Loader-Writer for the store
+     *
+     */
+    CacheLoaderWriter<? super K, V> getCacheLoaderWriter();
+
+    /**
+     * Whether Store should use loader-writer in atomic ops or not
+     */
+    default boolean useLoaderInAtomics() {
+      return false;
+    }
   }
 
   /**
@@ -690,13 +675,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    */
   enum PutStatus {
     /**
-     * New value was put
+     * Value was put
      */
     PUT,
-    /**
-     * New value was put and replace old value
-     */
-    UPDATE,
     /**
      * New value was dropped
      */

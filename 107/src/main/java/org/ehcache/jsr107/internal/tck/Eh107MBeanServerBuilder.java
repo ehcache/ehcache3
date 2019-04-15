@@ -25,8 +25,6 @@ import javax.management.Notification;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 
-import com.sun.jmx.mbeanserver.JmxMBeanServer;
-
 /**
  * @author Alex Snaps
  */
@@ -42,7 +40,7 @@ public class Eh107MBeanServerBuilder extends MBeanServerBuilder {
   @Override
   public MBeanServer newMBeanServer(String defaultDomain, MBeanServer outer, MBeanServerDelegate delegate) {
     MBeanServerDelegate decoratingDelegate = new Eh107MBeanServerDelegate(delegate);
-    return JmxMBeanServer.newMBeanServer(defaultDomain, outer, decoratingDelegate, false);
+    return super.newMBeanServer(defaultDomain, outer, decoratingDelegate);
   }
 
   /**

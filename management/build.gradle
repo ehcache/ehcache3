@@ -17,10 +17,21 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':api'), project(':core'), project(':impl')
-  compile group: 'org.terracotta.management', name: 'management-registry', version: parent.managementVersion
-}
+  // optional: if we want xml config
+  compileOnly project(':xml')
 
-repositories {
-  maven { url "http://snapshots.terracotta.org/" }
+  // optional: if we want to use the clustered management layer
+  compileOnly project(':clustered:client')
+  compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
+  compileOnly "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
+
+  compileOnly project(':api')
+  compileOnly project(':core')
+  compileOnly project(':impl')
+  testImplementation "org.terracotta.management:management-registry:$terracottaPlatformVersion"
+  testImplementation project(':xml')
+  testImplementation project(':impl')
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
+  testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
 }

@@ -18,6 +18,8 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.store.Store;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * BasicOffHeapValueHolder
  */
@@ -26,14 +28,13 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
   private final V value;
 
   public BasicOffHeapValueHolder(long id, V value, long creationTime, long expireTime) {
-    this(id, value, creationTime, expireTime, 0, 0);
+    this(id, value, creationTime, expireTime, 0);
   }
 
-  public BasicOffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime, long hits) {
+  public BasicOffHeapValueHolder(long id, V value, long creationTime, long expireTime, long lastAccessTime) {
     super(id, creationTime, expireTime);
-    setLastAccessTime(lastAccessTime, TIME_UNIT);
+    setLastAccessTime(lastAccessTime);
     this.value = value;
-    this.setHits(hits);
   }
 
   @Override
@@ -57,7 +58,7 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 }

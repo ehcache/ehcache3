@@ -19,9 +19,9 @@ package org.ehcache.impl.internal.store.offheap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.terracotta.offheapstore.Segment;
 
 public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, OffHeapMapStatistics {
@@ -40,21 +40,10 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
   V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin);
 
   /**
-   * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   *
-   * @return the mapped value
-   */
-  V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction);
-
-  /**
    * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already and
    * was pinned.
-   * <P>
-   *   The unpin function indicates if the mapping is to be unpinned or not after the operation.
-   * </P>
+   * <p>
+   * The unpin function indicates if the mapping is to be unpinned or not after the operation.
    *
    * @param key the key to operate on
    * @param remappingFunction the function returning the new value
@@ -67,9 +56,8 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
   /**
    * Computes a new value for the given key if a mapping is present, <code>BiFunction</code> is invoked
    * under appropriate lock scope.
-   * <P>
+   * <p>
    * The pinning bit from the metadata will be set on the resulting mapping.
-   * </P>
    *
    * @param key the key of the mapping to compute the value for
    * @param mappingFunction the function used to compute the new value

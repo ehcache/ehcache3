@@ -175,7 +175,7 @@ public class StatusTransitionerTest {
   @Test
   public void testRepectRegistrationOrder() {
 
-    final List<LifeCycled> order = new ArrayList<LifeCycled>();
+    final List<LifeCycled> order = new ArrayList<>();
 
     final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
 
@@ -258,7 +258,7 @@ public class StatusTransitionerTest {
   @Test
   public void testLifeCycledAdapterCanBeUsedInsteadOfLifeCycled() {
     StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
-    final List<String> calls = new LinkedList<String>();
+    final List<String> calls = new LinkedList<>();
 
     LifeCycledAdapter adapter1 = new LifeCycledAdapter() {
     };
@@ -309,7 +309,7 @@ public class StatusTransitionerTest {
       st.failed(new Throwable());
       fail();
     } catch (AssertionError err) {
-      assertThat(err.getMessage(), is("Throwable cannot be null if Transition is done."));
+      assertThat(err.getMessage(), is("Throwable cannot be thrown if Transition is done."));
     }
 
     st.failed(null);

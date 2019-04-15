@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<eh:config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns:eh='http://www.ehcache.org/v3'
+    xmlns:tc='http://www.ehcache.org/v3/clustered'>
+
+  <eh:service>
+    <tc:cluster>
+      <tc:connection url="terracotta://example.com/myCacheManager"/>
+      <tc:server-side-config auto-create="false"/>
+    </tc:cluster>
+  </eh:service>
+
+  <eh:cache alias="unknownCache">
+    <eh:resources>
+      <tc:clustered></tc:clustered>
+    </eh:resources>
+  </eh:cache>
+
+</eh:config>

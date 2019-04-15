@@ -29,8 +29,8 @@ public abstract class SPITester {
     Result result = new Result();
     result.testRunStarted();
     Class<? extends SPITester> testClass = getClass();
-    ArrayList<Method> beforeMethodList = new ArrayList<Method>();
-    ArrayList<Method> afterMethodList = new ArrayList<Method>();
+    ArrayList<Method> beforeMethodList = new ArrayList<>();
+    ArrayList<Method> afterMethodList = new ArrayList<>();
     for(Method m : testClass.getDeclaredMethods()){
       if (m.isAnnotationPresent(Before.class)) {
         beforeMethodList.add(m);

@@ -40,14 +40,14 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private static final Logger LOGGER = LoggerFactory.getLogger(NonBatchingLocalHeapWriteBehindQueue.class);
 
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
-  private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
+  private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<>();
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
 
   public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
-    this.executorQueue = new LinkedBlockingQueue<Runnable>(config.getMaxQueueSize());
+    this.executorQueue = new LinkedBlockingQueue<>(config.getMaxQueueSize());
     if (config.getThreadPoolAlias() == null) {
       this.executor = executionService.getOrderedExecutor(defaultThreadPool, executorQueue);
     } else {
@@ -57,6 +57,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
 
   @Override
   protected SingleOperation<K, V> getOperation(K key) {
+
     return latest.get(key);
   }
 
@@ -64,17 +65,13 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   protected void addOperation(final SingleOperation<K, V> operation) {
     latest.put(operation.getKey(), operation);
 
-    submit(new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          operation.performSingleOperation(cacheLoaderWriter);
-        } catch (Exception e) {
-          LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
-        } finally {
-          latest.remove(operation.getKey(), operation);
-        }
+    submit(() -> {
+      try {
+        operation.performOperation(cacheLoaderWriter);
+      } catch (Exception e) {
+        LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
+      } finally {
+        latest.remove(operation.getKey(), operation);
       }
     });
   }

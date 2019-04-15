@@ -23,9 +23,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
+import org.ehcache.clustered.common.EhcacheEntityVersion;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.AfterClass;
@@ -39,17 +49,26 @@ import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class CacheManagerLifecycleEhcacheIntegrationTest {
+public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
+
+  private static final String RESOURCE_CONFIG =
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+      + "<ohr:offheap-resources>"
+      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+      + "</ohr:offheap-resources>" +
+      "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass
@@ -60,14 +79,14 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @Test
   public void testAutoCreatedCacheManager() throws Exception {
-    assertEntityNotExists(EhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager?auto-create")).build())
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
             .build();
-    assertEntityNotExists(EhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
     try {
-      assertEntityExists(EhcacheClientEntity.class, "testAutoCreatedCacheManager");
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     } finally {
       manager.close();
     }
@@ -79,12 +98,42 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     PersistentCacheManager manager = (PersistentCacheManager) newCacheManager(new XmlConfiguration(substitutedXml));
-    assertEntityNotExists(EhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     manager.init();
     try {
-      assertEntityExists(EhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     } finally {
       manager.close();
+    }
+  }
+
+  @Test
+  public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+
+    final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
+
+    Callable<PersistentCacheManager> task = () -> {
+      PersistentCacheManager manager = managerBuilder.build();
+      manager.init();
+      return manager;
+    };
+
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      List<Future<PersistentCacheManager>> results = executor.invokeAll(Collections.nCopies(4, task), 30, TimeUnit.SECONDS);
+      for (Future<PersistentCacheManager> result : results) {
+        assertThat(result.isDone(), is(true));
+      }
+      for (Future<PersistentCacheManager> result : results) {
+        result.get().close();
+      }
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    } finally {
+      executor.shutdown();
     }
   }
 
@@ -101,35 +150,27 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
   }
 
   private static <T extends Entity> void assertEntityExists(Class<T> entityClazz, String entityName) throws ConnectionException, IOException {
-    Connection connection = getAssertionConnection();
-    try {
+    try (Connection connection = getAssertionConnection()) {
       fetchEntity(connection, entityClazz, entityName);
     } catch (EntityNotFoundException ex) {
       throw new AssertionError(ex);
-    } finally {
-      connection.close();
     }
   }
 
 
   private static <T extends Entity> void assertEntityNotExists(Class<T> entityClazz, String entityName) throws ConnectionException, IOException {
-    Connection connection = getAssertionConnection();
-    try {
+    try (Connection connection = getAssertionConnection()) {
       fetchEntity(connection, entityClazz, entityName);
       throw new AssertionError("Expected EntityNotFoundException");
     } catch (EntityNotFoundException ex) {
       //expected
-    } finally {
-      connection.close();
     }
   }
 
   private static <T extends Entity> void fetchEntity(Connection connection, Class<T> aClass, String myCacheManager) throws EntityNotFoundException, ConnectionException {
     try {
-      connection.getEntityRef(aClass, 1, myCacheManager).fetchEntity().close();
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    } catch (EntityVersionMismatchException e) {
+      connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity(null).close();
+    } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
       throw new AssertionError(e);
     }
   }
@@ -137,7 +178,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
   private synchronized static Connection getAssertionConnection() throws ConnectionException {
     return new Connection() {
       @Override
-      public <T extends Entity, C> EntityRef<T, C> getEntityRef(Class<T> cls, long version, String name) throws EntityNotProvidedException {
+      public<T extends Entity, C, U> EntityRef<T, C, U>  getEntityRef(Class<T> cls, long version, String name) throws EntityNotProvidedException {
         return ASSERTION_CONNECTION.getEntityRef(cls, version, name);
       }
 
@@ -153,26 +194,19 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
     ASSERTION_CONNECTION.close();
   }
 
-  private static URL substitute(URL input, String variable, String substitution) throws IOException {
+  static URL substitute(URL input, String variable, String substitution) throws IOException {
     File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
-    BufferedWriter writer = new BufferedWriter(new FileWriter(output));
-    try {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"));
-      try {
-        while (true) {
-          String line = reader.readLine();
-          if (line == null) {
-            break;
-          } else {
-            writer.write(line.replace("${" + variable + "}", substitution));
-            writer.newLine();
-          }
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(output));
+         BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"))) {
+      while (true) {
+        String line = reader.readLine();
+        if (line == null) {
+          break;
+        } else {
+          writer.write(line.replace("${" + variable + "}", substitution));
+          writer.newLine();
         }
-      } finally {
-        reader.close();
       }
-    } finally {
-      writer.close();
     }
     return output.toURI().toURL();
   }

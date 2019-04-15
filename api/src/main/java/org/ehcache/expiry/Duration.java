@@ -19,14 +19,19 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A time duration in a given {@link TimeUnit}.
+ *
+ * @see java.time.Duration
+ * @see ExpiryPolicy
+ *
+ * @deprecated Replaced with {@link java.time.Duration}
  */
+@Deprecated
 public final class Duration {
 
   /**
    * The infinite {@code Duration}.
-   * <P>
-   *   This constant should be used to express a lack of a concrete expiration time (ie. "eternal").
-   * </P>
+   * <p>
+   * This constant should be used to express a lack of a concrete expiration time (ie. "eternal").
    */
   public static final Duration INFINITE = new Duration(0, null, true);
 

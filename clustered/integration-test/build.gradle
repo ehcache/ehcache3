@@ -14,35 +14,64 @@
  * limitations under the License.
  */
 
-dependencies {
-  testCompile project(':clustered:dist')
+configurations {
+  serverLibs
+}
 
-  testCompile group:'org.terracotta', name:'coordinator-entity-server', version:parent.coordinatorVersion changing true
-  testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-SNAPSHOT' changing true
+dependencies {
+  // not required by gradle but required by the IDE because 'dist' does not have any transitive dependencies
+  testCompileOnly project(':clustered:client')
+  testCompileOnly project(':clustered:common')
+  testCompileOnly project(':impl')
+  testCompileOnly project(':xml')
+  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
+  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
+
+  testImplementation project(':management')
+  testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testRuntimeOnly project(':clustered:clustered-dist')
+  testRuntimeOnly project(':dist')
+
+  testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+
+  testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
+  testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
+    exclude group:'junit', module:'junit'
+    exclude group:'org.hamcrest', module:'hamcrest-core'
+  }
+  testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
+
+  serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
+    exclude group:'org.terracotta.management.dist', module:'mnm-common'
+  }
 }
 
 task unzipKit(type: Copy) {
-  dependsOn project(':clustered:dist').distZip
-  from zipTree(project(':clustered:dist').distZip.archivePath)
+  dependsOn project(':clustered:clustered-dist').distZip
+  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
-def java8 = {
-  JavaVersion.current().isJava8Compatible()
-}
-
-compileTestJava {
-  options.fork = true;
-  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+task copyServerLibs(type: Copy) {
+  dependsOn unzipKit
+  from project.configurations.serverLibs
+  into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
 test {
-  dependsOn unzipKit
-  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
-  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
-  environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/ehcache-clustered-$project.version-kit/terracotta-$parent.terracottaCoreVersion"
+  dependsOn copyServerLibs
+  environment 'JAVA_HOME', testJava.javaHome
+  if (testJava.javaVersion.isJava9Compatible()) {
+    environment 'JAVA_OPTS', '--add-modules java.xml.bind'
+  }
+  //If this directory does not exist, tests will fail with a cryptic assert failure
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
+}.doFirst {
+  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("Clustered Tests Not Working in Java 11")
 }
 

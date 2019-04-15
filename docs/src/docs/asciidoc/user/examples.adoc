@@ -1,9 +1,9 @@
 ---
 ---
 = Examples
-ifndef::sourcedir[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,19 +11,19 @@ endif::notBuildingForSite[]
 
 == Peeper - a simple message board
 
-The `demo` directory in the Ehcache 3.0 sources includes a sample applications with two (2)
+The `demo` directory in the Ehcache 3 sources includes a sample applications with two (2)
 implementations demonstrating Ehcache use.  Implemented as a simple
-browser-based web service, the sample application, Peeper, displays any messages (_peeps_)
-previously entered and accepts new peeps recording the peeps in a database.  The peeps
+browser-based web service, the sample application Peeper displays any messages (_peeps_)
+previously entered and accepts new peeps, recording the peeps in a database.  The peeps
 database, shared among implementations of the Peeper application, is located at
 +$HOME/ehcache-demo-peeper.mv.db+.  This file may be safely erased while the application
-is not running.  While running, information about the operation of Peeper application
+is not running.  While running, information about the operation of the Peeper application
 (database access, cache access, etc.) is written to the console.
 
 While the sample application may be run, the application is _very_ simplistic -- the code
 implementing the sample is the interesting bit. Running the sample application requires the
-use of https://gradle.org/[Gradle].  This sample may be accessed from GitHub by _cloning_
-the Ehcache 3.0 git repository:
+use of https://gradle.org/[Gradle]. This sample may be accessed from GitHub by _cloning_
+the Ehcache 3 git repository:
 
 [source,bash]
 ----
@@ -35,17 +35,16 @@ git clone https://github.com/ehcache/ehcache3.git
 
 The first sample, located in +demos/00-NoCache+, is a base Peeper application that
 does *not* use caching.  Each peep is stored in the database and all peeps are read
-from the database to display the Peeper web page.  To run this implementation:
+from the database to display the Peeper web page. To run this implementation:
 
 [source,bash]
 ----
 cd ehcache3/demos/00-NoCache
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
-and displays the URL of the web server on the console.  The URL will be something like
-+http://localhost:8080/ehcache-demos/00-NoCache/+.
+and displays the URL of the web server on the console. The URL should be +http://localhost:8080/+.
 
 While running, lines like the following are displayed to the console:
 [source]
@@ -66,7 +65,7 @@ Note the absence of indications of interactions with a cache.
 === Peeper with Cache-aside Caching -- +01-CacheAside+
 
 The second sample, located in +demos/01-CacheAside+, is a version of the Peeper application
-that makes use of Ehcache.  As each peep is being read from the database (for display in the web
+that makes use of Ehcache.  As each peep is read from the database (for display in the web
 page), it is written to an Ehcache instance.  If the Peeper web page is refreshed
 (without adding a new peep) or a new Peeper client connects, the peeps are read from
 the cache (instead of the database) to form the web page.  If a new peep is posted,
@@ -75,12 +74,11 @@ the cache is cleared.  To run this implementation:
 [source,bash]
 ----
 cd ehcache3/demos/01-CacheAside
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
-and displays the URL of the web server on the console.  The URL will be something like
-+http://localhost:8080/ehcache-demos/01-CacheAside/+.
+and displays the URL of the web server on the console. The URL, again, should be +http://localhost:8080/+.
 
 While running, lines like the following are displayed to the console:
 [source]
@@ -104,5 +102,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::{sourcedir}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir37}/107/src/test/resources/ehcache-example.xml[]
 ----

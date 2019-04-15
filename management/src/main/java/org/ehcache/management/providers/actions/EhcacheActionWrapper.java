@@ -15,68 +15,47 @@
  */
 package org.ehcache.management.providers.actions;
 
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.model.context.Context;
+import org.ehcache.management.providers.ExposedCacheBinding;
+import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.action.Exposed;
-import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-/**
- * @author Ludovic Orban
- */
-public class EhcacheActionWrapper implements ExposedObject<CacheBinding> {
+// must be public for reflexion management calls
+public class EhcacheActionWrapper extends ExposedCacheBinding {
 
-  private final CacheBinding managedObject;
-  private final Context cacheContext;
-
-  public EhcacheActionWrapper(Context cacheContext, CacheBinding managedObject) {
-    this.cacheContext = cacheContext;
-    this.managedObject = managedObject;
-  }
-
-  @Override
-  public ClassLoader getClassLoader() {
-    return managedObject.getCache().getRuntimeConfiguration().getClassLoader();
-  }
-
-  @Override
-  public CacheBinding getTarget() {
-    return managedObject;
-  }
-
-  @Override
-  public boolean matches(Context context) {
-    return context.contains(cacheContext);
+  EhcacheActionWrapper(ManagementRegistryServiceConfiguration registryServiceConfiguration, CacheBinding cacheBinding) {
+    super(registryServiceConfiguration, cacheBinding);
   }
 
   @Exposed
   public void clear() {
-    managedObject.getCache().clear();
+    cacheBinding.getCache().clear();
   }
 
   @SuppressWarnings("unchecked")
   @Exposed
   public Object get(@Named("key") Object key) {
-    Object convertedKey = convert(key, managedObject.getCache().getRuntimeConfiguration().getKeyType());
-    return managedObject.getCache().get(convertedKey);
+    Object convertedKey = convert(key, cacheBinding.getCache().getRuntimeConfiguration().getKeyType());
+    return cacheBinding.getCache().get(convertedKey);
   }
 
   @SuppressWarnings("unchecked")
   @Exposed
   public void remove(@Named("key") Object key) {
-    Object convertedKey = convert(key, managedObject.getCache().getRuntimeConfiguration().getKeyType());
-    managedObject.getCache().remove(convertedKey);
+    Object convertedKey = convert(key, cacheBinding.getCache().getRuntimeConfiguration().getKeyType());
+    cacheBinding.getCache().remove(convertedKey);
   }
 
   @SuppressWarnings("unchecked")
   @Exposed
   public void put(@Named("key") Object key, @Named("value") Object value) {
-    Object convertedKey = convert(key, managedObject.getCache().getRuntimeConfiguration().getKeyType());
-    Object convertedValue = convert(value, managedObject.getCache().getRuntimeConfiguration().getValueType());
-    managedObject.getCache().put(convertedKey, convertedValue);
+    Object convertedKey = convert(key, cacheBinding.getCache().getRuntimeConfiguration().getKeyType());
+    Object convertedValue = convert(value, cacheBinding.getCache().getRuntimeConfiguration().getValueType());
+    cacheBinding.getCache().put(convertedKey, convertedValue);
   }
 
   private static Object convert(Object srcObj, Class<?> destClazz) {
@@ -90,9 +69,7 @@ public class EhcacheActionWrapper implements ExposedObject<CacheBinding> {
       throw new IllegalArgumentException("No conversion possible from " + srcObj.getClass().getName() + " to " + destClazz.getName(), e);
     } catch (InstantiationException e) {
       throw new IllegalArgumentException("Conversion error from " + srcObj.getClass().getName() + " to " + destClazz.getName(), e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
+    } catch (IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

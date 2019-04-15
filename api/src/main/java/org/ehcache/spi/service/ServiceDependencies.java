@@ -31,5 +31,5 @@ public @interface ServiceDependencies {
   /**
    * Array of {@link Service} dependency classes
    */
-  Class[] value();
+  Class<? extends Service>[] value();
 }

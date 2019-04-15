@@ -16,8 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
@@ -43,24 +42,13 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
     this.classLoader = classLoader;
   }
 
-  public PlainJavaSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistence) throws IOException, ClassNotFoundException {
-    this(classLoader);
-  }
-
   @Override
   public ByteBuffer serialize(T object) {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    try {
-      ObjectOutputStream oout = new ObjectOutputStream(bout);
+    try(ObjectOutputStream oout = new ObjectOutputStream(bout)) {
       oout.writeObject(object);
     } catch (IOException e) {
       throw new SerializerException(e);
-    } finally {
-      try {
-        bout.close();
-      } catch (IOException e) {
-        throw new AssertionError(e);
-      }
     }
     return ByteBuffer.wrap(bout.toByteArray());
   }
@@ -70,11 +58,8 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
   public T read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      OIS ois = new OIS(bin, classLoader);
-      try {
+      try (OIS ois = new OIS(bin, classLoader)) {
         return (T) ois.readObject();
-      } finally {
-        ois.close();
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -102,7 +87,7 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
     }
 
     @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+    protected Class<?> resolveClass(ObjectStreamClass desc) throws ClassNotFoundException {
       try {
         return Class.forName(desc.getName(), false, classLoader);
       } catch (ClassNotFoundException cnfe) {
@@ -115,8 +100,8 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
     }
 
     @Override
-    protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
-      Class<?>[] interfaceClasses = new Class[interfaces.length];
+    protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
+      Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }
@@ -124,7 +109,7 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
     static {
       primitiveClasses.put("boolean", boolean.class);
       primitiveClasses.put("byte", byte.class);

@@ -30,7 +30,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing
@@ -63,15 +63,15 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
     String threadPoolAlias = defaultThreadPoolAlias;
-    DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
+    DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, (Object[]) serviceConfigs);
     if (config != null) {
       threadPoolAlias = config.getThreadPoolAlias();
     }
 
-    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
-    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
+    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
 
-    return new CacheEventDispatcherImpl<K, V>(unOrderedExecutor, orderedExecutor);
+    return new CacheEventDispatcherImpl<>(unOrderedExecutor, orderedExecutor);
   }
 
   @Override

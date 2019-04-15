@@ -27,11 +27,11 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   private static final long serialVersionUID = 8460535666272347345L;
 
-  private final CacheEvent<K, V> ehEvent;
+  private final CacheEvent<? extends K, ? extends V> ehEvent;
 
   private final boolean hasOldValue;
 
-  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent,
+  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, CacheEvent<? extends K, ? extends V> ehEvent,
       boolean hasOldValue) {
     super(source, eventType);
     this.ehEvent = ehEvent;
@@ -63,7 +63,9 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   static class NormalEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
 
-    public NormalEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
+    private static final long serialVersionUID = 1566947833363986792L;
+
+    public NormalEvent(Cache<K, V> source, EventType eventType, CacheEvent<? extends K, ? extends V> ehEvent, boolean hasOldValue) {
       super(source, eventType, ehEvent, hasOldValue);
     }
 
@@ -75,7 +77,9 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   static class RemovingEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
 
-    public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
+    private static final long serialVersionUID = -1363817518693572909L;
+
+    public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<? extends K, ? extends V> ehEvent, boolean hasOldValue) {
       super(source, eventType, ehEvent, hasOldValue);
     }
 

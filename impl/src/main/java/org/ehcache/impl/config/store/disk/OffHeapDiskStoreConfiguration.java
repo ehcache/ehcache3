@@ -24,11 +24,26 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
 
+  public static final int DEFAULT_WRITER_CONCURRENCY = 1;
+  public static final int DEFAULT_DISK_SEGMENTS = 16;
+
   private final String threadPoolAlias;
   private final int writerConcurrency;
+  private final int diskSegments;
 
   /**
-   * Creates a new configuration instance using the provided parameters.
+   * Creates a new configuration instance using the provided {@code diskSegments}. Other attributes are set to their default
+   * ({@code null} for {@code threadPoolAlias} and {@link #DEFAULT_WRITER_CONCURRENCY} for {@code writerConcurrency}).
+   *
+   * @param diskSegments number of disk segments allocated. The more disk segments there is, the more concurrency you get but
+   *               the more resources you are using (mainly file pointers)
+   */
+  public OffHeapDiskStoreConfiguration(int diskSegments) {
+    this(null, DEFAULT_WRITER_CONCURRENCY, diskSegments);
+  }
+
+  /**
+   * Creates a new configuration instance using the provided parameters. {@code diskSegments} is set to {@link #DEFAULT_DISK_SEGMENTS}.
    *
    * @param threadPoolAlias the thread pool alias
    * @param writerConcurrency the writer concurrency
@@ -36,8 +51,23 @@ public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHe
    * @see org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration
    */
   public OffHeapDiskStoreConfiguration(String threadPoolAlias, int writerConcurrency) {
+    this(threadPoolAlias, writerConcurrency, DEFAULT_DISK_SEGMENTS);
+  }
+
+  /**
+   * Creates a new configuration instance using the provided parameters.
+   *
+   * @param threadPoolAlias the thread pool alias
+   * @param writerConcurrency the writer concurrency
+   * @param diskSegments number of disk segments allocated. The more disk segments there is, the more concurrency you get but
+   *               the more resources you are using (mainly file pointers)
+   *
+   * @see org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration
+   */
+  public OffHeapDiskStoreConfiguration(String threadPoolAlias, int writerConcurrency, int diskSegments) {
     this.threadPoolAlias = threadPoolAlias;
     this.writerConcurrency = writerConcurrency;
+    this.diskSegments = diskSegments;
   }
 
   /**
@@ -58,6 +88,15 @@ public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHe
    */
   public int getWriterConcurrency() {
     return writerConcurrency;
+  }
+
+  /**
+   * Returns the number of disk segments created
+   *
+   * @return the number of segments
+   */
+  public int getDiskSegments() {
+    return diskSegments;
   }
 
   /**

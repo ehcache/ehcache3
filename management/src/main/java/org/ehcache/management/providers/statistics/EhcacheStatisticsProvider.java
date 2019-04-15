@@ -15,80 +15,65 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.management.config.StatisticsProviderConfiguration;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.model.capabilities.Capability;
-import org.terracotta.management.model.capabilities.StatisticsCapability;
+import org.ehcache.management.providers.CacheBindingManagementProvider;
+import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.AbstractManagementProvider;
-import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.registry.DefaultStatisticsManagementProvider;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.collect.StatisticProvider;
+import org.terracotta.statistics.registry.Statistic;
 
+import java.io.Serializable;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.Objects;
 
-/**
- * @author Ludovic Orban
- */
+import static java.util.stream.Collectors.toList;
+
 @Named("StatisticsCapability")
-@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
-public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheBinding> {
+@StatisticProvider
+public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private final StatisticsProviderConfiguration configuration;
-  private final ScheduledExecutorService executor;
-  private final Context cmContex;
+  private final StatisticsService statisticsService;
+  private final TimeSource timeSource;
 
-  public EhcacheStatisticsProvider(Context cmContex, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
-    super(CacheBinding.class);
-    this.cmContex = cmContex;
-    this.configuration = statisticsProviderConfiguration;
-    this.executor = executor;
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, StatisticsService statisticsService, TimeSource timeSource) {
+    super(configuration);
+    this.statisticsService = Objects.requireNonNull(statisticsService);
+    this.timeSource = Objects.requireNonNull(timeSource);
   }
 
   @Override
-  protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(cmContex.with("cacheName", cacheBinding.getAlias()), cacheBinding, configuration, executor);
+  protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsService, timeSource);
   }
 
   @Override
-  protected void dispose(ExposedObject<CacheBinding> exposedObject) {
-    ((EhcacheStatistics) exposedObject).dispose();
+  public final Collection<? extends Descriptor> getDescriptors() {
+    // To keep ordering because these objects end up in an immutable
+    // topology so this is easier for testing to compare with json payloads
+    return super.getDescriptors()
+      .stream()
+      .map(d -> (StatisticDescriptor) d)
+      .sorted(STATISTIC_DESCRIPTOR_COMPARATOR)
+      .collect(toList());
   }
 
   @Override
-  public Capability getCapability() {
-    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(configuration.averageWindowDuration(),
-        configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(),
-        configuration.historyIntervalUnit(), configuration.timeToDisable(), configuration.timeToDisableUnit());
-    return new StatisticsCapability(getCapabilityName(), properties, getDescriptors(), getCapabilityContext());
-  }
-
-  @Override
-  public Set<Descriptor> getDescriptors() {
-    Set<Descriptor> capabilities = new HashSet<Descriptor>();
-    for (ExposedObject ehcacheStatistics : managedObjects) {
-      capabilities.addAll(((EhcacheStatistics) ehcacheStatistics).getDescriptors());
+  public Map<String, Statistic<? extends Serializable>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
+    StandardEhcacheStatistics exposedObject = (StandardEhcacheStatistics) findExposedObject(context);
+    if (exposedObject == null) {
+      return Collections.emptyMap();
     }
-    return capabilities;
-  }
+    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames, since);
 
-  @Override
-  public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
-    Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
-    EhcacheStatistics ehcacheStatistics = (EhcacheStatistics) findExposedObject(context);
-    if (ehcacheStatistics != null) {
-      for (String statisticName : statisticNames) {
-        statistics.putAll(ehcacheStatistics.queryStatistic(statisticName, since));
-      }
-    }
-    return statistics;
   }
 
 }

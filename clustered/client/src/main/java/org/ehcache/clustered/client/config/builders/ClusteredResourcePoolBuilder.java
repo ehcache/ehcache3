@@ -16,11 +16,13 @@
 
 package org.ehcache.clustered.client.config.builders;
 
-import org.ehcache.clustered.client.config.FixedClusteredResourcePool;
 import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
-import org.ehcache.clustered.client.internal.config.FixedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.internal.config.ClusteredResourcePoolImpl;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 /**
  * Constructs a {@link org.ehcache.config.ResourcePool ResourcePool} for a clustered resource.
@@ -32,25 +34,25 @@ public final class ClusteredResourcePoolBuilder {
   }
 
   /**
-   * Creates a new clustered resource pool using fixed clustered resources.
+   * Creates a new clustered resource pool using dedicated clustered resources.
    *
    * @param size       the size
    * @param unit       the unit for the size
    */
-  public static FixedClusteredResourcePool fixed(long size, MemoryUnit unit) {
-    return new FixedClusteredResourcePoolImpl(null, size, unit);
+  public static DedicatedClusteredResourcePool clusteredDedicated(long size, MemoryUnit unit) {
+    return new DedicatedClusteredResourcePoolImpl(null, size, unit);
   }
 
   /**
-   * Creates a new clustered resource pool using fixed clustered resources.
+   * Creates a new clustered resource pool using dedicated clustered resources.
    *
-   * @param fromResource the name of the server-based resource from which this fixed resource pool
-   *                     is reserved; may be {@code null}
+   * @param fromResource the name of the server-based resource from which this dedicated resource pool
+                     is reserved; may be {@code null}
    * @param size       the size
    * @param unit       the unit for the size
    */
-  public static FixedClusteredResourcePool fixed(String fromResource, long size, MemoryUnit unit) {
-    return new FixedClusteredResourcePoolImpl(fromResource, size, unit);
+  public static DedicatedClusteredResourcePool clusteredDedicated(String fromResource, long size, MemoryUnit unit) {
+    return new DedicatedClusteredResourcePoolImpl(fromResource, size, unit);
   }
 
   /**
@@ -59,7 +61,14 @@ public final class ClusteredResourcePoolBuilder {
    * @param sharedResource the non-{@code null} name of the server-based resource pool whose space is shared
    *                       by this pool
    */
-  public static SharedClusteredResourcePool shared(String sharedResource) {
+  public static SharedClusteredResourcePool clusteredShared(String sharedResource) {
     return new SharedClusteredResourcePoolImpl(sharedResource);
+  }
+
+  /**
+   * Creates a resource pool that inherits the resources already configured on the server.
+   */
+  public static ClusteredResourcePool clustered() {
+    return new ClusteredResourcePoolImpl();
   }
 }

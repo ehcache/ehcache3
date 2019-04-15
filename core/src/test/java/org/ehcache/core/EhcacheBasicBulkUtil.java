@@ -31,7 +31,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Utility methods and common data for {@link EhcacheWithLoaderWriter Ehcache}
+ * Utility methods and common data for {@link Ehcache}
  * bulk method unit tests.
  *
  * @author Clifford W. Johnson
@@ -48,13 +48,13 @@ final class EhcacheBasicBulkUtil {
    * unit tests.  The entries used are generally subset using the key sets
    * {@link #KEY_SET_A}, {@link #KEY_SET_B}, {@link #KEY_SET_C}, and/or
    * {@link #KEY_SET_F}.
-   * <p/>
+   * <p>
    * Some tests are dependent on the order of the keys/entries.  In general,
    * for each key set ('xxxXn'), the keys/entries must be ordered by 'n'.
    */
   static final Map<String, String> TEST_ENTRIES;
   static {
-    final Map<String, String> testEntries = new LinkedHashMap<String, String>();
+    final Map<String, String> testEntries = new LinkedHashMap<>();
     testEntries.put("keyA1", "valueA1");   // keySet A
     testEntries.put("keyB1", "valueB1");   // keySet B
     testEntries.put("keyC1", "valueC1");   // keySet C
@@ -133,12 +133,12 @@ final class EhcacheBasicBulkUtil {
   /** The {@link #TEST_ENTRIES} key subset matching {@code xxxFx}. */
   static final Set<String> KEY_SET_F;
   static {
-    final Set<String> keySetA = new LinkedHashSet<String>();
-    final Set<String> keySetB = new LinkedHashSet<String>();
-    final Set<String> keySetC = new LinkedHashSet<String>();
-    final Set<String> keySetD = new LinkedHashSet<String>();
-    final Set<String> keySetE = new LinkedHashSet<String>();
-    final Set<String> keySetF = new LinkedHashSet<String>();
+    final Set<String> keySetA = new LinkedHashSet<>();
+    final Set<String> keySetB = new LinkedHashSet<>();
+    final Set<String> keySetC = new LinkedHashSet<>();
+    final Set<String> keySetD = new LinkedHashSet<>();
+    final Set<String> keySetE = new LinkedHashSet<>();
+    final Set<String> keySetF = new LinkedHashSet<>();
 
     for (final String key : TEST_ENTRIES.keySet()) {
       final char set = key.charAt(3);
@@ -194,7 +194,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, insert-ordered, modifiable {@code Map} holding the designated entries
    */
   static Map<String, String> getEntryMap(final Iterable<String> subset1, final Iterable<String> subset2) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(2);
+    final List<Iterable<String>> subsets = new ArrayList<>(2);
     subsets.add(subset1);
     subsets.add(subset2);
     return getEntryMap(subsets, null);
@@ -211,7 +211,7 @@ final class EhcacheBasicBulkUtil {
    */
   static Map<String, String> getEntryMap(
       final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(3);
+    final List<Iterable<String>> subsets = new ArrayList<>(3);
     subsets.add(subset1);
     subsets.add(subset2);
     subsets.add(subset3);
@@ -230,7 +230,7 @@ final class EhcacheBasicBulkUtil {
    */
   static Map<String, String> getEntryMap(
       final Iterable<String> subset1, final Iterable<String> subset2, final Iterable<String> subset3, final Iterable<String> subset4) {
-    final List<Iterable<String>> subsets = new ArrayList<Iterable<String>>(4);
+    final List<Iterable<String>> subsets = new ArrayList<>(4);
     subsets.add(subset1);
     subsets.add(subset2);
     subsets.add(subset3);
@@ -262,7 +262,7 @@ final class EhcacheBasicBulkUtil {
    */
   private static Map<String, String> getEntryMap(final List<Iterable<String>> subsets, final String prefix) {
     final StringBuilder sb = (prefix == null ? null : new StringBuilder(prefix));
-    final Map<String, String> entryMap = new LinkedHashMap<String, String>();
+    final Map<String, String> entryMap = new LinkedHashMap<>();
     for (final Iterable<String> subset : subsets) {
       for (final String key : subset) {
         String value = TEST_ENTRIES.get(key);
@@ -296,7 +296,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, insert-ordered, modifiable {@code Map} holding {@code null} values for each key provided
    */
   static Map<String, String> getNullEntryMap(final Iterable<String> keySet1, final Iterable<String> keySet2) {
-    final List<Iterable<String>> keySets = new ArrayList<Iterable<String>>(2);
+    final List<Iterable<String>> keySets = new ArrayList<>(2);
     keySets.add(keySet1);
     keySets.add(keySet2);
     return getNullEntryMap(keySets);
@@ -310,7 +310,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, insert-ordered, modifiable {@code Map} holding {@code null} values for each key provided
    */
   private static Map<String, String> getNullEntryMap(final List<Iterable<String>> keySets) {
-    final Map<String, String> entryMap = new LinkedHashMap<String, String>();
+    final Map<String, String> entryMap = new LinkedHashMap<>();
     for (final Iterable<String> keySet : keySets) {
       for (final String key : keySet) {
         entryMap.put(key, null);
@@ -328,7 +328,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new {@code Map} containing all of the entries
    */
   static Map<String, String> union(final Map<String, String> map1, final Map<String, String> map2) {
-    final List<Map<String, String>> maps = new ArrayList<Map<String, String>>();
+    final List<Map<String, String>> maps = new ArrayList<>();
     maps.add(map1);
     maps.add(map2);
     return unionMaps(maps);
@@ -345,7 +345,7 @@ final class EhcacheBasicBulkUtil {
    */
   static Map<String, String> union(
       final Map<String, String> map1, final Map<String, String> map2, final Map<String, String> map3) {
-    final List<Map<String, String>> maps = new ArrayList<Map<String, String>>();
+    final List<Map<String, String>> maps = new ArrayList<>();
     maps.add(map1);
     maps.add(map2);
     maps.add(map3);
@@ -360,7 +360,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new {@code Map} containing all of the entries
    */
   private static Map<String, String> unionMaps(final List<Map<String, String>> maps) {
-    final Map<String, String> union = new HashMap<String, String>();
+    final Map<String, String> union = new HashMap<>();
     for (Map<String, String> map : maps) {
       union.putAll(map);
     }
@@ -376,7 +376,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new {@code Set} containing all of the elements
    */
   static Set<String> union(final Set<String> set1, final Set<String> set2) {
-    final List<Set<String>> sets = new ArrayList<Set<String>>();
+    final List<Set<String>> sets = new ArrayList<>();
     sets.add(set1);
     sets.add(set2);
     return unionSets(sets);
@@ -390,7 +390,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new {@code Set} containing all of the elements
    */
   private static Set<String> unionSets(final List<Set<String>> sets) {
-    final Set<String> union = new HashSet<String>();
+    final Set<String> union = new HashSet<>();
     for (final Set<String> set : sets) {
       union.addAll(set);
     }
@@ -408,7 +408,7 @@ final class EhcacheBasicBulkUtil {
    * @see #fanIn(java.util.List)
    */
   static Set<String> fanIn(final Set<String> keySet1, final Set<String> keySet2) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
+    final List<Set<String>> keySets = new ArrayList<>();
     keySets.add(keySet1);
     keySets.add(keySet2);
     return fanIn(keySets);
@@ -426,7 +426,7 @@ final class EhcacheBasicBulkUtil {
    * @see #fanIn(java.util.List)
    */
   static Set<String> fanIn(final Set<String> keySet1, final Set<String> keySet2, final Set<String> keySet3) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
+    final List<Set<String>> keySets = new ArrayList<>();
     keySets.add(keySet1);
     keySets.add(keySet2);
     keySets.add(keySet3);
@@ -447,7 +447,7 @@ final class EhcacheBasicBulkUtil {
    */
   static Set<String> fanIn(
       final Set<String> keySet1, final Set<String> keySet2, final Set<String> keySet3, final Set<String> keySet4) {
-    final List<Set<String>> keySets = new ArrayList<Set<String>>();
+    final List<Set<String>> keySets = new ArrayList<>();
     keySets.add(keySet1);
     keySets.add(keySet2);
     keySets.add(keySet3);
@@ -483,7 +483,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, modifiable {@code Set} holding the designated keys
    */
   private static Set<String> fanIn(final List<Set<String>> keySets) {
-    final Set<String> union = new LinkedHashSet<String>();
+    final Set<String> union = new LinkedHashSet<>();
 
     /*
      * Collect the keys from the sets provided in the iteration order of the main
@@ -510,7 +510,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, entry-ordered {@code Set} containing the subset of {@code source}
    */
   static Set<String> copyUntil(final Set<String> source, final String barrier) {
-    final Set<String> subset = new LinkedHashSet<String>();
+    final Set<String> subset = new LinkedHashSet<>();
     for (final String sourceItem : source) {
       if (barrier.equals(sourceItem)) {
         break;
@@ -530,7 +530,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, entry-ordered {@code Set} containing the just the retained elements
    */
   static Set<String> copyOnly(final Set<String> source, final Collection<String> retained) {
-    final Set<String> copy = new LinkedHashSet<String>(source);
+    final Set<String> copy = new LinkedHashSet<>(source);
     copy.retainAll(retained);
     return copy;
   }
@@ -546,7 +546,7 @@ final class EhcacheBasicBulkUtil {
    *    specified in {@code removed}
    */
   static Set<String> copyWithout(final Set<String> source, final Collection<String> removed) {
-    final Set<String> copy = new LinkedHashSet<String>(source);
+    final Set<String> copy = new LinkedHashSet<>(source);
     copy.removeAll(removed);
     return copy;
   }
@@ -561,7 +561,7 @@ final class EhcacheBasicBulkUtil {
    * @return a new, entry-ordered {@code Map} containing the just the retained entries
    */
   static Map<String, String> copyOnly(final Map<String, String> source, final Collection<String> retained) {
-    final Map<String, String> copy = new LinkedHashMap<String, String>(source);
+    final Map<String, String> copy = new LinkedHashMap<>(source);
     copy.keySet().retainAll(retained);
     return copy;
   }
@@ -577,7 +577,7 @@ final class EhcacheBasicBulkUtil {
    *    specified in {@code removed}
    */
   static Map<String, String> copyWithout(final Map<String, String> source, final Collection<String> removed) {
-    final Map<String, String> copy = new LinkedHashMap<String, String>(source);
+    final Map<String, String> copy = new LinkedHashMap<>(source);
     copy.keySet().removeAll(removed);
     return copy;
   }

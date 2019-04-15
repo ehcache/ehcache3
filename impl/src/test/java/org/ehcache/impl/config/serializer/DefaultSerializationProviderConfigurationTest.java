@@ -16,56 +16,75 @@
 
 package org.ehcache.impl.config.serializer;
 
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.serialization.StatefulSerializer;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-/**
- * Created by alsu on 30/09/15.
- */
 public class DefaultSerializationProviderConfigurationTest {
 
-  @Test
-  public void testAddSerializerForTransient() throws Exception {
-    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, TransientSerializer.class);
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
-    assertTrue(config.getPersistentSerializers().isEmpty());
-    assertSame(TransientSerializer.class, config.getTransientSerializers().get(Long.class));
+  @Test
+  public void testAddSerializerFor() throws Exception {
+    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
+    config.addSerializerFor(Long.class, MinimalSerializer.class);
+
+    assertSame(MinimalSerializer.class, config.getDefaultSerializers().get(Long.class));
   }
 
   @Test
-  public void testAddSerializerForPersistent() throws Exception {
+  public void testAddSerializerForDuplicateThrows() throws Exception {
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, PersistentSerializer.class);
-
-    assertTrue(config.getTransientSerializers().isEmpty());
-    assertSame(PersistentSerializer.class, config.getPersistentSerializers().get(Long.class));
+    config.addSerializerFor(Long.class, MinimalSerializer.class);
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Duplicate serializer for class");
+    config.addSerializerFor(Long.class, MinimalSerializer.class);
   }
 
   @Test
-  public void testAddSerializerForTransientPersistentCombo() throws Exception {
-    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, ComboSerializer.class);
-
-    assertSame(ComboSerializer.class, config.getPersistentSerializers().get(Long.class));
-    assertSame(ComboSerializer.class, config.getTransientSerializers().get(Long.class));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testAddSerializerForUnusable() throws Exception {
+  public void testAddSerializerForConstructorless() throws Exception {
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
     config.addSerializerFor(Long.class, UnusableSerializer.class);
   }
 
-  private static class TransientSerializer implements Serializer<Long> {
+  @Test
+  public void testAddSerializerForStatefulSerializer() throws Exception {
+    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
+    config.addSerializerFor(Long.class, MinimalStatefulSerializer.class);
+    assertSame(MinimalStatefulSerializer.class, config.getDefaultSerializers().get(Long.class));
+  }
 
-    public TransientSerializer(ClassLoader loader) {
+  @Test
+  public void testAddSerializerForStatefulConstructorless() throws Exception {
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
+    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
+    config.addSerializerFor(Long.class, UnusableStatefulSerializer.class);
+  }
+
+  @Test
+  public void testAddSerializerForLegacySerializer() throws Exception {
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
+    DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
+    config.addSerializerFor(Long.class, LegacySerializer.class);
+  }
+
+  private static class MinimalSerializer implements Serializer<Long> {
+
+    public MinimalSerializer(ClassLoader loader) {
     }
 
     @Override
@@ -84,33 +103,9 @@ public class DefaultSerializationProviderConfigurationTest {
     }
   }
 
-  private static class PersistentSerializer implements Serializer<Long> {
+  private static class LegacySerializer implements Serializer<Long> {
 
-    public PersistentSerializer(ClassLoader loader, FileBasedPersistenceContext context) {
-    }
-
-    @Override
-    public ByteBuffer serialize(final Long object) throws SerializerException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public Long read(final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-
-    @Override
-    public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-      throw new UnsupportedOperationException("Implement me!");
-    }
-  }
-
-  private static class ComboSerializer implements Serializer<Long> {
-
-    public ComboSerializer(ClassLoader loader) {
-    }
-
-    public ComboSerializer(ClassLoader loader, FileBasedPersistenceContext context) {
+    public LegacySerializer(ClassLoader loader, FileBasedPersistenceContext context) {
     }
 
     @Override
@@ -130,6 +125,55 @@ public class DefaultSerializationProviderConfigurationTest {
   }
 
   private static class UnusableSerializer implements Serializer<Long> {
+
+    @Override
+    public ByteBuffer serialize(final Long object) throws SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public Long read(final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+  }
+
+  private static class MinimalStatefulSerializer implements StatefulSerializer<Long> {
+
+    public MinimalStatefulSerializer(ClassLoader loader) {
+    }
+
+    @Override
+    public void init(final StateRepository stateRepository) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public ByteBuffer serialize(final Long object) throws SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public Long read(final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+  }
+
+  private static class UnusableStatefulSerializer implements StatefulSerializer<Long> {
+
+    @Override
+    public void init(final StateRepository stateRepository) {
+      throw new UnsupportedOperationException("Implement me!");
+    }
 
     @Override
     public ByteBuffer serialize(final Long object) throws SerializerException {

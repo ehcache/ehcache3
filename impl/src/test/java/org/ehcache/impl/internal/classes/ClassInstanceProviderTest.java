@@ -39,9 +39,12 @@ import static org.mockito.Mockito.verify;
  */
 public class ClassInstanceProviderTest {
 
+  @SuppressWarnings("unchecked")
+  private Class<ClassInstanceConfiguration<TestService>> configClass = (Class)ClassInstanceConfiguration.class;
+
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -51,9 +54,9 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
-    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
+    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<>(TestService.class, "test string"));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
 
     assertThat(obj.theString, equalTo("test string"));
@@ -61,7 +64,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
     TestServiceConfiguration config = new TestServiceConfiguration();
     TestService obj = classInstanceProvider.newInstance("test stuff", config);
@@ -74,7 +77,7 @@ public class ClassInstanceProviderTest {
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
 
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(factoryConfig, configClass);
     classInstanceProvider.start(null);
 
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -83,14 +86,14 @@ public class ClassInstanceProviderTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testReleaseInstanceByAnotherProvider() throws Exception {
-    ClassInstanceProvider<String, String> classInstanceProvider = new ClassInstanceProvider<String, String>(null, null);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
 
     classInstanceProvider.releaseInstance("foo");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testReleaseSameInstanceMultipleTimesThrows() throws Exception {
-    ClassInstanceProvider<String, String> classInstanceProvider = new ClassInstanceProvider<String, String>(null, null);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
     classInstanceProvider.providedVsCount.put("foo", new AtomicInteger(1));
 
     classInstanceProvider.releaseInstance("foo");
@@ -99,7 +102,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testReleaseCloseableInstance() throws Exception {
-    ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<Closeable>, Closeable> classInstanceProvider = new ClassInstanceProvider<>(null, null);
     Closeable closeable = mock(Closeable.class);
     classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
     classInstanceProvider.instantiated.add(closeable);
@@ -110,7 +113,7 @@ public class ClassInstanceProviderTest {
 
   @Test(expected = IOException.class)
   public void testReleaseCloseableInstanceThrows() throws Exception {
-    ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<Closeable>, Closeable> classInstanceProvider = new ClassInstanceProvider<>(null, null);
     Closeable closeable = mock(Closeable.class);
     doThrow(IOException.class).when(closeable).close();
     classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
@@ -121,7 +124,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceWithActualInstanceInServiceConfig() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
     TestService service = new TestService();
     TestServiceConfiguration config = new TestServiceConfiguration(service);
@@ -133,7 +136,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
     TestService service = new TestService();
     TestServiceConfiguration config = new TestServiceConfiguration(service);
@@ -148,12 +151,14 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testInstancesNotCreatedByProviderDoesNotClose() throws IOException {
-    ClassInstanceProvider<String, TestCloaseableService> classInstanceProvider = new ClassInstanceProvider<String, TestCloaseableService>(null, (Class)ClassInstanceConfiguration.class);
+    @SuppressWarnings("unchecked")
+    Class<ClassInstanceConfiguration<TestCloseableService>> configClass = (Class) ClassInstanceConfiguration.class;
+    ClassInstanceProvider<String, ClassInstanceConfiguration<TestCloseableService>, TestCloseableService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
-    TestCloaseableService service = mock(TestCloaseableService.class);
+    TestCloseableService service = mock(TestCloseableService.class);
     TestCloaseableServiceConfig config = new TestCloaseableServiceConfig(service);
 
-    TestCloaseableService newService = classInstanceProvider.newInstance("testClose", config);
+    TestCloseableService newService = classInstanceProvider.newInstance("testClose", config);
     assertThat(newService, sameInstance(service));
     classInstanceProvider.releaseInstance(newService);
     verify(service, times(0)).close();
@@ -161,23 +166,23 @@ public class ClassInstanceProviderTest {
   }
 
 
-  public static abstract class TestCloaseableService implements Service, Closeable {
+  public static abstract class TestCloseableService implements Service, Closeable {
 
   }
 
-  public static class TestCloaseableServiceConfig extends ClassInstanceConfiguration<TestCloaseableService> implements ServiceConfiguration<TestCloaseableService> {
+  public static class TestCloaseableServiceConfig extends ClassInstanceConfiguration<TestCloseableService> implements ServiceConfiguration<TestCloseableService> {
 
     public TestCloaseableServiceConfig() {
-      super(TestCloaseableService.class);
+      super(TestCloseableService.class);
     }
 
-    public TestCloaseableServiceConfig(TestCloaseableService testCloaseableService) {
-      super(testCloaseableService);
+    public TestCloaseableServiceConfig(TestCloseableService testCloseableService) {
+      super(testCloseableService);
     }
 
     @Override
-    public Class<TestCloaseableService> getServiceType() {
-      return TestCloaseableService.class;
+    public Class<TestCloseableService> getServiceType() {
+      return TestCloseableService.class;
     }
   }
 
@@ -216,7 +221,7 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<String, TestService> implements ServiceConfiguration<TestService> {
+  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<String, ClassInstanceConfiguration<TestService>> implements ServiceConfiguration<TestService> {
     @Override
     public Class<TestService> getServiceType() {
       return TestService.class;

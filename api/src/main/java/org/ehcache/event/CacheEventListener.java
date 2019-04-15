@@ -27,17 +27,14 @@ public interface CacheEventListener<K, V> {
 
   /**
    * Invoked on {@link org.ehcache.event.CacheEvent CacheEvent} firing.
-   *
-   * <P>
-   *   This method is invoked according to the {@link EventOrdering}, {@link EventFiring} and
-   *   {@link EventType} requirements provided at listener registration time.
-   * </P>
-   * <P>
-   *   Any exception thrown from this listener will be swallowed and logged but will not prevent other listeners to run.
-   * </P>
+   * <p>
+   * This method is invoked according to the {@link EventOrdering}, {@link EventFiring} and
+   * {@link EventType} requirements provided at listener registration time.
+   * <p>
+   * Any exception thrown from this listener will be swallowed and logged but will not prevent other listeners to run.
    *
    * @param event the actual {@code CacheEvent}
    */
-  void onEvent(CacheEvent<K, V> event);
+  void onEvent(CacheEvent<? extends K, ? extends V> event);
 
 }

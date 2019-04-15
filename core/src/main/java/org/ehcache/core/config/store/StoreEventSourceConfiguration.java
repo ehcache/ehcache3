@@ -16,7 +16,6 @@
 
 package org.ehcache.core.config.store;
 
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -29,7 +28,7 @@ public interface StoreEventSourceConfiguration extends ServiceConfiguration<Stor
   /**
    * Default dispatcher concurrency
    */
-  int DEFAULT_DISPATCHER_CONCURRENCY = 8;
+  int DEFAULT_DISPATCHER_CONCURRENCY = 1;
 
   /**
    * Indicates over how many buckets should ordered events be spread

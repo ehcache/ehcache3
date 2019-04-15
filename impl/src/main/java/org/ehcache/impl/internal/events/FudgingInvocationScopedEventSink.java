@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -24,13 +23,14 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Supplier;
 
 /**
  * This class is responsible for handling the event fudging that needs to happen
  * in AbstractOffHeapStore because eviction event is fired after create / update
  * events have been recorded. But in reality, eviction happened first as the memory
  * limit on offheap is hard.
- * <P/>
+ * <p>
  * This creates a special case where we have to rewrite events in case we get an evicted
  * event on the same key than the previous non eviction event. In that case we need to get rid
  * of that former event (in case of UPDATED) or former events (EXPIRED followed by CREATED) and
@@ -45,7 +45,7 @@ class FudgingInvocationScopedEventSink<K, V> extends InvocationScopedEventSink<K
   }
 
   @Override
-  public void evicted(K key, ValueSupplier<V> value) {
+  public void evicted(K key, Supplier<V> value) {
     V eventFudgingValue = handleEvictionPostWriteOnSameKey(key);
     super.evicted(key, value);
     if (eventFudgingValue != null) {

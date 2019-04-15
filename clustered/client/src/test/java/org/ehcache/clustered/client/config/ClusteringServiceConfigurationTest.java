@@ -16,73 +16,168 @@
 
 package org.ehcache.clustered.client.config;
 
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.MemoryUnit;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Iterator;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ClusteringServiceConfigurationTest {
 
-  @Test(expected = NullPointerException.class)
-  public void testGetConnectionUrlNull() throws Exception {
-    new ClusteringServiceConfiguration(null, null, Collections.<String, PoolDefinition>emptyMap());
+  private static final URI DEFAULT_URI = URI.create("terracotta://localhost:9450");
+  private static final Iterable<InetSocketAddress> SERVERS = Collections.singletonList(InetSocketAddress.createUnresolved("localhost", 9450));
+  private static final String CACHE_MANAGER = "cacheManager";
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
+  @Test
+  public void testGetConnectionUrlNull() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration((URI)null);
   }
 
   @Test
-  public void testGetConnectionUrl() throws Exception {
-    final URI connectionUrl = URI.create("http://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, null, Collections.<String, PoolDefinition>emptyMap()).getClusterUri(), is(connectionUrl));
+  public void testGetServersNull() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(null, CACHE_MANAGER);
   }
 
   @Test
-  public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), null, Collections.<String, PoolDefinition>emptyMap()).getServiceType(),
-        is(equalTo(ClusteringService.class)));
+  public void testGetConnectionUrl() {
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getClusterUri()).isEqualTo(DEFAULT_URI);
   }
 
   @Test
-  public void testCtorPoolsWithDefault() throws Exception {
-    Map<String, PoolDefinition> poolDefinitionMap = new HashMap<String, PoolDefinition>();
-    poolDefinitionMap.put("sharedPool", new PoolDefinition(8L, MemoryUnit.MB));
-    ClusteringServiceConfiguration configuration = new ClusteringServiceConfiguration(
-        URI.create("terracotta://localhost:9450"), "defaultResource", poolDefinitionMap);
-    Map<String, PoolDefinition> actualPools = configuration.getPools();
-    assertThat(actualPools.size(), is(1));
-    Map.Entry<String, PoolDefinition> actualPool = actualPools.entrySet().iterator().next();
-    assertThat(actualPool.getKey(), is("sharedPool"));
-    assertThat(actualPool.getValue().getServerResource(), is(nullValue()));     // resource set in DefaultClusteringService.extractResourcePools()
-    assertThat(actualPool.getValue().getSize(), is(8L));
-    assertThat(actualPool.getValue().getUnit(), is(MemoryUnit.MB));
+  public void testGetServersAndCacheManager() {
+    ConnectionSource.ServerList connectionSource =  (ConnectionSource.ServerList) new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource();
+    assertThat(connectionSource.getServers()).isEqualTo(SERVERS);
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource().getClusterTierManager()).isEqualTo(CACHE_MANAGER);
   }
 
   @Test
-  public void testCtorPoolsWithoutDefault() throws Exception {
-    Map<String, PoolDefinition> poolDefinitionMap = new HashMap<String, PoolDefinition>();
-    poolDefinitionMap.put("sharedPool", new PoolDefinition(8L, MemoryUnit.MB));
-    try {
-      new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), null, poolDefinitionMap);
-      fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString(" no default value "));
-    }
+  public void testGetServersAndRemove() {
+    ConnectionSource.ServerList connectionSource =  (ConnectionSource.ServerList) new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource();
+    Iterator<InetSocketAddress> iterator = connectionSource.getServers().iterator();
+    iterator.next();
+    iterator.remove();
+    assertThat(connectionSource.getServers()).isEqualTo(SERVERS);
   }
 
   @Test
-  public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), null, Collections.<String, PoolDefinition>emptyMap())
-        .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
+  public void testTimeoutsWithURI() {
+    Timeouts timeouts = TimeoutsBuilder.timeouts().build();
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, timeouts).getTimeouts()).isSameAs(timeouts);
   }
+
+  @Test
+  public void testTimeoutsWithServers() {
+    Timeouts timeouts = TimeoutsBuilder.timeouts().build();
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, timeouts).getTimeouts()).isSameAs(timeouts);
+  }
+
+  @Test
+  public void testDefaultTimeoutsWithURI() {
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getTimeouts()).isEqualTo(TimeoutsBuilder.timeouts().build());
+  }
+
+  @Test
+  public void testDefaultTimeoutsWithServers() {
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getTimeouts()).isEqualTo(TimeoutsBuilder.timeouts().build());
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull2ArgsWithURI() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null);
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull2ArgsWithServers() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null);
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull3ArgsWithURI() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(DEFAULT_URI, null, new ServerSideConfiguration(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull3ArgsWithServers() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, new ServerSideConfiguration(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull4ArgsWithURI() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(DEFAULT_URI, null, true, new ServerSideConfiguration(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testTimeoutsCannotBeNull4ArgsWithServers() {
+    expectedException.expect(NullPointerException.class);
+    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, true, new ServerSideConfiguration(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testGetServiceTypeWithURI() {
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getServiceType()).isEqualTo(ClusteringService.class);
+  }
+
+  @Test
+  public void testGetServiceTypeWithServers() {
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getServiceType()).isEqualTo(ClusteringService.class);
+  }
+
+  @Test
+  public void testGetAutoCreateWithURI() {
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, true,
+        new ServerSideConfiguration(Collections.emptyMap())).isAutoCreate()).isTrue();
+  }
+
+  @Test
+  public void testGetAutoCreateWithServers() {
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, true,
+        new ServerSideConfiguration(Collections.emptyMap())).isAutoCreate()).isTrue();
+  }
+
+  @Test
+  public void testBuilderWithURI() {
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI)
+        .builder(CacheManagerBuilder.newCacheManagerBuilder())).isExactlyInstanceOf(CacheManagerBuilder.class);
+  }
+
+  @Test
+  public void testBuilderWithServers() {
+    assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER)
+        .builder(CacheManagerBuilder.newCacheManagerBuilder())).isExactlyInstanceOf(CacheManagerBuilder.class);
+  }
+
+  @Test
+  public void testReadableString() {
+    ClusteringServiceConfiguration cfg;
+
+    cfg = new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER);
+    assertThat(cfg.readableString()).isNotNull();
+
+    cfg = new ClusteringServiceConfiguration(DEFAULT_URI);
+    assertThat(cfg.readableString()).isNotNull();
+
+    cfg = new ClusteringServiceConfiguration(DEFAULT_URI, TimeoutsBuilder.timeouts().build());
+    assertThat(cfg.readableString()).isNotNull();
+  }
+
 }

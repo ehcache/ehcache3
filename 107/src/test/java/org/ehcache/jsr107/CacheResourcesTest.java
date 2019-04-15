@@ -19,12 +19,12 @@ import static java.util.Collections.emptyMap;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.junit.Test;
-import org.mockito.internal.creation.MockSettingsImpl;
 
 import java.io.Closeable;
 import java.util.HashMap;
@@ -36,8 +36,8 @@ public class CacheResourcesTest {
   @Test
   public void testRegisterDeregisterAfterClose() {
     Map<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>> emptyMap = emptyMap();
-    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", null, null, emptyMap);
-    cacheResources.closeResources(new MultiCacheException());
+    CacheResources<Object, Object> cacheResources = new CacheResources<>("cache", null, null, emptyMap);
+    cacheResources.closeResources();
 
     try {
       cacheResources.registerCacheEntryListener(mock(CacheEntryListenerConfiguration.class));
@@ -57,17 +57,17 @@ public class CacheResourcesTest {
   @SuppressWarnings("unchecked")
   @Test
   public void closesAllResources() throws Exception {
-    CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
-    Eh107Expiry<Object, Object> expiry = mock(Eh107Expiry.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
+    Jsr107CacheLoaderWriter<Object, Object> loaderWriter = mock(Jsr107CacheLoaderWriter.class, withSettings().extraInterfaces(Closeable.class));
+    Eh107Expiry<Object, Object> expiry = mock(Eh107Expiry.class, withSettings().extraInterfaces(Closeable.class));
     CacheEntryListenerConfiguration<Object, Object> listenerConfiguration = mock(CacheEntryListenerConfiguration.class);
     ListenerResources<Object, Object> listenerResources = mock(ListenerResources.class);
 
     Map<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>> map =
-        new HashMap<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>>();
+      new HashMap<>();
     map.put(listenerConfiguration, listenerResources);
 
-    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", loaderWriter, expiry, map);
-    cacheResources.closeResources(new MultiCacheException());
+    CacheResources<Object, Object> cacheResources = new CacheResources<>("cache", loaderWriter, expiry, map);
+    cacheResources.closeResources();
 
     verify((Closeable) loaderWriter).close();
     verify((Closeable) expiry).close();

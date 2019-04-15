@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -35,7 +35,8 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClass() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).newInstance();
@@ -51,7 +52,8 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClassNotHidden() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).newInstance();
@@ -66,6 +68,9 @@ public class AddedSuperClassTest {
   }
 
   public static class AddedSuperClass_Hidden implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     int field;
   }
 

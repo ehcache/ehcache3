@@ -24,14 +24,17 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link ServiceCreationConfiguration} for the default {@link SerializationProvider}.
  */
 public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
 
-  private final Map<Class<?>, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
-  private final Map<Class<?>, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSerializationProviderConfiguration.class);
+
+  private final Map<Class<?>, Class<? extends Serializer<?>>> defaultSerializers = new LinkedHashMap<>();
 
   /**
    * Creates a new configuration instance.
@@ -46,8 +49,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
    * @param other the other to copy from
    */
   public DefaultSerializationProviderConfiguration(DefaultSerializationProviderConfiguration other) {
-    transientSerializers.putAll(other.transientSerializers);
-    persistentSerializers.putAll(other.persistentSerializers);
+    defaultSerializers.putAll(other.defaultSerializers);
   }
 
   /**
@@ -93,29 +95,21 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
       throw new NullPointerException("Serializer class cannot be null");
     }
 
-    boolean transientConstructorPresent;
-    boolean persistentConstructorPresent;
-
-    if(transientConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class)) {
-      if (!overwrite && transientSerializers.containsKey(serializableClass)) {
-        throw new IllegalArgumentException("Duplicate transient serializer for class : " + serializableClass.getName());
-      } else {
-        transientSerializers.put(serializableClass, serializerClass);
-      }
+    if(!isConstructorPresent(serializerClass, ClassLoader.class)) {
+      throw new IllegalArgumentException("The serializer: " + serializerClass.getName() + " does not have a constructor that takes in a ClassLoader.");
     }
 
-    if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
-      if (!overwrite && persistentSerializers.containsKey(serializableClass)) {
-        throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
-      } else {
-        persistentSerializers.put(serializableClass, serializerClass);
-      }
+    if (isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
+      LOGGER.warn(serializerClass.getName() + " class has a constructor that takes in a FileBasedPersistenceContext. " +
+                  "Support for this constructor has been removed since version 3.2. Consider removing it.");
     }
 
-    if(!transientConstructorPresent && !persistentConstructorPresent) {
-      throw new IllegalArgumentException("The serializer: " + serializerClass.getName()
-                                         + " does not meet the constructor requirements for either transient or persistent caches.");
+    if (defaultSerializers.containsKey(serializableClass) && !overwrite) {
+      throw new IllegalArgumentException("Duplicate serializer for class : " + serializableClass.getName());
+    } else {
+      defaultSerializers.put(serializableClass, serializerClass);
     }
+
     return this;
   }
 
@@ -129,20 +123,11 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
   }
 
   /**
-   * Returns the map of class to serializer class for transient serializers.
-   *
-   * @return the map from class to serializer class
-   */
-  public Map<Class<?>, Class<? extends Serializer<?>>> getTransientSerializers() {
-    return unmodifiableMap(transientSerializers);
-  }
-
-  /**
    * Returns the map of class to serializer class for persistent serializers.
    *
    * @return the map from class to serializer class
    */
-  public Map<Class<?>, Class<? extends Serializer<?>>> getPersistentSerializers() {
-    return unmodifiableMap(persistentSerializers);
+  public Map<Class<?>, Class<? extends Serializer<?>>> getDefaultSerializers() {
+    return unmodifiableMap(defaultSerializers);
   }
 }

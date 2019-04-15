@@ -17,14 +17,11 @@
 package org.ehcache.impl.serialization;
 
 import java.io.Serializable;
-import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
 
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,12 +31,13 @@ import org.junit.Test;
 public class CompactJavaSerializerClassLoaderTest {
 
   private static ClassLoader newLoader() {
-    return new URLClassLoader(((URLClassLoader) CompactJavaSerializerClassLoaderTest.class.getClassLoader()).getURLs(), null);
+    return new DuplicateClassLoader(CompactJavaSerializerClassLoaderTest.class.getClassLoader());
   }
 
   @Test
   public void testThreadContextLoader() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loader = newLoader();
     ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).newInstance());
@@ -55,7 +53,8 @@ public class CompactJavaSerializerClassLoaderTest {
   @Test
   public void testExplicitLoader() throws Exception {
     ClassLoader loader = newLoader();
-    Serializer<Serializable> serializer = new CompactJavaSerializer(loader);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(loader);
+    serializer.init(new TransientStateRepository());
 
     ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).newInstance());
 
