@@ -28,9 +28,11 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.time.Duration.ofMillis;
+import static java.util.Collections.emptyMap;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -319,6 +321,20 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
 
     Store.ValueHolder<String> result = resolver.resolve(chain, 1L, 1500);
     assertThat(result, nullValue());
+  }
+
+  @Test
+  public void testResolveAllExpiresUsingOperationTime() {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Albin", 0),
+      new PutIfAbsentOperation<>(1L, "Chris", 900)
+    );
+
+    ChainResolver<Long, String> resolver = createChainResolver(timeToLiveExpiration(ofMillis(1000)));
+
+    Map<Long, Store.ValueHolder<String>> result = resolver.resolveAll(chain, 1500);
+
+    assertThat(result, is(emptyMap()));
   }
 
   @Test

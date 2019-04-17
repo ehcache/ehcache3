@@ -86,7 +86,9 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
 
     Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
     for (Map.Entry<K, PutOperation<K, V>> e : resolved.entrySet()) {
-      values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue(), e.getValue().expirationTime()));
+      if (now < e.getValue().expirationTime()) {
+        values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue(), e.getValue().expirationTime()));
+      }
     }
     return unmodifiableMap(values);
   }
