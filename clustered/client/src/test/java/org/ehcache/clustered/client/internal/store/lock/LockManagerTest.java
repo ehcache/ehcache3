@@ -42,13 +42,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
-public class LockManagerImplTest {
+public class LockManagerTest {
 
   @Test
   public void testLock() throws Exception {
     ClusterTierClientEntity clusterTierClientEntity = mock(ClusterTierClientEntity.class);
 
-    LockManagerImpl lockManager = new LockManagerImpl(clusterTierClientEntity);
+    LockManager lockManager = new LockManager(clusterTierClientEntity);
 
     LockSuccess lockSuccess = getLockSuccessResponse();
 
@@ -66,7 +66,7 @@ public class LockManagerImplTest {
   public void testLockWhenException() throws Exception {
     ClusterTierClientEntity clusterTierClientEntity = mock(ClusterTierClientEntity.class);
 
-    LockManagerImpl lockManager = new LockManagerImpl(clusterTierClientEntity);
+    LockManager lockManager = new LockManager(clusterTierClientEntity);
 
     when(clusterTierClientEntity.invokeAndWaitForComplete(any(LockMessage.class), anyBoolean()))
             .thenThrow(new UnknownClusterException(""), new TimeoutException("timed out test"));
@@ -91,7 +91,7 @@ public class LockManagerImplTest {
   public void testLockWhenFailure() throws Exception {
     ClusterTierClientEntity clusterTierClientEntity = mock(ClusterTierClientEntity.class);
 
-    LockManagerImpl lockManager = new LockManagerImpl(clusterTierClientEntity);
+    LockManager lockManager = new LockManager(clusterTierClientEntity);
 
     LockSuccess lockSuccess = getLockSuccessResponse();
 
@@ -108,7 +108,7 @@ public class LockManagerImplTest {
   @Test
   public void testUnlockClearsLocksHeldState() throws Exception {
     ClusterTierClientEntity clusterTierClientEntity = mock(ClusterTierClientEntity.class);
-    LockManagerImpl lockManager = new LockManagerImpl(clusterTierClientEntity);
+    LockManager lockManager = new LockManager(clusterTierClientEntity);
 
     LockSuccess lockSuccess = getLockSuccessResponse();
     when(clusterTierClientEntity.invokeAndWaitForComplete(any(LockMessage.class), anyBoolean()))

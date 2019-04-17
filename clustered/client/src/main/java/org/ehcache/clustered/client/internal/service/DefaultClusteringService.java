@@ -27,8 +27,7 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.lock.LockManager;
-import org.ehcache.clustered.client.internal.store.lock.LockManagerImpl;
-import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxyImpl;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
@@ -37,7 +36,6 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -285,8 +283,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
 
     if (storeConfig.getCacheLoaderWriter() != null) {
-      LockManager lockManager = new LockManagerImpl(storeClientEntity);
-      serverStoreProxy = new LockingServerStoreProxy(serverStoreProxy, lockManager);
+      LockManager lockManager = new LockManager(storeClientEntity);
+      serverStoreProxy = new LockingServerStoreProxyImpl(serverStoreProxy, lockManager);
     }
 
     return serverStoreProxy;

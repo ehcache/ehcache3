@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
@@ -40,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.AbstractExecutorService;
@@ -156,13 +158,37 @@ public class ClusteredWriteBehindTest {
 
     ClusteredWriteBehind<Long, String> clusteredWriteBehind = new ClusteredWriteBehind<>(clusteredWriteBehindStore,
                                                                                          executorService,
-                                                                                         TIME_SOURCE,
                                                                                          resolver,
                                                                                          cacheLoaderWriter,
                                                                                          operationCodec);
     Chain elements = makeChain(expected, operationCodec);
 
-    when(clusteredWriteBehindStore.lock(1L)).thenReturn(elements);
+    when(clusteredWriteBehindStore.lock(1L)).thenReturn(new ServerStoreProxy.ChainEntry() {
+      @Override
+      public void append(ByteBuffer payLoad) throws TimeoutException {
+
+      }
+
+      @Override
+      public void replaceAtHead(Chain equivalent) {
+
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return elements.isEmpty();
+      }
+
+      @Override
+      public int length() {
+        return elements.length();
+      }
+
+      @Override
+      public Iterator<Element> iterator() {
+        return elements.iterator();
+      }
+    });
 
     ArgumentCaptor<Chain> chainArgumentCaptor = ArgumentCaptor.forClass(Chain.class);
 
@@ -199,8 +225,7 @@ public class ClusteredWriteBehindTest {
       Long key = operation.getKey();
       PutOperation<Long, String> opResult = resolver.applyOperation(key,
                                                           null,
-                                                          operation,
-                                                          timeSource.getTimeMillis());
+                                                          operation);
       result.put(key, opResult.getValue());
     }
     return result;

@@ -16,13 +16,14 @@
 
 package org.ehcache.clustered.common.internal.store.operations;
 
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.internal.util.ChainBuilder;
-import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
@@ -30,24 +31,29 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.hamcrest.collection.IsMapContaining.hasEntry;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 public abstract class AbstractChainResolverTest {
 
@@ -58,8 +64,8 @@ public abstract class AbstractChainResolverTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testResolveMaintainsOtherKeysInOrder() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Suresh", 0L);
-    Chain chain = getChainFromOperations(
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Suresh", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(2L, "Albin", 0L),
       expected,
@@ -67,176 +73,151 @@ public abstract class AbstractChainResolverTest {
       new PutOperation<>(2L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(1));
-
-    Chain compactedChain = resolvedChain.getCompactedChain();
-    assertThat(compactedChain, contains( //@SuppressWarnings("unchecked")
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain).replaceAtHead(argThat(contains(
       operation(new PutOperation<>(2L, "Albin", 0L)),
       operation(new PutOperation<>(2L, "Suresh", 0L)),
       operation(new PutOperation<>(2L, "Matthew", 0L)),
-      operation(new PutOperation<>(1L, "Suresh", 0L))));
+      operation(new PutOperation<>(1L, "Suresh", 0L)))));
   }
 
   @Test
   public void testResolveEmptyChain() {
-    Chain chain = getChainFromOperations();
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations();
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testResolveChainWithNonExistentKey() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(2L, "Suresh", 0L),
       new PutOperation<>(2L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(3L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 3L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testResolveSinglePut() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
-    Chain chain = getChainFromOperations(expected);
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(expected);
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testResolvePutsOnly() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
 
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       expected);
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain).replaceAtHead(argThat(contains(operation(expected))));
   }
 
   @Test
   public void testResolveSingleRemove() {
-    Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(1));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testResolveRemovesOnly() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new RemoveOperation<>(1L, 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testPutAndRemove() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testResolvePutIfAbsentOnly() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
-    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testResolvePutIfAbsentsOnly() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
-    Chain chain = getChainFromOperations(
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutIfAbsentOperation<>(1L, "Suresh", 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain).replaceAtHead(argThat(contains(operation(expected))));
   }
 
   @Test
   public void testResolvePutIfAbsentSucceeds() {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
-    Chain chain = getChainFromOperations(
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Matthew", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is(expected.getValue()));
+    verify(chain).replaceAtHead(argThat(contains(operation(expected))));
   }
 
   @Test
   public void testResolveForSingleOperationDoesNotCompact() {
-    Chain chain = getChainFromOperations(new PutOperation<>(1L, "Albin", 0L));
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutOperation<>(1L, "Albin", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder.get(), is("Albin"));
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testResolveForMultiplesOperationsAlwaysCompact() {
     //create a random mix of operations
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Matthew", 0L),
@@ -250,14 +231,18 @@ public abstract class AbstractChainResolverTest {
       new PutIfAbsentOperation<>(2L, "Albin", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(8));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 0L);
+    assertThat(valueHolder, nullValue());
+    verify(chain).replaceAtHead(argThat(contains(
+      operation(new PutOperation<>(2L, "Melvin", 0L)),
+      operation(new RemoveOperation<>(2L, 0L)),
+      operation(new PutIfAbsentOperation<>(2L, "Albin", 0L))
+    )));
   }
 
   @Test
   public void testResolveDoesNotDecodeOtherKeyOperationValues() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(2L, "Albin", 0L),
       new PutOperation<>(2L, "Suresh", 0L),
       new PutOperation<>(2L, "Matthew", 0L));
@@ -276,7 +261,7 @@ public abstract class AbstractChainResolverTest {
 
   @Test
   public void testResolveDecodesOperationValueOnlyOnDemand() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 1),
       new PutOperation<>(1L, "Suresh", 2),
       new PutOperation<>(1L, "Matthew", 3));
@@ -288,7 +273,7 @@ public abstract class AbstractChainResolverTest {
     resolver.resolve(chain, 1L, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
-    assertThat(valueSerializer.decodeCount, is(0));
+    assertThat(valueSerializer.decodeCount, is(1));
     assertThat(valueSerializer.encodeCount, is(0));
     assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
   }
@@ -296,7 +281,7 @@ public abstract class AbstractChainResolverTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCompactingTwoKeys() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(2L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
@@ -305,114 +290,114 @@ public abstract class AbstractChainResolverTest {
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
 
-    Chain compactedChain = resolver.compactChain(chain, 0L);
+    resolver.compact(chain);
 
-    assertThat(compactedChain, containsInAnyOrder( //@SuppressWarnings("unchecked")
+    verify(chain).replaceAtHead(argThat(containsInAnyOrder( //@SuppressWarnings("unchecked")
       operation(new PutOperation<>(2L, "Matthew", 0L)),
       operation(new PutOperation<>(1L, "Suresh", 0L))
-    ));
+    )));
   }
 
   @Test
   public void testCompactEmptyChain() {
-    Chain chain = (new ChainBuilder()).build();
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations();
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compacted = resolver.compactChain(chain, 0L);
-    assertThat(compacted, emptyIterable());
+    resolver.compact(chain);
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testCompactSinglePut() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L)
     );
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compacted = resolver.compactChain(chain, 0L);
+    resolver.compact(chain);
 
-    assertThat(compacted, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testCompactMultiplePuts() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Matthew", 0L))));
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Matthew", 0L)))));
   }
 
   @Test
   public void testCompactSingleRemove() {
-    Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testCompactMultipleRemoves() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new RemoveOperation<>(1L, 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testCompactPutAndRemove() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 
   @Test
   public void testCompactSinglePutIfAbsent() {
-    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Matthew", 0L))));
+    resolver.compact(chain);
+    verify(chain, never()).replaceAtHead(any());
   }
 
   @Test
   public void testCompactMultiplePutIfAbsents() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutIfAbsentOperation<>(1L, "Suresh", 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Albin", 0L)))));
   }
 
   @Test
   public void testCompactPutIfAbsentAfterRemove() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Matthew", 0L))));
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Matthew", 0L)))));
   }
 
   @Test
   public void testCompactForMultipleKeysAndOperations() {
     //create a random mix of operations
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Matthew", 0L),
@@ -426,27 +411,27 @@ public abstract class AbstractChainResolverTest {
       new PutIfAbsentOperation<>(2L, "Albin", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(2L, "Albin", 0L))));
+    resolver.compact(chain);
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(2L, "Albin", 0L)))));
   }
 
   @Test
   public void testCompactHasCorrectTimeStamp() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0),
       new PutOperation<>(1L, "Albin", 1),
       new RemoveOperation<>(1L, 2),
       new PutOperation<>(1L, "Albin", 3));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.compactChain(chain, 3);
+    resolver.compact(chain);
 
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin", 3))));
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Albin", 3)))));
   }
 
   @Test
   public void testCompactDecodesOperationValueOnlyOnDemand() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 1),
       new PutOperation<>(1L, "Suresh", 2),
       new PutOperation<>(1L, "Matthew", 3));
@@ -455,7 +440,7 @@ public abstract class AbstractChainResolverTest {
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration(), customCodec);
-    resolver.compactChain(chain, 0L);
+    resolver.compact(chain);
 
     assertThat(keySerializer.decodeCount, is(3)); //Three decodes: one for each operation
     assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
@@ -467,7 +452,7 @@ public abstract class AbstractChainResolverTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testResolvingTwoKeys() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(2L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
@@ -476,112 +461,112 @@ public abstract class AbstractChainResolverTest {
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
 
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
 
-    assertThat(resolved, hasEntry(2L, new PutOperation<>(2L, "Matthew", 0L)));
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Suresh", 0L)));
+    assertThat(resolved.get(1L).get(), is("Suresh"));
+    assertThat(resolved.get(2L).get(), is("Matthew"));
   }
 
   @Test
   public void testFullResolveEmptyChain() {
     Chain chain = (new ChainBuilder()).build();
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
     assertThat(resolved, is(emptyMap()));
   }
 
   @Test
   public void testFullResolveSinglePut() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L)
     );
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
 
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Albin", 0L)));
+    assertThat(resolved.get(1L).get(), is("Albin"));
   }
 
   @Test
   public void testFullResolveMultiplePuts() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Matthew", 0L)));
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
+    assertThat(resolved.get(1L).get(), is("Matthew"));
   }
 
   @Test
   public void testFullResolveSingleRemove() {
-    Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
+    Chain chain = getEntryFromOperations(new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
     assertThat(resolved, is(emptyMap()));
   }
 
   @Test
   public void testFullResolveMultipleRemoves() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new RemoveOperation<>(1L, 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
     assertThat(resolved, is(emptyMap()));
   }
 
   @Test
   public void testFullResolvePutAndRemove() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
     assertThat(resolved, is(emptyMap()));
   }
 
   @Test
   public void testFullResolveSinglePutIfAbsent() {
-    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
+    Chain chain = getEntryFromOperations(new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Matthew", 0L)));
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
+    assertThat(resolved.get(1L).get(), is("Matthew"));
   }
 
   @Test
   public void testFullResolveMultiplePutIfAbsents() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutIfAbsentOperation<>(1L, "Suresh", 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Albin", 0L)));
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
+    assertThat(resolved.get(1L).get(), is("Albin"));
   }
 
   @Test
   public void testFullResolvePutIfAbsentAfterRemove() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0L),
       new RemoveOperation<>(1L, 0L),
       new PutIfAbsentOperation<>(1L, "Matthew", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Matthew", 0L)));
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
+    assertThat(resolved.get(1L).get(), is("Matthew"));
   }
 
   @Test
   public void testFullResolveForMultipleKeysAndOperations() {
     //create a random mix of operations
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutIfAbsentOperation<>(1L, "Albin", 0L),
       new PutOperation<>(1L, "Suresh", 0L),
       new PutOperation<>(1L, "Matthew", 0L),
@@ -595,52 +580,41 @@ public abstract class AbstractChainResolverTest {
       new PutIfAbsentOperation<>(2L, "Albin", 0L));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 0L);
-    assertThat(resolved, hasEntry(2L, new PutOperation<>(2L, "Albin", 0L)));
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 0L);
+    assertThat(resolved.get(2L).get(), is("Albin"));
   }
 
   @Test
   public void testFullResolveHasCorrectTimeStamp() {
-    Chain chain = getChainFromOperations(
+    Chain chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 0),
       new PutOperation<>(1L, "Albin", 1),
       new RemoveOperation<>(1L, 2),
       new PutOperation<>(1L, "Albin", 3));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
-    Map<Long, PutOperation<Long, String>> resolved = resolver.resolveChain(chain, 3);
+    Map<Long, Store.ValueHolder<String>> resolved = resolver.resolveAll(chain, 3);
 
-    assertThat(resolved, hasEntry(1L, new PutOperation<>(1L, "Albin", 3)));
+    assertThat(resolved.get(1L).get(), is("Albin"));
   }
 
   @Test
   public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStamp() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin1", 0),
       new PutOperation<>(1L, "Albin2", 1),
       new RemoveOperation<>(1L, 2),
       new PutOperation<>(1L, "AlbinAfterRemove", 3));
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofHours(1)));
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3);
-
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(TimeUnit.HOURS.toMillis(1) + 3));
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(3));
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 3);
+    assertThat(valueHolder.get(), is("AlbinAfterRemove"));
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "AlbinAfterRemove", TimeUnit.HOURS.toMillis(1) + 3)))));
   }
 
   @Test
   public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStampWithExpiry() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin1", 0L),
       new PutOperation<>(1L, "Albin2", 1L),
       new PutOperation<>(1L, "Albin3", 2L),
@@ -648,26 +622,15 @@ public abstract class AbstractChainResolverTest {
     );
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)));
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3L);
+    Store.ValueHolder<String> valueHolder = resolver.resolve(chain, 1L, 3L);
 
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(4L));
-
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(3));
+    assertThat(valueHolder.get(), is("Albin4"));
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Albin4", 4L)))));
   }
 
   @Test
   public void testCompactHasCorrectWithExpiry() {
-    Chain chain = getChainFromOperations(
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin1", 0L),
       new PutOperation<>(1L, "Albin2", 1L),
       new PutOperation<>(1L, "Albin3", 2L),
@@ -675,22 +638,63 @@ public abstract class AbstractChainResolverTest {
     );
 
     ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)));
-    Chain compactedChain = resolver.compactChain(chain, 3L);
+    resolver.compact(chain);
 
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin4", 3L))));
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "Albin4", 3L)))));
   }
 
   protected ChainResolver<Long, String> createChainResolver(ExpiryPolicy<? super Long, ? super String> expiryPolicy) {
     return createChainResolver(expiryPolicy, codec);
   }
 
+  @Test
+  public void testNonExpiringTimestampIsCleared() throws TimeoutException {
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(expected,
+      new TimestampOperation<>(1L, 1L)
+    );
+
+    ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration());
+
+    assertThat(resolver.resolve(chain, 1L, 2L).get(), is("Albin"));
+    verify(chain).replaceAtHead(argThat(contains(operation(expected))));
+  }
+
+
   @SafeVarargs
-  protected final Chain getChainFromOperations(Operation<Long, String> ... operations) {
+  protected final ServerStoreProxy.ChainEntry getEntryFromOperations(Operation<Long, String> ... operations) {
     ChainBuilder chainBuilder = new ChainBuilder();
     for(Operation<Long, String> operation: operations) {
       chainBuilder = chainBuilder.add(codec.encode(operation));
     }
-    return chainBuilder.build();
+    Chain chain = chainBuilder.build();
+    return spy(new ServerStoreProxy.ChainEntry(){
+
+      @Override
+      public Iterator<Element> iterator() {
+        return chain.iterator();
+      }
+
+      @Override
+      public void append(ByteBuffer payLoad) throws TimeoutException {
+        //nothing
+      }
+
+      @Override
+      public void replaceAtHead(Chain equivalent) {
+        //nothing
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return chain.isEmpty();
+      }
+
+      @Override
+      public int length() {
+        return chain.length();
+      }
+    });
   }
 
   protected List<Operation<Long, String>> getOperationsListFromChain(Chain chain) {
@@ -702,11 +706,25 @@ public abstract class AbstractChainResolverTest {
     return list;
   }
 
-  private Matcher<Element> operation(Operation<?, ?> operation) {
+  protected Matcher<Element> operation(Operation<?, ?> operation) {
     return new TypeSafeMatcher<Element>() {
       @Override
       protected boolean matchesSafely(Element item) {
         return operation.equals(codec.decode(item.getPayload()));
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is ").appendValue(operation);
+      }
+    };
+  }
+
+  protected Matcher<ByteBuffer> binaryOperation(Operation<?, ?> operation) {
+    return new TypeSafeMatcher<ByteBuffer>() {
+      @Override
+      protected boolean matchesSafely(ByteBuffer item) {
+        return operation.equals(codec.decode(item.duplicate()));
       }
 
       @Override
@@ -760,5 +778,14 @@ public abstract class AbstractChainResolverTest {
     public boolean equals(final String object, final ByteBuffer binary) throws ClassNotFoundException {
       return super.equals(object, binary);
     }
+  }
+
+  <T> T argThat(Matcher<? super T> matches) {
+    return ArgumentMatchers.argThat(new ArgumentMatcher<T>() {
+      @Override
+      public boolean matches(T argument) {
+        return matches.matches(argument);
+      }
+    });
   }
 }

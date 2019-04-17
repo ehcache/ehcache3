@@ -40,7 +40,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
@@ -50,7 +50,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return delegate.getAndAppend(key, payLoad);
   }
 

@@ -20,7 +20,6 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Assert;
@@ -77,7 +76,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
           }
 
           @Override
-          public Chain compact(Chain chain) {
+          public void compact(ServerStoreProxy.ChainEntry chain) {
             throw new AssertionError();
           }
         });
