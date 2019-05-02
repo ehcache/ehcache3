@@ -23,7 +23,9 @@ dependencies {
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
   compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
-  compileOnly "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
+  compileOnly ("org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion") {
+    exclude group:'org.terracotta', module:'statistics'
+  }
 
   compileOnly project(':api')
   compileOnly project(':core')

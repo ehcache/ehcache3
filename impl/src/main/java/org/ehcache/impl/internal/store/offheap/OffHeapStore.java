@@ -22,6 +22,8 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
@@ -51,8 +53,6 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -131,7 +131,6 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
     private final Map<OffHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
@@ -188,7 +187,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       close(offHeapStore);
-      StatisticsManager.nodeFor(offHeapStore).clean();
+      DefaultStatisticsService.cleanForNode(offHeapStore);
       tierOperationStatistics.remove(offHeapStore);
     }
 

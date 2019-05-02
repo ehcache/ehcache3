@@ -13,17 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.providers.statistics;
-
-import org.terracotta.statistics.derived.latency.DefaultLatencyHistogramStatistic;
+package org.ehcache.core.statistics;
 
 import java.time.Duration;
 import java.util.Objects;
 
 /**
  * Configuration of all latency histograms.
- *
- * @see DefaultLatencyHistogramStatistic
  */
 public class LatencyHistogramConfiguration {
 

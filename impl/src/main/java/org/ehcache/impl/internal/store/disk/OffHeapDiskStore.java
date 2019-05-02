@@ -22,6 +22,9 @@ import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -58,8 +61,6 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -297,7 +298,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
-    private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
 
     public Provider() {
@@ -386,7 +386,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
         close(offHeapDiskStore);
-        StatisticsManager.nodeFor(offHeapDiskStore).clean();
+        DefaultStatisticsService.cleanForNode(offHeapDiskStore);
         tierOperationStatistics.remove(offHeapDiskStore);
       } catch (IOException e) {
         throw new RuntimeException(e);

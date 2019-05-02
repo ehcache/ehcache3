@@ -28,7 +28,7 @@ import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.integration.statistics.AbstractCacheCalculationTest;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;

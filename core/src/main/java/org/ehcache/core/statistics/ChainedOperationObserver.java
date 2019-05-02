@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.core.statistics;
 
-apply plugin: 'groovy'
+public interface ChainedOperationObserver<T extends Enum<T>> extends ChainedObserver {
 
-repositories { jcenter() }
-dependencies {
-  compile gradleApi()
-  compile localGroovy()
-  compile 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
+  void begin(long time);
+
+  void end(long time, long latency, T result);
+
 }

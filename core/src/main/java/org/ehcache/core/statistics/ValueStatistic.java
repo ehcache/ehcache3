@@ -14,11 +14,22 @@
  * limitations under the License.
  */
 
-apply plugin: 'groovy'
+package org.ehcache.core.statistics;
 
-repositories { jcenter() }
-dependencies {
-  compile gradleApi()
-  compile localGroovy()
-  compile 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
+import org.terracotta.management.model.stats.StatisticType;
+
+import java.io.Serializable;
+
+public interface ValueStatistic<T extends Serializable> {
+
+  /**
+   * @return The statistic type
+   */
+  StatisticType type();
+
+  /**
+   * @return The current statistic value
+   */
+  T value();
+
 }

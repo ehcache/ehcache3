@@ -59,6 +59,9 @@ public class TransactionalOsgiTest {
       gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
       gradleBundle("org.ehcache:transactions"), jtaConfiguration(),
 
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
+
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),

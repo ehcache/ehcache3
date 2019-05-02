@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.statistics;
+package org.ehcache.core.statistics;
 
 import org.ehcache.Cache;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.statistics.TierOperationOutcomes;
-import org.ehcache.core.statistics.TierStatistics;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 import org.terracotta.statistics.ZeroOperationStatistic;
@@ -31,14 +28,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
+import static org.ehcache.core.statistics.StatsUtils.findStatisticOnDescendants;
 import static org.terracotta.statistics.ValueStatistics.counter;
 import static org.terracotta.statistics.ValueStatistics.gauge;
 
 /**
  * Contains usage statistics relative to a given tier.
  */
-class DefaultTierStatistics implements TierStatistics {
+public class DefaultTierStatistics implements TierStatistics {
 
   private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 

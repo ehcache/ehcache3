@@ -18,12 +18,13 @@ package org.ehcache.impl.internal.store.offheap;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -36,6 +37,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
@@ -55,14 +57,11 @@ import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.management.model.stats.StatisticType;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
-import org.terracotta.statistics.StatisticType;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticsManager.tags;
-import static org.terracotta.statistics.StatisticType.GAUGE;
 
 public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 
@@ -136,17 +135,17 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     this.installMappingObserver= createObserver("installMapping", LowerCachingTierOperationsOutcome.InstallMappingOutcome.class, true);
 
     Set<String> tags = tags(getStatisticsTag(), "tier");
-    registerStatistic("allocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::allocatedMemory);
-    registerStatistic("occupiedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::occupiedMemory);
-    registerStatistic("dataAllocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::dataAllocatedMemory);
-    registerStatistic("dataOccupiedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::dataOccupiedMemory);
-    registerStatistic("dataSize", GAUGE, tags, EhcacheOffHeapBackingMap::dataSize);
-    registerStatistic("dataVitalMemory", GAUGE, tags, EhcacheOffHeapBackingMap::dataVitalMemory);
-    registerStatistic("mappings", GAUGE, tags, EhcacheOffHeapBackingMap::longSize);
-    registerStatistic("vitalMemory", GAUGE, tags, EhcacheOffHeapBackingMap::vitalMemory);
-    registerStatistic("removedSlotCount", GAUGE, tags, EhcacheOffHeapBackingMap::removedSlotCount);
-    registerStatistic("usedSlotCount", GAUGE, tags, EhcacheOffHeapBackingMap::usedSlotCount);
-    registerStatistic("tableCapacity", GAUGE, tags, EhcacheOffHeapBackingMap::tableCapacity);
+    registerStatistic("allocatedMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::allocatedMemory);
+    registerStatistic("occupiedMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::occupiedMemory);
+    registerStatistic("dataAllocatedMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::dataAllocatedMemory);
+    registerStatistic("dataOccupiedMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::dataOccupiedMemory);
+    registerStatistic("dataSize", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::dataSize);
+    registerStatistic("dataVitalMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::dataVitalMemory);
+    registerStatistic("mappings", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::longSize);
+    registerStatistic("vitalMemory", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::vitalMemory);
+    registerStatistic("removedSlotCount", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::removedSlotCount);
+    registerStatistic("usedSlotCount", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::usedSlotCount);
+    registerStatistic("tableCapacity", StatisticType.GAUGE, tags, EhcacheOffHeapBackingMap::tableCapacity);
 
     this.mapEvictionListener = new BackingMapEvictionListener<>(eventDispatcher, evictionObserver);
   }
@@ -160,6 +159,8 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       return map == null ? null : fn.apply(map);
     });
   }
+
+  private static Set<String> tags(String... tags) {return new HashSet<>(Arrays.asList(tags));}
 
   @Override
   public Store.ValueHolder<V> get(K key) throws StoreAccessException {

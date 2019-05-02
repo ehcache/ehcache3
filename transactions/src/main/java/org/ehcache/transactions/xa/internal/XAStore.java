@@ -22,6 +22,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.WrapperStore;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
 import org.ehcache.impl.store.BaseStore;
@@ -52,7 +53,6 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -115,7 +115,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     this.recoveryXaResource = new EhcacheXAResource<>(underlyingStore, journal, transactionContextFactory);
     this.eventSourceWrapper = new StoreEventSourceWrapper<>(underlyingStore.getStoreEventSource());
 
-    ContextManager.associate(underlyingStore).withParent(this);
+    DefaultStatisticsService.registerWithParent(underlyingStore, this);
   }
 
   private static boolean isInDoubt(SoftLock<?> softLock) {

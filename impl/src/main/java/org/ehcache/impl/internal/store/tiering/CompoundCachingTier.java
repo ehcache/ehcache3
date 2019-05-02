@@ -19,6 +19,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
@@ -29,7 +30,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -68,8 +68,8 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       }
     });
 
-    StatisticsManager.associate(higher).withParent(this);
-    StatisticsManager.associate(lower).withParent(this);
+    DefaultStatisticsService.registerWithParent(higher, this);
+    DefaultStatisticsService.registerWithParent(lower, this);
   }
 
   private void notifyInvalidation(K key, Store.ValueHolder<V> p) {

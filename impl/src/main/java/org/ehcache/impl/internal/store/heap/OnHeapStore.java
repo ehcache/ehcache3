@@ -29,6 +29,10 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
 import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -70,9 +74,7 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.observer.OperationObserver;
+import org.terracotta.management.model.stats.StatisticType;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -99,8 +101,6 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticType.COUNTER;
-import static org.terracotta.statistics.StatisticType.GAUGE;
 
 /**
  * {@link Store} and {@link HigherCachingTier} implementation for on heap.
@@ -261,9 +261,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class, true);
 
     Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
-    registerStatistic("mappings", COUNTER, tags, () -> map.mappingCount());
+    registerStatistic("mappings", StatisticType.COUNTER, tags, () -> map.mappingCount());
     if (byteSized) {
-      registerStatistic("occupiedMemory", GAUGE, tags, () -> map.byteSize());
+      registerStatistic("occupiedMemory", StatisticType.GAUGE, tags, () -> map.byteSize());
     }
   }
 
@@ -1621,7 +1621,6 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
   public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final Map<OnHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
@@ -1676,7 +1675,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       }
       OnHeapStore<?, ?> onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
-      StatisticsManager.nodeFor(onHeapStore).clean();
+      DefaultStatisticsService.cleanForNode(onHeapStore);
       tierOperationStatistics.remove(onHeapStore);
 
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);

@@ -26,6 +26,8 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.ChainedOperationObserver;
+import org.ehcache.core.statistics.DefaultCacheStatistics;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
@@ -36,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -212,7 +213,7 @@ public class DefaultCacheStatisticsTest {
   @Test
   public void registerDerivedStatistics() {
     AtomicBoolean endCalled = new AtomicBoolean();
-    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
+    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new org.ehcache.core.statistics.ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
 
       @Override
       public void begin(long time) {

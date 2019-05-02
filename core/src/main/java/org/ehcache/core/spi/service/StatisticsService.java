@@ -16,8 +16,17 @@
 
 package org.ehcache.core.spi.service;
 
+import org.ehcache.Cache;
 import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.LatencyHistogramConfiguration;
 import org.ehcache.spi.service.Service;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.stats.Statistic;
+
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.LongSupplier;
 
 /**
  * Service providing raw statistics for cache and tier usage.
@@ -31,4 +40,46 @@ public interface StatisticsService extends Service {
    * @return all the cache statistics
    */
   CacheStatistics getCacheStatistics(String cacheName);
+
+  /**
+   *
+   * @param cacheName
+   * @param cache
+   * @param timeSource
+   */
+  <K, V> void createCacheRegistry(String cacheName, Cache<K, V> cache, LongSupplier timeSource);
+
+  /**
+   *
+   * @param cacheName
+   */
+  void registerCacheStatistics(String cacheName);
+
+  /**
+   *
+   * @param cacheName
+   * @return
+   */
+  Collection<StatisticDescriptor> getCacheDescriptors(String cacheName);
+
+  /**
+   *  @param <T>
+   * @param cacheName
+   * @param cache
+   * @param statName
+   * @param outcome
+   * @param derivedName
+   * @param configuration
+   */
+  <T extends Enum<T>, K, V> void registerDerivedStatistics(String cacheName, Cache<K, V> cache, String statName, T outcome, String derivedName, LatencyHistogramConfiguration configuration);
+
+  /**
+   *
+   * @param cacheName
+   * @param statisticNames
+   * @param since
+   * @return
+   */
+  Map<String, Statistic<? extends Serializable>> collectStatistics(String cacheName, Collection<String> statisticNames, long since);
+
 }

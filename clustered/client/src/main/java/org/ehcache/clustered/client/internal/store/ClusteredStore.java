@@ -51,6 +51,11 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
+import org.ehcache.impl.store.BaseStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -62,10 +67,8 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
-import org.ehcache.impl.store.BaseStore;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.Service;
@@ -74,9 +77,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -595,7 +595,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       CLUSTER_RESOURCES = Collections.unmodifiableSet(resourceTypes);
     }
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
     protected volatile ExecutionService executionService;
 
@@ -693,7 +692,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
-        StatisticsManager.nodeFor(clusteredStore).clean();
+        DefaultStatisticsService.cleanForNode(clusteredStore);
         tierOperationStatistics.remove(clusteredStore);
       } finally {
         connectLock.unlock();

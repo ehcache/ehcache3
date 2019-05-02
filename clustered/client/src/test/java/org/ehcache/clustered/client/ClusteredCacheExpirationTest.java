@@ -32,7 +32,7 @@ import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.TierStatistics;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -24,6 +24,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -40,7 +41,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.DefaultManagementRegistry;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,7 +105,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
-    StatisticsManager.associate(cache).withParent(cacheManager);
+    DefaultStatisticsService.registerWithParent(cache, cacheManager);
 
     register(new CacheBinding(alias, cache));
   }
@@ -114,7 +114,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
     unregister(new CacheBinding(alias, cache));
 
-    StatisticsManager.dissociate(cache).fromParent(cacheManager);
+    DefaultStatisticsService.deRegisterFromParent(cache, cacheManager);
   }
 
   @Override

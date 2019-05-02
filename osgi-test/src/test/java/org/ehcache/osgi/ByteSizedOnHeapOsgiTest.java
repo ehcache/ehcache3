@@ -47,6 +47,9 @@ public class ByteSizedOnHeapOsgiTest {
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:api"),
 
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
+
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),

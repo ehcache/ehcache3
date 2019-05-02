@@ -22,6 +22,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -30,7 +31,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -79,8 +79,8 @@ public class TieredStore<K, V> implements Store<K, V> {
       }
     });
 
-    StatisticsManager.associate(cachingTier).withParent(this);
-    StatisticsManager.associate(authoritativeTier).withParent(this);
+    DefaultStatisticsService.registerWithParent(cachingTier, this);
+    DefaultStatisticsService.registerWithParent(authoritativeTier, this);
   }
 
   @Override

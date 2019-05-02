@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.statistics;
+package org.ehcache.core.statistics;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.ehcache.Cache;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.derived.OperationResultFilter;
 
 import static org.terracotta.context.query.Matchers.*;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
@@ -251,5 +253,12 @@ public final class StatsUtils {
     }
 
     return !result.isEmpty();
+  }
+
+  public static void registerClearNotification(String alias, Cache<?, ?> cache, Consumer<String> cacheClear) {
+    OperationStatistic<CacheOperationOutcomes.ClearOutcome> clear = StatsUtils.findOperationStatisticOnChildren(cache,
+      CacheOperationOutcomes.ClearOutcome.class, "clear");
+    clear.addDerivedStatistic(new OperationResultFilter<>(EnumSet.of(CacheOperationOutcomes.ClearOutcome.SUCCESS),
+      (time, latency) -> cacheClear.accept(alias)));
   }
 }
