@@ -16,6 +16,7 @@
 package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -60,26 +61,9 @@ public class DuplicateTest extends ClusteredTests {
     + "</ohr:offheap-resources>" +
     "</config>\n";
 
-  private PersistentCacheManager cacheManager;
-
   @ClassRule
   public static Cluster CLUSTER =
     newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    if(cacheManager != null) {
-      cacheManager.close();
-      cacheManager.destroy();
-    }
-  }
 
   @Test
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
@@ -94,45 +78,55 @@ public class DuplicateTest extends ClusteredTests {
         .withResilienceStrategy(new ThrowingResilienceStrategy<>())
         .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
-    cacheManager =  builder.build(true);
+    for (int c = 0; c < 100; c++) {
+      CLUSTER.getClusterControl().startAllServers();
+      CLUSTER.getClusterControl().waitForActive();
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
-    Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
+      PersistentCacheManager cacheManager = builder.build(true);
+      try {
+        Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
 
-    int numEntries = 200;
-    AtomicInteger currentEntry = new AtomicInteger();
+        int numEntries = 200;
+        AtomicInteger currentEntry = new AtomicInteger();
 
-    //Perform put operations in another thread
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    try {
-      Future<Set<Integer>> puts = executorService.submit(() -> {
-        Set<Integer> knownKeys = new HashSet<>(numEntries);
-        while (true) {
-          int i = currentEntry.getAndIncrement();
-          if (i >= numEntries) {
-            break;
+        //Perform put operations in another thread
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        try {
+          Future<Set<Integer>> puts = executorService.submit(() -> {
+            Set<Integer> knownKeys = new HashSet<>(numEntries);
+            while (true) {
+              int i = currentEntry.getAndIncrement();
+              if (i >= numEntries) {
+                break;
+              }
+              try {
+                cache.put(i, "value:" + i);
+                assertThat(cache.get(i), is("value:" + i));
+                knownKeys.add(i);
+              } catch (RuntimeException e) {
+                assertThat(e.getCause().getCause(), is(instanceOf(TimeoutException.class)));
+              }
+            }
+            return unmodifiableSet(knownKeys);
+          });
+
+          while (currentEntry.get() < 100) ; // wait to make sure some entries are added before shutdown
+
+          // Failover to mirror when put & replication are in progress
+          CLUSTER.getClusterControl().terminateActive();
+
+          //Verify cache entries on mirror
+          for (Integer key : puts.get(30, TimeUnit.SECONDS)) {
+            assertThat(cache.get(key), is("value:" + key));
           }
-          try {
-            cache.put(i, "value:" + i);
-            assertThat(cache.get(i), is("value:" + i));
-            knownKeys.add(i);
-          } catch (RuntimeException e) {
-            assertThat(e.getCause().getCause(), is(instanceOf(TimeoutException.class)));
-          }
+        } finally {
+          executorService.shutdownNow();
         }
-        return unmodifiableSet(knownKeys);
-      });
-
-      while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
-
-      // Failover to mirror when put & replication are in progress
-      CLUSTER.getClusterControl().terminateActive();
-
-      //Verify cache entries on mirror
-      for (Integer key : puts.get(30, TimeUnit.SECONDS)) {
-        assertThat(cache.get(key), is("value:" + key));
+      } finally {
+        cacheManager.close();
+        cacheManager.destroy();
       }
-    } finally {
-      executorService.shutdownNow();
     }
   }
 }
