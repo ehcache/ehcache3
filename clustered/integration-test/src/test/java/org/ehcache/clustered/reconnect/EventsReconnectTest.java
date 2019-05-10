@@ -135,11 +135,11 @@ public class EventsReconnectTest extends ClusteredTests {
       CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
               ThreadLocalRandom.current()
                       .longs()
+                      .filter(val -> val != Long.MAX_VALUE)
                       .forEach(value ->
                               cache.put(value, Long.toString(value))));
 
       expireLease();
-      int beforeDisconnectionEventCounter = cacheEventListener.events.get(EventType.CREATED).size();
 
       try {
         future.get(5000, TimeUnit.MILLISECONDS);
@@ -147,6 +147,7 @@ public class EventsReconnectTest extends ClusteredTests {
       } catch (ExecutionException e) {
         assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
       }
+      int beforeDisconnectionEventCounter = cacheEventListener.events.get(EventType.CREATED).size();
 
       CompletableFuture<Void> getSucceededFuture = CompletableFuture.runAsync(() -> {
         while (true) {

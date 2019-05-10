@@ -153,7 +153,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       return;
     }
     LOGGER.info("setting events to {}", enable, new Exception("stack trace"));
-    this.invokeAndWaitForReceive(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
+    this.invokeAndWaitForComplete(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
     this.eventsEnabled = enable;
   }
 

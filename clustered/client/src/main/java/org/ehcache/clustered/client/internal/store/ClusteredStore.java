@@ -919,8 +919,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   private void setStoreProxy(ServerStoreProxy storeProxy) throws CachePersistenceException {
-    this.storeProxy = storeProxy;
     this.storeEventDispatcher.setStoreProxy(storeProxy);
+    this.storeProxy = storeProxy;
   }
 
   private static class StoreConfig {
