@@ -222,6 +222,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void enableEvents(boolean enable) {
+    delegate.enableEvents(enable);
+  }
+
+  @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     delegate.replaceAtHead(key, expect, update);
   }

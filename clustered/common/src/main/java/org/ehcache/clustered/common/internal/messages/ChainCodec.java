@@ -97,6 +97,11 @@ public final class ChainCodec {
           public ByteBuffer getPayload() {
             return byteBuffer.asReadOnlyBuffer();
           }
+
+          @Override
+          public String toString() {
+            return "SequencedElement{sequence=" + sequence + " size=" + byteBuffer.capacity() + "}";
+          }
         });
       }
     }

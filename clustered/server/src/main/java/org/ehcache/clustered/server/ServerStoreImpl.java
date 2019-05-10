@@ -52,8 +52,14 @@ public class ServerStoreImpl implements ServerSideServerStore {
     this.store = new OffHeapServerStore(pageSource, mapper, writeBehindConfigured);
   }
 
-  public void setEvictionListener(ServerStoreEvictionListener listener) {
-    store.setEvictionListener(listener);
+  @Override
+  public void setEventListener(ServerStoreEventListener listener) {
+    store.setEventListener(listener);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) {
+    store.enableEvents(enable);
   }
 
   /**

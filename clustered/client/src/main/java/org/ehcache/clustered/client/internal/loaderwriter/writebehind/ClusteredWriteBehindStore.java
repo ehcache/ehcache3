@@ -32,9 +32,11 @@ import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsC
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -61,8 +63,9 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                     ChainResolver<K, V> resolver,
                                     TimeSource timeSource,
                                     CacheLoaderWriter<? super K, V> loaderWriter,
-                                    ExecutorService executorService) {
-    super(config, codec, resolver, timeSource);
+                                    ExecutorService executorService,
+                                    StoreEventDispatcher<K, V> storeEventDispatcher) {
+    super(config, codec, resolver, timeSource, storeEventDispatcher);
     this.cacheLoaderWriter = loaderWriter;
     this.clusteredWriteBehind = new ClusteredWriteBehind<>(this, executorService,
                                                          resolver,
@@ -212,13 +215,18 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     }
 
     @Override
-    public void onInvalidateHash(long hash) {
-      this.delegate.onInvalidateHash(hash);
+    public void onInvalidateHash(long hash, Chain evictedChain) {
+      this.delegate.onInvalidateHash(hash, evictedChain);
     }
 
     @Override
     public void onInvalidateAll() {
       this.delegate.onInvalidateAll();
+    }
+
+    @Override
+    public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+      this.delegate.onAppend(beforeAppend, appended);
     }
 
     @Override
@@ -253,18 +261,20 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
         ExecutorService executorService =
           executionService.getOrderedExecutor(writeBehindConfiguration.getThreadPoolAlias(),
                                               new LinkedBlockingQueue<>());
+        StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
         return new ClusteredWriteBehindStore<>(storeConfig,
                                                codec,
                                                resolver,
                                                timeSource,
                                                storeConfig.getCacheLoaderWriter(),
-                                               executorService);
+                                               executorService,
+                                               storeEventDispatcher);
       }
       throw new AssertionError();
     }
 
     @Override
-    protected ServerStoreProxy.ServerCallback getServerCallback(ClusteredStore<?, ?> clusteredStore) {
+    protected <K, V> ServerStoreProxy.ServerCallback getServerCallback(ClusteredStore<K, V> clusteredStore) {
       if (clusteredStore instanceof ClusteredWriteBehindStore) {
         return ((ClusteredWriteBehindStore<?, ?>)clusteredStore).getWriteBehindServerCallback(super.getServerCallback(clusteredStore));
       }

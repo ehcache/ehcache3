@@ -95,6 +95,11 @@ public class LockingServerStoreProxyImpl implements LockingServerStoreProxy {
   }
 
   @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    storeProxy.enableEvents(enable);
+  }
+
+  @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     storeProxy.replaceAtHead(key, expect, update);
   }

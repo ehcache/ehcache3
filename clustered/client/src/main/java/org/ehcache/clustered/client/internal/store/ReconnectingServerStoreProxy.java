@@ -77,6 +77,14 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
   }
 
   @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    onStoreProxy(serverStoreProxy -> {
+      serverStoreProxy.enableEvents(enable);
+      return null;
+    });
+  }
+
+  @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     try {
       onStoreProxy(serverStoreProxy -> {
@@ -219,6 +227,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
       @Override
       public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
         return serverStoreProxy.getAndAppend(key, payLoad);
+      }
+
+      @Override
+      public void enableEvents(boolean enable) throws TimeoutException {
+        serverStoreProxy.enableEvents(enable);
       }
 
       @Override

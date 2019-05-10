@@ -17,12 +17,12 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.operations.Operation;
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 
 import java.nio.ByteBuffer;
@@ -151,6 +151,17 @@ public abstract class ChainResolver<K, V> {
       compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation));
     }
     return compacted;
+  }
+
+  /**
+   * Resolves a key within the given chain to its equivalent put operation.
+   *
+   * @param chain target chain
+   * @param key the key
+   * @return the equivalent put operation
+   */
+  public PutOperation<K, V> resolve(Chain chain, K key) {
+    return resolveAll(chain).get(key);
   }
 
   /**

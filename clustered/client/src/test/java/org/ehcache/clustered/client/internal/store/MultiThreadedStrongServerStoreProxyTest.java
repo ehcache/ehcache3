@@ -20,11 +20,13 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,12 +68,17 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
         SimpleClusterTierClientEntity clientEntity2 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), false, false);
         StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity2, new ServerCallback() {
           @Override
-          public void onInvalidateHash(long hash) {
+          public void onInvalidateHash(long hash, Chain evictedChain) {
             invalidatedHash.set(hash);
           }
 
           @Override
           public void onInvalidateAll() {
+            throw new AssertionError("Should not be called");
+          }
+
+          @Override
+          public void onAppend(Chain beforeAppend, ByteBuffer appended) {
             throw new AssertionError("Should not be called");
           }
 
