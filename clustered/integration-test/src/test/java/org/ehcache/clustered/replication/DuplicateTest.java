@@ -27,8 +27,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.resilience.ResilienceStrategy;
-import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -36,17 +35,20 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.lang.reflect.Proxy;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static java.util.Collections.unmodifiableSet;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class DuplicateTest extends ClusteredTests {
@@ -83,33 +85,41 @@ public class DuplicateTest extends ClusteredTests {
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
+        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)).read(Duration.ofSeconds(30)))
         .autoCreate()
         .defaultServerResource("primary-server-resource"))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
-        .withResilienceStrategy(failingResilienceStrategy())
+        .withResilienceStrategy(new ThrowingResilienceStrategy<>())
         .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
     cacheManager =  builder.build(true);
 
     Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
 
-    int numEntries = 3000;
+    int numEntries = 200;
     AtomicInteger currentEntry = new AtomicInteger();
 
     //Perform put operations in another thread
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     try {
-      Future<?> puts = executorService.submit(() -> {
+      Future<Set<Integer>> puts = executorService.submit(() -> {
+        Set<Integer> knownKeys = new HashSet<>(numEntries);
         while (true) {
           int i = currentEntry.getAndIncrement();
           if (i >= numEntries) {
             break;
           }
-          cache.put(i, "value:" + i);
+          try {
+            cache.put(i, "value:" + i);
+            assertThat(cache.get(i), is("value:" + i));
+            knownKeys.add(i);
+          } catch (RuntimeException e) {
+            assertThat(e.getCause().getCause(), is(instanceOf(TimeoutException.class)));
+          }
         }
+        return unmodifiableSet(knownKeys);
       });
 
       while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
@@ -117,48 +127,12 @@ public class DuplicateTest extends ClusteredTests {
       // Failover to mirror when put & replication are in progress
       CLUSTER.getClusterControl().terminateActive();
 
-      puts.get(30, TimeUnit.SECONDS);
-
       //Verify cache entries on mirror
-      for (int i = 0; i < numEntries; i++) {
-        assertThat(cache.get(i)).isEqualTo("value:" + i);
+      for (Integer key : puts.get(30, TimeUnit.SECONDS)) {
+        assertThat(cache.get(key), is("value:" + key));
       }
     } finally {
       executorService.shutdownNow();
     }
-
-  }
-
-  @SuppressWarnings("unchecked")
-  private ResilienceStrategy<Integer, String> failingResilienceStrategy() throws Exception {
-    return (ResilienceStrategy<Integer, String>)
-      Proxy.newProxyInstance(getClass().getClassLoader(),
-        new Class<?>[] { ResilienceStrategy.class},
-        (proxy, method, args) -> {
-          if(method.getName().endsWith("Failure")) {
-            fail("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
-            return null;
-          }
-
-          switch(method.getName()) {
-            case "hashCode":
-              return 0;
-            case "equals":
-              return proxy == args[0];
-            default:
-              fail("Unexpected method call: " + method.getName());
-              return null;
-          }
-        });
-  }
-
-  private StoreAccessException findStoreAccessException(Object[] objects) {
-    for(Object o : objects) {
-      if (o instanceof StoreAccessException) {
-        return (StoreAccessException) o;
-      }
-    }
-    fail("There should be an exception somewhere in " + Arrays.toString(objects));
-    return null;
   }
 }

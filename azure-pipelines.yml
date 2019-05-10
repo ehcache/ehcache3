@@ -24,4 +24,6 @@ resources:
       name: terracotta/terracotta
 
 jobs:
-- template: build-templates/gradle-common.yml@templates  
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    gradleTasks: ':clustered:integration-test:test --tests=org.ehcache.clustered.replication.DuplicateTest'
