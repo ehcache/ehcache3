@@ -161,6 +161,8 @@ public class EventsReconnectTest extends ClusteredTests {
 
       getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
 
+      assertThat(cache.get(Long.MAX_VALUE), is(""));
+
       await().atMost(TIMEOUT).until(() -> cacheEventListener.events.get(EventType.CREATED).size(), is(beforeDisconnectionEventCounter + 1));
 
     } finally {
@@ -170,9 +172,9 @@ public class EventsReconnectTest extends ClusteredTests {
 
 
   private static void expireLease() throws InterruptedException {
+    Thread.sleep(100);
     setDelay(6000, proxies);
     Thread.sleep(6000);
-
     setDelay(0L, proxies);
   }
 }

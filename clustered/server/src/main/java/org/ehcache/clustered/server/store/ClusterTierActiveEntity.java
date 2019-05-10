@@ -253,6 +253,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     @Override
     public void onAppend(Chain beforeAppend, ByteBuffer appended) {
       Set<ClientDescriptor> clients = new HashSet<>(getValidatedClients());
+      LOGGER.info("SERVER: append notification from cache {}; clients have to be notified: {}", storeIdentifier, clients);
       for (ClientDescriptor clientDescriptor : clients) {
         LOGGER.debug("SERVER: append happened in cache {}; notifying client {} ", storeIdentifier, clientDescriptor);
         try {

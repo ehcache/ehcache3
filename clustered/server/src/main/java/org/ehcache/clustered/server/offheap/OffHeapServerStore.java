@@ -20,6 +20,9 @@ import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerStoreEventListener;
 import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.ehcache.clustered.server.store.ClusterTierActiveEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -96,6 +99,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
     this.listener = listener;
     OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = listener::onEviction;
+    LOGGER.info("setting event listener; fireEvents={}", fireEvents, new Exception("stack trace"));
     for (OffHeapChainMap<Long> segment : segments) {
       segment.setEvictionListener(chainMapEvictionListener);
     }
@@ -106,9 +110,15 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     return segmentFor(key).get(key);
   }
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapServerStore.class);
+
   @Override
   public void append(long key, ByteBuffer payLoad) {
     LongConsumer lambda;
+    if (listener == null || !fireEvents) {
+      LOGGER.info("bogus append; listener={} fireEvents={}", listener, fireEvents);
+    }
+//    LOGGER.info("append listener={} fireEvents={}", listener, fireEvents);
     if (listener != null && fireEvents) {
       lambda = (k) -> {
         Chain beforeAppend = segmentFor(k).getAndAppend(k, payLoad);
@@ -128,6 +138,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     LongFunction<Chain> lambda;
+//    LOGGER.info("getAndAppend listener={} fireEvents={}", listener, fireEvents);
     if (listener != null && fireEvents) {
       lambda = (k) -> {
         Chain beforeAppend = segmentFor(k).getAndAppend(k, payLoad);
@@ -377,6 +388,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   public void enableEvents(boolean enable) {
+    LOGGER.info("setting events to {}; listener={}", enable, listener, new Exception("stack trace"));
     this.fireEvents = enable;
   }
 
