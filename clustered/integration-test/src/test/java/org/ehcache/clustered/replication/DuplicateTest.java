@@ -102,7 +102,6 @@ public class DuplicateTest extends ClusteredTests {
               }
               try {
                 cache.put(i, "value:" + i);
-                assertThat(cache.get(i), is("value:" + i));
                 knownKeys.add(i);
               } catch (RuntimeException e) {
                 assertThat(e.getCause().getCause(), is(instanceOf(TimeoutException.class)));
