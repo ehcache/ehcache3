@@ -254,9 +254,10 @@ subprojects {
     }
     dependencies {
       baseline(group: group, name: jar.archiveBaseName.get()) {
+        def baseVersion = fixedVersion.replaceAll(/-[a-zA-Z0-9]+$/, "")
         version {
           require "(,${fixedVersion}["
-          reject "${fixedVersion}-internal+"
+          reject "${baseVersion}-internal+"
         }
         force = true
         transitive = false
