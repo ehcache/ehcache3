@@ -202,8 +202,22 @@ This leads to the typical pyramid shape for a multi-tiered setup.
 --
 [.left]
 .Tiers hierarchy
-image::TiersHierarchy.png[Tiers hierarchy]
-
+[ditaa]
+....
+    +-------------------+
+    |cBE7 Heap Tier     |
+  +-+-------------------+-+
+  |cFA4                   |
+  |     Off Heap Tier     |
+  |                       |
++-+-----------------------+-+
+|cA8D                       |
+|                           |
+|         Disk Tier         |
+|                           |
+|                           |
++---------------------------+
+....
 Ehcache requires the size of the heap tier to be smaller than the size of the offheap tier, and the size of the offheap tier to be smaller than the size of the disk tier.
 While Ehcache cannot verify at configuration time that a count-based sizing for heap will be smaller than a byte-based sizing for another tier, you should make sure that is the case during testing.
 --
@@ -297,19 +311,21 @@ This method destroys a given cache. The cache shouldn't be in use by another cac
 
 [[multi-tier-sequence-flow]]
 == Sequence Flow for Cache Operations with Multiple Tiers
-
+[.right]
+--
+.Multiple tiers using Put
+[plantuml]
+....
+include::{sourcedir37}/docs/src/docs/uml/put.puml[]
+....
+.Multiple tiers using Get
+[plantuml]
+....
+include::{sourcedir37}/docs/src/docs/uml/get.puml[]
+....
+--
 In order to understand what happens for different cache operations when using multiple tiers, here are examples of _Put_ and _Get_ operations.
 The sequence diagrams are oversimplified but still show the main points.
-
-[.float-group]
---
-[.left]
-.Multiple tiers using Put
-image::Put.png[Put]
-[.left]
-.Multiple tiers using Get
-image::Get.png[Get]
---
 
 You should then notice the following:
 

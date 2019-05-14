@@ -46,7 +46,6 @@ jar {
     'Bundle-SymbolicName': 'org.ehcache.transactions',
     'Export-Package': 'org.ehcache.transactions.xa.*',
     'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
-    'Service-Component': 'OSGI-INF/*.xml'
   )
 }
 

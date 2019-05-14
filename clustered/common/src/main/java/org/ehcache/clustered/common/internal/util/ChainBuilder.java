@@ -43,6 +43,10 @@ public class ChainBuilder {
     return chainFromList(elements);
   }
 
+  public int length() {
+    return buffers.size();
+  }
+
   public static Chain chainFromList(List<Element> elements) {
     return new Chain() {
       @Override

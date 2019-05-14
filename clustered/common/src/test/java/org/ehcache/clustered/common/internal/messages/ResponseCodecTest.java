@@ -43,6 +43,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class ResponseCodecTest {
@@ -129,14 +130,27 @@ public class ResponseCodecTest {
   }
 
   @Test
-  public void testServerInvalidateHash() throws Exception {
-    EhcacheEntityResponse.ServerInvalidateHash response = serverInvalidateHash(KEY);
+  public void testServerInvalidateHash_withEvictedChain() {
+    EhcacheEntityResponse.ServerInvalidateHash response = serverInvalidateHash(KEY, chainOf(createPayload(1L), createPayload(11L), createPayload(111L)));
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ServerInvalidateHash decodedResponse = (EhcacheEntityResponse.ServerInvalidateHash) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
     assertThat(decodedResponse.getKey(), is(KEY));
+    assertThat(decodedResponse.getEvictedChain(), hasPayloads(1L, 11L, 111L));
+  }
+
+  @Test
+  public void testServerInvalidateHash_withoutEvictedChain() {
+    EhcacheEntityResponse.ServerInvalidateHash response = serverInvalidateHash(KEY, null);
+
+    byte[] encoded = RESPONSE_CODEC.encode(response);
+    EhcacheEntityResponse.ServerInvalidateHash decodedResponse = (EhcacheEntityResponse.ServerInvalidateHash) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
+    assertThat(decodedResponse.getKey(), is(KEY));
+    assertThat(decodedResponse.getEvictedChain(), is(nullValue()));
   }
 
   @Test
@@ -200,5 +214,17 @@ public class ResponseCodecTest {
     assertThat(batchDecoded.getChains().get(0), hasPayloads(1L, 10L));
     assertThat(batchDecoded.getChains().get(1), hasPayloads(2L, 20L));
     assertThat(batchDecoded.isLast(), is(true));
+  }
+
+  @Test
+  public void testServerAppendResponse() {
+    EhcacheEntityResponse.ServerAppend serverAppend = new EhcacheEntityResponse.ServerAppend(createPayload(3L), chainOf(createPayload(1L), createPayload(2L)));
+
+    byte[] encoded = RESPONSE_CODEC.encode(serverAppend);
+    EhcacheEntityResponse.ServerAppend appendDecoded = (EhcacheEntityResponse.ServerAppend) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(appendDecoded.getResponseType(), is(EhcacheResponseType.SERVER_APPEND));
+    assertThat(appendDecoded.getAppended().asLongBuffer().get(), is(3L));
+    assertThat(appendDecoded.getBeforeAppend(), hasPayloads(1L, 2L));
   }
 }

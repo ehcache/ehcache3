@@ -38,7 +38,7 @@ import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromL
 public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
 
   interface ChainMapEvictionListener<K> {
-    void onEviction(K key);
+    void onEviction(K key, InternalChain evictedChain);
   }
 
   protected final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
@@ -52,7 +52,7 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
         Map.Entry<K, InternalChain> entry = callable.call();
         try {
           if (evictionListener != null) {
-            evictionListener.onEviction(entry.getKey());
+            evictionListener.onEviction(entry.getKey(), entry.getValue());
           }
         } finally {
           entry.getValue().close();

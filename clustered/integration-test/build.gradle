@@ -32,6 +32,7 @@ dependencies {
   testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testImplementation "org.awaitility:awaitility:3.1.6"
   testRuntimeOnly project(':clustered:clustered-dist')
   testRuntimeOnly project(':dist')
 

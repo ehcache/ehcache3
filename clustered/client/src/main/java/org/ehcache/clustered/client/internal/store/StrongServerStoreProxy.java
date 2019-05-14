@@ -204,7 +204,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
@@ -217,8 +217,13 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
+  }
+
+  @Override
+  public void enableEvents(boolean enable) {
+    delegate.enableEvents(enable);
   }
 
   @Override

@@ -15,22 +15,69 @@
  */
 package org.ehcache.clustered.client.internal.store.lock;
 
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.LockSuccess;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.LockMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.UnlockMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
-public interface LockManager {
-  /**
-   *
-   * @param hash
-   */
-  Chain lock(long hash) throws TimeoutException;
+import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.LOCK_FAILURE;
 
-  /**
-   *
-   * @param hash
-   * @param localonly
-   */
-  void unlock(long hash, boolean localonly) throws TimeoutException;
+public class LockManager {
 
+  private final ClusterTierClientEntity clientEntity;
+  private final Set<Long> locksHeld = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+  public LockManager(ClusterTierClientEntity clientEntity) {
+    this.clientEntity = clientEntity;
+    clientEntity.addReconnectListener(this::reconnectListener);
+  }
+
+  void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
+    reconnectMessage.addLocksHeld(locksHeld);
+  }
+
+  public Chain lock(long hash) throws TimeoutException {
+    LockSuccess response = getlockResponse(hash);
+    locksHeld.add(hash);
+    return response.getChain();
+  }
+
+  private LockSuccess getlockResponse(long hash) throws TimeoutException {
+    EhcacheEntityResponse response;
+    do {
+      try {
+        response = clientEntity.invokeAndWaitForComplete(new LockMessage(hash), false);
+      } catch (TimeoutException tme) {
+        throw tme;
+      } catch (Exception e) {
+        throw new ServerStoreProxyException(e);
+      }
+      if (response == null) {
+        throw new ServerStoreProxyException("Response for acquiring lock was invalid null message");
+      }
+    } while (response.getResponseType() == LOCK_FAILURE);
+    return (LockSuccess) response;
+  }
+
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
+    try {
+      if (!localonly) {
+        clientEntity.invokeAndWaitForComplete(new UnlockMessage(hash), false);
+      }
+      locksHeld.remove(hash);
+    } catch (TimeoutException tme) {
+      throw tme;
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+  }
 }

@@ -47,19 +47,21 @@ entry is expired/evicted from caching tier, it flushes that information to autho
 using invalidation listener. All the flushed entries are now marked as evictable in
 authority.
 
-image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/Faulting.png[Faulting & Flushing]
+[plantuml]
+....
+include::../../uml/put.puml[]
+....
+ * All writes directly go to the Authoritative tier.This tier has all the data such that caching tier always has a subset of authority
+ * On return, the mapping in the caching tier is invalidated.
+ * On eviction or expiry in the caching tier, the mapping is flushed to the authority.
 
- . All writes directly go to the Authoritative tier.This tier has all the data such that caching tier always has a subset of authority
-
- . On return, the mapping in the caching tier is invalidated.
- 
- . On eviction or expiry in the caching tier, the mapping is flushed to the authority.
-
- . Any reading thread tries to get data from the caching tier and returns
- 
- . If the key is not found in caching tier, it is faulted from authority
- 
- . On return, the mapping faulted from the authority is installed in the caching tier. The install may fail under heavy contention to preserve correctness.
+[plantuml]
+....
+include::../../uml/get.puml[]
+....
+ * Any reading thread tries to get data from the caching tier and returns
+ * If the key is not found in caching tier, it is faulted from authority
+ * On return, the mapping faulted from the authority is installed in the caching tier. The install may fail under heavy contention to preserve correctness.
 
 
 

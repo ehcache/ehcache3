@@ -263,5 +263,23 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
       return EhcacheMessageType.ITERATOR_ADVANCE;
     }
   }
+
+  public static class EnableEventListenerMessage extends ServerStoreOpMessage {
+    private final boolean enable;
+
+    public EnableEventListenerMessage(boolean enable) {
+      this.enable = enable;
+    }
+
+    public boolean isEnable() {
+      return enable;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ENABLE_EVENT_LISTENER;
+    }
+  }
+
 }
 
