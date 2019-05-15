@@ -216,7 +216,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new RuntimeException("ServiceProvider is null.");
       }
@@ -265,7 +265,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP))) ? 2 : 0;
 
     }

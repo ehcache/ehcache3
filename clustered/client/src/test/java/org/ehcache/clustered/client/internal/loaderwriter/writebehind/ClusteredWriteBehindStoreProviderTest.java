@@ -39,8 +39,8 @@ import static org.mockito.Mockito.mock;
 
 public class ClusteredWriteBehindStoreProviderTest {
 
-  private final CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
-  private final WriteBehindConfiguration writeBehindConfiguration = mock(WriteBehindConfiguration.class);
+  private final CacheLoaderWriterConfiguration<?> cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
+  private final WriteBehindConfiguration<?> writeBehindConfiguration = mock(WriteBehindConfiguration.class);
 
   @Test
   public void testRank() {

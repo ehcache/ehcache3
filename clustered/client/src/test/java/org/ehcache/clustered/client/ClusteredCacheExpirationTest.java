@@ -59,14 +59,14 @@ public class ClusteredCacheExpirationTest {
     return newCacheManagerBuilder()
         .using(statisticsService)
         .using(new TimeSourceConfiguration(timeSource))
-        .with(cluster(CLUSTER_URI).autoCreate())
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
         .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(6, MemoryUnit.MB)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .withExpiry(expiry)
-            .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+            .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }
 
   private ExpiryPolicy<Object, Object> oneSecondExpiration() {

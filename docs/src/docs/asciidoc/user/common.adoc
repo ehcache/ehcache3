@@ -1,6 +1,7 @@
 ---
 ---
 ifndef::sourcedir37[]
+:version: 3.7
 :notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
 :source-highlighter: coderay

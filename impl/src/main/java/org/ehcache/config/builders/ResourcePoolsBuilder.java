@@ -20,9 +20,9 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.ResourcePoolsImpl;
+import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -32,7 +32,7 @@ import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
-import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
+import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
  * The {@code ResourcePoolsBuilder} enables building {@link ResourcePools} configurations using a fluent style.

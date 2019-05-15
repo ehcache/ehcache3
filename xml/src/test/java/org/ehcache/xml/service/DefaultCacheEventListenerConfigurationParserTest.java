@@ -66,7 +66,7 @@ public class DefaultCacheEventListenerConfigurationParserTest {
     listenerConfig.setEventFiringMode(SYNCHRONOUS);
     listenerConfig.setEventOrderingMode(UNORDERED);
 
-    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(listenerConfig).build();
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(listenerConfig).build();
     CacheType cacheType = new CacheType();
     cacheType = new DefaultCacheEventListenerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 
@@ -86,7 +86,7 @@ public class DefaultCacheEventListenerConfigurationParserTest {
     listenerConfig.setEventFiringMode(SYNCHRONOUS);
     listenerConfig.setEventOrderingMode(UNORDERED);
 
-    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(listenerConfig).build();
+    CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(listenerConfig).build();
     CacheType cacheType = new CacheType();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultCacheEventListenerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))

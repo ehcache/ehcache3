@@ -76,31 +76,41 @@ public class CacheManagerBuilderTest {
     assertThat(managerBuilder.withSerializer(String.class, serializer2)).isNotNull();
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testDuplicateServiceCreationConfigurationFails() {
-    newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
-        .using(new DefaultCopyProviderConfiguration());
+  @Test
+  public void testDuplicateServiceCreationConfigurationOk() {
+    DefaultCopyProviderConfiguration configOne = new DefaultCopyProviderConfiguration();
+    DefaultCopyProviderConfiguration configTwo = new DefaultCopyProviderConfiguration();
+    CacheManagerBuilder<CacheManager> builder = newCacheManagerBuilder()
+      .using(configOne)
+      .using(configTwo);
+
+    assertThat(builder.build().getRuntimeConfiguration().getServiceCreationConfigurations()).contains(configTwo).doesNotContain(configOne);
   }
 
-  @Test
+  @Test @SuppressWarnings("deprecation")
   public void testDuplicateServiceCreationConfigurationOkWhenExplicit() {
-    assertThat(newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
-        .replacing(new DefaultCopyProviderConfiguration())).isNotNull();
+    CacheManagerBuilder<CacheManager> builder = newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
+      .replacing(new DefaultCopyProviderConfiguration());
+
+    assertThat(builder.build()).isNotNull();
   }
 
   @Test
   public void testShouldNotBeAllowedToRegisterTwoCachesWithSameAlias() {
-    String cacheAlias = "cacheAliasSameName";
+    String cacheAlias = "alias";
 
-    CacheConfiguration<Long, String> cacheConfig = CacheConfigurationBuilder
+    CacheConfiguration<Integer, String> configOne = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Integer.class, String.class, ResourcePoolsBuilder.heap(10))
+      .build();
+
+    CacheConfiguration<Long, String> configTwo = CacheConfigurationBuilder
       .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
       .build();
 
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Cache alias 'cacheAliasSameName' already exists");
+    CacheManager build = newCacheManagerBuilder()
+      .withCache(cacheAlias, configOne)
+      .withCache(cacheAlias, configTwo).build();
 
-    CacheManagerBuilder.newCacheManagerBuilder()
-      .withCache(cacheAlias, cacheConfig)
-      .withCache(cacheAlias, cacheConfig);
+    assertThat(build.getRuntimeConfiguration().getCacheConfigurations().get(cacheAlias).getKeyType()).isEqualTo(Long.class);
   }
 }

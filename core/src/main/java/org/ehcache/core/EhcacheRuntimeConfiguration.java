@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.ExpiryUtils;
+import org.ehcache.config.FluentCacheConfigurationBuilder;
 import org.ehcache.core.events.EventListenerWrapper;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -31,21 +31,18 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static java.util.Collections.unmodifiableCollection;
+
 class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration, HumanReadable {
 
-  private final Collection<ServiceConfiguration<?>> serviceConfigurations;
-  private final CacheConfiguration<? super K, ? super V> config;
-  private final Class<K> keyType;
-  private final Class<V> valueType;
-  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
-  private final ClassLoader classLoader;
-  private final ExpiryPolicy<? super K, ? super V> expiry;
+  private final CacheConfiguration<K, V> config;
+
+  private final Collection<ServiceConfiguration<?, ?>> addedServiceConfigurations = new ArrayList<>();
   private volatile ResourcePools resourcePools;
 
   private final List<CacheConfigurationChangeListener> cacheConfigurationListenerList
@@ -53,12 +50,6 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
 
   EhcacheRuntimeConfiguration(CacheConfiguration<K, V> config) {
     this.config = config;
-    this.serviceConfigurations = copy(config.getServiceConfigurations());
-    this.keyType = config.getKeyType();
-    this.valueType = config.getValueType();
-    this.evictionAdvisor = config.getEvictionAdvisor();
-    this.classLoader = config.getClassLoader();
-    this.expiry = config.getExpiryPolicy();
     this.resourcePools = config.getResourcePools();
   }
 
@@ -75,44 +66,55 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
-    return this.serviceConfigurations;
+  public Collection<ServiceConfiguration<?, ?>> getServiceConfigurations() {
+    Collection<ServiceConfiguration<?, ?>> configurations = new ArrayList<>(config.getServiceConfigurations());
+    configurations.addAll(addedServiceConfigurations);
+    return unmodifiableCollection(configurations);
   }
 
   @Override
   public Class<K> getKeyType() {
-    return this.keyType;
+    return config.getKeyType();
   }
 
   @Override
   public Class<V> getValueType() {
-    return this.valueType;
+    return config.getValueType();
   }
 
   @Override
   public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
-    return this.evictionAdvisor;
+    return config.getEvictionAdvisor();
   }
 
   @Override
   public ClassLoader getClassLoader() {
-    return this.classLoader;
+    return config.getClassLoader();
   }
 
   @SuppressWarnings("deprecation")
   @Override
   public org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry() {
-    return ExpiryUtils.convertToExpiry(expiry);
+    return config.getExpiry();
   }
 
   @Override
   public ExpiryPolicy<? super K, ? super V> getExpiryPolicy() {
-    return expiry;
+    return config.getExpiryPolicy();
   }
 
   @Override
   public ResourcePools getResourcePools() {
     return this.resourcePools;
+  }
+
+  @Override
+  public FluentCacheConfigurationBuilder<K, V, ?> derive() {
+    FluentCacheConfigurationBuilder<K, V, ?> builder = config.derive();
+    for (ServiceConfiguration<?, ?> service : addedServiceConfigurations) {
+      builder = builder.withService(service);
+    }
+    return builder.updateResourcePools(existing -> resourcePools);
   }
 
   @Override
@@ -137,18 +139,12 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
-  @Override
-  public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes) {
-    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<>(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
-    fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
-  }
-
   private <T> Collection<T> copy(Collection<T> collection) {
     if (collection == null) {
       return null;
     }
 
-    return Collections.unmodifiableCollection(new ArrayList<>(collection));
+    return unmodifiableCollection(new ArrayList<>(collection));
   }
 
   @SuppressWarnings("unchecked")
@@ -163,7 +159,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   @Override
   public String readableString() {
     StringBuilder serviceConfigurationsToStringBuilder = new StringBuilder();
-    for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
+    for (ServiceConfiguration<?, ?> serviceConfiguration : getServiceConfigurations()) {
       serviceConfigurationsToStringBuilder
           .append("\n    ")
           .append("- ");
@@ -184,20 +180,12 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       serviceConfigurationsToStringBuilder.append(" None");
     }
 
-    String expiryPolicy;
-
-    if (ExpiryPolicy.NO_EXPIRY == expiry) {
-      expiryPolicy = "NoExpiryPolicy";
-    } else {
-      expiryPolicy = expiry.toString();
-    }
-
     return
-        "keyType: " + keyType.getName() + "\n" +
-        "valueType: " + valueType.getName() + "\n" +
+        "keyType: " + getKeyType().getName() + "\n" +
+        "valueType: " + getValueType().getName() + "\n" +
         "serviceConfigurations:" + serviceConfigurationsToStringBuilder.toString().replace("\n", "\n    ") + "\n" +
-        "evictionAdvisor: " + ((evictionAdvisor != null) ? evictionAdvisor.getClass().getName() : "None") + "\n" +
-        "expiry: " + expiryPolicy + "\n" +
+        "evictionAdvisor: " + ((getEvictionAdvisor() != null) ? getEvictionAdvisor().getClass().getName() : "None") + "\n" +
+        "expiry: " + getExpiryPolicy() + "\n" +
         "resourcePools: " + "\n    " + ((resourcePools instanceof HumanReadable) ? ((HumanReadable)resourcePools).readableString() : "").replace("\n", "\n    ");
   }
 }

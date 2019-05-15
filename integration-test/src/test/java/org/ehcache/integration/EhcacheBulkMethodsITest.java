@@ -519,12 +519,12 @@ public class EhcacheBulkMethodsITest {
    */
   private static class CustomStoreProvider implements Store.Provider {
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return Integer.MAX_VALUE;     // Ensure this Store.Provider is ranked highest
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       ServiceLocator serviceLocator = dependencySet().with(new DefaultSerializationProvider(null)).build();
       try {
         serviceLocator.startAllServices();

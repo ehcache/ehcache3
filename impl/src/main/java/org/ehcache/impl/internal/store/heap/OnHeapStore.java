@@ -1631,17 +1631,17 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return rank(resourceTypes, serviceConfigs);
     }
 
     @Override
-    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OnHeapStore<K, V> store = createStoreInternal(storeConfig, new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -1652,7 +1652,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     public <K, V> OnHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher,
-                                                        ServiceConfiguration<?>... serviceConfigs) {
+                                                        ServiceConfiguration<?, ?>... serviceConfigs) {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
@@ -1726,7 +1726,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
       this.tierOperationStatistics.put(cachingTier, new OperationStatistic<?>[] {
@@ -1754,7 +1754,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new DefaultStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 

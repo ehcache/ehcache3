@@ -19,11 +19,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 import org.ehcache.Status;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -171,9 +167,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
-      ExpiryPolicy.NO_EXPIRY, ResourcePoolsHelper.createHeapOnlyPools());
-    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;

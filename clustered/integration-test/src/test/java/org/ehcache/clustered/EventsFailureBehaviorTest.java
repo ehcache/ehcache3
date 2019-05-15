@@ -78,13 +78,11 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
 
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
   }
 
   @After
@@ -101,7 +99,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
       .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
-      .add(CacheEventListenerConfigurationBuilder
+      .withService(CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
         .unordered().asynchronous())
       .withExpiry(expiryPolicy)

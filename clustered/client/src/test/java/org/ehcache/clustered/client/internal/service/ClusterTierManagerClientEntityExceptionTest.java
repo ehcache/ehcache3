@@ -75,21 +75,21 @@ public class ClusterTierManagerClientEntityExceptionTest {
   public void testServerExceptionPassThrough() throws Exception {
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate()
+          .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
-            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
-            .build();
+            .resourcePool("sharedTertiary", 4, MemoryUnit.MB))
+          .build();
     DefaultClusteringService creationService = new DefaultClusteringService(creationConfig);
     creationService.start(null);
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .expecting()
-            .defaultServerResource("different")
-            .build();
+          .expecting(server -> server
+            .defaultServerResource("different"))
+          .build();
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
     /*
      * Induce an "InvalidStoreException: cluster tier 'cacheAlias' does not exist" on the server.

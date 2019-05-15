@@ -51,7 +51,7 @@ public class DefaultTierStatisticsTest {
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
-        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

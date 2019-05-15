@@ -137,7 +137,7 @@ public class SimpleOsgiTest {
     public static void testEhcache3WithSerializationAndClientClass() {
       CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10))
-          .add(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+          .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
           .withClassLoader(TestMethods.class.getClassLoader())
           .build())
         .build(true);
@@ -151,7 +151,7 @@ public class SimpleOsgiTest {
     public static void testCustomCopier() {
       CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+          .withService(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
           .withClassLoader(TestMethods.class.getClassLoader())
           .build())
         .build(true);

@@ -113,8 +113,8 @@ public class DefaultCacheStatisticsTest {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
-        .add(cacheEventListenerConfiguration)
-        .add(new StoreStatisticsConfiguration(enableStoreStatistics))
+        .withService(cacheEventListenerConfiguration)
+        .withService(new StoreStatisticsConfiguration(enableStoreStatistics))
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

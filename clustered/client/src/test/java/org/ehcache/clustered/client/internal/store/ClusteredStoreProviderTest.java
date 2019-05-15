@@ -27,7 +27,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.ResourcePoolsImpl;
+import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
@@ -124,14 +124,14 @@ public class ClusteredStoreProviderTest {
     ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
-    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.<ServiceConfiguration<?>>emptyList()), is(0));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.<ServiceConfiguration<?, ?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.<ServiceConfiguration<?, ?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.<ServiceConfiguration<?, ?>>emptyList()), is(0));
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
 
-    final List<ServiceConfiguration<?>> serviceConfigs = Collections.emptyList();
+    final List<ServiceConfiguration<?, ?>> serviceConfigs = Collections.emptyList();
     if (expectedRank == -1) {
       try {
         provider.rank(new HashSet<>(Arrays.asList(resources)),

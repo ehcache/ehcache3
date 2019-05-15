@@ -100,7 +100,7 @@ public class EventsReconnectTest extends ClusteredTests {
   private static CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
       .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-    .add(CacheEventListenerConfigurationBuilder
+    .withService(CacheEventListenerConfigurationBuilder
       .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
       .unordered().asynchronous())
     .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
@@ -121,8 +121,7 @@ public class EventsReconnectTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"));
+                    .autoCreate(s -> s.defaultServerResource("primary-server-resource")));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

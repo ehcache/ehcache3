@@ -102,14 +102,14 @@ public class WriteBehindTestBase extends ClusteredTests {
                                                                                  .offheap(1, MemoryUnit.MB)
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
-        .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
         .withResilienceStrategy(new ThrowingResilienceStrategy<>())
-        .add(new ClusteredStoreConfiguration(Consistency.STRONG))
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate())
+      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }

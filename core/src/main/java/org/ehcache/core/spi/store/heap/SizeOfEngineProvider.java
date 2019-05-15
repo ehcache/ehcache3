@@ -36,5 +36,5 @@ public interface SizeOfEngineProvider extends Service {
    * @return {@link SizeOfEngine} instance
    */
 
-  SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?>... serviceConfigs);
+  SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?, ?>... serviceConfigs);
 }

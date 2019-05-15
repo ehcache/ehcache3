@@ -19,6 +19,9 @@ package org.ehcache.impl.internal.sizeof;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.fail;
 
 import org.ehcache.config.units.MemoryUnit;
@@ -61,4 +64,14 @@ public class DefaultSizeOfEngineConfigurationTest {
     assertThat(configuration.getUnit(), equalTo(MemoryUnit.B));
   }
 
+  @Test
+  public void testDeriveDetachesProperly() {
+    DefaultSizeOfEngineConfiguration configuration = new DefaultSizeOfEngineConfiguration(42L, MemoryUnit.MB, 123L);
+    DefaultSizeOfEngineConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived, is(not(sameInstance(configuration))));
+    assertThat(derived.getMaxObjectSize(), is(configuration.getMaxObjectSize()));
+    assertThat(derived.getUnit(), is(configuration.getUnit()));
+    assertThat(derived.getMaxObjectGraphSize(), is(configuration.getMaxObjectGraphSize()));
+  }
 }

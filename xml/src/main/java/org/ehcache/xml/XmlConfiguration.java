@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -38,6 +39,7 @@ import static java.lang.Class.forName;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
+import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.xml.ConfigurationParser.documentToText;
 import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
 
@@ -347,13 +349,18 @@ public class XmlConfiguration implements Configuration {
   }
 
   @Override
-  public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
+  public Collection<ServiceCreationConfiguration<?, ?>> getServiceCreationConfigurations() {
     return configuration.getServiceCreationConfigurations();
   }
 
   @Override
   public ClassLoader getClassLoader() {
     return configuration.getClassLoader();
+  }
+
+  @Override
+  public FluentConfigurationBuilder<?> derive() {
+    return newConfigurationBuilder(this);
   }
 
   public interface Template {

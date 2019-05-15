@@ -383,7 +383,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       if (resourceTypes.size() == 1) {
         return 0;
       }
@@ -426,8 +426,8 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      final List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+      final List<ServiceConfiguration<?, ?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
 
       final ResourcePools resourcePools = storeConfig.getResourcePools();
       if (rank(resourcePools.getResourceTypeSet(), enhancedServiceConfigs) == 0) {
@@ -443,8 +443,8 @@ public class TieredStore<K, V> implements Store<K, V> {
 
       CachingTier.Provider cachingTierProvider = getCachingTierProvider(cachingResources, enhancedServiceConfigs);
 
-      final ServiceConfiguration<?>[] configurations =
-          enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[enhancedServiceConfigs.size()]);
+      final ServiceConfiguration<?, ?>[] configurations =
+          enhancedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[enhancedServiceConfigs.size()]);
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
 
@@ -453,7 +453,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       return store;
     }
 
-    private CachingTier.Provider getCachingTierProvider(Set<ResourceType<?>> cachingResources, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+    private CachingTier.Provider getCachingTierProvider(Set<ResourceType<?>> cachingResources, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
       CachingTier.Provider cachingTierProvider = null;
       Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
       for (CachingTier.Provider provider : cachingTierProviders) {
@@ -468,7 +468,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       return cachingTierProvider;
     }
 
-    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
       AuthoritativeTier.Provider authoritativeTierProvider = null;
       Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
       int highestRank = 0;

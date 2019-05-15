@@ -39,7 +39,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -158,7 +157,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
-            .add(copierConfiguration)
+            .withService(copierConfiguration)
             .build());
     performAssertions(cache2, false);
 

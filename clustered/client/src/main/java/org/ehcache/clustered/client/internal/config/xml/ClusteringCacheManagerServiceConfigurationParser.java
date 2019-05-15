@@ -112,7 +112,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * @return a {@link org.ehcache.clustered.client.config.ClusteringServiceConfiguration ClusteringServiceConfiguration}
    */
   @Override
-  public ServiceCreationConfiguration<ClusteringService> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
+  public ServiceCreationConfiguration<ClusteringService, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
 
     if ("cluster".equals(fragment.getLocalName())) {
 
@@ -235,7 +235,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * @param serviceCreationConfiguration
    */
   @Override
-  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService, ?> serviceCreationConfiguration) {
     Element rootElement = unparseConfig(serviceCreationConfiguration);
     return rootElement;
   }

@@ -25,7 +25,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
 
   @Override
-  public StatisticsService create(ServiceCreationConfiguration<StatisticsService> serviceConfiguration) {
+  public StatisticsService create(ServiceCreationConfiguration<StatisticsService, ?> serviceConfiguration) {
     return new DefaultStatisticsService();
   }
 

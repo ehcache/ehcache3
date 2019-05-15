@@ -23,7 +23,6 @@ import org.ehcache.StateTransitionException;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -47,7 +46,7 @@ public class CacheManagerDestroyTest {
 
   private static final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI).autoCreate());
+          .with(cluster(CLUSTER_URI).autoCreate(c -> c));
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -75,8 +74,8 @@ public class CacheManagerDestroyTest {
 
   @Test
   public void testCreateDestroyCreate() throws Exception {
-    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate()
-      .defaultServerResource("primary-server-resource"))
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI)
+      .autoCreate(c -> c.defaultServerResource("primary-server-resource")))
       .withCache("my-cache", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(ClusteredResourcePoolBuilder
         .clusteredDedicated(2, MemoryUnit.MB))))
       .build(true);

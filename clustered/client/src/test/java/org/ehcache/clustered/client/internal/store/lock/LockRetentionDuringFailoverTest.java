@@ -90,7 +90,7 @@ public class LockRetentionDuringFailoverTest {
             .withLoaderWriter(loaderWriter)
             .build();
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate())
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate(c -> c))
             .withCache("cache-1", config)
             .build(true);
 

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config;
+package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 

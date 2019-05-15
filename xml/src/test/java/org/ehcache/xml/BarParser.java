@@ -50,7 +50,7 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceCreationConfiguration<Service, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     return new BarConfiguration();
   }
 
@@ -60,7 +60,7 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service, ?> serviceCreationConfiguration) {
     try {
       Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
       return document.createElementNS(NAMESPACE.toString(), "bar:bar");

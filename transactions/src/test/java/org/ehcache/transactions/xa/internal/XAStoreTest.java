@@ -1454,10 +1454,10 @@ public class XAStoreTest {
 
     serviceLocator.startAllServices();
 
-    Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.singleton(configuration);
+    Set<ServiceConfiguration<?, ?>> xaStoreConfigs = Collections.singleton(configuration);
     assertThat(provider.wrapperStoreRank(xaStoreConfigs), is(1));
 
-    Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
+    Set<ServiceConfiguration<?, ?>> emptyConfigs = emptySet();
     assertThat(provider.wrapperStoreRank(emptyConfigs), is(0));
 
   }

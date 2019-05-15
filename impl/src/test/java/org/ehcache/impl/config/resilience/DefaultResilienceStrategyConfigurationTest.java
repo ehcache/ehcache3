@@ -23,6 +23,8 @@ import org.junit.Test;
 
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.assertThat;
@@ -32,13 +34,13 @@ public class DefaultResilienceStrategyConfigurationTest {
 
   @Test
   public void testBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null), sameInstance(configuration));
   }
 
   @Test
   public void testLoaderWriterBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null, null), sameInstance(configuration));
   }
 
@@ -94,5 +96,15 @@ public class DefaultResilienceStrategyConfigurationTest {
     } catch (IllegalStateException e) {
       //expected
     }
+  }
+
+  @Test
+  public void testDeriveDetachesCorrectly() {
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(resilienceStrategy);
+    DefaultResilienceStrategyConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived, is(not(sameInstance(configuration))));
+    assertThat(derived.getInstance(), sameInstance(configuration.getInstance()));
   }
 }

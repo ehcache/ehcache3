@@ -69,8 +69,7 @@ public class PassiveSyncTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -109,8 +108,7 @@ public class PassiveSyncTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
 
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,

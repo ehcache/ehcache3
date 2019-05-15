@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.config;
+package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
@@ -25,17 +25,18 @@ import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.KB;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
+import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -238,10 +239,8 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testAddingNewTierWhileUpdating() {
-    ResourcePools existing = new ResourcePoolsImpl(Collections.<ResourceType<?>, ResourcePool>singletonMap(
-        ResourceType.Core.HEAP, new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
-    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.<ResourceType<?>, ResourcePool>singletonMap(
-        ResourceType.Core.DISK, new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
+    ResourcePools existing = resources(new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false));
+    ResourcePools toBeUpdated = resources(new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false));
     try {
       existing.validateAndMerge(toBeUpdated);
       fail();
@@ -252,8 +251,8 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testUpdatingOffHeap() {
-    ResourcePools existing = ResourcePoolsHelper.createOffheapOnlyPools(10);
-    ResourcePools toBeUpdated = ResourcePoolsHelper.createOffheapOnlyPools(50);
+    ResourcePools existing = resources(new SizedResourcePoolImpl<>(ResourceType.Core.OFFHEAP, 10L, MemoryUnit.MB, false));
+    ResourcePools toBeUpdated = resources(new SizedResourcePoolImpl<>(ResourceType.Core.OFFHEAP, 50L, MemoryUnit.MB, false));
     try {
       existing.validateAndMerge(toBeUpdated);
       fail();
@@ -264,8 +263,8 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testUpdatingDisk() {
-    ResourcePools existing = ResourcePoolsHelper.createDiskOnlyPools(10, MB);
-    ResourcePools toBeUpdated = ResourcePoolsHelper.createDiskOnlyPools(50, MB);
+    ResourcePools existing = resources(new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false));
+    ResourcePools toBeUpdated = resources(new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 50L, MemoryUnit.MB, false));
     try {
       existing.validateAndMerge(toBeUpdated);
       fail();
@@ -276,8 +275,13 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testUpdateResourceUnitSuccess() {
-    ResourcePools existing = ResourcePoolsHelper.createHeapDiskPools(200, MB, 4096);
-    ResourcePools toBeUpdated = ResourcePoolsHelper.createHeapOnlyPools(2, MemoryUnit.GB);
+    ResourcePools existing = resources(
+      new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 200L, MemoryUnit.MB, false),
+      new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 4096L, MemoryUnit.MB, false)
+    );
+    ResourcePools toBeUpdated = resources(
+      new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 2, MemoryUnit.GB, false)
+    );
 
     existing = existing.validateAndMerge(toBeUpdated);
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(2L));
@@ -286,8 +290,13 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testUpdateResourceUnitFailure() {
-    ResourcePools existing = ResourcePoolsHelper.createHeapDiskPools(20, MB, 200);
-    ResourcePools toBeUpdated = ResourcePoolsHelper.createHeapOnlyPools(500, EntryUnit.ENTRIES);
+    ResourcePools existing = resources(
+      new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 20L, MemoryUnit.MB, false),
+      new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 200, MemoryUnit.MB, false)
+    );
+    ResourcePools toBeUpdated = resources(
+      new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 500, EntryUnit.ENTRIES, false)
+    );
 
     try {
       existing = existing.validateAndMerge(toBeUpdated);
@@ -299,10 +308,7 @@ public class ResourcePoolsImplTest {
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }
 
-  private <T> Collection<T> asList(T value1, T value2) {
-    @SuppressWarnings("unchecked")
-    List<T> list = Arrays.asList(value1, value2);
-    return list;
+  private static ResourcePoolsImpl resources(ResourcePool ... resources) {
+    return new ResourcePoolsImpl(stream(resources).collect(toMap(ResourcePool::getType, identity())));
   }
-
 }

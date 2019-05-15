@@ -24,7 +24,7 @@ import org.ehcache.core.spi.service.ServiceFactory;
  */
 public class FancyCacheProviderFactory implements ServiceFactory<FancyCacheProvider> {
   @Override
-  public FancyCacheProvider create(ServiceCreationConfiguration<FancyCacheProvider> configuration) {
+  public FancyCacheProvider create(ServiceCreationConfiguration<FancyCacheProvider, ?> configuration) {
     return new FancyCacheProvider();
   }
 

@@ -27,7 +27,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
@@ -37,6 +36,7 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
@@ -110,8 +110,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testCanDestroyAndClose() throws Exception {
-    CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<>(Long.class, String.class, null,
-      null, null, ResourcePoolsHelper.createHeapOnlyPools(10));
+    CacheConfiguration<Long, String> cacheConfiguration = new TestCacheConfig<>(Long.class, String.class);
 
     Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
@@ -146,7 +145,7 @@ public class EhcacheManagerTest {
   @Test
   public void testConstructionThrowsWhenNotBeingToResolveService() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
+    final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown...");
@@ -158,7 +157,7 @@ public class EhcacheManagerTest {
   @Test
   public void testCreationFailsOnDuplicateServiceCreationConfiguration() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService>) () -> NoSuchService.class);
+    DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
     try {
       new EhcacheManager(config);
       fail("Should have thrown ...");
@@ -188,7 +187,7 @@ public class EhcacheManagerTest {
   @Test
   public void testNoClassLoaderSpecified() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    caches.put("foo", new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools()));
+    caches.put("foo", new TestCacheConfig<>(Object.class, Object.class));
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
@@ -222,9 +221,14 @@ public class EhcacheManagerTest {
     assertNotSame(cl1.getClass(), cl2.getClass());
 
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
-    caches.put("foo1", new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools()));
-    caches.put("foo2", new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools()));
-    caches.put("foo3", new BaseCacheConfiguration<>(Object.class, Object.class, null, cl2, null, ResourcePoolsHelper.createHeapOnlyPools()));
+    caches.put("foo1", new TestCacheConfig<>(Object.class, Object.class));
+    caches.put("foo2", new TestCacheConfig<>(Object.class, Object.class));
+    caches.put("foo3", new TestCacheConfig<Object, Object>(Object.class, Object.class) {
+      @Override
+      public ClassLoader getClassLoader() {
+        return cl2;
+      }
+    });
     DefaultConfiguration config = new DefaultConfiguration(caches, cl1);
 
     final Store.Provider storeProvider = mock(Store.Provider.class);
@@ -259,8 +263,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testThrowsWhenAddingExistingCache() {
-    CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Store mock = mock(Store.class);
@@ -302,8 +305,7 @@ public class EhcacheManagerTest {
     when(storeProvider
         .createStore(ArgumentMatchers.<Store.Configuration>any(), ArgumentMatchers.<ServiceConfiguration[]>any())).thenReturn(mock);
 
-    final CacheConfiguration<Integer, String> cacheConfiguration = new BaseCacheConfiguration<>(Integer.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Integer, String> cacheConfiguration = new TestCacheConfig<>(Integer.class, String.class);
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("bar", cacheConfiguration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
@@ -341,8 +343,7 @@ public class EhcacheManagerTest {
     when(storeProvider
         .createStore(ArgumentMatchers.<Store.Configuration>any(), ArgumentMatchers.<ServiceConfiguration[]>any())).thenReturn(mock);
 
-    final CacheConfiguration<Integer, String> cacheConfiguration = new BaseCacheConfiguration<>(Integer.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Integer, String> cacheConfiguration = new TestCacheConfig<>(Integer.class, String.class);
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("bar", cacheConfiguration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
@@ -371,7 +372,7 @@ public class EhcacheManagerTest {
   @Test
   public void testLifeCyclesCacheLoaders() throws Exception {
 
-    ResourcePools resourcePools = ResourcePoolsHelper.createHeapOnlyPools(10);
+    ResourcePools resourcePools = ResourcePoolsHelper.createResourcePools(100L);
 
     final CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
 
@@ -421,8 +422,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testDoesNotifyAboutCache() {
-    final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider mock = mock(Store.Provider.class);
     when(mock.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
@@ -448,8 +448,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testDoesNotNotifyAboutCacheOnInitOrClose() {
-    final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider mock = mock(Store.Provider.class);
     when(mock.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
@@ -476,8 +475,7 @@ public class EhcacheManagerTest {
   @Test
   public void testClosesStartedCachesDownWhenInitThrows() {
     final Set<Cache<?,?>> caches = new HashSet<>();
-    final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     final Collection<Service> services = getServices(storeProvider, null);
@@ -497,7 +495,7 @@ public class EhcacheManagerTest {
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(
-                  ArgumentMatchers.<Store.Configuration<K,V>>any(), ArgumentMatchers.<ServiceConfiguration<?>>any()))
+                  ArgumentMatchers.<Store.Configuration<K,V>>any(), ArgumentMatchers.<ServiceConfiguration<?, ?>>any()))
               .thenThrow(thrown);
         }
         return ehcache;
@@ -526,8 +524,7 @@ public class EhcacheManagerTest {
   @Test
   public void testClosesAllCachesDownWhenCloseThrows() {
     final Set<String> caches = new HashSet<>();
-    final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
 
@@ -589,11 +586,10 @@ public class EhcacheManagerTest {
 
   @Test
   public void testCloseNoLoaderWriterAndCacheEventListener() throws Exception {
-    final CacheConfiguration<Object, Object> cacheConfiguration = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = spy(new Store.Provider() {
       @Override
-      public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
         return 1;
       }
 
@@ -616,7 +612,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
         return null;
       }
     });
@@ -631,7 +627,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
+      public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?, ?>... serviceConfigs) {
         return null;
       }
 
@@ -677,8 +673,7 @@ public class EhcacheManagerTest {
     when(store.getConfigurationChangeListeners()).thenReturn(new ArrayList<>());
     when(cacheEventNotificationListenerServiceProvider.createCacheEventDispatcher(store)).thenReturn(mock(CacheEventDispatcher.class));
 
-    CacheConfiguration<Long, String> cache1Configuration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Long, String> cache1Configuration = new TestCacheConfig<>(Long.class, String.class);
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("cache1", cache1Configuration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
@@ -694,8 +689,8 @@ public class EhcacheManagerTest {
     cacheManager.init();
 
     try {
-      final CacheConfiguration<Long, String> cache2Configuration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-        .createHeapOnlyPools());
+      final CacheConfiguration<Long, String> cache2Configuration = new TestCacheConfig<>(Long.class, String.class, ResourcePoolsHelper
+        .createResourcePools(100L));
       final Cache<Long, String> cache = cacheManager.createCache("cache2", cache2Configuration);
       final CacheConfiguration<?, ?> cacheConfiguration = cacheManager.getRuntimeConfiguration()
           .getCacheConfigurations()
@@ -725,8 +720,7 @@ public class EhcacheManagerTest {
     when(store.getConfigurationChangeListeners()).thenReturn(new ArrayList<>());
     when(cacheEventNotificationListenerServiceProvider.createCacheEventDispatcher(store)).thenReturn(mock(CacheEventDispatcher.class));
 
-    CacheConfiguration<Long, String> cache1Configuration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Long, String> cache1Configuration = new TestCacheConfig<>(Long.class, String.class);
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("cache1", cache1Configuration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
@@ -742,8 +736,7 @@ public class EhcacheManagerTest {
     cacheManager.init();
 
 
-    CacheConfiguration<Long, String> cache2Configuration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Long, String> cache2Configuration = new TestCacheConfig<>(Long.class, String.class, ResourcePoolsHelper.createResourcePools(100L));
     cacheManager.createCache("cache2", cache2Configuration);
     cacheManager.removeCache("cache1");
 
@@ -777,8 +770,7 @@ public class EhcacheManagerTest {
 
     cacheManager.init();
 
-    CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Long, String> cacheConfiguration = new TestCacheConfig<>(Long.class, String.class);
 
     try {
       cacheManager.createCache("cache", cacheConfiguration);
@@ -798,8 +790,7 @@ public class EhcacheManagerTest {
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
     doThrow(new Error("Test EhcacheManager close.")).when(storeProvider).createStore(any(Store.Configuration.class), ArgumentMatchers.<ServiceConfiguration>any());
 
-    CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<>(Long.class, String.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Long, String> cacheConfiguration = new TestCacheConfig<>(Long.class, String.class);
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     caches.put("cache1", cacheConfiguration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);

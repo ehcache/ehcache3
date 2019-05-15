@@ -68,7 +68,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -769,12 +768,12 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       Set<ResourceType.Core> supportedTypes = EnumSet.allOf(ResourceType.Core.class);
 
       Set<ResourceType<?>> configuredTypes = storeConfig.getResourcePools().getResourceTypeSet();
@@ -790,13 +789,13 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
         throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
-      List<ServiceConfiguration<?>> serviceConfigList = Arrays.asList(serviceConfigs);
+      List<ServiceConfiguration<?, ?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
       Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
               storeConfig.getResourcePools().getResourceTypeSet(), serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
-      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
+      List<ServiceConfiguration<?, ?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
       underlyingServiceConfigs.addAll(serviceConfigList);
 
       // eviction advisor
@@ -935,7 +934,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
       Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
         storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig
         .getKeySerializer(), softLockValueCombinedSerializer);
-      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?, ?>[0]));
 
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
@@ -1014,7 +1013,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     }
 
     @Override
-    public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
       if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use

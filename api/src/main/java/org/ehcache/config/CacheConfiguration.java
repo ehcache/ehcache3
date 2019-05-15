@@ -40,7 +40,7 @@ public interface CacheConfiguration<K, V> {
    *
    * @return service configurations
    */
-  Collection<ServiceConfiguration<?>> getServiceConfigurations();
+  Collection<ServiceConfiguration<?, ?>> getServiceConfigurations();
 
   /**
    * The key type for the {@link Cache}.
@@ -112,4 +112,17 @@ public interface CacheConfiguration<K, V> {
    */
   ResourcePools getResourcePools();
 
+  /**
+   * Create a builder seeded with this configuration.
+   * <p>
+   * The default implementation throws {@code UnsupportedOperationException} to indicate that configuration derivation
+   * is not supported.
+   *
+   * @see FluentConfigurationBuilder
+   * @return a configuration builder
+   * @throws UnsupportedOperationException if configuration derivation is not supported
+   */
+  default FluentCacheConfigurationBuilder<K, V, ?> derive() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
 }

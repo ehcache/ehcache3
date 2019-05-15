@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config;
+package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourcePools;
 import org.junit.Rule;

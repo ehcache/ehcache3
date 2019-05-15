@@ -20,7 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

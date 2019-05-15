@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config;
+package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
@@ -24,7 +24,6 @@ import org.ehcache.core.HumanReadable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

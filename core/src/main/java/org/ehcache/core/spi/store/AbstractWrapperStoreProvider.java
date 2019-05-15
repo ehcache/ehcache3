@@ -21,10 +21,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
-import static java.util.Collections.synchronizedMap;
 import static org.ehcache.core.store.StoreSupport.selectStoreProvider;
 
 public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {
@@ -35,7 +33,7 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
 
 
   @Override
-  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
 
     Store.Provider underlyingStoreProvider = selectStoreProvider(serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
         Arrays.asList(serviceConfigs));
@@ -46,7 +44,7 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
     return wrappedStore;
   }
 
-  protected abstract <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+  protected abstract <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
   @Override
   public void releaseStore(Store<?, ?> resource) {

@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultCopyProviderFactory implements ServiceFactory<CopyProvider> {
 
   @Override
-  public CopyProvider create(final ServiceCreationConfiguration<CopyProvider> configuration) {
+  public CopyProvider create(final ServiceCreationConfiguration<CopyProvider, ?> configuration) {
     if (configuration != null && !(configuration instanceof DefaultCopyProviderConfiguration)) {
       throw new IllegalArgumentException("Expected a configuration of type DefaultCopyProviderConfiguration but got "
                                          + configuration.getClass().getSimpleName());

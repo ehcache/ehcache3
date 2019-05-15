@@ -55,7 +55,7 @@ public class DefaultCacheEventListenerProviderTest {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-                .add(listenerBuilder)
+                .withService(listenerBuilder)
                 .build()).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
     assertThat(bar.iterator().next().getClass().toString(), is(ListenerObject.object.toString()));
@@ -64,16 +64,16 @@ public class DefaultCacheEventListenerProviderTest {
   @Test
   public void testAddingCacheEventListenerConfigurationAtCacheLevel() {
     CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    CacheEventListenerConfiguration cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+    CacheEventListenerConfiguration<?> cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
-            .add(cacheEventListenerConfiguration)
+            .withService(cacheEventListenerConfiguration)
             .build());
-    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
     cacheManager.close();
   }
 

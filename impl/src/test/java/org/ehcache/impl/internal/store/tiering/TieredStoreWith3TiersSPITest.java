@@ -67,7 +67,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -164,7 +163,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override
-            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -181,7 +180,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -196,7 +195,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
           }, new AuthoritativeTier.Provider() {
             @Override
-            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -211,7 +210,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -281,8 +280,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override
@@ -349,7 +348,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
 
@@ -364,7 +363,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 
@@ -382,7 +381,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }
 
@@ -397,7 +396,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 
