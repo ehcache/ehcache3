@@ -68,33 +68,6 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheWithOrderedEventListeners() {
-    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(new TestEventListener(), EventType.CREATED, EventType.UPDATED)
-        .ordered().asynchronous();
-
-    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-        = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
-            .autoCreate());
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
-
-    try {
-      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-          .add(cacheEventListenerConfiguration)
-          .build();
-
-      cacheManager.createCache("test", config);
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e){
-      assertThat(e.getCause().getMessage(), is("Ordered CacheEventListener is not supported with clustered tiers"));
-    }
-    cacheManager.close();
-  }
-
-  @Test
   public void testClusteredCacheWithSynchronousEventListeners() {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(new TestEventListener(), EventType.CREATED, EventType.UPDATED)

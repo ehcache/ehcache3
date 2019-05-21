@@ -36,6 +36,7 @@ import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperati
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.TimestampOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
@@ -629,10 +630,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
             // Forget it. Never.
             throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
           }
-          if (eventListenerConfiguration.orderingMode() == EventOrdering.ORDERED) {
-            // this could be supported, but at least expiration events would need to be reordered
-            throw new IllegalStateException("Ordered CacheEventListener is not supported with clustered tiers");
-          }
         }
 
         if (clusteringService == null) {
@@ -774,30 +771,23 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
             K key = operation.getKey();
 
             PutOperation<K, V> resolvedBefore = clusteredStore.resolver.resolve(beforeAppend, key);
-            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedBefore, operation);
+            PutOperation<K, V> resolvedNow = clusteredStore.resolver.applyOperation(key, resolvedBefore,
+              new TimestampOperation<>(key, operation.timeStamp()));
+            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedNow, operation);
 
-            if (resolvedBefore == null) {
-              if (resolvedAfter == null) {
-                //a non-event
-              } else {
-                sink.created(key, resolvedAfter.getValue());
-              }
-            } else {
-              if (resolvedAfter != null) {
-                if (resolvedAfter == resolvedBefore) {
-                  //non-event
-                } else {
-                  sink.updated(key, resolvedBefore::getValue, resolvedAfter.getValue());
-                }
-              } else {
-                switch (operation.getOpCode()) {
-                  case TIMESTAMP:
-                    sink.expired(key, resolvedBefore::getValue);
-                    break;
-                  default:
-                    sink.removed(key, resolvedBefore::getValue);
-                }
-              }
+            /*
+             * If the old value was expired then we *must* fire expiry before the other event
+             */
+            if (resolvedBefore != null && resolvedNow == null) {
+              sink.expired(key, resolvedBefore::getValue);
+            }
+
+            if (resolvedNow == null && resolvedAfter != null) {
+              sink.created(key, resolvedAfter.getValue());
+            } else if (resolvedNow != null && resolvedAfter == null) {
+              sink.removed(key, resolvedNow::getValue);
+            } else if (resolvedAfter != resolvedNow) {
+              sink.updated(key, resolvedNow::getValue, resolvedAfter.getValue());
             }
             clusteredStore.storeEventDispatcher.releaseEventSink(sink);
           } catch (Exception e) {
