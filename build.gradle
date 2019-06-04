@@ -258,6 +258,17 @@ subprojects {
         transitive = false
       }
     }
+    configurations.baseline {
+      resolutionStrategy {
+        componentSelection {
+          all { selection ->
+            if (!selection.candidate.version.matches(/\d(\.\d+)*/)) {
+              selection.reject("Only full releases can be used as OSGi baselines")
+            }
+          }
+        }
+      }
+    }
   }
 }
 
