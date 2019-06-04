@@ -253,14 +253,20 @@ subprojects {
       )
     }
     dependencies {
-      baseline(group: group, name: jar.archiveBaseName.get()) {
-        def baseVersion = fixedVersion.replaceAll(/-[a-zA-Z0-9]+$/, "")
-        version {
-          require "(,${fixedVersion}["
-          reject "${baseVersion}-internal+"
-        }
+      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
         force = true
         transitive = false
+      }
+    }
+    configurations.baseline {
+      resolutionStrategy {
+        componentSelection {
+          all { selection ->
+            if (!selection.candidate.version.matches(/\d+(?:\.\d+)*/)) {
+              selection.reject("Only full releases can be used as OSGi baselines")
+            }
+          }
+        }
       }
     }
   }
