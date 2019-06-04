@@ -9,8 +9,6 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-NOTE: Clustering is not yet compatible with event listeners.
-
 [[introduction]]
 == Introduction
 
