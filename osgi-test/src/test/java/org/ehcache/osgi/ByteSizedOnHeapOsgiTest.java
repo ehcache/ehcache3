@@ -20,6 +20,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
@@ -57,7 +58,7 @@ public class ByteSizedOnHeapOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "uberJar")
     );

@@ -36,6 +36,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -64,7 +65,7 @@ public class OffHeapOsgiTest {
   @Configuration
   public Option[] uberJarWithOsgiServiceLoading() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("OffHeapOsgiTest", "uberJarWithOsgiServiceLoading")
     );
@@ -75,7 +76,7 @@ public class OffHeapOsgiTest {
     return options(
       frameworkProperty(OSGI_LOADING).value("false"),
 
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("OffHeapOsgiTest", "uberJarWithJdkServiceLoading")
     );
