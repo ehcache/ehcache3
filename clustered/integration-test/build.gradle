@@ -19,7 +19,6 @@ configurations {
 }
 
 dependencies {
-  // not required by gradle but required by the IDE because 'dist' does not have any transitive dependencies
   testCompile project(':clustered:client')
   testCompile project(':clustered:common')
   testCompile project(':impl')
@@ -36,6 +35,7 @@ dependencies {
   testImplementation "org.awaitility:awaitility:3.1.6"
 
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  testRuntimeOnly project(':clustered:clustered-dist')
 
   testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
   testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {

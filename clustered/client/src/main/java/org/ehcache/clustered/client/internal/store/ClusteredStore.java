@@ -47,11 +47,11 @@ import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.store.BaseStore;
@@ -64,7 +64,6 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.impl.store.HashUtils;
@@ -131,8 +130,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
-    super(config);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    super(config, statisticsService);
 
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
@@ -154,8 +153,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   /**
    * For tests
    */
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
-    this(config, codec, resolver, timeSource, storeEventDispatcher);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    this(config, codec, resolver, timeSource, storeEventDispatcher, statisticsService);
     this.storeProxy = proxy;
   }
 
@@ -652,7 +651,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, serviceConfigs);
 
-        TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+        TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
 
         OperationsCodec<K, V> codec = new OperationsCodec<>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
 
@@ -680,7 +679,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
       StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
-      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher);
+      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher, getServiceProvider().getService(StatisticsService.class));
     }
 
     @Override
@@ -692,7 +691,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
-        DefaultStatisticsService.cleanForNode(clusteredStore);
+        getServiceProvider().getService(StatisticsService.class).cleanForNode(clusteredStore);
         tierOperationStatistics.remove(clusteredStore);
       } finally {
         connectLock.unlock();
@@ -864,9 +863,9 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void start(final ServiceProvider<Service> serviceProvider) {
       connectLock.lock();
       try {
-        this.serviceProvider = serviceProvider;
-        this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
-        this.executionService = this.serviceProvider.getService(ExecutionService.class);
+        super.start(serviceProvider);
+        this.clusteringService = getServiceProvider().getService(ClusteringService.class);
+        this.executionService = getServiceProvider().getService(ExecutionService.class);
       } finally {
         connectLock.unlock();
       }
@@ -876,10 +875,10 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void stop() {
       connectLock.lock();
       try {
-        this.serviceProvider = null;
         createdStores.clear();
       } finally {
         connectLock.unlock();
+        super.stop();
       }
     }
 

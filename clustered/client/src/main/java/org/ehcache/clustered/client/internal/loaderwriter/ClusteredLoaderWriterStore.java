@@ -32,6 +32,7 @@ import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsC
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -57,8 +58,8 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   private final boolean useLoaderInAtomics;
 
   public ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource,
-                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics, StoreEventDispatcher<K, V> storeEventDispatcher) {
-    super(config, codec, resolver, timeSource, storeEventDispatcher);
+                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics, StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    super(config, codec, resolver, timeSource, storeEventDispatcher, statisticsService);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
@@ -67,8 +68,8 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
    * For Tests
    */
   ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver,
-                             ServerStoreProxy proxy, TimeSource timeSource, CacheLoaderWriter<? super K, V> loaderWriter) {
-    super(config, codec, resolver, proxy, timeSource, null);
+                             ServerStoreProxy proxy, TimeSource timeSource, CacheLoaderWriter<? super K, V> loaderWriter, StatisticsService statisticsService) {
+    super(config, codec, resolver, proxy, timeSource, null, statisticsService);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = true;
   }
@@ -304,7 +305,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
                                                       Object[] serviceConfigs) {
       StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
       return new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
-                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics, storeEventDispatcher);
+                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics, storeEventDispatcher, getServiceProvider().getService(StatisticsService.class));
     }
 
     @Override

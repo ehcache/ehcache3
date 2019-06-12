@@ -20,13 +20,11 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.DefaultStatisticsService;
-import org.ehcache.core.statistics.DelegatedMappedOperationStatistics;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
-import org.ehcache.core.statistics.StatsUtils;
 import org.ehcache.core.statistics.ZeroOperationStatistic;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.stats.StatisticType;
 
@@ -48,15 +46,17 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
   protected final Class<V> valueType;
   /** Tells if this store is by itself or in a tiered setup */
   protected final boolean operationStatisticsEnabled;
+  protected final StatisticsService statisticsService;
 
-  public BaseStore(Configuration<K, V> config) {
-    this(config.getKeyType(), config.getValueType(), config.isOperationStatisticsEnabled());
+  public BaseStore(Configuration<K, V> config, StatisticsService statisticsService) {
+    this(config.getKeyType(), config.getValueType(), config.isOperationStatisticsEnabled(), statisticsService);
   }
 
-  public BaseStore(Class<K> keyType, Class<V> valueType, boolean operationStatisticsEnabled) {
+  public BaseStore(Class<K> keyType, Class<V> valueType, boolean operationStatisticsEnabled, StatisticsService statisticsService) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.operationStatisticsEnabled = operationStatisticsEnabled;
+    this.statisticsService = statisticsService;
   }
 
   protected void checkKey(K keyObject) {
@@ -84,22 +84,38 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     if(!operationStatisticsEnabled && canBeDisabled) {
       return ZeroOperationStatistic.get();
     }
-    return DefaultStatisticsService.createOperationStatistics(name, outcome, getStatisticsTag(), this);
+    return statisticsService.createOperationStatistics(name, outcome, getStatisticsTag(), this);
   }
 
   protected <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
-    DefaultStatisticsService.registerStatistic(this, name, type, tags, valueSupplier);
+    statisticsService.registerStatistic(this, name, type, tags, valueSupplier);
   }
 
   protected abstract String getStatisticsTag();
 
 
+  @ServiceDependencies({StatisticsService.class})
   protected static abstract class BaseStoreProvider implements Store.Provider {
 
-    protected volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
 
     protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      return DefaultStatisticsService.registerStoreStatistics(store, targetName, getResourceType().getTierHeight(), store.getStatisticsTag(), translation, statisticName);
+      StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
+      return statisticsService.registerStoreStatistics(store, targetName, getResourceType().getTierHeight(), store.getStatisticsTag(), translation, statisticName);
+    }
+
+    @Override
+    public void start(ServiceProvider<Service> serviceProvider) {
+      this.serviceProvider = serviceProvider;
+    }
+
+    @Override
+    public void stop() {
+      this.serviceProvider = null;
+    }
+
+    protected ServiceProvider<Service> getServiceProvider() {
+      return this.serviceProvider;
     }
 
     protected abstract ResourceType<?> getResourceType();

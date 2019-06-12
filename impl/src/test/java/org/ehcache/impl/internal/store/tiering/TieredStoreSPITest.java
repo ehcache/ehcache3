@@ -26,6 +26,7 @@ import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
@@ -129,7 +130,8 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
         Copier<String> defaultCopier = IdentityCopier.identityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
+          new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
         try {
           CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
@@ -146,7 +148,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
             config, timeSource,
             new TestStoreEventDispatcher<>(),
-            sizeInBytes);
+            sizeInBytes, new DefaultStatisticsService());
           TieredStore<String, String> tieredStore = new TieredStore<>(onHeapStore, diskStore);
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override

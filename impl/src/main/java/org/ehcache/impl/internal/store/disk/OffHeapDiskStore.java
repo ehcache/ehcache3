@@ -23,7 +23,6 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
@@ -114,8 +113,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
-                          final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+                          final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes, StatisticsService statisticsService) {
+    super(config, timeSource, eventDispatcher, statisticsService);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -336,11 +335,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?, ?>... serviceConfigs) {
-      if (serviceProvider == null) {
+      if (getServiceProvider() == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
+      TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
+      ExecutionService executionService = getServiceProvider().getService(ExecutionService.class);
 
       SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
@@ -370,7 +369,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<>(persistenceContext,
           executionService, threadPoolAlias, writerConcurrency, diskSegments,
-          storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
+          storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()), getServiceProvider().getService(StatisticsService.class));
         createdStores.put(offHeapStore, space);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
@@ -386,7 +385,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
         close(offHeapDiskStore);
-        DefaultStatisticsService.cleanForNode(offHeapDiskStore);
+        getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapDiskStore);
         tierOperationStatistics.remove(offHeapDiskStore);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -444,7 +443,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
-      this.serviceProvider = serviceProvider;
+      super.start(serviceProvider);
       diskPersistenceService = serviceProvider.getService(DiskResourceService.class);
       if (diskPersistenceService == null) {
         throw new IllegalStateException("Unable to find file based persistence service");
@@ -453,9 +452,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void stop() {
-      this.serviceProvider = null;
-      createdStores.clear();
-      diskPersistenceService = null;
+      try {
+        createdStores.clear();
+        diskPersistenceService = null;
+      } finally {
+        super.stop();
+      }
     }
 
     @Override

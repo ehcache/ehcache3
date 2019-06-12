@@ -21,7 +21,7 @@ public class Jsr107LatencyMonitor<T extends Enum<T>> implements ChainedOperation
 
   private final org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor<T> delegate;
 
-  public Jsr107LatencyMonitor(Class<T> outcome, double sampling) {
+  public Jsr107LatencyMonitor(Class<T> outcome) {
     delegate = new org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor<>(EnumSet.allOf(outcome), 1.0);
   }
 

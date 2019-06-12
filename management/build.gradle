@@ -24,6 +24,7 @@ dependencies {
   compileOnly project(':clustered:client')
   compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
   compileOnly ("org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion") {
+    // This is to avoid stats lib being directly used.
     exclude group:'org.terracotta', module:'statistics'
   }
 

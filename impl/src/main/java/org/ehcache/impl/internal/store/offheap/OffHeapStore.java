@@ -22,7 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -75,8 +75,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes, StatisticsService statisticsService) {
+    super(config, timeSource, eventDispatcher, statisticsService);
     EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
@@ -162,10 +162,10 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?, ?>... serviceConfigs) {
-      if (serviceProvider == null) {
+      if (getServiceProvider() == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
 
       SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
@@ -175,7 +175,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
 
       OffHeapStore<K, V> offHeapStore = new OffHeapStore<>(storeConfig, timeSource, eventDispatcher, unit.toBytes(offHeapPool
-        .getSize()));
+        .getSize()), getServiceProvider().getService(StatisticsService.class));
       createdStores.add(offHeapStore);
       return offHeapStore;
     }
@@ -187,7 +187,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       close(offHeapStore);
-      DefaultStatisticsService.cleanForNode(offHeapStore);
+      getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapStore);
       tierOperationStatistics.remove(offHeapStore);
     }
 
@@ -223,14 +223,12 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
-      this.serviceProvider = serviceProvider;
-    }
-
-    @Override
     public void stop() {
-      this.serviceProvider = null;
-      createdStores.clear();
+      try {
+        createdStores.clear();
+      } finally {
+        super.stop();
+      }
     }
 
     @Override

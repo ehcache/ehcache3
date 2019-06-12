@@ -33,6 +33,7 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -64,8 +65,8 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                     TimeSource timeSource,
                                     CacheLoaderWriter<? super K, V> loaderWriter,
                                     ExecutorService executorService,
-                                    StoreEventDispatcher<K, V> storeEventDispatcher) {
-    super(config, codec, resolver, timeSource, storeEventDispatcher);
+                                    StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    super(config, codec, resolver, timeSource, storeEventDispatcher, statisticsService);
     this.cacheLoaderWriter = loaderWriter;
     this.clusteredWriteBehind = new ClusteredWriteBehind<>(this, executorService,
                                                          resolver,
@@ -268,7 +269,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                                timeSource,
                                                storeConfig.getCacheLoaderWriter(),
                                                executorService,
-                                               storeEventDispatcher);
+                                               storeEventDispatcher, getServiceProvider().getService(StatisticsService.class));
       }
       throw new AssertionError();
     }

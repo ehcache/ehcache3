@@ -27,6 +27,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
@@ -42,6 +43,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,6 +92,7 @@ public class ClusteredStoreProviderTest {
       .with(new OffHeapStore.Provider())
       .with(new OffHeapDiskStore.Provider())
       .with(mock(DiskResourceService.class))
+      .with(Mockito.mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS))
       .with(mock(ClusteringService.class)).build();
     serviceLocator.startAllServices();
 

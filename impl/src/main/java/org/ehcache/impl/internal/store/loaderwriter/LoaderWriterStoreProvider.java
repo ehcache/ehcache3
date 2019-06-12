@@ -41,12 +41,14 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   @Override
   protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     WriteBehindConfiguration<?> writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
+    LocalLoaderWriterStore<K, V> loaderWriterStore;
     if(writeBehindConfiguration == null) {
-      return new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+      loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     } else {
       CacheLoaderWriter<? super K, V> writeBehindLoaderWriter = writeBehindProvider.createWriteBehindLoaderWriter(storeConfig.getCacheLoaderWriter(), writeBehindConfiguration);
-      return new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+      loaderWriterStore = new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     }
+    return loaderWriterStore;
   }
 
   @Override

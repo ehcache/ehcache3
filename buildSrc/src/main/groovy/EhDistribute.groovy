@@ -55,8 +55,6 @@ class EhDistribute implements Plugin<Project> {
       relocate ('org.terracotta.context.', 'org.ehcache.shadow.org.terracotta.context.')
 
       mergeServiceFiles()
-
-
     }
 
     project.jar {

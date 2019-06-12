@@ -269,8 +269,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   public static void createNmsService(Cluster cluster) throws ConnectionException, EntityConfigurationException {
-    String classpathStr = System.getProperty("java.class.path");
-    System.out.print("CLASSPATH" + classpathStr);
     managementConnection = cluster.newConnection();
 
     NmsEntityFactory entityFactory = new NmsEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());

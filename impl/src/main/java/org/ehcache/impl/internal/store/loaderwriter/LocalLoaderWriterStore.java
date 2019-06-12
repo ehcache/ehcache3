@@ -19,7 +19,6 @@ import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
@@ -65,7 +64,6 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.expiry = expiry;
-    DefaultStatisticsService.registerWithParent(delegate, this);
   }
 
   @Override

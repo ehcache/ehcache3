@@ -22,6 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -98,7 +99,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), (StoreEventDispatcher<K, V>) eventDispatcher);
+    }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
   }
 
 }

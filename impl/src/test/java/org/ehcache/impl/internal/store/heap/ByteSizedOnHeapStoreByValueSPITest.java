@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -86,7 +87,7 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0,
           new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
         return new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
-          new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
+          new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override

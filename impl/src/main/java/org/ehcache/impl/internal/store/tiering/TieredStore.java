@@ -21,8 +21,8 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -79,8 +79,6 @@ public class TieredStore<K, V> implements Store<K, V> {
       }
     });
 
-    DefaultStatisticsService.registerWithParent(cachingTier, this);
-    DefaultStatisticsService.registerWithParent(authoritativeTier, this);
   }
 
   @Override
@@ -376,7 +374,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     throw new RuntimeException("Unexpected checked exception wrapped in StoreAccessException", cause);
   }
 
-  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
+  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class, StatisticsService.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
@@ -449,6 +447,8 @@ public class TieredStore<K, V> implements Store<K, V> {
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
 
       TieredStore<K, V> store = new TieredStore<>(cachingTier, authoritativeTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(cachingTier, store);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(authoritativeTier, store);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
     }

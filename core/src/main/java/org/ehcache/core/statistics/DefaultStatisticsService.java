@@ -25,8 +25,8 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@ServiceDependencies(CacheManagerProviderService.class)
+@OptionalServiceDependencies({"org.ehcache.core.spi.service.CacheManagerProviderService"})
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
@@ -75,11 +75,13 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     return stats;
   }
 
-  public static void registerWithParent(Object toAssociate, Object parent) {
+  @Override
+  public void registerWithParent(Object toAssociate, Object parent) {
     StatisticsManager.associate(toAssociate).withParent(parent);
   }
 
-  public static <K, V, S extends Enum<S>, T extends Enum<T>> org.ehcache.core.statistics.OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
+  @Override
+  public <K, V, S extends Enum<S>, T extends Enum<T>> org.ehcache.core.statistics.OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
 
     Class<S> outcomeType = getOutcomeType(translation);
 
@@ -108,11 +110,13 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     return outcomeType;
   }
 
-  public static void deRegisterFromParent(Object toDessociate, Object parent) {
-    StatisticsManager.dissociate(toDessociate).fromParent(parent);
+  @Override
+  public void deRegisterFromParent(Object toDeassociate, Object parent) {
+    StatisticsManager.dissociate(toDeassociate).fromParent(parent);
   }
 
-  public static void cleanForNode(Object node) {
+  @Override
+  public void cleanForNode(Object node) {
     StatisticsManager.nodeFor(node).clean();
   }
 
@@ -151,11 +155,13 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     return StatisticRegistry.collect(statisticRegistries.get(cacheName), statisticNames, since);
   }
 
-  public static <T extends Serializable> void registerStatistic(Object context, String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
+  @Override
+  public <T extends Serializable> void registerStatistic(Object context, String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
     StatisticsManager.createPassThroughStatistic(context, name, tags, StatisticType.convert(type), valueSupplier);
   }
 
-  public static <T extends Enum<T>> OperationObserver<T> createOperationStatistics(String name, Class<T> outcome, String tag, Object context) {
+  @Override
+  public <T extends Enum<T>> OperationObserver<T> createOperationStatistics(String name, Class<T> outcome, String tag, Object context) {
     return new DelegatingOperationObserver<>(operation(outcome).named(name).of(context).tag(tag).build());
   }
 
@@ -168,8 +174,10 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     LOGGER.debug("Starting service");
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
-    cacheManager = cacheManagerProviderService.getCacheManager();
-    cacheManager.registerListener(this);
+    if (cacheManagerProviderService != null) {
+      cacheManager = cacheManagerProviderService.getCacheManager();
+      cacheManager.registerListener(this);
+    }
 
     started = true;
   }

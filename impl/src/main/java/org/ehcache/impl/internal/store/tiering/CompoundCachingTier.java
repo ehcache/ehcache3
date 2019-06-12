@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
@@ -68,8 +68,6 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       }
     });
 
-    DefaultStatisticsService.registerWithParent(higher, this);
-    DefaultStatisticsService.registerWithParent(lower, this);
   }
 
   private void notifyInvalidation(K key, Store.ValueHolder<V> p) {
@@ -210,7 +208,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class})
+  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class, StatisticsService.class})
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
@@ -236,6 +234,8 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<>(higherCachingTier, lowerCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(higherCachingTier, compoundCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(lowerCachingTier, compoundCachingTier);
       providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<>(higherProvider, lowerProvider));
       return compoundCachingTier;
     }

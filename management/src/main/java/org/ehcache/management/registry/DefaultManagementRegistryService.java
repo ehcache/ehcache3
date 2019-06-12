@@ -24,7 +24,6 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -56,6 +55,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   private volatile InternalCacheManager cacheManager;
   private volatile ClusteringManagementService clusteringManagementService;
   private volatile boolean clusteringManagementServiceAutoStarted;
+  private volatile StatisticsService statisticsService;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -70,7 +70,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void start(final ServiceProvider<Service> serviceProvider) {
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
+    this.statisticsService = serviceProvider.getService(StatisticsService.class);
     TimeSourceService timeSourceService = serviceProvider.getService(TimeSourceService.class);
 
     // initialize management capabilities (stats, action calls, etc)
@@ -105,7 +105,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
-    DefaultStatisticsService.registerWithParent(cache, cacheManager);
+    statisticsService.registerWithParent(cache, cacheManager);
 
     register(new CacheBinding(alias, cache));
   }
@@ -114,7 +114,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
     unregister(new CacheBinding(alias, cache));
 
-    DefaultStatisticsService.deRegisterFromParent(cache, cacheManager);
+    statisticsService.deRegisterFromParent(cache, cacheManager);
   }
 
   @Override

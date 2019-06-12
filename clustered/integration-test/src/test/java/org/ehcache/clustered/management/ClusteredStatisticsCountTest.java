@@ -19,12 +19,8 @@ import org.ehcache.Cache;
 import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.statistics.registry.Statistic;
 
-import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -65,12 +61,13 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
         if (stat.getContext().contains("cacheName") && stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
 
           // please leave it there - it's really useful to see what's coming
+          /*
           System.out.println("stats:");
 
           Set<Map.Entry<String, Statistic<?>>> entries = stat.getStatistics().entrySet();
           for (Map.Entry<String, Statistic<?>> entry : entries) {
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
-          }
+          }*/
 
           cacheHitCount = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
           clusteredHitCount = stat.<Long>getLatestSampleValue("Clustered:HitCount").get();

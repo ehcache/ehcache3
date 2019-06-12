@@ -20,6 +20,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -179,7 +180,7 @@ public class TieredStoreMutatorTest {
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
     CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
       StringCopier.copier(), StringCopier.copier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.
-      <String, String>nullStoreEventDispatcher());
+      <String, String>nullStoreEventDispatcher(), new DefaultStatisticsService());
 
     tieredStore = new TieredStore<>(cachingTier, authoritativeTier);
   }

@@ -27,6 +27,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
@@ -132,12 +133,13 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final Copier<String> defaultCopier = new IdentityCopier<>();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
+        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
+          new NoopSizeOfEngine(), noOpEventDispatcher, new DefaultStatisticsService());
 
         SizedResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize);
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize, new DefaultStatisticsService());
 
         try {
           CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
@@ -154,7 +156,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
             config, timeSource,
             new TestStoreEventDispatcher<>(),
-            diskSize);
+            diskSize, new DefaultStatisticsService());
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
 
