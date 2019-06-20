@@ -15,4 +15,4 @@
  */	
 
  //See Jenkins wiki pages for info	
-checkmarxBuild()
+checkmarxBuild checkmarx_project_name: 'Terracotta DB (TDB) Ehcache OSS'
