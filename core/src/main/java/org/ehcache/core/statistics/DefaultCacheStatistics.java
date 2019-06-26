@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.statistics;
+package org.ehcache.core.statistics;
 
 import org.ehcache.core.InternalCache;
-import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
-import org.ehcache.core.statistics.CacheStatistics;
-import org.ehcache.core.statistics.TierStatistics;
-import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.observer.ChainedOperationObserver;
+import org.terracotta.statistics.derived.OperationResultFilter;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -35,31 +31,31 @@ import static org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemo
 import static org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
+import static org.ehcache.core.statistics.StatsUtils.findLowestTier;
+import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
+import static org.ehcache.core.statistics.StatsUtils.findTiers;
 import static org.terracotta.statistics.ValueStatistics.counter;
 
 /**
  * Contains usage statistics relative to a given cache.
  */
-class DefaultCacheStatistics implements CacheStatistics {
+public class DefaultCacheStatistics implements CacheStatistics {
 
   private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 
-  private final OperationStatistic<GetOutcome> get;
-  private final OperationStatistic<PutOutcome> put;
-  private final OperationStatistic<RemoveOutcome> remove;
-  private final OperationStatistic<PutIfAbsentOutcome> putIfAbsent;
-  private final OperationStatistic<ReplaceOutcome> replace;
-  private final OperationStatistic<ConditionalRemoveOutcome> conditionalRemove;
+  private final org.terracotta.statistics.OperationStatistic<GetOutcome> get;
+  private final org.terracotta.statistics.OperationStatistic<PutOutcome> put;
+  private final org.terracotta.statistics.OperationStatistic<RemoveOutcome> remove;
+  private final org.terracotta.statistics.OperationStatistic<PutIfAbsentOutcome> putIfAbsent;
+  private final org.terracotta.statistics.OperationStatistic<ReplaceOutcome> replace;
+  private final org.terracotta.statistics.OperationStatistic<ConditionalRemoveOutcome> conditionalRemove;
 
   private final InternalCache<?, ?> cache;
 
   private final Map<String, TierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
-  private final Map<String, ValueStatistic<?>> knownStatistics;
+  private final Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics;
 
   public DefaultCacheStatistics(InternalCache<?, ?> cache) {
     this.cache = cache;
@@ -89,13 +85,14 @@ class DefaultCacheStatistics implements CacheStatistics {
     knownStatistics = createKnownStatistics();
   }
 
+  @Override
   public <T extends Enum<T>, S extends ChainedOperationObserver<? super T>> void registerDerivedStatistic(Class<T> outcomeClass, String statName, S derivedStatistic) {
-    OperationStatistic<T> stat = findOperationStatisticOnChildren(cache, outcomeClass, statName);
+    OperationStatistic<T> stat = new DelegatingOperationStatistic<>(findOperationStatisticOnChildren(cache, outcomeClass, statName));
     stat.addDerivedStatistic(derivedStatistic);
   }
 
   private Map<String, ValueStatistic<?>> createKnownStatistics() {
-    Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(30);
+    Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics = new HashMap<>(30);
     knownStatistics.put("Cache:HitCount", counter(this::getCacheHits));
     knownStatistics.put("Cache:MissCount", counter(this::getCacheMisses));
     knownStatistics.put("Cache:PutCount", counter(this::getCachePuts));
@@ -110,8 +107,7 @@ class DefaultCacheStatistics implements CacheStatistics {
     return Collections.unmodifiableMap(knownStatistics);
   }
 
-  @Override
-  public Map<String, ValueStatistic<?>> getKnownStatistics() {
+  public Map<String, org.terracotta.statistics.ValueStatistic<?>> getKnownStatistics() {
     return knownStatistics;
   }
 

@@ -18,8 +18,10 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.persistence.StateRepository;
@@ -60,6 +62,7 @@ public class XAStoreProviderTest {
     when(serviceProvider.getService(JournalProvider.class)).thenReturn(journalProvider);
     when(serviceProvider.getService(TimeSourceService.class)).thenReturn(new DefaultTimeSourceService(null));
     when(serviceProvider.getService(TransactionManagerProvider.class)).thenReturn(transactionManagerProvider);
+    when(serviceProvider.getService(StatisticsService.class)).thenReturn(new DefaultStatisticsService());
     when(serviceProvider.getServicesOfType(Store.Provider.class)).thenReturn(Collections.singleton(underlyingStoreProvider));
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);

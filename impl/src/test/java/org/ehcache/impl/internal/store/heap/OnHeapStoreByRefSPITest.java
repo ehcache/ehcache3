@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -83,7 +84,8 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
-        return new OnHeapStore<>(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), new TestStoreEventDispatcher<>());
+        return new OnHeapStore<>(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+          new NoopSizeOfEngine(), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override

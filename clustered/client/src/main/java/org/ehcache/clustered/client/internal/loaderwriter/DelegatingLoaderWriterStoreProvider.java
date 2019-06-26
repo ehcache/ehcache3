@@ -34,7 +34,8 @@ public class DelegatingLoaderWriterStoreProvider extends AbstractWrapperStorePro
 
   @Override
   protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    return new DelegatingLoaderWriterStore<>(store);
+    DelegatingLoaderWriterStore<K, V> loaderWriterStore = new DelegatingLoaderWriterStore<>(store);
+    return loaderWriterStore;
   }
 
   @Override

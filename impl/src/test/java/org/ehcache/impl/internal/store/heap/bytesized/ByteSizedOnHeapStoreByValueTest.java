@@ -22,6 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -108,7 +109,7 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
+    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher, new DefaultStatisticsService());
   }
 
 }

@@ -19,24 +19,23 @@ configurations {
 }
 
 dependencies {
-  // not required by gradle but required by the IDE because 'dist' does not have any transitive dependencies
-  testCompileOnly project(':clustered:client')
-  testCompileOnly project(':clustered:common')
-  testCompileOnly project(':impl')
-  testCompileOnly project(':xml')
-  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
-  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testCompile project(':clustered:client')
+  testCompile project(':clustered:common')
+  testCompile project(':impl')
+  testCompile project(':xml')
+  testCompile project(':107')
+  testCompile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testCompile "org.terracotta:runnel:$terracottaPlatformVersion"
+  testCompile "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   testImplementation project(':management')
   testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
   testImplementation "org.awaitility:awaitility:3.1.6"
-  testRuntimeOnly project(':clustered:clustered-dist')
-  testRuntimeOnly project(':dist')
 
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  testRuntimeOnly project(':clustered:clustered-dist')
 
   testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
   testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {

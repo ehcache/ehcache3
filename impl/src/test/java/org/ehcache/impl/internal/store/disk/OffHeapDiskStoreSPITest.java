@@ -23,6 +23,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
@@ -122,7 +123,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
             new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
             config, timeSource,
             new TestStoreEventDispatcher<>(),
-            unit.toBytes(diskPool.getSize()));
+            unit.toBytes(diskPool.getSize()), new DefaultStatisticsService());
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;

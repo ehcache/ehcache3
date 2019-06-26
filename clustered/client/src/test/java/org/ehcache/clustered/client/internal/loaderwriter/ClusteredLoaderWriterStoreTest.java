@@ -25,6 +25,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.loaderWriter.TestCacheLoaderWriter;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -63,7 +64,7 @@ public class ClusteredLoaderWriterStoreTest {
     CacheLoaderWriter<Long, String> loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.get(eq(1L))).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.get(1L), is(nullValue()));
   }
 
@@ -74,7 +75,7 @@ public class ClusteredLoaderWriterStoreTest {
     loaderWriter.storeMap.put(1L, "one");
     when(storeProxy.get(eq(1L))).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.get(1L).get(), equalTo("one"));
   }
 
@@ -87,7 +88,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
     when(storeProxy.get(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.get(1L).get(), equalTo("one"));
     verify(loaderWriter, times(0)).load(anyLong());
     verifyZeroInteractions(loaderWriter);
@@ -98,7 +99,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy storeProxy = mock(LockingServerStoreProxyImpl.class);
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(loaderWriter.storeMap.containsKey(1L), is(false));
     assertThat(store.put(1L, "one"), is(Store.PutStatus.PUT));
     assertThat(loaderWriter.storeMap.containsKey(1L), is(true));
@@ -110,7 +111,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.remove(1L), is(false));
     assertThat(loaderWriter.storeMap.containsKey(1L), is(false));
@@ -125,7 +126,7 @@ public class ClusteredLoaderWriterStoreTest {
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     when(storeProxy.get(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.get(1L).get(), equalTo("one"));
     assertThat(store.remove(1L), is(true));
@@ -139,7 +140,7 @@ public class ClusteredLoaderWriterStoreTest {
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.remove(1L), is(false));
     verify(loaderWriter, times(1)).delete(anyLong());
   }
@@ -150,7 +151,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(loaderWriter.storeMap.isEmpty(), is(true));
     assertThat(store.putIfAbsent(1L, "one", null), is(nullValue()));
     assertThat(loaderWriter.storeMap.get(1L), equalTo("one"));
@@ -162,7 +163,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.putIfAbsent(1L, "Again", null).get(), equalTo("one"));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -177,7 +178,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.putIfAbsent(1L, "Again", null).get(), equalTo("one"));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -190,7 +191,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(loaderWriter.storeMap.isEmpty(), is(true));
     assertThat(store.replace(1L, "one"), is(nullValue()));
     assertThat(loaderWriter.storeMap.isEmpty(), is(true));
@@ -203,7 +204,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.replace(1L, "Again").get(), equalTo("one"));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -218,7 +219,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.replace(1L, "Again").get(), equalTo("one"));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -232,7 +233,7 @@ public class ClusteredLoaderWriterStoreTest {
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_MISSING));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
   }
@@ -243,7 +244,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.REMOVED));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -259,7 +260,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.REMOVED));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
     verify(loaderWriter, times(0)).load(anyLong());
@@ -272,7 +273,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.remove(1L, "Again"), is(Store.RemoveStatus.KEY_PRESENT));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -286,7 +287,7 @@ public class ClusteredLoaderWriterStoreTest {
     CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.replace(1L, "one", "Again"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
     verify(loaderWriter, times(1)).load(anyLong());
@@ -299,7 +300,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.replace(1L, "one", "Again"), is(Store.ReplaceStatus.HIT));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
@@ -315,7 +316,7 @@ public class ClusteredLoaderWriterStoreTest {
     ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
     when(storeProxy.lock(anyLong())).thenReturn(toReturn);
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.replace(1L, "one", "Again"), is(Store.ReplaceStatus.HIT));
     verify(storeProxy, times(1)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));
     verify(loaderWriter, times(0)).load(anyLong());
@@ -328,7 +329,7 @@ public class ClusteredLoaderWriterStoreTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     when(storeProxy.lock(anyLong())).thenReturn(entryOf());
     ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
-            timeSource, loaderWriter);
+            timeSource, loaderWriter, new DefaultStatisticsService());
     loaderWriter.storeMap.put(1L, "one");
     assertThat(store.replace(1L, "Again", "one"), is(Store.ReplaceStatus.MISS_PRESENT));
     verify(storeProxy, times(0)).append(anyLong(), ArgumentMatchers.any(ByteBuffer.class));

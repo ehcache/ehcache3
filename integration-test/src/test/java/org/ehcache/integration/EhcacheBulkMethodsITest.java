@@ -21,6 +21,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -532,7 +533,7 @@ public class EhcacheBulkMethodsITest {
         throw new RuntimeException(e);
       }
       final Copier defaultCopier = new IdentityCopier();
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher()) {
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), new DefaultStatisticsService()) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
           throw new StoreAccessException("Problem trying to bulk compute");

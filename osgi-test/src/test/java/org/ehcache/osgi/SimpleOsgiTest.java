@@ -68,6 +68,9 @@ public class SimpleOsgiTest {
       gradleBundle("org.ehcache.modules:impl"),
       gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
 
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
+
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),

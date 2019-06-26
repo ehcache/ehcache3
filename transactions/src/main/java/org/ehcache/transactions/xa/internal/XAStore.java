@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
@@ -52,7 +53,6 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -104,8 +104,8 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
-                 TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId) {
-    super(keyType, valueType, true);
+                 TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId, StatisticsService statisticsService) {
+    super(keyType, valueType, true, statisticsService);
     this.underlyingStore = underlyingStore;
     this.transactionManagerWrapper = transactionManagerWrapper;
     this.timeSource = timeSource;
@@ -115,7 +115,6 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     this.recoveryXaResource = new EhcacheXAResource<>(underlyingStore, journal, transactionContextFactory);
     this.eventSourceWrapper = new StoreEventSourceWrapper<>(underlyingStore.getStoreEventSource());
 
-    ContextManager.associate(underlyingStore).withParent(this);
   }
 
   private static boolean isInDoubt(SoftLock<?> softLock) {
@@ -939,7 +938,9 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
       Store<K, V> store = new XAStore<>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
-        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
+        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, serviceProvider.getService(StatisticsService.class));
+
+      serviceProvider.getService(StatisticsService.class).registerWithParent(underlyingStore, store);
 
       // create the softLockSerializer lifecycle helper
       SoftLockValueCombinedSerializerLifecycleHelper<V> helper =

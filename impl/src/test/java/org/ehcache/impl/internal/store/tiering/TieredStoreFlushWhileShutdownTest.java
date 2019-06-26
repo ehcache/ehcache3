@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
@@ -38,6 +39,8 @@ import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceId
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Answers;
+import org.mockito.Mockito;
 
 import java.io.File;
 
@@ -167,6 +170,7 @@ public class TieredStoreFlushWhileShutdownTest {
     dependencySet.with(diskResourceService);
     dependencySet.with(new OnHeapStore.Provider());
     dependencySet.with(new OffHeapDiskStore.Provider());
+    dependencySet.with(Mockito.mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
     return dependencySet.build();
   }
 }

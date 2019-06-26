@@ -22,7 +22,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.terracotta.context.ContextManager;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +38,6 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   public DelegatingLoaderWriterStore(Store<K, V> store) {
     this.delegate = store;
-    ContextManager.associate(delegate).withParent(this);
   }
 
   @Override

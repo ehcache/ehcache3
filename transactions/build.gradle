@@ -25,7 +25,6 @@ dependencies {
   api project(':core')
   implementation project(':impl')
   implementation project(':xml')
-  implementation "org.terracotta:statistics:$parent.statisticVersion"
   implementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
