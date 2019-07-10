@@ -64,9 +64,6 @@ public class Jsr107OsgiTest {
       gradleBundle("org.ehcache.modules:api"),
       gradleBundle("javax.cache:cache-api"),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),

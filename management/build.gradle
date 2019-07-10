@@ -19,6 +19,7 @@ plugins {
 }
 
 dependencies {
+  implementation "org.terracotta:statistics:$statisticVersion"
   // optional: if we want xml config
   compileOnly project(':xml')
 

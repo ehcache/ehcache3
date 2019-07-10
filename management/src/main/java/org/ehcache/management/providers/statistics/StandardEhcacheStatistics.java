@@ -16,10 +16,10 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.LatencyHistogramConfiguration;
+import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
@@ -33,9 +33,9 @@ import java.util.Map;
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
   private final String cacheAlias;
-  private final StatisticsService statisticsService;
+  private final ExtendedStatisticsService statisticsService;
 
-  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService, TimeSource timeSource) {
+  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, ExtendedStatisticsService statisticsService, TimeSource timeSource) {
     super(registryConfiguration, cacheBinding);
     this.cacheAlias = cacheBinding.getAlias();
     this.statisticsService = statisticsService;

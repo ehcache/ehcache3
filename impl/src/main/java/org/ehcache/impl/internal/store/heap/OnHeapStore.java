@@ -30,6 +30,7 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
@@ -71,7 +72,6 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.model.stats.StatisticType;
 
 import java.time.Duration;
 import java.util.ArrayList;

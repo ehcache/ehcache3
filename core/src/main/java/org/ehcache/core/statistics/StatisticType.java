@@ -16,18 +16,7 @@
 
 package org.ehcache.core.statistics;
 
-import java.io.Serializable;
-
-public interface ValueStatistic<T extends Serializable> {
-
-  /**
-   * @return The statistic type
-   */
-  StatisticType type();
-
-  /**
-   * @return The current statistic value
-   */
-  T value();
-
+public enum StatisticType {
+  COUNTER,
+  GAUGE
 }

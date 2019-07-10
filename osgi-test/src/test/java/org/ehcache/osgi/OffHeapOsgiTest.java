@@ -53,9 +53,6 @@ public class OffHeapOsgiTest {
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),

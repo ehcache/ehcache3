@@ -83,9 +83,6 @@ public class ClusteredOsgiTest {
       gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
       gradleBundle("org.ehcache:clustered-dist"),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),

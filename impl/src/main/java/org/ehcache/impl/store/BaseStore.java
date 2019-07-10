@@ -19,6 +19,7 @@ package org.ehcache.impl.store;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
@@ -26,7 +27,6 @@ import org.ehcache.core.statistics.ZeroOperationStatistic;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.terracotta.management.model.stats.StatisticType;
 
 import java.io.Serializable;
 import java.util.Map;
