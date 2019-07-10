@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.statistics;
+package org.ehcache.management.statistics;
+
+import org.ehcache.core.statistics.OperationObserver;
 
 public class DelegatingOperationObserver<T extends Enum<T>> implements OperationObserver<T> {
 

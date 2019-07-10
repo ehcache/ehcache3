@@ -51,6 +51,10 @@ public class SuppliedValueStatistic<T extends Serializable> implements ValueStat
     return supply(StatisticType.COUNTER, supplier);
   }
 
+  public static <T extends Number> ValueStatistic<T> gauge(Supplier<T> supplier) {
+    return supply(StatisticType.GAUGE, supplier);
+  }
+
   public static <T extends Serializable> ValueStatistic<T> supply(StatisticType type, Supplier<T> supplier) {
     return new SuppliedValueStatistic<>(type, supplier);
   }

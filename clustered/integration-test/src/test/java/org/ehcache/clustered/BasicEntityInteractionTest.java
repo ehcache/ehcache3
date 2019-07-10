@@ -29,7 +29,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
-import org.ehcache.management.registry.DefaultExtendedStatisticsService;
+import org.ehcache.management.statistics.DefaultExtendedStatisticsService;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

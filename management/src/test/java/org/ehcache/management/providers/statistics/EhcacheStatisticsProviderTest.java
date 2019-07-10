@@ -22,7 +22,7 @@ import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
-import org.ehcache.management.registry.DefaultExtendedStatisticsService;
+import org.ehcache.management.statistics.DefaultExtendedStatisticsService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.hamcrest.Matcher;
 import org.junit.After;

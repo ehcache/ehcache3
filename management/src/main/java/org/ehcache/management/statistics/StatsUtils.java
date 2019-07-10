@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.statistics;
-
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
+package org.ehcache.management.statistics;
 
 import org.ehcache.Cache;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
@@ -32,7 +27,18 @@ import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.derived.OperationResultFilter;
 
-import static org.terracotta.context.query.Matchers.*;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+
+import static org.terracotta.context.query.Matchers.attributes;
+import static org.terracotta.context.query.Matchers.context;
+import static org.terracotta.context.query.Matchers.hasAttribute;
+import static org.terracotta.context.query.Matchers.identifier;
+import static org.terracotta.context.query.Matchers.subclassOf;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 /**

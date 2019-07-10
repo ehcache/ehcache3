@@ -18,7 +18,7 @@ package org.ehcache.management;
 
 import org.ehcache.Cache;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.statistics.LatencyHistogramConfiguration;
+import org.ehcache.management.registry.LatencyHistogramConfiguration;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.stats.Statistic;
 

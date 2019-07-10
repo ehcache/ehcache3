@@ -14,26 +14,23 @@
  * limitations under the License.
  */
 
-package org.ehcache.management.registry;
+package org.ehcache.core.internal.statistics;
 
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.management.ExtendedStatisticsService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
-public class DefaultExtendedStatisticsServiceFactory implements ServiceFactory<ExtendedStatisticsService> {
+@Component
+public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
 
   @Override
-  public int rank() {
-    return 10;
+  public StatisticsService create(ServiceCreationConfiguration<StatisticsService, ?> serviceConfiguration) {
+    return new DefaultStatisticsService();
   }
 
   @Override
-  public ExtendedStatisticsService create(ServiceCreationConfiguration<ExtendedStatisticsService, ?> configuration) {
-    return new DefaultExtendedStatisticsService();
-  }
-
-  @Override
-  public Class<? extends ExtendedStatisticsService> getServiceType() {
-    return DefaultExtendedStatisticsService.class;
+  public Class<StatisticsService> getServiceType() {
+    return StatisticsService.class;
   }
 }

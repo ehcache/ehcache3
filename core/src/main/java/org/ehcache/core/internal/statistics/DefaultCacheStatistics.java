@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.statistics;
+package org.ehcache.core.internal.statistics;
 
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
-import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.derived.OperationResultFilter;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.ChainedOperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
+import org.ehcache.core.statistics.TierStatistics;
+import org.ehcache.core.statistics.ValueStatistic;
+import org.terracotta.statistics.ValueStatistics;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -31,10 +36,10 @@ import static org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemo
 import static org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import static org.ehcache.core.statistics.StatsUtils.findLowestTier;
-import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
-import static org.ehcache.core.statistics.StatsUtils.findTiers;
-import static org.terracotta.statistics.ValueStatistics.counter;
+import static org.ehcache.core.internal.statistics.StatsUtils.findLowestTier;
+import static org.ehcache.core.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
+import static org.ehcache.core.internal.statistics.StatsUtils.findTiers;
+import static org.ehcache.core.statistics.SuppliedValueStatistic.counter;
 
 /**
  * Contains usage statistics relative to a given cache.
@@ -52,7 +57,7 @@ public class DefaultCacheStatistics implements CacheStatistics {
 
   private final InternalCache<?, ?> cache;
 
-  private final Map<String, TierStatistics> tierStatistics;
+  private final Map<String, DefaultTierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
   private final Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics;
@@ -74,7 +79,7 @@ public class DefaultCacheStatistics implements CacheStatistics {
 
     tierStatistics = new HashMap<>(tierNames.length);
     for (String tierName : tierNames) {
-      TierStatistics tierStatistics = new DefaultTierStatistics(cache, tierName);
+      DefaultTierStatistics tierStatistics = new DefaultTierStatistics(cache, tierName);
       this.tierStatistics.put(tierName, tierStatistics);
       if (lowestTierName.equals(tierName)) {
         lowestTier = tierStatistics;
@@ -91,16 +96,16 @@ public class DefaultCacheStatistics implements CacheStatistics {
     stat.addDerivedStatistic(derivedStatistic);
   }
 
-  private Map<String, ValueStatistic<?>> createKnownStatistics() {
+  private Map<String, org.terracotta.statistics.ValueStatistic<?>> createKnownStatistics() {
     Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics = new HashMap<>(30);
-    knownStatistics.put("Cache:HitCount", counter(this::getCacheHits));
-    knownStatistics.put("Cache:MissCount", counter(this::getCacheMisses));
-    knownStatistics.put("Cache:PutCount", counter(this::getCachePuts));
-    knownStatistics.put("Cache:RemovalCount", counter(this::getCacheRemovals));
-    knownStatistics.put("Cache:EvictionCount", counter(this::getCacheEvictions));
-    knownStatistics.put("Cache:ExpirationCount", counter(this::getCacheExpirations));
+    knownStatistics.put("Cache:HitCount", ValueStatistics.counter(this::getCacheHits));
+    knownStatistics.put("Cache:MissCount", ValueStatistics.counter(this::getCacheMisses));
+    knownStatistics.put("Cache:PutCount", ValueStatistics.counter(this::getCachePuts));
+    knownStatistics.put("Cache:RemovalCount", ValueStatistics.counter(this::getCacheRemovals));
+    knownStatistics.put("Cache:EvictionCount", ValueStatistics.counter(this::getCacheEvictions));
+    knownStatistics.put("Cache:ExpirationCount", ValueStatistics.counter(this::getCacheExpirations));
 
-    for (TierStatistics tier : tierStatistics.values()) {
+    for (DefaultTierStatistics tier : tierStatistics.values()) {
       knownStatistics.putAll(tier.getKnownStatistics());
     }
 
@@ -119,9 +124,6 @@ public class DefaultCacheStatistics implements CacheStatistics {
   @Override
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
-    for (TierStatistics t : tierStatistics.values()) {
-      t.clear();
-    }
   }
 
   @Override

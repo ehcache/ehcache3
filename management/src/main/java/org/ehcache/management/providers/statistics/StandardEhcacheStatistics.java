@@ -18,7 +18,7 @@ package org.ehcache.management.providers.statistics;
 import org.ehcache.Cache;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.statistics.LatencyHistogramConfiguration;
+import org.ehcache.management.registry.LatencyHistogramConfiguration;
 import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
