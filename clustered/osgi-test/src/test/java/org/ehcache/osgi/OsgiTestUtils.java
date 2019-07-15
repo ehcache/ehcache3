@@ -33,7 +33,9 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static java.lang.Integer.parseInt;
 import static java.lang.String.join;
+import static java.lang.System.getProperty;
 import static java.nio.file.Files.find;
 import static java.nio.file.Files.isRegularFile;
 import static java.util.Arrays.asList;
@@ -56,15 +58,28 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
-      systemPackages(
-        "javax.xml.bind;version=2.3.0",
-        "javax.xml.bind.annotation;version=2.3.0",
-        "javax.xml.bind.annotation.adapters;version=2.3.0"
-      ),
       cleanCaches(true),
       workingDirectory(join(File.separator, "build", "osgi-container", join(File.separator, path))),
       junitBundles()
     );
+  }
+
+  public static Option jaxbConfiguration() {
+    if (parseInt(getProperty("java.version").split("[^\\d]+")[0]) >= 9) {
+      return composite(
+        gradleBundle("org.glassfish.hk2:osgi-resource-locator"),
+        gradleBundle("javax.xml.bind:jaxb-api"),
+        gradleBundle("com.sun.activation:javax.activation"),
+        wrappedGradleBundle("org.glassfish.jaxb:jaxb-runtime"),
+        gradleBundle("com.sun.istack:istack-commons-runtime")
+      );
+    } else {
+      return systemPackages(
+        "javax.xml.bind;version=2.3.0",
+        "javax.xml.bind.annotation;version=2.3.0",
+        "javax.xml.bind.annotation.adapters;version=2.3.0"
+      );
+    }
   }
 
   public static UrlProvisionOption gradleBundle(String module) {
@@ -76,7 +91,7 @@ public class OsgiTestUtils {
   }
 
   private static Path artifact(String module) {
-    Path path = Paths.get(requireNonNull(System.getProperty(module + ":osgi-path"), module + " not available"));
+    Path path = Paths.get(requireNonNull(getProperty(module + ":osgi-path"), module + " not available"));
     if (isRegularFile(path)) {
       return path;
     } else {
