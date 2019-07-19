@@ -1,7 +1,7 @@
 = Ehcache {version} Documentation Overview
-ifndef::sourcedir37[]
+ifndef::sourcedir38[]
 include::common.adoc[]
-endif::sourcedir37[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
