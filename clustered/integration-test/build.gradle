@@ -64,14 +64,9 @@ task copyServerLibs(type: Copy) {
 test {
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
-  if (testJava.javaVersion.isJava9Compatible()) {
-    environment 'JAVA_OPTS', '--add-modules java.xml.bind'
-  }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
-}.doFirst {
-  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("Clustered Tests Not Working in Java 11")
 }
 
