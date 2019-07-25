@@ -18,9 +18,12 @@ package org.ehcache.xml.ss;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 
+import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class SimpleServiceProvider implements Service {
   private final SimpleServiceConfiguration configuration;
-  private volatile Service startedService;
+  private volatile Collection<Service> startedServices;
 
   public SimpleServiceProvider(SimpleServiceConfiguration configuration) {
     this.configuration = configuration;
@@ -29,8 +32,8 @@ public class SimpleServiceProvider implements Service {
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     try {
-      startedService = configuration.getService();
-      startedService.start(serviceProvider);
+      startedServices = configuration.getServices();
+      startedServices.forEach(service -> service.start(serviceProvider));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating simple service", e);
     }
@@ -38,8 +41,8 @@ public class SimpleServiceProvider implements Service {
 
   @Override
   public void stop() {
-    startedService.stop();
-    startedService = null;
+    startedServices.forEach(Service::stop);
+    startedServices = null;
   }
 
 }

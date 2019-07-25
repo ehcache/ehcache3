@@ -18,22 +18,25 @@ package org.ehcache.xml.ss;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
-public class SimpleServiceConfiguration implements ServiceCreationConfiguration<SimpleServiceProvider, Service> {
+public class SimpleServiceConfiguration implements ServiceCreationConfiguration<SimpleServiceProvider, Collection<Service>> {
 
-  private final Service service;
+  private final Collection<Service> services = new ArrayList<>();
 
   public SimpleServiceConfiguration(Class<? extends Service> clazz, List<String> unparsedArgs) throws Exception {
-    this.service = ReflectionHelper.instantiate(clazz, unparsedArgs);
+    this.services.add(ReflectionHelper.instantiate(clazz, unparsedArgs));
   }
 
-  private SimpleServiceConfiguration(Service service) {
-    this.service = service;
+  private SimpleServiceConfiguration(Collection<Service> services) {
+    this.services.addAll(services);
   }
 
-  public Service getService() {
-    return service;
+  public Collection<Service> getServices() {
+    return Collections.unmodifiableCollection(services);
   }
 
   @Override
@@ -42,17 +45,23 @@ public class SimpleServiceConfiguration implements ServiceCreationConfiguration<
   }
 
   @Override
-  public Service derive() {
-    return service;
+  public Collection<Service> derive() {
+    return services;
   }
 
   @Override
-  public ServiceCreationConfiguration<SimpleServiceProvider, ?> build(Service representation) {
+  public ServiceCreationConfiguration<SimpleServiceProvider, ?> build(Collection<Service> representation) {
     return new SimpleServiceConfiguration(representation);
   }
 
   @Override
   public boolean compatibleWith(ServiceCreationConfiguration<?, ?> other) {
-    return true; // supports many instances
+    // TODO WTF, seriously?
+    if (other instanceof SimpleServiceConfiguration) {
+      Collection<Service> copy = new ArrayList<>(services);
+      this.services.addAll(((SimpleServiceConfiguration) other).services);
+      ((SimpleServiceConfiguration) other).services.addAll(copy);
+    }
+    return false;
   }
 }
