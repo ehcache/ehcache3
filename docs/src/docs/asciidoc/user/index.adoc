@@ -1,4 +1,4 @@
-= Ehcache {version} Documentation Overview
+= Ehcache 3.8 Documentation Overview
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]
 endif::sourcedir38[]
