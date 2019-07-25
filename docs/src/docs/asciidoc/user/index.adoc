@@ -9,7 +9,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache {version} documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.8 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
