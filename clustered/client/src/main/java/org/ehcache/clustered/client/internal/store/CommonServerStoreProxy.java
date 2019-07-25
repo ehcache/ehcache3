@@ -204,7 +204,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
         @Override
         public Chain next() {
-          if (batch.hasNext()) {
+          if (lastBatch || batch.hasNext()) {
             return batch.next();
           } else {
             try {

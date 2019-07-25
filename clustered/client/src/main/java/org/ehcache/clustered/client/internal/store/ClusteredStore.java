@@ -457,43 +457,40 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
         private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
-          try {
-            while (true) {
-              Map<K, PutOperation<K, V>> chainContents = resolver.resolveChain(chainIterator.next(), timeSource.getTimeMillis());
-              if (!chainContents.isEmpty()) {
-                return chainContents.entrySet().stream().map(entry -> {
-                  K key = entry.getKey();
+          while (chainIterator.hasNext()) {
+            Map<K, PutOperation<K, V>> chainContents = resolver.resolveChain(chainIterator.next(), timeSource.getTimeMillis());
+            if (!chainContents.isEmpty()) {
+              return chainContents.entrySet().stream().map(entry -> {
+                K key = entry.getKey();
 
-                  PutOperation<K, V> operation = entry.getValue();
-                  ValueHolder<V> valueHolder;
-                  if (operation.isExpiryAvailable()) {
-                    valueHolder = new ClusteredValueHolder<>(operation.getValue(), operation.expirationTime());
-                  } else {
-                    valueHolder = new ClusteredValueHolder<>(operation.getValue());
+                PutOperation<K, V> operation = entry.getValue();
+                ValueHolder<V> valueHolder;
+                if (operation.isExpiryAvailable()) {
+                  valueHolder = new ClusteredValueHolder<>(operation.getValue(), operation.expirationTime());
+                } else {
+                  valueHolder = new ClusteredValueHolder<>(operation.getValue());
+                }
+                return new Cache.Entry<K, ValueHolder<V>>() {
+
+                  @Override
+                  public K getKey() {
+                    return key;
                   }
-                  return new Cache.Entry<K, ValueHolder<V>>() {
 
-                    @Override
-                    public K getKey() {
-                      return key;
-                    }
+                  @Override
+                  public ValueHolder<V> getValue() {
+                    return valueHolder;
+                  }
 
-                    @Override
-                    public ValueHolder<V> getValue() {
-                      return valueHolder;
-                    }
-
-                    @Override
-                    public String toString() {
-                      return getKey() + "=" + getValue();
-                    }
-                  };
-                }).iterator();
-              }
+                  @Override
+                  public String toString() {
+                    return getKey() + "=" + getValue();
+                  }
+                };
+              }).iterator();
             }
-          } catch (NoSuchElementException e) {
-            return emptyIterator();
           }
+          return emptyIterator();
         }
       };
     } catch (Exception e) {
