@@ -131,8 +131,7 @@ public class ChainMapExtensionTest {
     Factory<? extends ChainStorageEngine<String>> factory = OffHeapChainStorageEngine.createFactory(chainSource,
       StringPortability.INSTANCE, 4096, 4096, false, false);
     OffHeapChainStorageEngine<String> storageEngine = (OffHeapChainStorageEngine<String>) factory.newInstance();
-    ReadWriteLockedOffHeapClockCache<String, InternalChain> newMap =
-      new ReadWriteLockedOffHeapClockCache<>(chainSource, storageEngine);
+    OffHeapChainMap.HeadMap<String> newMap = new OffHeapChainMap.HeadMap<>(e -> {}, chainSource, storageEngine);
     ese.replayIntoMap(newMap);
     return new OffHeapChainMap<>(newMap, storageEngine);
   }

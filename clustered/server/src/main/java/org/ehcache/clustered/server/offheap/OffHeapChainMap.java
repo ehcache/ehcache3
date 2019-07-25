@@ -16,6 +16,7 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -25,7 +26,6 @@ import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.offheapstore.MapInternals;
 
-import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.eviction.EvictionListener;
 import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -41,7 +41,7 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
     void onEviction(K key);
   }
 
-  protected final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
+  protected final HeadMap<K> heads;
   private final ChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;
 
@@ -64,7 +64,7 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
 
     //TODO: EvictionListeningReadWriteLockedOffHeapClockCache lacks ctor that takes shareByThieving
     // this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
-    this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(listener, source, chainStorage);
+    this.heads = new HeadMap<>(listener, source, chainStorage);
   }
 
   public OffHeapChainMap(PageSource source, Factory<? extends ChainStorageEngine<K>> storageEngineFactory) {
@@ -76,7 +76,8 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
   }
 
   //For tests
-  OffHeapChainMap(ReadWriteLockedOffHeapClockCache<K, InternalChain> heads, OffHeapChainStorageEngine<K> chainStorage) {
+  //For tests
+  OffHeapChainMap(HeadMap<K> heads, OffHeapChainStorageEngine<K> chainStorage) {
     this.chainStorage = chainStorage;
     this.heads = heads;
   }
@@ -242,7 +243,7 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
 
   @Override
   public Iterator<Chain> iterator() {
-    Iterator<Map.Entry<K, InternalChain>> headsIterator = heads.entrySet().iterator();
+    Iterator<Map.Entry<K, InternalChain>> headsIterator = heads.detachedEntryIterator();
 
     return new Iterator<Chain>() {
       @Override
@@ -354,4 +355,44 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
   protected void storageEngineFailure(Object failure) {
   }
 
+  static class HeadMap<K> extends EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain> {
+
+    public HeadMap(EvictionListener<K, InternalChain> listener, PageSource source, ChainStorageEngine<K> chainStorage) {
+      super(listener, source, chainStorage);
+    }
+
+    public Iterator<Entry<K, InternalChain>> detachedEntryIterator() {
+      return new LockedEntryIterator() {
+        @Override
+        protected Entry<K, InternalChain> create(IntBuffer entry) {
+          Entry<K, InternalChain> attachedEntry = super.create(entry);
+
+          try (InternalChain chain = attachedEntry.getValue()) {
+            Chain detachedChain = chain.detach();
+            return new SimpleImmutableEntry<>(attachedEntry.getKey(), new InternalChain() {
+              @Override
+              public Chain detach() {
+                return detachedChain;
+              }
+
+              @Override
+              public boolean append(ByteBuffer element) {
+                throw new UnsupportedOperationException();
+              }
+
+              @Override
+              public boolean replace(Chain expected, Chain replacement) {
+                throw new UnsupportedOperationException();
+              }
+
+              @Override
+              public void close() {
+                //
+              }
+            });
+          }
+        }
+      };
+    }
+  }
 }
