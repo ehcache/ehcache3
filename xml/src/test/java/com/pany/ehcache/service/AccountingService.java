@@ -13,33 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.xml.ss;
+package com.pany.ehcache.service;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 
-public class SimpleServiceProvider implements Service {
-  private final SimpleServiceConfiguration configuration;
-  private volatile Service startedService;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-  public SimpleServiceProvider(SimpleServiceConfiguration configuration) {
-    this.configuration = configuration;
+public class AccountingService implements Service {
+
+  public enum Action {
+    START, STOP
+  }
+
+  public static final List<Action> ACTIONS = new CopyOnWriteArrayList<>();
+
+  public AccountingService() {
+    System.getProperties(); // no-op
   }
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
-    try {
-      startedService = configuration.getService();
-      startedService.start(serviceProvider);
-    } catch (Exception e) {
-      throw new RuntimeException("Error instantiating simple service", e);
-    }
+    ACTIONS.add(Action.START);
   }
 
   @Override
   public void stop() {
-    startedService.stop();
-    startedService = null;
+    ACTIONS.add(Action.STOP);
   }
 
 }

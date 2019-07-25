@@ -18,28 +18,41 @@ package org.ehcache.xml.ss;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-import java.util.Collections;
 import java.util.List;
 
-public class SimpleServiceConfiguration implements ServiceCreationConfiguration<SimpleServiceProvider, Void> {
-  private final Class<? extends Service> clazz;
-  private final List<String> unparsedArgs;
+public class SimpleServiceConfiguration implements ServiceCreationConfiguration<SimpleServiceProvider, Service> {
 
-  public SimpleServiceConfiguration(Class<? extends Service> clazz, List<String> unparsedArgs) {
-    this.clazz = clazz;
-    this.unparsedArgs = Collections.unmodifiableList(unparsedArgs);
+  private final Service service;
+
+  public SimpleServiceConfiguration(Class<? extends Service> clazz, List<String> unparsedArgs) throws Exception {
+    this.service = ReflectionHelper.instantiate(clazz, unparsedArgs);
   }
 
-  public Class<? extends Service> getClazz() {
-    return clazz;
+  private SimpleServiceConfiguration(Service service) {
+    this.service = service;
   }
 
-  public List<String> getUnparsedArgs() {
-    return unparsedArgs;
+  public Service getService() {
+    return service;
   }
 
   @Override
   public Class<SimpleServiceProvider> getServiceType() {
     return SimpleServiceProvider.class;
+  }
+
+  @Override
+  public Service derive() {
+    return service;
+  }
+
+  @Override
+  public ServiceCreationConfiguration<SimpleServiceProvider, ?> build(Service representation) {
+    return new SimpleServiceConfiguration(representation);
+  }
+
+  @Override
+  public boolean compatibleWith(ServiceCreationConfiguration<?, ?> other) {
+    return true; // supports many instances
   }
 }

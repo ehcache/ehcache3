@@ -15,10 +15,13 @@
  */
 package org.ehcache.xml.ss;
 
+import com.pany.ehcache.service.AccountingService;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
+
+import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public class SimpleServiceTest {
 
@@ -26,10 +29,12 @@ public class SimpleServiceTest {
   public void name() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/simple-service.xml"));
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManager(xmlConfiguration);
-    cacheManager.init();
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManager(xmlConfiguration, true)) {
+    }
 
-    cacheManager.close();
+    assertThat(AccountingService.ACTIONS.get(0)).isSameAs(AccountingService.Action.START);
+    assertThat(AccountingService.ACTIONS.get(1)).isSameAs(AccountingService.Action.STOP);
+    assertThat(AccountingService.ACTIONS.size()).isEqualTo(2);
   }
 
 }

@@ -68,7 +68,7 @@ public class SimpleServiceConfigurationParser implements CacheManagerServiceConf
           if ("arg".equals(node.getLocalName())) {
             String value = ((Element) node).getAttribute("value");
             unparsedArgs.add(value);
-          }
+          } // TODO else throw?
         }
 
         return new SimpleServiceConfiguration(clazz, unparsedArgs);
@@ -96,6 +96,6 @@ public class SimpleServiceConfigurationParser implements CacheManagerServiceConf
 
   @Override
   public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<SimpleServiceProvider, ?> serviceCreationConfiguration) {
-    return null;
+    return null; // TODO implement
   }
 }

@@ -26,6 +26,15 @@
       <ss:arg value="10000"/>
     </ss:instance>
   </service>
+  <service>
+    <ss:instance class="com.pany.ehcache.service.AccountingService">
+    </ss:instance>
+  </service>
+  <service>
+    <ss:instance class="com.pany.ehcache.service.AcceptAnObjectService">
+      <ss:arg value="whatever"/>
+    </ss:instance>
+  </service>
 
   <cache alias="simpleCache">
     <key-type>java.lang.String</key-type>
