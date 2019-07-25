@@ -407,37 +407,34 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
         private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
-          try {
-            while (true) {
-              Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
-              if (!chainContents.isEmpty()) {
-                return chainContents.entrySet().stream().map(entry -> {
-                  K key = entry.getKey();
+          while (chainIterator.hasNext()) {
+            Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
+            if (!chainContents.isEmpty()) {
+              return chainContents.entrySet().stream().map(entry -> {
+                K key = entry.getKey();
 
-                  ValueHolder<V> valueHolder = entry.getValue();
-                  return new Cache.Entry<K, ValueHolder<V>>() {
+                ValueHolder<V> valueHolder = entry.getValue();
+                return new Cache.Entry<K, ValueHolder<V>>() {
 
-                    @Override
-                    public K getKey() {
-                      return key;
-                    }
+                  @Override
+                  public K getKey() {
+                    return key;
+                  }
 
-                    @Override
-                    public ValueHolder<V> getValue() {
-                      return valueHolder;
-                    }
+                  @Override
+                  public ValueHolder<V> getValue() {
+                    return valueHolder;
+                  }
 
-                    @Override
-                    public String toString() {
-                      return getKey() + "=" + getValue();
-                    }
-                  };
-                }).iterator();
-              }
+                  @Override
+                  public String toString() {
+                    return getKey() + "=" + getValue();
+                  }
+                };
+              }).iterator();
             }
-          } catch (NoSuchElementException e) {
-            return emptyIterator();
           }
+          return emptyIterator();
         }
       };
     } catch (Exception e) {
