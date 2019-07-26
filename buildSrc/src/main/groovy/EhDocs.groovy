@@ -60,9 +60,9 @@ class EhDocs implements Plugin<Project> {
 
     }
 
-    project.task('asciidocZip', type: Zip, dependsOn: ':docs:asciidoctor') {
+    project.task('asciidocZip', type: Zip, dependsOn: ':docs:userDoc') {
       classifier = 'docs'
-      from project.tasks.getByPath(':docs:asciidoctor').outputDir
+      from project.tasks.getByPath(':docs:userDoc').outputDir
     }
 
     project.artifacts {

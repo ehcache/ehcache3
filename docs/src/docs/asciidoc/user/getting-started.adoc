@@ -1,11 +1,11 @@
 = Ehcache 3.8 Documentation
 ifndef::sourcedir38[]
-include::common.adoc[]
+include::{includedir}/common.adoc[]
 endif::sourcedir38[]
 We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Configuring Ehcache

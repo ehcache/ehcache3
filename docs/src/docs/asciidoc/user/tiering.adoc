@@ -2,11 +2,12 @@
 ---
 = Ehcache Tiering Options
 ifndef::sourcedir38[]
-include::common.adoc[]
+include::{includedir}/common.adoc[]
 endif::sourcedir38[]
+>>>>>>> Upgrade to Asciidoctor Gradle Plugin 2.0.0
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 
 == Introduction
 
