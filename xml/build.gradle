@@ -16,12 +16,10 @@
 
 plugins {
   id 'org.unbroken-dome.xjc' version '1.4.1'
-  id 'com.github.hauner.jarTest' version '1.0.1'
 }
 
 apply plugin: EhDeploy
 apply plugin: 'biz.aQute.bnd.builder'
-apply plugin: 'com.github.hauner.jarTest'
 
 dependencies {
   api project(':api')

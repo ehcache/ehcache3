@@ -19,7 +19,6 @@ import org.asciidoctor.gradle.jvm.AsciidoctorTask
 
 plugins {
   id 'org.asciidoctor.jvm.base' version '2.3.0'
-  id 'org.kordamp.gradle.livereload' version '0.2.1'
 }
 
 asciidoctorj {
@@ -59,10 +58,6 @@ tasks.register('developerDoc', AsciidoctorTask) {
   description = 'Generate the developer documentation'
   sourceDir file('src/docs/asciidoc/developer')
   outputDir file("$buildDir/asciidoc/developer")
-}
-
-liveReload {
-  docRoot userDoc.outputDir.canonicalPath
 }
 
 dependencyCheck {
