@@ -155,7 +155,7 @@ subprojects {
 
   task sourceJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allJava
-    classifier = 'sources'
+    archiveClassifier = 'sources'
   }
 
   javadoc {
@@ -165,7 +165,7 @@ subprojects {
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
   }
 
   artifacts {
