@@ -15,7 +15,7 @@
  */
 
 plugins {
-  id 'org.unbroken-dome.xjc' version '1.4.1'
+  id 'org.unbroken-dome.xjc' version '1.4.3'
 }
 
 apply plugin: EhDeploy
