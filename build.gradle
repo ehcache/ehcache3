@@ -214,6 +214,7 @@ subprojects {
   }
   tasks.withType(Test) {
     executable = testJava.javaExecutable
+    maxParallelForks 64
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
