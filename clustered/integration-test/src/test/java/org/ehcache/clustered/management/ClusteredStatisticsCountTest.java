@@ -79,6 +79,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
             (cacheHitCount != CACHE_HIT_COUNT) && (clusteredHitCount != CLUSTERED_HIT_COUNT) &&
             (cacheMissCount != CACHE_MISS_COUNT) && (clusteredMissCount != CLUSTERED_MISS_COUNT));
 
+
     Assert.assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
     Assert.assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));
     Assert.assertThat(cacheMissCount,is(CACHE_MISS_COUNT));
