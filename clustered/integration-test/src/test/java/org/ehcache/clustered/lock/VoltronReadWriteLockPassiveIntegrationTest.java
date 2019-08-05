@@ -24,9 +24,15 @@ import java.util.concurrent.TimeoutException;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
 import org.terracotta.connection.Connection;
 import org.terracotta.testing.rules.Cluster;
 
@@ -34,10 +40,13 @@ import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.asy
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@RunWith(Parallel.class)
 public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).build());
+  @Rule
+  public final TestName testName = new TestName();
 
   @Before
   public void waitForActive() throws Exception {
@@ -48,7 +57,7 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
   @Test
   public void testSingleThreadSingleClientInteraction() throws Throwable {
     try (Connection client = CLUSTER.newConnection()) {
-      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testName.getMethodName());
 
       Hold hold = lock.writeLock();
 
@@ -62,7 +71,7 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
   @Test
   public void testMultipleThreadsSingleConnection() throws Throwable {
     try (Connection client = CLUSTER.newConnection()) {
-      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testName.getMethodName());
 
       Hold hold = lock.writeLock();
 
@@ -98,12 +107,12 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
   public void testMultipleClients() throws Throwable {
     try (Connection clientA = CLUSTER.newConnection();
          Connection clientB = CLUSTER.newConnection()) {
-      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, "test");
+      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, testName.getMethodName());
 
       Hold hold = lockA.writeLock();
 
       Future<Void> waiter = async(() -> {
-        new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+        new VoltronReadWriteLock(clientB, testName.getMethodName()).writeLock().unlock();
         return null;
       });
 

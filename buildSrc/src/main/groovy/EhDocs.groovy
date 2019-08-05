@@ -54,14 +54,14 @@ class EhDocs implements Plugin<Project> {
       }
 
       project.task('spiJavadocJar', type: Jar, dependsOn: 'spiJavadoc') {
-        classifier = 'spi-javadoc'
+        archiveClassifier = 'spi-javadoc'
         from project.tasks.getByPath('spiJavadoc').destinationDir
       }
 
     }
 
     project.task('asciidocZip', type: Zip, dependsOn: ':docs:userDoc') {
-      classifier = 'docs'
+      archiveClassifier = 'docs'
       from project.tasks.getByPath(':docs:userDoc').outputDir
     }
 

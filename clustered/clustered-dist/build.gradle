@@ -127,12 +127,12 @@ distributions {
 }
 
 distTar {
-  classifier = 'kit'
+  archiveClassifier = 'kit'
   compression = Compression.GZIP
 }
 
 distZip {
-  classifier = 'kit'
+  archiveClassifier = 'kit'
 }
 
 [distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar

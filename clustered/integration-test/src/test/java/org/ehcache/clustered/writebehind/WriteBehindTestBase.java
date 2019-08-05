@@ -31,6 +31,8 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import java.net.URI;
 import java.time.Duration;
@@ -51,10 +53,12 @@ public class WriteBehindTestBase extends ClusteredTests {
     + "</ohr:offheap-resources>" +
     "</config>\n";
 
-  static final String CACHE_NAME = "cache-1";
   static final long KEY = 1L;
 
   private static final String FLUSH_QUEUE_MARKER = "FLUSH_QUEUE";
+
+  @Rule
+  public final TestName testName = new TestName();
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
 
@@ -110,7 +114,7 @@ public class WriteBehindTestBase extends ClusteredTests {
     return CacheManagerBuilder
       .newCacheManagerBuilder()
       .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
-      .withCache(CACHE_NAME, cacheConfiguration)
+      .withCache(testName.getMethodName(), cacheConfiguration)
       .build(true);
   }
 }
