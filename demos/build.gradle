@@ -22,8 +22,4 @@ subprojects {
     runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
     runtimeOnly 'com.h2database:h2:1.4.196'
   }
-
-  dependencyCheck {
-    skipConfigurations += configurations.matching{it.name.startsWith 'gretty'}.names
-  }
 }

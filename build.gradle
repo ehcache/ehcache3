@@ -84,12 +84,23 @@ if (hasProperty('testVM')) {
   println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
+apply plugin: 'org.owasp.dependencycheck'
+
+dependencyCheck {
+  failBuildOnCVSS = 0
+  suppressionFile = 'config/owasp-supressions.xml'
+  skipConfigurations += ['checkstyle', 'spotbugs']
+  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+}
+tasks.register('check') {
+  dependsOn dependencyCheckAggregate
+}
+
 subprojects {
   apply plugin: 'java-library'
   apply plugin: 'checkstyle'
   apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
-  apply plugin: 'org.owasp.dependencycheck'
 
   group = 'org.ehcache.modules'
   version = baseVersion
@@ -199,13 +210,6 @@ subprojects {
       csv.enabled false
     }
   }
-
-  dependencyCheck {
-    failBuildOnCVSS = 0
-    skipConfigurations += ['checkstyle', 'spotbugs']
-    suppressionFile = 'config/owasp-supressions.xml'
-  }
-  check.dependsOn(dependencyCheckAnalyze)
 
   tasks.withType(AbstractCompile) {
     options.with {
