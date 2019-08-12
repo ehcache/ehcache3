@@ -16,7 +16,7 @@
 
 plugins {
   id 'org.unbroken-dome.xjc'
-  id 'org.ehcache.build.deploy'
+  id 'maven-publish'
   id 'biz.aQute.bnd.builder'
 }
 

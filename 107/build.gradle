@@ -15,9 +15,9 @@
  */
 
 plugins {
+  id 'maven-publish'
   id 'biz.aQute.bnd.builder'
   id 'org.jayware.osgi-ds'
-  id 'org.ehcache.build.deploy'
 }
 
 configurations {

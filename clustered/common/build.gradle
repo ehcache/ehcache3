@@ -15,7 +15,7 @@
  */
 
 plugins {
-  id 'org.ehcache.build.deploy'
+  id 'maven-publish'
 }
 
 dependencies {

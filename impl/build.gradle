@@ -15,7 +15,7 @@
  */
 
 plugins {
-  id 'org.ehcache.build.deploy'
+  id 'maven-publish'
   id 'biz.aQute.bnd.builder'
   id 'org.jayware.osgi-ds'
 }
@@ -57,7 +57,7 @@ jar {
   )
 }
 
-sourceJar {
+sourcesJar {
   from sourceSets.unsafe.allSource
 }
 

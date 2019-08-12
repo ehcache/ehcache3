@@ -63,10 +63,7 @@ closeAndReleaseRepository.enabled = false
 
 
 ext {
-
   baseVersion = findProperty('overrideVersion') ?: ehcacheVersion
-
-  utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
@@ -118,6 +115,19 @@ subprojects {
     maven { url "https://repo.terracotta.org/maven2" }
   }
 
+  java {
+    withJavadocJar()
+    withSourcesJar()
+  }
+
+  configurations {
+    providedApi
+    providedImplementation
+
+    api.extendsFrom providedApi
+    implementation.extendsFrom providedImplementation
+  }
+
   sourceSets {
     slowTest {
       java.srcDir 'src/slow-test/java'
@@ -139,7 +149,17 @@ subprojects {
   }
 
   jar {
-    utils.fillManifest(manifest,"ehcache-${project.name}")
+    manifest.attributes(
+      'Implementation-Title': archiveBaseName.get(),
+      'Implementation-Version': "${archiveVersion.get()} ${revision()}",
+      'Built-By': System.getProperty('user.name'),
+      'Built-JDK': System.getProperty('java.version')
+    )
+    if (isReleaseVersion) {
+      manifest(
+        'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+      )
+    }
     from "$rootDir/LICENSE"
   }
 
@@ -160,24 +180,9 @@ subprojects {
     reports.html.destination = file("$buildDir/reports/slow-tests")
   }
 
-  task sourceJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
-  }
-
   javadoc {
     title "$project.archivesBaseName $project.version API"
     exclude '**/internal/**'
-  }
-
-  task javadocJar(type: Jar, dependsOn: javadoc) {
-    from javadoc.destinationDir
-    archiveClassifier = 'javadoc'
-  }
-
-  artifacts {
-    archives javadocJar
-    archives sourceJar
   }
 
   checkstyle {
@@ -236,6 +241,105 @@ subprojects {
     }
   }
 
+  plugins.withId('maven-publish') {
+    //Useful alias for `maven install` like behavior
+    project.tasks.register('install').configure {
+      dependsOn project.tasks.named(MavenPublishPlugin.PUBLISH_LOCAL_LIFECYCLE_TASK_NAME)
+      group PublishingPlugin.PUBLISH_TASK_GROUP
+      description "Convenient alias for ${MavenPublishPlugin.PUBLISH_LOCAL_LIFECYCLE_TASK_NAME} [mvn install]"
+    }
+
+    plugins.withId('signing') {
+      project.signing {
+        sign project.publishing.publications
+      }
+    }
+
+    project.publishing {
+      publications {
+        mavenJava(MavenPublication) {
+          from components.java
+          artifact project.sourcesJar
+          artifactId project.archivesBaseName
+          pom {
+            name = project.subPomName
+            description = project.subPomDesc
+            url = 'http://ehcache.org'
+            organization {
+              name = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+              url = 'http://terracotta.org'
+            }
+            issueManagement {
+              system = 'Github'
+              url = 'https://github.com/ehcache/ehcache3/issues'
+            }
+            scm {
+              url = 'https://github.com/ehcache/ehcache3'
+              connection = 'scm:git:https://github.com/ehcache/ehcache3.git'
+              developerConnection = 'scm:git:git@github.com:ehcache/ehcache3.git'
+            }
+            licenses {
+              license {
+                name = 'The Apache Software License, Version 2.0'
+                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'repo'
+              }
+            }
+            developers {
+              developer {
+                name = 'Terracotta Engineers'
+                email = 'tc-oss@softwareag.com'
+                organization = 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.'
+                organizationUrl = 'http://ehcache.org'
+              }
+            }
+          }
+        }
+      }
+    }
+    /*
+     * We get it... Gradle doesn't think we should be using 'provided' dependencies...
+     */
+    publishing.publications.withType(MavenPublication) {
+      pom.withXml {
+        asNode().dependencies.'*'.findAll() { xml ->
+          project.configurations {
+            [providedApi, providedImplementation]*.allDependencies.flatten().find { dep ->
+              if (dep instanceof ProjectDependency) {
+                return dep.group == xml.groupId.text() && dep.dependencyProject.archivesBaseName == xml.artifactId.text()
+              } else {
+                return dep.group == xml.groupId.text() && dep.name == xml.artifactId.text()
+              }
+            }.each() {
+              xml.scope*.value = 'provided'
+            }
+          }
+        }
+      }
+    }
+
+    publishing {
+      repositories {
+        maven {
+          if (project.isReleaseVersion) {
+            url project.deployUrl
+            credentials {
+              username project.deployUser
+              password project.deployPwd
+            }
+          } else {
+            name 'sonatype-nexus-snapshot'
+            url 'https://oss.sonatype.org/content/repositories/snapshots'
+            credentials {
+              username project.sonatypeUser
+              password project.sonatypePwd
+            }
+          }
+        }
+      }
+    }
+  }
+
   plugins.withId('biz.aQute.bnd.builder') {
     /*
      * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
@@ -285,5 +389,20 @@ allprojects {
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'
+  }
+}
+
+def revision() {
+  def tmp = System.getenv('GIT_COMMIT')
+  if(tmp != null) {
+    revision = tmp
+  } else {
+    def cmd = 'git rev-parse HEAD'
+    try {
+      def proc = cmd.execute()
+      return proc.text.trim()
+    } catch (IOException) {
+      return 'Unknown'
+    }
   }
 }
