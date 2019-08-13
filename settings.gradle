@@ -27,6 +27,6 @@ pluginManagement {
   }
 }
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:test-utils", "clustered:common", "clustered:client", "clustered:server", "clustered:ops-tool",
-        "integration-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
+include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "transactions:transactions-dist", "107", "xml",
+        "clustered", "clustered:test-utils", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:clustered-dist", "clustered:ops-tool",
+        "integration-test", "dist", "osgi-test", "clustered:osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"

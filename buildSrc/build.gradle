@@ -23,17 +23,9 @@ repositories { jcenter() }
 
 gradlePlugin {
   plugins {
-    ehDeploy {
-      id = 'org.ehcache.build.deploy'
-      implementationClass = 'EhDeploy'
-    }
-    ehDistribute {
-      id = 'org.ehcache.build.distribute'
-      implementationClass = 'EhDistribute'
-    }
-    ehPomMangle {
-      id = 'org.ehcache.build.pom-mangle'
-      implementationClass = 'EhPomMangle'
+    ehShading {
+      id = 'org.ehcache.build.shading'
+      implementationClass = 'Shading'
     }
   }
 }

@@ -23,7 +23,9 @@
 
 plugins {
   id 'distribution'
-  id 'org.ehcache.build.distribute'
+  id 'maven-publish'
+  id 'biz.aQute.bnd.builder'
+  id 'org.ehcache.build.shading'
 }
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
@@ -32,23 +34,21 @@ ext {
   docsFolder = "$buildDir/docs/asciidoc"
 }
 
-dependencies {
-  compileOnly(project(':clustered:client')) {
-    exclude group: 'org.ehcache.modules', module: 'api'
-    exclude group: 'org.terracotta', module: 'statistics'
-  }
-  // Needed because declared as provided in the different projects
-  compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
-}
-
 configurations {
   kit
   serverLibs
 }
 
 dependencies {
-  compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
+  compile(project(':clustered:client')) {
+    exclude group: 'org.ehcache.modules', module: 'api'
+    exclude group: 'org.terracotta', module: 'statistics'
+  }
+  // Needed because declared as provided in the different projects
+  compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+
+  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  compile "org.terracotta:lease-api:$terracottaPlatformVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -64,15 +64,15 @@ dependencies {
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
 
-  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
+  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadow project(':dist')
 }
 
-task copyDocs(type: Copy) {
-  dependsOn asciidocZip
-  from zipTree(asciidocZip.archivePath)
-  into docsFolder
-}
+//task copyDocs(type: Copy) {
+//  dependsOn asciidocZip
+//  from zipTree(asciidocZip.archivePath)
+//  into docsFolder
+//}
 
 jar {
   bnd (
@@ -118,7 +118,7 @@ distributions {
         from project(':dist').javadocJar.archivePath.getPath()
       }
       into ('client/lib') {
-        from configurations.shadowCompile
+        from configurations.shadow
       }
       into ('') {
         from 'src/assemble'
@@ -136,4 +136,4 @@ distZip {
   archiveClassifier = 'kit'
 }
 
-[distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar
+[distTar, distZip, installDist]*.dependsOn javadocJar, project(':dist').jar, project(':dist').javadocJar

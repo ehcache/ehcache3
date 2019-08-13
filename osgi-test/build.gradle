@@ -33,6 +33,7 @@ dependencies {
   }
 
   osgiModule project(':dist')
+  osgiModule project(':transactions:transactions-dist')
 
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
@@ -83,6 +84,7 @@ test {
   }
 }.doFirst {
   configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+    println "$it.moduleVersion.id.module:osgi-path -> $it.file"
     systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
   })
 }

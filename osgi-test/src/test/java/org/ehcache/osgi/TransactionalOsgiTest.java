@@ -57,7 +57,7 @@ public class TransactionalOsgiTest {
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
       gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
-      gradleBundle("org.ehcache:transactions"), jtaConfiguration(),
+      gradleBundle("org.ehcache.modules:transactions"), jtaConfiguration(),
 
       gradleBundle("org.terracotta.management:management-model"),
       gradleBundle("org.terracotta.management:sequence-generator"),
@@ -74,7 +74,7 @@ public class TransactionalOsgiTest {
   public Option[] uberJar() {
     return options(
       gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
-      gradleBundle("org.ehcache:transactions"), jtaConfiguration(),
+      gradleBundle("org.ehcache:transactions-dist"), jtaConfiguration(),
 
       baseConfiguration("TransactionalOsgiTest", "uberJar")
     );
