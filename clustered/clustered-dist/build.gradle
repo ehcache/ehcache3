@@ -21,6 +21,10 @@
  * https://discuss.gradle.org/t/dependency-substitution-wrong-with-more-than-one-sub-project-with-same-name/7253/6
  */
 
+plugins {
+  id 'distribution'
+  id 'org.ehcache.build.distribute'
+}
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
 
@@ -36,9 +40,6 @@ dependencies {
   // Needed because declared as provided in the different projects
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
-
-apply plugin: 'distribution'
-apply plugin: EhDistribute
 
 configurations {
   kit

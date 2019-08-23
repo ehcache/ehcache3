@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-group = 'org.ehcache'
+plugins {
+  id 'biz.aQute.bnd.builder'
+  id 'org.jayware.osgi-ds'
+  id 'org.ehcache.build.pom-mangle'
+}
 
-apply plugin: 'biz.aQute.bnd.builder'
-apply plugin: 'osgi-ds'
-apply plugin: EhPomMangle
+group = 'org.ehcache'
 
 dependencies {
   api group: 'javax.transaction', name: 'jta', version: '1.1'

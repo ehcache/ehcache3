@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-apply plugin: 'biz.aQute.bnd.builder'
-apply plugin: 'osgi-ds'
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'biz.aQute.bnd.builder'
+  id 'org.jayware.osgi-ds'
+}
 
 sourceSets {
   unsafe {

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-apply plugin: 'osgi-ds'
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'org.jayware.osgi-ds'
+}
 
 dependencies {
   compileOnly project(':impl')
