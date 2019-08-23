@@ -41,7 +41,7 @@ dependencies {
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
 
   unsafeImplementation project(':api')
-  unsafeCompileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
+  unsafeCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
   api files(sourceSets.unsafe.output.classesDirs) {
     builtBy compileUnsafeJava
   }

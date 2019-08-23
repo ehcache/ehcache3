@@ -30,6 +30,8 @@ public @interface OptionalServiceDependencies {
 
   /**
    * Array of {@link Service} dependency classes
+   *
+   * @return the dependency class names
    */
   String[] value();
 }
