@@ -24,6 +24,8 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.statistics.DefaultTierStatistics;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
 import org.junit.After;
@@ -50,6 +52,7 @@ public class DefaultTierStatisticsTest {
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

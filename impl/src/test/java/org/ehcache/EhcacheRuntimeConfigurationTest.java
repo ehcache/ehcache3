@@ -17,8 +17,8 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -26,9 +26,6 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.rules.TemporaryFolder;

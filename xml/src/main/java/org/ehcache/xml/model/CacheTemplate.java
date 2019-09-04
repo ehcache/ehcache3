@@ -61,8 +61,8 @@ public interface CacheTemplate {
 
   class Impl extends CacheSpec {
 
-    public Impl(String id, CacheTemplateType cacheTemplateType) {
-      super(id, cacheTemplateType);
+    public Impl(CacheTemplateType cacheTemplateType) {
+      super(cacheTemplateType.getName(), cacheTemplateType);
     }
   }
 

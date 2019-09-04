@@ -29,7 +29,7 @@
   <default-copiers>
     <copier type="com.pany.ehcache.copier.Person">com.pany.ehcache.copier.AnotherPersonCopier</copier>
   </default-copiers>
-  <persistence directory="some/dir"/>
+  <persistence directory="some_folder_path"/>
   <thread-pools>
     <thread-pool alias="theone" min-size="1" max-size="4"/>
   </thread-pools>

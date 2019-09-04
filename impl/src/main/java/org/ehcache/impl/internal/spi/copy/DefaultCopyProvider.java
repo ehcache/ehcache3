@@ -20,7 +20,6 @@ import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration.Type;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -36,7 +35,7 @@ import java.util.Collection;
 /**
  * @author Albin Suresh
  */
-public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<?>> implements CopyProvider {
+public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, DefaultCopierConfiguration<?>, Copier<?>> implements CopyProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultCopyProvider.class);
 
@@ -47,12 +46,12 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
 
 
   @Override
-  public <T> Copier<T> createKeyCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+  public <T> Copier<T> createKeyCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     return createCopier(Type.KEY, clazz, serializer, configs);
   }
 
   @Override
-  public <T> Copier<T> createValueCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+  public <T> Copier<T> createValueCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     return createCopier(Type.VALUE, clazz, serializer, configs);
   }
 
@@ -64,10 +63,10 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   }
 
   private <T> Copier<T> createCopier(Type type, Class<T> clazz,
-                                     Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+                                     Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
-    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz);
+    final DefaultCopierConfiguration<?> preConfigured = preconfigured.get(clazz);
     if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
@@ -91,25 +90,26 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     @SuppressWarnings("unchecked")
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
-      @SuppressWarnings("unchecked")
-      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration(IdentityCopier.class, type));
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration<>((Class<Copier<T>>) (Class) IdentityCopier.class, type));
       copier = defaultInstance;
     }
     return copier;
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?, ?>... serviceConfigurations) {
     DefaultCopierConfiguration<T> result = null;
 
-    Collection<DefaultCopierConfiguration> copierConfigurations =
+    @SuppressWarnings("rawtypes")
+    Collection<DefaultCopierConfiguration<?>> copierConfigurations = (Collection)
         ServiceUtils.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
-    for (DefaultCopierConfiguration copierConfiguration : copierConfigurations) {
+    for (DefaultCopierConfiguration<?> copierConfiguration : copierConfigurations) {
       if (copierConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " copier : " + copierConfiguration);
         }
-        result = copierConfiguration;
+        result = (DefaultCopierConfiguration<T>) copierConfiguration;
       }
     }
 

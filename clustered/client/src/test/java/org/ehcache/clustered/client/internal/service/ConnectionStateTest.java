@@ -48,7 +48,7 @@ public class ConnectionStateTest {
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
-          .autoCreate()
+          .autoCreate(c -> c)
           .build();
 
   @Rule
@@ -100,7 +100,7 @@ public class ConnectionStateTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-            Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null);
+            Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null, false);
 
     ClusterTierClientEntity clientEntity = connectionState.createClusterTierClientEntity("cache1", serverStoreConfiguration, false);
 

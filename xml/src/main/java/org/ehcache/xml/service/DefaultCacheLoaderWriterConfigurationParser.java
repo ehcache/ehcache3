@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
@@ -33,6 +34,12 @@ public class DefaultCacheLoaderWriterConfigurationParser
       CacheTemplate::loaderWriter,
       (config, loader) -> new DefaultCacheLoaderWriterConfiguration((Class<? extends CacheLoaderWriter<?, ?>>) getClassForName(config, loader)),
       CacheType::getLoaderWriter, CacheType::setLoaderWriter,
-      config -> new CacheLoaderWriterType().withClazz(config.getClazz().getName()));
+      config -> {
+        if(config.getInstance() == null) {
+          return new CacheLoaderWriterType().withClazz(config.getClazz().getName());
+        } else {
+          throw new XmlConfigurationException("XML translation for instance based initialization for DefaultCacheLoaderWriterConfiguration is not supported");
+        }
+      });
   }
 }

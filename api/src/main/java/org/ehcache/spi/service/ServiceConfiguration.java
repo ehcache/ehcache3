@@ -20,9 +20,9 @@ package org.ehcache.spi.service;
  * A configuration type to be used when interacting with a {@link Service}.
  *
  * @param <T> the service type this configuration works with
- *
+ * @param <R> the type of the detached representation
  */
-public interface ServiceConfiguration<T extends Service> {
+public interface ServiceConfiguration<T extends Service, R> {
 
   /**
    * Indicates which service this configuration works with.
@@ -30,4 +30,38 @@ public interface ServiceConfiguration<T extends Service> {
    * @return the service type
    */
   Class<T> getServiceType();
+
+  /**
+   * Derive a detached representation from this configuration
+   *
+   * @return a detached representation
+   * @throws UnsupportedOperationException if the configuration has no representation
+   */
+  default R derive() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Construct a new configuration from the given detached representation.
+   *
+   * @param representation a detached representation
+   * @return a new configuration
+   * @throws UnsupportedOperationException if the configuration has no representation
+   */
+  default ServiceConfiguration<T, ?> build(R representation) throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns true if this configuration can co-exist with {@code other} in the same cache configuration.
+   * <p>
+   * The default implementation of {@code compatibleWith} (as used by many of the implementations) considers any
+   * instance of the same type (or a sub-type) to be incompatible with this instance.
+   *
+   * @param other other service configuration
+   * @return {@code true} if the two configurations are compatible
+   */
+  default boolean compatibleWith(ServiceConfiguration<?, ?> other) {
+    return !getClass().isInstance(other);
+  };
 }

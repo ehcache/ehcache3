@@ -16,7 +16,19 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.client.internal.store.ClusteredValueHolder;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.core.spi.store.Store.ValueHolder;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Collections.unmodifiableMap;
 
 /**
  * A specialized chain resolver for eternal caches.
@@ -32,16 +44,29 @@ public class EternalChainResolver<K, V> extends ChainResolver<K, V> {
     super(codec);
   }
 
+  @Override
+  public ValueHolder<V> resolve(ServerStoreProxy.ChainEntry entry, K key, long now, int threshold) {
+    PutOperation<K, V> resolved = resolve(entry, key, threshold);
+    return resolved == null ? null : new ClusteredValueHolder<>(resolved.getValue());
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> resolveAll(Chain chain, long now) {
+    Map<K, PutOperation<K, V>> resolved = resolveAll(chain);
+
+    Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
+    for (Map.Entry<K, PutOperation<K, V>> e : resolved.entrySet()) {
+      values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue()));
+    }
+    return unmodifiableMap(values);
+  }
+
   /**
    * Applies the given operation returning a result that never expires.
    *
-   * @param key cache key
-   * @param existing current state
-   * @param operation operation to apply
-   * @param now current time
-   * @return the equivalent put operation
+   * {@inheritDoc}
    */
-  protected PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
+  public PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation) {
     final Result<K, V> newValue = operation.apply(existing);
     if (newValue == null) {
       return null;

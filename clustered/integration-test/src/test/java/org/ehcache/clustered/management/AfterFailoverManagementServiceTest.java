@@ -17,6 +17,7 @@ package org.ehcache.clustered.management;
 
 import org.ehcache.clustered.util.BeforeAll;
 import org.junit.FixMethodOrder;
+import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)

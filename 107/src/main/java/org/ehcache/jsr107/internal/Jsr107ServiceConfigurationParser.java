@@ -18,11 +18,11 @@ package org.ehcache.jsr107.internal;
 
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.w3c.dom.Document;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -31,30 +31,26 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Map;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.lang.Boolean.parseBoolean;
-import static org.ehcache.xml.DomUtil.COLON;
 
 /**
  * @author Alex Snaps
  */
-public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Configuration> implements CacheManagerServiceConfigurationParser<Jsr107Service> {
+@Component
+public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107-ext.xsd");
   private static final String ENABLE_MANAGEMENT_ALL_ATTRIBUTE = "enable-management";
   private static final String JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE = "jsr-107-compliant-atomics";
   private static final String ENABLE_STATISTICS_ALL_ATTRIBUTE = "enable-statistics";
   private static final String DEFAULT_TEMPLATE_ATTRIBUTE = "default-template";
   private static final String CACHE_NAME_ATTRIBUTE = "name";
   private static final String TEMPLATE_NAME_ATTRIBUTE = "template";
-  private static final String DEFAULT_ELEMENT_NAME = "defaults";
-  public static final String JSR_NAMESPACE_PREFIX = "jsr107";
-  private static final String CACHE_ELEMENT_NAME = "cache";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -67,7 +63,7 @@ public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Con
   }
 
   @Override
-  public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
+  public ServiceCreationConfiguration<Jsr107Service, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
     boolean jsr107CompliantAtomics = true;
     ConfigurationElementState enableManagementAll = ConfigurationElementState.UNSPECIFIED;
     ConfigurationElementState enableStatisticsAll = ConfigurationElementState.UNSPECIFIED;
@@ -100,37 +96,8 @@ public class Jsr107ServiceConfigurationParser extends BaseConfigParser<Jsr107Con
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service> serviceCreationConfiguration) {
-    return unparseConfig(serviceCreationConfiguration);
-  }
-
-  @Override
-  protected Element createRootElement(Document doc, Jsr107Configuration configuration) {
-    Element rootElement = doc.createElementNS(NAMESPACE.toString(), JSR_NAMESPACE_PREFIX + COLON + DEFAULT_ELEMENT_NAME);
-    rootElement.setAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE, String.valueOf(configuration.isJsr107CompliantAtomics()));
-    ConfigurationElementState managementState = configuration.isEnableManagementAll();
-    ConfigurationElementState statisticsState = configuration.isEnableStatisticsAll();
-    if (ConfigurationElementState.ENABLED == managementState || ConfigurationElementState.DISABLED == managementState) {
-      rootElement.setAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE, String.valueOf(managementState.asBoolean()));
-    }
-    if (ConfigurationElementState.ENABLED == statisticsState || ConfigurationElementState.DISABLED == statisticsState) {
-      rootElement.setAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE, String.valueOf(statisticsState.asBoolean()));
-    }
-    if (configuration.getDefaultTemplate() != null) {
-      rootElement.setAttribute(DEFAULT_TEMPLATE_ATTRIBUTE, configuration.getDefaultTemplate());
-    }
-    processCaches(doc, rootElement, configuration);
-    return rootElement;
-  }
-
-  private void processCaches(Document doc, Element parent, Jsr107Configuration configuration) {
-    Map<String, String> cacheMap = configuration.getTemplates();
-    cacheMap.forEach((k, v) -> {
-      Element cacheElement = doc.createElement(JSR_NAMESPACE_PREFIX + COLON + CACHE_ELEMENT_NAME);
-      cacheElement.setAttribute(CACHE_NAME_ATTRIBUTE, k);
-      cacheElement.setAttribute(TEMPLATE_NAME_ATTRIBUTE, v);
-      parent.appendChild(cacheElement);
-    });
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service, ?> serviceCreationConfiguration) {
+    throw new XmlConfigurationException("XML translation of JSR-107 cache elements are not supported");
   }
 
 }

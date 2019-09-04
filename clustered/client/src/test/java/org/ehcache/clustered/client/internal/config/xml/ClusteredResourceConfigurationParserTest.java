@@ -20,13 +20,12 @@ import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePo
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * ClusteredResourceConfigurationParserTest
@@ -38,21 +37,20 @@ public class ClusteredResourceConfigurationParserTest {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
     ClusteredResourcePoolImpl clusteredResourcePool = new ClusteredResourcePoolImpl();
     Node retElement = configTranslator.unparseResourcePool(clusteredResourcePool);
-    assertThat(retElement, is(notNullValue()));
-    assertThat(retElement.getNodeName(), is("tc:clustered"));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getFirstChild(), is(nullValue()));
+    String inputString = "<tc:clustered xmlns:tc = \"http://www.ehcache.org/v3/clustered\" />";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
   public void testTranslateDedicatedResourcePoolConfiguration() {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
-    DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = new DedicatedClusteredResourcePoolImpl("from", 12, MemoryUnit.GB);
+    DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = new DedicatedClusteredResourcePoolImpl("my-from", 12, MemoryUnit.GB);
     Node retElement = configTranslator.unparseResourcePool(dedicatedClusteredResourcePool);
-    assertThat(retElement, is(notNullValue()));
-    assertThat(retElement.getNodeName(), is("tc:clustered-dedicated"));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getFirstChild().getNodeValue(), is("12"));
+    String inputString = "<tc:clustered-dedicated from = \"my-from\" unit = \"GB\" " +
+                         "xmlns:tc = \"http://www.ehcache.org/v3/clustered\">12</tc:clustered-dedicated>";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -60,34 +58,10 @@ public class ClusteredResourceConfigurationParserTest {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
     SharedClusteredResourcePoolImpl sharedResourcePool = new SharedClusteredResourcePoolImpl("shared-pool");
     Node retElement = configTranslator.unparseResourcePool(sharedResourcePool);
-    assertThat(retElement, is(notNullValue()));
-    assertThat(retElement.getNodeName(), is("tc:clustered-shared"));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getFirstChild(), is(nullValue()));
-  }
-
-  private void assertAttributeItems(Node element) {
-    if (element.getNodeName().equals("tc:clustered-shared")) {
-      NamedNodeMap node = element.getAttributes();
-      assertThat(node, is(notNullValue()));
-      assertThat(node.getLength(), is(1));
-      assertItemNameAndValue(node, 0, "sharing", "shared-pool");
-    } else if (element.getNodeName().equals("tc:clustered-dedicated")) {
-      NamedNodeMap node = element.getAttributes();
-      assertThat(node, is(notNullValue()));
-      assertThat(node.getLength(), is(2));
-      assertItemNameAndValue(node, 0, "from", "from");
-      assertItemNameAndValue(node, 1, "unit", "GB");
-    } else if (element.getNodeName().equals("tc:clustered")) {
-      NamedNodeMap node = element.getAttributes();
-      assertThat(node, is(notNullValue()));
-      assertThat(node.getLength(), is(0));
-    }
-  }
-
-  private void assertItemNameAndValue(NamedNodeMap node, int index, String name, String value) {
-    assertThat(node.item(index).getNodeName(), is(name));
-    assertThat(node.item(index).getNodeValue(), is(value));
+    String inputString = "<tc:clustered-shared sharing = \"shared-pool\" " +
+                         "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-shared>";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
 }

@@ -123,6 +123,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   }
 
   static class Tuple implements Serializable {
+
+    private static final long serialVersionUID = 664492058736170101L;
+
     final int index;
     final StateHolder<?, ?> holder;
 

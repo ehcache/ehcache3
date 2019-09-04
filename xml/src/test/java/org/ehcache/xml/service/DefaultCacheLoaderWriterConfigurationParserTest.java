@@ -18,29 +18,24 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.xml.XmlConfiguration;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.integration.TestCacheLoaderWriter;
 
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultCacheLoaderWriterConfigurationParserTest() {
-    super(new DefaultCacheLoaderWriterConfigurationParser());
-  }
+public class DefaultCacheLoaderWriterConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/writebehind-cache.xml", "bar");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/writebehind-cache.xml")).getCacheConfigurations().get("bar");
     DefaultCacheLoaderWriterConfiguration loaderWriterConfig =
       findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
 
@@ -51,10 +46,21 @@ public class DefaultCacheLoaderWriterConfigurationParserTest extends ServiceConf
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      buildCacheConfigWithServiceConfig(new DefaultCacheLoaderWriterConfiguration(TestCacheLoaderWriter.class));
-    CacheType cacheType = parser.unparseServiceConfiguration(cacheConfig, new CacheType());
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultCacheLoaderWriterConfiguration(TestCacheLoaderWriter.class)).build();
+    CacheType cacheType = new DefaultCacheLoaderWriterConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType());
 
 
     assertThat(cacheType.getLoaderWriter().getClazz()).isEqualTo(TestCacheLoaderWriter.class.getName());
+  }
+
+  @Test
+  public void unparseServiceConfigurationWithInstance() {
+    TestCacheLoaderWriter testCacheLoaderWriter = new TestCacheLoaderWriter();
+    CacheConfiguration<?, ?> cacheConfig =
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultCacheLoaderWriterConfiguration(testCacheLoaderWriter)).build();
+    assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
+      new DefaultCacheLoaderWriterConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
+      .withMessage("%s", "XML translation for instance based initialization for " +
+                         "DefaultCacheLoaderWriterConfiguration is not supported");
   }
 }

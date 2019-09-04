@@ -23,7 +23,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * {@link ServiceConfiguration} for the {@link ClusteredStore}.
  */
-public class ClusteredStoreConfiguration implements ServiceConfiguration<ClusteredStore.Provider> {
+public class ClusteredStoreConfiguration implements ServiceConfiguration<ClusteredStore.Provider, Consistency> {
 
   private final Consistency consistency;
 
@@ -58,5 +58,15 @@ public class ClusteredStoreConfiguration implements ServiceConfiguration<Cluster
    */
   public Consistency getConsistency() {
     return consistency;
+  }
+
+  @Override
+  public Consistency derive() {
+    return getConsistency();
+  }
+
+  @Override
+  public ClusteredStoreConfiguration build(Consistency representation) {
+    return new ClusteredStoreConfiguration(representation);
   }
 }

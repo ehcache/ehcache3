@@ -49,7 +49,7 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
 
-  private final ClusteringManagementServiceConfiguration configuration;
+  private final ClusteringManagementServiceConfiguration<?> configuration;
 
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
@@ -63,18 +63,22 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this(new DefaultClusteringManagementServiceConfiguration());
   }
 
-  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration configuration) {
+  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration<?> configuration) {
     this.configuration = configuration == null ? new DefaultClusteringManagementServiceConfiguration() : configuration;
   }
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
+    // register this service BEFORE any other one so that the NMS entity gets created first in stateTransition() before
+    // the other services are called
+    this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+    this.cacheManager.registerListener(this);
+
     this.clusteringService = serviceProvider.getService(ClusteringService.class);
     this.managementRegistryService = serviceProvider.getService(ManagementRegistryService.class);
-    this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     // get an ordered executor to keep ordering of management call requests
     this.managementCallExecutor = serviceProvider.getService(ExecutionService.class).getOrderedExecutor(
-        configuration.getManagementCallExecutorAlias(),
+      configuration.getManagementCallExecutorAlias(),
       new ArrayBlockingQueue<>(configuration.getManagementCallQueueSize()));
 
     this.collectorService = new DefaultCollectorService(this);
@@ -82,24 +86,27 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
     EntityService entityService = serviceProvider.getService(EntityService.class);
     this.nmsAgentFactory = entityService.newClientEntityFactory("NmsAgent", NmsAgentEntity.class, 1, null);
-
-    this.cacheManager.registerListener(this);
   }
 
   @Override
   public void stop() {
-    if(collectorService != null) {
+    if (collectorService != null) {
       collectorService.stop();
+      collectorService = null;
     }
-    shutdownNow(managementCallExecutor);
+
+    if (managementCallExecutor != null) {
+      shutdownNow(managementCallExecutor);
+      managementCallExecutor = null;
+    }
 
     // nullify so that no further actions are done with them (see null-checks below)
-    if(nmsAgentService != null) {
+    if (nmsAgentService != null) {
       nmsAgentService.close();
-      managementRegistryService = null;
+      nmsAgentService = null;
     }
-    nmsAgentService = null;
-    managementCallExecutor = null;
+
+    managementRegistryService = null;
   }
 
   @Override

@@ -25,13 +25,16 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -42,11 +45,10 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 
-import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
@@ -65,7 +67,8 @@ public class OffHeapDiskStoreProviderTest {
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class))
+    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class)).with(new DefaultStatisticsService())
+      .with(mock(CacheManagerProviderService.class))
       .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
@@ -74,11 +77,11 @@ public class OffHeapDiskStoreProviderTest {
     @SuppressWarnings("unchecked")
     Query storeQuery = queryBuilder()
       .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("tags", new Matcher<Set<String>>() {
           @Override
           protected boolean matchesSafely(Set<String> object) {
-            return object.containsAll(singleton("Disk"));
+            return object.contains("Disk");
           }
         })))))
       .build();
@@ -129,7 +132,7 @@ public class OffHeapDiskStoreProviderTest {
            public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
              return (P) new SizedResourcePool() {
                @Override
-               public ResourceType getType() {
+               public ResourceType<SizedResourcePool> getType() {
                  return ResourceType.Core.DISK;
                }
 
@@ -181,6 +184,11 @@ public class OffHeapDiskStoreProviderTest {
        @Override
        public int getDispatcherConcurrency() {
          return 1;
+       }
+
+       @Override
+       public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+         return null;
        }
 
      };

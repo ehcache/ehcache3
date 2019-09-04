@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 
@@ -35,26 +36,31 @@ public class DefaultCopierConfigurationParser implements CoreServiceConfiguratio
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keyCopier() != null) {
       Class<?> keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
+      cacheBuilder = cacheBuilder.withService(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
     }
 
     if (cacheDefinition.valueCopier() != null) {
       Class<?> valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
+      cacheBuilder = cacheBuilder.withService(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     }
 
     return cacheBuilder;
   }
 
-  @Override @SuppressWarnings("rawtypes")
+  @Override
+  @SuppressWarnings("rawtypes")
   public CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
     Collection<DefaultCopierConfiguration> copierConfigs =
       findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     for (DefaultCopierConfiguration copierConfig : copierConfigs) {
-      if (copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
-        cacheType.getKeyType().setCopier(copierConfig.getClazz().getName());
+      if(copierConfig.getInstance() == null) {
+        if (copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
+          cacheType.getKeyType().setCopier(copierConfig.getClazz().getName());
+        } else {
+          cacheType.getValueType().setCopier(copierConfig.getClazz().getName());
+        }
       } else {
-        cacheType.getValueType().setCopier(copierConfig.getClazz().getName());
+        throw new XmlConfigurationException("XML translation for instance based initialization for DefaultCopierConfiguration is not supported");
       }
     }
     return cacheType;

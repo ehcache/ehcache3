@@ -25,6 +25,8 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.util.runners.ParallelParameterized;
+import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -35,9 +37,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
@@ -75,7 +79,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
  * Note that fail-over is happening while client threads are still writing
  * Finally the same key set correctness is asserted.
  */
-@RunWith(Parameterized.class)
+@RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends ClusteredTests {
 
   private static final int NUM_OF_THREADS = 10;
@@ -87,10 +91,10 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
-  private static PersistentCacheManager CACHE_MANAGER1;
-  private static PersistentCacheManager CACHE_MANAGER2;
-  private static Cache<Long, BlobValue> CACHE1;
-  private static Cache<Long, BlobValue> CACHE2;
+  private PersistentCacheManager cacheManager1;
+  private PersistentCacheManager cacheManager2;
+  private Cache<Long, BlobValue> cache1;
+  private Cache<Long, BlobValue> cache2;
 
   @Parameters(name = "consistency={0}")
   public static Consistency[] data() {
@@ -100,9 +104,10 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Parameter
   public Consistency cacheConsistency;
 
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
+  @Rule
+  public final TestName testName = new TestName();
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -123,42 +128,43 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
             .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
                 .read(Duration.ofMinutes(1))
                 .write(Duration.ofMinutes(1)))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
-    CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);
-    CACHE_MANAGER2 = clusteredCacheManagerBuilder.build(true);
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+    cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    cacheManager2 = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Long.class, BlobValue.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
-    CACHE1 = CACHE_MANAGER1.createCache("clustered-cache", config);
-    CACHE2 = CACHE_MANAGER2.createCache("clustered-cache", config);
+    cache1 = cacheManager1.createCache(testName.getMethodName(), config);
+    cache2 = cacheManager2.createCache(testName.getMethodName(), config);
 
-    caches = Arrays.asList(CACHE1, CACHE2);
+    caches = Arrays.asList(cache1, cache2);
   }
 
   @After
   public void tearDown() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+
     List<Runnable> unprocessed = executorService.shutdownNow();
     if(!unprocessed.isEmpty()) {
       log.warn("Tearing down with {} unprocess task", unprocessed);
     }
-    if(CACHE_MANAGER1 != null && CACHE_MANAGER1.getStatus() != Status.UNINITIALIZED) {
-      CACHE_MANAGER1.close();
+    if(cacheManager1 != null && cacheManager1.getStatus() != Status.UNINITIALIZED) {
+      cacheManager1.close();
     }
-    if(CACHE_MANAGER2 != null && CACHE_MANAGER2.getStatus() != Status.UNINITIALIZED) {
-      CACHE_MANAGER2.close();
-      CACHE_MANAGER2.destroy();
+    if(cacheManager2 != null && cacheManager2.getStatus() != Status.UNINITIALIZED) {
+      cacheManager2.close();
     }
   }
 
   @Test(timeout=180000)
   public void testCRUD() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -171,8 +177,8 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
     //This step is to add values in local tier randomly to test invalidations happen correctly
     futures.add(executorService.submit(() -> universalSet.forEach(x -> {
-      CACHE1.get(x);
-      CACHE2.get(x);
+      cache1.get(x);
+      cache2.get(x);
     })));
 
     CLUSTER.getClusterControl().terminateActive();
@@ -182,10 +188,10 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
     Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
     universalSet.forEach(x -> {
-      if (CACHE1.get(x) != null) {
+      if (cache1.get(x) != null) {
         readKeysByCache1AfterFailOver.add(x);
       }
-      if (CACHE2.get(x) != null) {
+      if (cache2.get(x) != null) {
         readKeysByCache2AfterFailOver.add(x);
       }
     });
@@ -199,7 +205,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Test(timeout=180000)
   public void testBulkOps() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -214,8 +220,8 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
     //This step is to add values in local tier randomly to test invalidations happen correctly
     futures.add(executorService.submit(() -> {
       universalSet.forEach(x -> {
-        CACHE1.get(x);
-        CACHE2.get(x);
+        cache1.get(x);
+        cache2.get(x);
       });
     }));
 
@@ -226,10 +232,10 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
     Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
     universalSet.forEach(x -> {
-      if (CACHE1.get(x) != null) {
+      if (cache1.get(x) != null) {
         readKeysByCache1AfterFailOver.add(x);
       }
-      if (CACHE2.get(x) != null) {
+      if (cache2.get(x) != null) {
         readKeysByCache2AfterFailOver.add(x);
       }
     });
@@ -245,7 +251,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
           "dealing with in-flight invalidation reconstructed from reconnect data")
   @Test(timeout=180000)
   public void testClear() throws Exception {
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
 
     caches.forEach(cache -> {
@@ -261,21 +267,21 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
     drainTasks(futures);
 
     universalSet.forEach(x -> {
-      CACHE1.get(x);
-      CACHE2.get(x);
+      cache1.get(x);
+      cache2.get(x);
     });
 
-    Future clearFuture = executorService.submit(() -> CACHE1.clear());
+    Future<?> clearFuture = executorService.submit(() -> cache1.clear());
 
     CLUSTER.getClusterControl().terminateActive();
 
     clearFuture.get();
 
-    universalSet.forEach(x -> assertThat(CACHE2.get(x), nullValue()));
+    universalSet.forEach(x -> assertThat(cache2.get(x), nullValue()));
 
   }
 
-  private void drainTasks(List<Future> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
+  private void drainTasks(List<Future<?>> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
     for (int i = 0; i < futures.size(); i++) {
       try {
         futures.get(i).get(60, TimeUnit.SECONDS);
@@ -286,6 +292,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   }
 
   private static class BlobValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final byte[] data = new byte[10 * 1024];
   }
 

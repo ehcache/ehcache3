@@ -107,14 +107,14 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
     /**
      * Creates a new {@link AuthoritativeTier} instance using the provided configuration.
      *
-     * @param storeConfig the {@code Store} configuration
-     * @param serviceConfigs a collection of service configurations
      * @param <K> the key type for this tier
      * @param <V> the value type for this tier
      *
+     * @param storeConfig the {@code Store} configuration
+     * @param serviceConfigs a collection of service configurations
      * @return the new authoritative tier
      */
-    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases an {@link AuthoritativeTier}.
@@ -146,7 +146,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      *      to handle the resource type specified by {@code authorityResource}; a rank of 0 indicates the authority
      *      can not handle the type specified in {@code authorityResource}
      */
-    int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

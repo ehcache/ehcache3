@@ -17,18 +17,14 @@ package org.ehcache.transactions.xa.internal.xml;
 
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+
 import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * TxCacheManagerServiceConfigurationParserTest
@@ -42,21 +38,11 @@ public class TxCacheManagerServiceConfigurationParserTest {
       new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class);
 
     Node retElement = configTranslator.unparseServiceCreationConfiguration(lookupTransactionManagerProviderConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getNodeName(), is("tx:jta-tm"));
-    assertThat(retElement.getFirstChild(), is(nullValue()));
+    String inputString = "<tx:jta-tm " +
+                         "transaction-manager-lookup-class = \"org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup\" " +
+                         "xmlns:tx = \"http://www.ehcache.org/v3/tx\" />";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndAllAttributes)));
   }
 
-  private void assertAttributeItems(Node retElement) {
-    NamedNodeMap node = retElement.getAttributes();
-    assertThat(node, is(notNullValue()));
-    assertThat(node.getLength(), is(1));
-    assertItemNameAndValue(node, 0, "transaction-manager-lookup-class", "org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup");
-  }
-
-  private void assertItemNameAndValue(NamedNodeMap node, int index, String name, String value) {
-    assertThat(node.item(index).getNodeName(), is(name));
-    assertThat(node.item(index).getNodeValue(), is(value));
-  }
 }

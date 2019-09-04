@@ -23,6 +23,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.StatsUtils;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
@@ -42,6 +43,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private enum EhcacheNotification {
     CACHE_ADDED,
     CACHE_REMOVED,
+    CACHE_CLEARED,
     CACHE_MANAGER_AVAILABLE,
     CACHE_MANAGER_MAINTENANCE,
     CACHE_MANAGER_CLOSED,
@@ -88,12 +90,19 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     // so deregisterListener is done in the stateTransition listener
     //cacheManager.deregisterListener(this);
 
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext(),
+        EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
+
     statisticCollector.stopStatisticCollector();
     shutdownNow(scheduledExecutorService);
   }
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
+    registerClearNotification(alias, cache);
+
     collector.onNotification(
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
@@ -106,6 +115,17 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
         EhcacheNotification.CACHE_REMOVED.name()));
+  }
+
+  private void cacheCleared(String alias) {
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext().with("cacheName", alias),
+        EhcacheNotification.CACHE_CLEARED.name()));
+  }
+
+  private void registerClearNotification(String alias, Cache<?, ?> cache) {
+    StatsUtils.registerClearNotification(alias, cache, this::cacheCleared);
   }
 
   @Override
@@ -131,11 +151,6 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         break;
 
       case UNINITIALIZED:
-        collector.onNotification(
-          new ContextualNotification(
-            configuration.getContext(),
-            EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
-
         // deregister me - should not be in stop() - see other comments
         cacheManager.deregisterListener(this);
         break;

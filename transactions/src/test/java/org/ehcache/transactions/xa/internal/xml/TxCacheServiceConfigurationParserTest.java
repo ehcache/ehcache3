@@ -16,18 +16,13 @@
 package org.ehcache.transactions.xa.internal.xml;
 
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * TxCacheServiceConfigurationParserTest
@@ -40,22 +35,10 @@ public class TxCacheServiceConfigurationParserTest {
     XAStoreConfiguration storeConfiguration = new XAStoreConfiguration("my-unique-resource");
 
     Node retElement = configTranslator.unparseServiceConfiguration(storeConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getNodeName(), is("tx:xa-store"));
-    assertThat(retElement.getFirstChild(), is(nullValue()));
-  }
-
-  private void assertAttributeItems(Node retElement) {
-    NamedNodeMap node = retElement.getAttributes();
-    assertThat(node, is(notNullValue()));
-    assertThat(node.getLength(), is(1));
-    assertItemNameAndValue(node, 0, "unique-XAResource-id", "my-unique-resource");
-  }
-
-  private void assertItemNameAndValue(NamedNodeMap node, int index, String name, String value) {
-    assertThat(node.item(index).getNodeName(), is(name));
-    assertThat(node.item(index).getNodeValue(), is(value));
+    String inputString = "<tx:xa-store unique-XAResource-id = \"my-unique-resource\" " +
+                         "xmlns:tx = \"http://www.ehcache.org/v3/tx\"/>";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndAllAttributes)));
   }
 
 }

@@ -16,14 +16,16 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.junit.Test;
 
-import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Clifford W. Johnson
@@ -32,16 +34,7 @@ public class ClusteringServiceFactoryTest {
 
   @Test
   public void testServiceLocator() throws Exception {
-    final String expectedFactory = ClusteringServiceFactory.class.getName();
-    final ServiceLoader<ServiceFactory> factories = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
-    foundParser: {
-      for (final ServiceFactory factory : factories) {
-        if (factory.getClass().getName().equals(expectedFactory)) {
-          break foundParser;
-        }
-      }
-      fail("Expected factory not found");
-    }
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
+      hasItem(ClusteringServiceFactory.class));
   }
-
 }

@@ -84,13 +84,12 @@ public class DuplicateTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
         .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
         .withResilienceStrategy(failingResilienceStrategy())
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
     cacheManager =  builder.build(true);
 

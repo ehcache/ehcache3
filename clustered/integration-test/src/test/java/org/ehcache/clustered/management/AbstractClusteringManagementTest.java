@@ -69,6 +69,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@SuppressWarnings("rawtypes") // Need to suppress because of a Javac bug giving a rawtype on AbstractManageableNode::isManageable.
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
@@ -84,7 +85,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   protected static ServerEntityIdentifier clusterTierManagerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  protected static NmsService nmsService;
+  static NmsService nmsService;
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
   protected static Connection managementConnection;
 
@@ -135,10 +136,10 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     cacheManager = newCacheManagerBuilder()
       // cluster config
       .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
-        .resourcePool("resource-pool-b", 8, MemoryUnit.MB)) // will take from primary-server-resource
+        .autoCreate(server -> server
+          .defaultServerResource("primary-server-resource")
+          .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+          .resourcePool("resource-pool-b", 8, MemoryUnit.MB))) // will take from primary-server-resource
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
@@ -320,6 +321,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   public static void waitForAllNotifications(String... notificationTypes) throws InterruptedException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     List<ContextualNotification> missingOnes = new ArrayList<>();
+    List<ContextualNotification> existingOnes = new ArrayList<>();
 
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
 //    System.out.println("waitForAllNotifications: " + waitingFor);
@@ -330,6 +332,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
           if (message.getType().equals("NOTIFICATION")) {
             for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
               if (waitingFor.remove(notification.getType())) {
+                existingOnes.add(notification);
 //                System.out.println("Remove " + notification.getType());
 //                System.out.println("Still waiting for: " + waitingFor);
               } else {
@@ -347,7 +350,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     t.join(30_000); // should be way enough to receive all messages
     t.interrupt(); // we interrupt the thread that is waiting on the message queue
 
-    assertTrue("Still waiting for: " + waitingFor, waitingFor.isEmpty());
-    assertTrue("Unexpected notification: " + missingOnes, missingOnes.isEmpty());
+    assertTrue("Still waiting for: " + waitingFor + ", only got: " + existingOnes, waitingFor.isEmpty());
+    assertTrue("Unexpected notification: " + missingOnes + ", only got: " + existingOnes, missingOnes.isEmpty());
   }
 }

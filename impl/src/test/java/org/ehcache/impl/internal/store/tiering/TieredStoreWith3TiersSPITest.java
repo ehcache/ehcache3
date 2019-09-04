@@ -21,13 +21,14 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -47,7 +48,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -67,14 +68,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.mockito.Mockito.mock;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -133,18 +133,19 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final Copier<String> defaultCopier = new IdentityCopier<>();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
+        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
+          new NoopSizeOfEngine(), noOpEventDispatcher, new DefaultStatisticsService());
 
         SizedResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize);
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize, new DefaultStatisticsService());
 
         try {
-          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          DiskResourceService.PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
@@ -155,7 +156,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
             config, timeSource,
             new TestStoreEventDispatcher<>(),
-            diskSize);
+            diskSize, new DefaultStatisticsService());
 
           CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
 
@@ -164,7 +165,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override
-            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -181,7 +182,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -196,7 +197,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
           }, new AuthoritativeTier.Provider() {
             @Override
-            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -211,7 +212,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -244,33 +245,23 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public long creationTime(TimeUnit unit) {
+          public long creationTime() {
             return creationTime;
           }
 
           @Override
-          public long expirationTime(TimeUnit unit) {
+          public long expirationTime() {
             return 0;
           }
 
           @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
+          public boolean isExpired(long expirationTime) {
             return false;
           }
 
           @Override
-          public long lastAccessTime(TimeUnit unit) {
+          public long lastAccessTime() {
             return 0;
-          }
-
-          @Override
-          public float hitRate(long now, TimeUnit unit) {
-            return 0;
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
           }
 
           @Override
@@ -291,8 +282,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override
@@ -359,7 +350,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
 
@@ -374,7 +365,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 
@@ -392,7 +383,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }
 
@@ -407,7 +398,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 

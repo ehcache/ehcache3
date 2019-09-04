@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 /**
  * AbstractStoreEventDispatcher
  */
-abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
+public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
 
   protected static final StoreEventSink<?, ?> NO_OP_EVENT_SINK = new CloseableStoreEventSink<Object, Object>() {
     @Override
@@ -84,7 +84,8 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
       throw new IllegalArgumentException("Dispatcher concurrency must be an integer greater than 0");
     }
     @SuppressWarnings("unchecked")
-    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = new LinkedBlockingQueue[dispatcherConcurrency];
+    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = (LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[])
+      new LinkedBlockingQueue<?>[dispatcherConcurrency];
     orderedQueues = queues;
     for (int i = 0; i < orderedQueues.length; i++) {
       orderedQueues[i] = new LinkedBlockingQueue<>(10000);
@@ -141,5 +142,10 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
   @Override
   public void reset(StoreEventSink<K, V> eventSink) {
     ((CloseableStoreEventSink) eventSink).reset();
+  }
+
+  @Override
+  public StoreEventSink<K, V> eventSink() {
+    return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
   }
 }

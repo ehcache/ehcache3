@@ -19,8 +19,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 import org.ehcache.Status;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
-import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
@@ -35,7 +33,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
@@ -92,7 +89,6 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key");
-    verify(this.store, times(2)).remove(eq("key"));
     verify(this.resilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -134,7 +130,6 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key");
-    verify(this.store, times(2)).remove(eq("key"));
     verify(this.resilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
@@ -144,8 +139,8 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
+  @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache() {
-    this.resilienceStrategy = spy(new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(this.store)));
     final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveTest"));
     ehcache.init();

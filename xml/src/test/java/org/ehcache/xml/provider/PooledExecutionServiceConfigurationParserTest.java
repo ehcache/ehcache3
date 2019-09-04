@@ -20,6 +20,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ThreadPoolsType;
 import org.junit.Test;
@@ -33,19 +34,15 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class PooledExecutionServiceConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
-
-  public PooledExecutionServiceConfigurationParserTest() {
-    super(new PooledExecutionServiceConfigurationParser());
-  }
+public class PooledExecutionServiceConfigurationParserTest {
 
   @Test
   public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
-    Configuration xmlConfig = parseXmlConfiguration("/configs/thread-pools.xml");
+    Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/thread-pools.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(PooledExecutionServiceConfiguration.class);
 
     PooledExecutionServiceConfiguration providerConfiguration = (PooledExecutionServiceConfiguration) configuration;
@@ -68,9 +65,9 @@ public class PooledExecutionServiceConfigurationParserTest extends ServiceProvid
     providerConfig.addDefaultPool("foo", 5, 9);
     providerConfig.addPool("bar", 2, 6);
 
-    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().withService(providerConfig).build();
     ConfigType configType = new ConfigType();
-    configType = parser.unparseServiceCreationConfiguration(config, configType);
+    configType = new PooledExecutionServiceConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     List<ThreadPoolsType.ThreadPool> threadPools = configType.getThreadPools().getThreadPool();
     assertThat(threadPools).hasSize(2);

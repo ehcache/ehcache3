@@ -240,7 +240,7 @@ public class UnitTestConnectionService implements ConnectionService {
         String stringArg = (String) args[1];
 
         try {
-          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
+          EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
           LOGGER.error("Entity destroy failed (not provided???): ", ex);
@@ -285,7 +285,7 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?>> clientEntityServices =
       new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
       new IdentityHashMap<>();
@@ -338,7 +338,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -362,7 +362,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 

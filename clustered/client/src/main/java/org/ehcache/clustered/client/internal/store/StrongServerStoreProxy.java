@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,7 +51,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     delegate.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, this::hashInvalidationDoneResponseListener);
     delegate.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
 
-    entity.setReconnectListener(this::reconnectListener);
+    entity.addReconnectListener(this::reconnectListener);
     entity.addDisconnectionListener(this::disconnectionListener);
   }
 
@@ -121,6 +122,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       if (ex instanceof TimeoutException) {
         throw (TimeoutException)ex;
       }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
@@ -155,6 +159,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
       if (ex instanceof TimeoutException) {
         throw (TimeoutException)ex;
+      }
+      if (ex instanceof ServerStoreProxyException) {
+        throw (ServerStoreProxyException)ex;
       }
       throw new RuntimeException(ex);
     }
@@ -197,7 +204,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
@@ -210,8 +217,13 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
+  }
+
+  @Override
+  public void enableEvents(boolean enable) {
+    delegate.enableEvents(enable);
   }
 
   @Override
@@ -225,5 +237,10 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       delegate.clear();
       return null;
     }, entity.getTimeouts().getWriteOperationTimeout());
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

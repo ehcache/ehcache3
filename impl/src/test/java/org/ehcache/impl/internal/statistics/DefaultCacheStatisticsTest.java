@@ -24,41 +24,85 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.ChainedOperationObserver;
+import org.ehcache.core.statistics.DefaultCacheStatistics;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
 
+@RunWith(Parameterized.class)
 public class DefaultCacheStatisticsTest {
+
+  /**
+   * Statistics can be disabled on the stores. However, the cache statistics should still work nicely when it's the case.
+   *
+   * @return if store statistics are enabled or disabled
+   */
+  @Parameterized.Parameters
+  public static Object[] data() {
+    return new Object[] { Boolean.FALSE, Boolean.TRUE };
+  }
+
+  private static final String[][] KNOWN_STATISTICS = {
+    {
+      // Disabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:MappingCount"
+    },
+    {
+      // Enabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount"
+    }
+  };
 
   private static final int TIME_TO_EXPIRATION = 100;
 
+  private final boolean enableStoreStatistics;
   private DefaultCacheStatistics cacheStatistics;
   private CacheManager cacheManager;
   private InternalCache<Long, String> cache;
   private final TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
-  private final AtomicLong latency = new AtomicLong();
   private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
-  private final Map<Long, String> sor = new HashMap<>();
+
+  public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
+    this.enableStoreStatistics = enableStoreStatistics;
+  }
 
   @Before
   public void before() {
@@ -67,32 +111,11 @@ public class DefaultCacheStatisticsTest {
       .unordered()
       .synchronous();
 
-    // We need a loaderWriter to easily test latencies, to simulate a latency when loading from a SOR.
-    CacheLoaderWriter<Long, String> loaderWriter = new CacheLoaderWriter<Long, String>() {
-      @Override
-      public String load(Long key) throws Exception {
-        minimumSleep(latency.get()); // latency simulation
-        return sor.get(key);
-      }
-
-      @Override
-      public void write(Long key, String value) {
-        minimumSleep(latency.get()); // latency simulation
-        sor.put(key, value);
-      }
-
-      @Override
-      public void delete(Long key) {
-        minimumSleep(latency.get()); // latency simulation
-        sor.remove(key);
-      }
-    };
-
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .withLoaderWriter(loaderWriter)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
-        .add(cacheEventListenerConfiguration)
+        .withService(cacheEventListenerConfiguration)
+        .withService(new StoreStatisticsConfiguration(enableStoreStatistics))
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -102,8 +125,7 @@ public class DefaultCacheStatisticsTest {
 
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
 
-    cacheStatistics = new DefaultCacheStatistics(cache, new DefaultStatisticsServiceConfiguration()
-      .withDefaultHistogramWindow(Duration.ofMillis(400)), timeSource);
+    cacheStatistics = new DefaultCacheStatistics(cache);
   }
 
   @After
@@ -115,36 +137,7 @@ public class DefaultCacheStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(
-      "Cache:EvictionCount",
-      "Cache:ExpirationCount",
-      "Cache:GetHitLatency#100",
-      "Cache:GetHitLatency#50",
-      "Cache:GetHitLatency#95",
-      "Cache:GetHitLatency#99",
-      "Cache:GetMissLatency#100",
-      "Cache:GetMissLatency#50",
-      "Cache:GetMissLatency#95",
-      "Cache:GetMissLatency#99",
-      "Cache:HitCount",
-      "Cache:MissCount",
-      "Cache:PutCount",
-      "Cache:PutLatency#100",
-      "Cache:PutLatency#50",
-      "Cache:PutLatency#95",
-      "Cache:PutLatency#99",
-      "Cache:RemovalCount",
-      "Cache:RemoveLatency#100",
-      "Cache:RemoveLatency#50",
-      "Cache:RemoveLatency#95",
-      "Cache:RemoveLatency#99",
-      "OnHeap:EvictionCount",
-      "OnHeap:ExpirationCount",
-      "OnHeap:HitCount",
-      "OnHeap:MappingCount",
-      "OnHeap:MissCount",
-      "OnHeap:PutCount",
-      "OnHeap:RemovalCount");
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(KNOWN_STATISTICS[enableStoreStatistics ? 1 : 0]);
   }
 
   @Test
@@ -210,7 +203,7 @@ public class DefaultCacheStatisticsTest {
     cache.put(1L, "a");
     assertThat(expirations).isEmpty();
     timeSource.advanceTime(TIME_TO_EXPIRATION);
-    assertThat(cache.get(1L)).isEqualTo("a");
+    assertThat(cache.get(1L)).isNull();
     assertThat(expirations).hasSize(1);
     assertThat(expirations.get(0).getKey()).isEqualTo(1L);
     assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
@@ -218,151 +211,30 @@ public class DefaultCacheStatisticsTest {
   }
 
   @Test
-  public void getCacheAverageGetTime() throws Exception {
-    cache.get(1L);
-    assertThat(cacheStatistics.getCacheAverageGetTime()).isGreaterThan(0);
-  }
+  public void registerDerivedStatistics() {
+    AtomicBoolean endCalled = new AtomicBoolean();
+    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new org.ehcache.core.statistics.ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
 
-  @Test
-  public void getCacheAveragePutTime() throws Exception {
-    cache.put(1L, "a");
-    assertThat(cacheStatistics.getCacheAveragePutTime()).isGreaterThan(0);
-  }
+      @Override
+      public void begin(long time) {
 
-  @Test
-  public void getCacheAverageRemoveTime() throws Exception {
-    cache.remove(1L);
-    assertThat(cacheStatistics.getCacheAverageRemoveTime()).isGreaterThan(0);
-  }
+      }
 
-  @Test
-  public void getCacheGetHitMissLatencies() {
-
-    Consumer<LatencyHistogramStatistic> verifier = histogram -> {
-      assertThat(histogram.count()).isEqualTo(0L);
-
-      latency.set(100);
-      cache.get(1L);
-
-      latency.set(50);
-      cache.get(2L);
-
-      assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
-
-      minimumSleep(300); // next window
-
-      latency.set(50);
-      cache.get(3L);
-
-      latency.set(150);
-      cache.get(4L);
-
-      assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
+      @Override
+      public void end(long time, long latency, CacheOperationOutcomes.PutOutcome result) {
+        endCalled.set(true);
+        assertThat(result).isEqualTo(CacheOperationOutcomes.PutOutcome.PUT);
+      }
     };
 
-    verifier.accept(cacheStatistics.getCacheGetMissLatencies());
+    cacheStatistics.registerDerivedStatistic(CacheOperationOutcomes.PutOutcome.class, "put", derivedStatistic);
 
-    sor.put(1L, "a");
-    sor.put(2L, "b");
-    sor.put(3L, "c");
-    sor.put(4L, "d");
-    sor.put(5L, "e");
+    cache.put(1L, "a");
 
-    verifier.accept(cacheStatistics.getCacheGetHitLatencies());
-  }
-
-  @Test
-  public void getCachePutLatencies() {
-    LatencyHistogramStatistic histogram = cacheStatistics.getCachePutLatencies();
-
-    assertThat(histogram.count()).isEqualTo(0L);
-
-    latency.set(100);
-    cache.put(1L, "");
-
-    latency.set(50);
-    cache.put(2L, "");
-
-    assertThat(histogram.count()).isEqualTo(2L);
-    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
-
-    minimumSleep(300); // next window
-
-    latency.set(50);
-    cache.put(3L, "");
-
-    latency.set(150);
-    cache.put(4L, "");
-
-    assertThat(histogram.count()).isEqualTo(2L);
-    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
-  }
-
-  @Test
-  public void getCacheRemoveLatencies() {
-    LatencyHistogramStatistic histogram = cacheStatistics.getCacheRemoveLatencies();
-
-    cache.put(1L, "");
-    cache.put(2L, "");
-    cache.put(3L, "");
-    cache.put(4L, "");
-
-    assertThat(histogram.count()).isEqualTo(0L);
-
-    latency.set(100);
-    cache.remove(1L);
-
-    latency.set(50);
-    cache.remove(2L);
-
-    assertThat(histogram.count()).isEqualTo(2L);
-    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(100L));
-
-    minimumSleep(300); // next window
-
-    latency.set(50);
-    cache.remove(3L);
-
-    latency.set(150);
-    cache.remove(4L);
-
-    assertThat(histogram.count()).isEqualTo(2L);
-    assertThat(histogram.maximum()).isGreaterThanOrEqualTo(nanos(150L));
-  }
-
-  private long nanos(long millis) {
-    return NANOSECONDS.convert(millis, MILLISECONDS);
+    assertThat(endCalled.get()).isTrue();
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
     return assertThat((Number) cacheStatistics.getKnownStatistics().get(key).value());
-  }
-
-  // Java does not provide a guarantee that Thread.sleep will actually sleep long enough
-  // In fact, on Windows, it does not sleep for long enough.
-  // This method keeps sleeping until the full time has passed.
-  private void minimumSleep(long millis) {
-    long start = System.nanoTime();
-    long nanos = NANOSECONDS.convert(millis, MILLISECONDS);
-
-    while (true) {
-      long now = System.nanoTime();
-      long elapsed = now - start;
-      long nanosLeft = nanos - elapsed;
-
-      if (nanosLeft <= 0) {
-        break;
-      }
-
-      long millisLeft = MILLISECONDS.convert(nanosLeft, NANOSECONDS);
-      try {
-        Thread.sleep(millisLeft);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        return;
-      }
-    }
   }
 }

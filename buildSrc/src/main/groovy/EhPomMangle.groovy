@@ -56,10 +56,10 @@ class EhPomMangle implements Plugin<Project> {
     }
 
     def artifactFiltering = {
-      pom.scopeMappings.mappings.remove(project.configurations.compile)
-      pom.scopeMappings.mappings.remove(project.configurations.runtime)
-      pom.scopeMappings.mappings.remove(project.configurations.testCompile)
-      pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
+      project.configurations.forEach {
+        pom.scopeMappings.mappings.remove(it)
+      }
+
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
 

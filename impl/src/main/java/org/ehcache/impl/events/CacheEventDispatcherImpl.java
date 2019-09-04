@@ -21,7 +21,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEvents;
-import org.ehcache.core.internal.events.EventListenerWrapper;
+import org.ehcache.core.events.EventListenerWrapper;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -138,10 +138,10 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    * @param wrapper the listener wrapper to unregister
    * @param listenersList the listener list to remove from
    */
-  private synchronized boolean removeWrapperFromList(EventListenerWrapper wrapper, List<EventListenerWrapper<K, V>> listenersList) {
+  private synchronized boolean removeWrapperFromList(EventListenerWrapper<K, V> wrapper, List<EventListenerWrapper<K, V>> listenersList) {
     int index = listenersList.indexOf(wrapper);
     if (index != -1) {
-      EventListenerWrapper containedWrapper = listenersList.remove(index);
+      EventListenerWrapper<K, V> containedWrapper = listenersList.remove(index);
       if(containedWrapper.isOrdered() && --orderedListenerCount == 0) {
         storeEventSource.setEventOrdering(false);
       }

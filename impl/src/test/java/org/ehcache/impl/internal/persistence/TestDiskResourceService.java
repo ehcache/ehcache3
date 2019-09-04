@@ -89,7 +89,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
     return diskResourceService.getPersistenceSpaceIdentifier(name, config);
   }
 
@@ -109,7 +109,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier identifier, String name) throws CachePersistenceException {
+  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
     return diskResourceService.createPersistenceContextWithin(identifier, name);
   }
 

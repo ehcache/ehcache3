@@ -46,7 +46,7 @@ public class Clustering {
   /**
    * Creates a new ${@link ClusteringManagementService} to handle the management integration with the cluster
    */
-  public static ClusteringManagementService newClusteringManagementService(ClusteringManagementServiceConfiguration configuration) {
+  public static ClusteringManagementService newClusteringManagementService(ClusteringManagementServiceConfiguration<?> configuration) {
     return new DefaultClusteringManagementService(configuration);
   }
 

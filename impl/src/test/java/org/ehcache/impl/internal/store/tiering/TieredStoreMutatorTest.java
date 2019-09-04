@@ -19,8 +19,9 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -39,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -116,7 +118,7 @@ public class TieredStoreMutatorTest {
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(String key, String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(String key, String value, Consumer<Boolean> put) throws StoreAccessException {
       return createValueHolder(map.putIfAbsent(key, value));
     }
 
@@ -178,7 +180,7 @@ public class TieredStoreMutatorTest {
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
     CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
       StringCopier.copier(), StringCopier.copier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.
-      <String, String>nullStoreEventDispatcher());
+      <String, String>nullStoreEventDispatcher(), new DefaultStatisticsService());
 
     tieredStore = new TieredStore<>(cachingTier, authoritativeTier);
   }
@@ -343,7 +345,7 @@ public class TieredStoreMutatorTest {
 
   private Store.ValueHolder<String> putIfAbsentToTieredStore() {
     try {
-      return tieredStore.putIfAbsent(KEY, VALUE);
+      return tieredStore.putIfAbsent(KEY, VALUE, b -> {});
     } catch (StoreAccessException e) {
       throw new RuntimeException(e);
     }

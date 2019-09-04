@@ -17,3 +17,8 @@
 org.ehcache.core.spi.services.TestServiceFactory
 org.ehcache.core.spi.services.TestProvidedServiceFactory
 org.ehcache.core.spi.services.FancyCacheProviderFactory
+org.ehcache.core.spi.services.TestMandatoryServiceFactory
+org.ehcache.core.spi.services.ranking.HighRankServiceAFactory
+org.ehcache.core.spi.services.ranking.MandatoryLowRankServiceAFactory
+org.ehcache.core.spi.services.ranking.MandatoryHighRankServiceBFactory
+org.ehcache.core.spi.services.ranking.LowRankServiceBFactory

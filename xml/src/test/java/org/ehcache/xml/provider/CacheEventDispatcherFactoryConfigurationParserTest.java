@@ -20,6 +20,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -31,19 +32,15 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CacheEventDispatcherFactoryConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
-
-  public CacheEventDispatcherFactoryConfigurationParserTest() {
-    super(new CacheEventDispatcherFactoryConfigurationParser());
-  }
+public class CacheEventDispatcherFactoryConfigurationParserTest {
 
   @Test
   public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
-    Configuration xmlConfig = parseXmlConfiguration("/configs/ehcache-cacheEventListener.xml");
+    Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/ehcache-cacheEventListener.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isInstanceOf(CacheEventDispatcherFactoryConfiguration.class);
 
     CacheEventDispatcherFactoryConfiguration providerConfiguration = (CacheEventDispatcherFactoryConfiguration) configuration;
@@ -53,8 +50,8 @@ public class CacheEventDispatcherFactoryConfigurationParserTest extends ServiceP
   @Test
   public void unparseServiceCreationConfiguration() {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new CacheEventDispatcherFactoryConfiguration("foo")).build();
-    ConfigType configType = parser.unparseServiceCreationConfiguration(config, new ConfigType());
+      .withService(new CacheEventDispatcherFactoryConfiguration("foo")).build();
+    ConfigType configType = new CacheEventDispatcherFactoryConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     assertThat(configType.getEventDispatch().getThreadPool()).isEqualTo("foo");
   }

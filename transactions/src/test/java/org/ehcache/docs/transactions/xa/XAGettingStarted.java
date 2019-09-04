@@ -20,18 +20,16 @@ import bitronix.tm.TransactionManagerServices;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -45,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -86,12 +83,12 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <6>
     {
@@ -114,12 +111,12 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     try {
       xaCache.get(1L); // <6>
@@ -146,13 +143,13 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-                .add(new XAStoreConfiguration("xaCache")) // <5>
-                .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <5>
+                .withService(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
                 .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <7>
     {
@@ -181,12 +178,12 @@ public class XAGettingStarted {
                         .offheap(10, MemoryUnit.MB)
                         .disk(20, MemoryUnit.MB, true)
                 )
-                .add(new XAStoreConfiguration("xaCache")) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <6>
                 .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = persistentCacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = persistentCacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <7>
     {

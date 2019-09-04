@@ -20,7 +20,6 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.config.units.MemoryUnit;
@@ -65,7 +64,7 @@ public class EntityServiceTest {
 
     CacheManager cacheManager = newCacheManagerBuilder()
         .using(clusteredManagementService)
-        .with(cluster(CLUSTER_URI).autoCreate())
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
         .build(true);
 
     assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));

@@ -24,7 +24,7 @@ import java.io.File;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link LocalPersistenceService}.
  */
-public class DefaultPersistenceConfiguration implements ServiceCreationConfiguration<LocalPersistenceService> {
+public class DefaultPersistenceConfiguration implements ServiceCreationConfiguration<LocalPersistenceService, File> {
 
   private final File rootDirectory;
 
@@ -52,5 +52,15 @@ public class DefaultPersistenceConfiguration implements ServiceCreationConfigura
   @Override
   public Class<LocalPersistenceService> getServiceType() {
     return LocalPersistenceService.class;
+  }
+
+  @Override
+  public File derive() {
+    return getRootDirectory();
+  }
+
+  @Override
+  public DefaultPersistenceConfiguration build(File file) {
+    return new DefaultPersistenceConfiguration(file);
   }
 }

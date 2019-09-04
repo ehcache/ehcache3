@@ -137,32 +137,22 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         return 0L;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0L;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
-        return 0L;
-      }
-
-      @Override
-      public float hitRate(long now, TimeUnit unit) {
-        return 0L;
-      }
-
-      @Override
-      public long hits() {
+      public long lastAccessTime() {
         return 0L;
       }
 

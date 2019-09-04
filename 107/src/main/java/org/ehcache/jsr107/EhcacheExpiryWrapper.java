@@ -37,7 +37,7 @@ class EhcacheExpiryWrapper<K, V> extends Eh107Expiry<K, V> {
   }
 
   @Override
-  public Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
+  protected Duration getExpiryForAccessInternal(K key, Supplier<? extends V> value) {
     return wrappedExpiry.getExpiryForAccess(key, value);
   }
 

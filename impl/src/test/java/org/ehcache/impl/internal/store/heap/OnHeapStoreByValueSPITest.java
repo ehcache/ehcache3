@@ -19,8 +19,9 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -31,7 +32,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
@@ -40,7 +41,7 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * Test the {@link OnHeapStore} compliance to the
@@ -91,7 +92,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0,
           new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
-        return new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), new TestStoreEventDispatcher<>());
+        return new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override
@@ -118,8 +119,8 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override
@@ -150,7 +151,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
     };
   }
 
-  public static void closeStore(OnHeapStore store) {
+  public static void closeStore(OnHeapStore<?, ?> store) {
     OnHeapStore.Provider.close(store);
   }
 

@@ -22,8 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
-  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
   private final V value;
 
   public ClusteredValueHolder(V value) {
@@ -36,11 +34,6 @@ public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
       throw new NullPointerException("Value can not be null");
     }
     this.value = value;
-  }
-
-  @Override
-  protected TimeUnit nativeTimeUnit() {
-    return TIME_UNIT;
   }
 
   @Override

@@ -38,6 +38,6 @@ public class HeapElementImpl implements Element {
 
   @Override
   public ByteBuffer getPayload() {
-    return this.data.duplicate();
+    return this.data.asReadOnlyBuffer();
   }
 }

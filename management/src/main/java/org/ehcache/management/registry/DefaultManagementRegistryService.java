@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -33,23 +34,28 @@ import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.settings.EhcacheSettingsProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.DefaultManagementRegistry;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class, TimeSourceService.class})
+@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class, TimeSourceService.class, ExecutionService.class})
+@OptionalServiceDependencies({
+  "org.ehcache.clustered.client.service.EntityService",
+  "org.ehcache.clustered.client.service.ClusteringService"})
 public class DefaultManagementRegistryService extends DefaultManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile InternalCacheManager cacheManager;
   private volatile ClusteringManagementService clusteringManagementService;
+  private volatile boolean clusteringManagementServiceAutoStarted;
+  private volatile StatisticsService statisticsService;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -64,7 +70,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void start(final ServiceProvider<Service> serviceProvider) {
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
+    this.statisticsService = serviceProvider.getService(StatisticsService.class);
     TimeSourceService timeSourceService = serviceProvider.getService(TimeSourceService.class);
 
     // initialize management capabilities (stats, action calls, etc)
@@ -81,22 +87,25 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
     if (this.clusteringManagementService == null && Clustering.isAvailable(serviceProvider)) {
       this.clusteringManagementService = Clustering.newClusteringManagementService(new DefaultClusteringManagementServiceConfiguration());
       this.clusteringManagementService.start(serviceProvider);
+      this.clusteringManagementServiceAutoStarted = true;
+    } else {
+      this.clusteringManagementServiceAutoStarted = false;
     }
   }
 
   @Override
   public void stop() {
-    if (this.clusteringManagementService != null) {
+    if (this.clusteringManagementService != null && this.clusteringManagementServiceAutoStarted) {
       this.clusteringManagementService.stop();
-      this.clusteringManagementService = null;
     }
+    this.clusteringManagementService = null;
 
     super.close();
   }
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
-    StatisticsManager.associate(cache).withParent(cacheManager);
+    statisticsService.registerWithParent(cache, cacheManager);
 
     register(new CacheBinding(alias, cache));
   }
@@ -105,7 +114,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
     unregister(new CacheBinding(alias, cache));
 
-    StatisticsManager.dissociate(cache).fromParent(cacheManager);
+    statisticsService.deRegisterFromParent(cache, cacheManager);
   }
 
   @Override

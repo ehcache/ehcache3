@@ -16,13 +16,12 @@
 package org.ehcache.management.registry;
 
 import org.junit.Test;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * ManagementRegistryServiceConfigurationParserTest
@@ -38,11 +37,11 @@ public class ManagementRegistryServiceConfigurationParserTest {
         setCollectorExecutorAlias("my-executor").addTag("tag1").addTag("tag2");
 
     Node retElement = configTranslator.unparseServiceCreationConfiguration(defaultManagementRegistryConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertThat(retElement.getNodeName(), is("mgm:management"));
-    assertAttributeItems(retElement);
-
-    assertTags(retElement);
+    String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
+                         "xmlns:mgm = \"http://www.ehcache.org/v3/management\" >" +
+                         "<mgm:tags><mgm:tag>tag1</mgm:tag><mgm:tag>tag2</mgm:tag></mgm:tags></mgm:management>";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -54,40 +53,10 @@ public class ManagementRegistryServiceConfigurationParserTest {
         setCollectorExecutorAlias("my-executor");
 
     Node retElement = configTranslator.unparseServiceCreationConfiguration(defaultManagementRegistryConfiguration);
-    assertThat(retElement, is(notNullValue()));
-    assertThat(retElement.getNodeName(), is("mgm:management"));
-    assertAttributeItems(retElement);
-    assertThat(retElement.getFirstChild(), is(nullValue()));
-  }
-
-  private void assertItemNameAndValue(NamedNodeMap node, int index, String name, String value) {
-    assertThat(node.item(index).getNodeName(), is(name));
-    assertThat(node.item(index).getNodeValue(), is(value));
-  }
-
-  private void assertAttributeItems(Node element) {
-    if (element.getNodeName().equals("mgm:management")) {
-      NamedNodeMap node = element.getAttributes();
-      assertThat(node, is(notNullValue()));
-      assertThat(node.getLength(), is(2));
-      assertItemNameAndValue(node, 0, "cache-manager-alias", "my-cache-alias");
-      assertItemNameAndValue(node, 1, "collector-executor-alias", "my-executor");
-    }
-
-  }
-
-  private void assertTags(Node element) {
-    Node tagsElement = element.getFirstChild();
-      assertThat(tagsElement.getNodeName(), is("mgm:tags"));
-      assertThat(tagsElement.getAttributes().getLength(), is(0));
-      Node tag1 = tagsElement.getFirstChild();
-      assertThat(tag1, is(notNullValue()));
-      assertThat(tag1.getFirstChild(), is(notNullValue()));
-      assertThat(tag1.getFirstChild().getNodeValue(), is("tag1"));
-      Node tag2 = tagsElement.getLastChild();
-      assertThat(tag2, is(notNullValue()));
-      assertThat(tag2.getFirstChild(), is(notNullValue()));
-      assertThat(tag2.getFirstChild().getNodeValue(), is("tag2"));
+    String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
+                         "xmlns:mgm = \"http://www.ehcache.org/v3/management\"></mgm:management>";
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
 }

@@ -23,7 +23,7 @@ import org.ehcache.core.spi.store.Store;
  * {@link org.ehcache.spi.service.ServiceConfiguration} for a {@link org.ehcache.core.spi.store.Store.Provider}
  * related to {@link org.ehcache.core.spi.store.events.StoreEvent}s.
  */
-public class DefaultEventSourceConfiguration implements StoreEventSourceConfiguration {
+public class DefaultEventSourceConfiguration implements StoreEventSourceConfiguration<Integer> {
 
   private final int dispatcherConcurrency;
 
@@ -52,5 +52,15 @@ public class DefaultEventSourceConfiguration implements StoreEventSourceConfigur
   @Override
   public Class<Store.Provider> getServiceType() {
     return Store.Provider.class;
+  }
+
+  @Override
+  public Integer derive() {
+    return getDispatcherConcurrency();
+  }
+
+  @Override
+  public DefaultEventSourceConfiguration build(Integer concurrency) {
+    return new DefaultEventSourceConfiguration(concurrency);
   }
 }

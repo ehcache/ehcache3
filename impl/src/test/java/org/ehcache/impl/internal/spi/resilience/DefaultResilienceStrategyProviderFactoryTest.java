@@ -48,7 +48,7 @@ public class DefaultResilienceStrategyProviderFactoryTest {
 
   @Test
   public void testSpecifiedConfigIsPassed() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultResilienceStrategy(resilienceStrategy);

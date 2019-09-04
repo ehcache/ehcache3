@@ -35,7 +35,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.function.Function.identity;
@@ -55,9 +54,9 @@ public class ServiceConfigurationParser {
     new DefaultCacheEventListenerConfigurationParser()
   );
 
-  private final Set<CacheServiceConfigurationParser<?>> extensionParsers;
+  private final Map<Class<?>, CacheServiceConfigurationParser<?>> extensionParsers;
 
-  public ServiceConfigurationParser(Set<CacheServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceConfigurationParser(Map<Class<?>, CacheServiceConfigurationParser<?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
@@ -67,15 +66,15 @@ public class ServiceConfigurationParser {
       cacheBuilder = coreServiceConfigParser.parseServiceConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
     }
 
-    Map<URI, CacheServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheServiceConfigurationParser::getNamespace, identity()));
+    Map<URI, CacheServiceConfigurationParser<?>> parsers = extensionParsers.values().stream().
+      collect(toMap(CacheServiceConfigurationParser::getNamespace, identity()));
     for (Element element : cacheDefinition.serviceConfigExtensions()) {
       URI namespace = URI.create(element.getNamespaceURI());
       final CacheServiceConfigurationParser<?> xmlConfigurationParser = parsers.get(namespace);
       if(xmlConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      cacheBuilder = cacheBuilder.add(xmlConfigurationParser.parseServiceConfiguration(element));
+      cacheBuilder = cacheBuilder.withService(xmlConfigurationParser.parseServiceConfiguration(element, cacheClassLoader));
     }
 
     return cacheBuilder;
@@ -86,19 +85,10 @@ public class ServiceConfigurationParser {
       parser.unparseServiceConfiguration(cacheConfiguration, cacheType);
     }
 
-    Map<Class<?>, CacheServiceConfigurationParser<?>> parsers =
-      extensionParsers.stream().collect(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
-        (key1, key2) -> {
-          if (key1.getClass().isInstance(key2)) {
-            return key2;
-          } else {
-            return key1;
-          }
-        }));
     List<Element> serviceConfigs = cacheType.getServiceConfiguration();
     cacheConfiguration.getServiceConfigurations().forEach(config -> {
       @SuppressWarnings("rawtypes")
-      CacheServiceConfigurationParser parser = parsers.get(config.getServiceType());
+      CacheServiceConfigurationParser parser = extensionParsers.get(config.getServiceType());
       if (parser != null) {
         @SuppressWarnings("unchecked")
         Element element = parser.unparseServiceConfiguration(config);

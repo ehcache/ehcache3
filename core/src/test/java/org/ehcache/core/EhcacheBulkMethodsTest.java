@@ -69,8 +69,11 @@ public class EhcacheBulkMethodsTest {
   public void testGetAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
     when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
-      Function function = (Function)invocation.getArguments()[1];
-      function.apply(invocation.getArguments()[0]);
+      Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function =
+        (Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
+      Set<? extends Number> keys = (Set<? extends Number>) invocation.getArguments()[0];
+
+      function.apply(keys);
 
       Map<Number, ValueHolder<String>> map =  new HashMap<>();
       map.put(1, null);
@@ -156,33 +159,23 @@ public class EhcacheBulkMethodsTest {
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         throw new AssertionError();
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
+      public long lastAccessTime() {
         throw new AssertionError();
-      }
-
-      @Override
-      public float hitRate(long now, TimeUnit unit) {
-        throw new AssertionError();
-      }
-
-      @Override
-      public long hits() {
-        throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override

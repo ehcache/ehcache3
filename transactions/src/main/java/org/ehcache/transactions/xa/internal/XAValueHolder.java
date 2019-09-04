@@ -23,9 +23,8 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * The {@link XAStore} {@link Store.ValueHolder} implementation.
@@ -36,13 +35,11 @@ import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 @SuppressWarnings("serial") //this class has writeReplace/readResolve methods
 public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 
-  static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
-
   private final V value;
   private final byte[] valueSerialized;
 
   public XAValueHolder(Store.ValueHolder<SoftLock<V>> valueHolder, V value) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = value;
     this.valueSerialized = null;
   }
@@ -57,22 +54,21 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   private XAValueHolder(XAValueHolder<V> valueHolder, ByteBuffer serializedValue) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = null;
     this.valueSerialized = new byte[serializedValue.remaining()];
     serializedValue.get(this.valueSerialized);
   }
 
   public XAValueHolder(XAValueHolder<V> valueHolder, V value) {
-    super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
+    super(-1, valueHolder.creationTime(), valueHolder.expirationTime());
     this.value = value;
     this.valueSerialized = null;
   }
 
-  private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+  private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
     super(id, creationTime, expirationTime);
-    setLastAccessTime(lastAccessTime, NATIVE_TIME_UNIT);
-    setHits(hits);
+    setLastAccessTime(lastAccessTime);
     this.value = value;
     this.valueSerialized = valueSerialized;
   }
@@ -84,11 +80,6 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   protected XAValueHolder<V> copyAfterDeserialization(Serializer<V> valueSerializer) throws ClassNotFoundException {
     return new XAValueHolder<>(this, valueSerializer.read(ByteBuffer.wrap(valueSerialized)));
-  }
-
-  @Override
-  protected TimeUnit nativeTimeUnit() {
-    return NATIVE_TIME_UNIT;
   }
 
   @Override
@@ -116,8 +107,8 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   private Object writeReplace() {
-    return new SerializedXAValueHolder<>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
-      hits(), get(), valueSerialized);
+    return new SerializedXAValueHolder<>(getId(), creationTime(), lastAccessTime(), expirationTime(),
+      get(), valueSerialized);
   }
 
   /**
@@ -131,22 +122,20 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     private final long creationTime;
     private final long lastAccessTime;
     private final long expirationTime;
-    private final long hits;
     private final V value;
     private final byte[] valueSerialized;
 
-    SerializedXAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+    SerializedXAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, V value, byte[] valueSerialized) {
       this.id = id;
       this.creationTime = creationTime;
       this.lastAccessTime = lastAccessTime;
       this.expirationTime = expirationTime;
-      this.hits = hits;
       this.value = value;
       this.valueSerialized = valueSerialized;
     }
 
     private Object readResolve() {
-      return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
+      return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, value, valueSerialized);
     }
   }
 

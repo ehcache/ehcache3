@@ -16,12 +16,26 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.client.internal.store.ClusteredValueHolder;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.operations.TimestampOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.core.config.ExpiryUtils;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
@@ -32,6 +46,8 @@ import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
  * @param <V> value type
  */
 public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ExpiryChainResolver.class);
 
   private final ExpiryPolicy<? super K, ? super V> expiry;
 
@@ -46,6 +62,37 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
     this.expiry = requireNonNull(expiry, "Expiry cannot be null");
   }
 
+  @Override
+  public ValueHolder<V> resolve(ServerStoreProxy.ChainEntry entry, K key, long now, int threshold) {
+    PutOperation<K, V> resolved = resolve(entry, key, threshold);
+
+    if (resolved == null) {
+      return null;
+    } else if (now >= resolved.expirationTime()) {
+      try {
+        entry.append(codec.encode(new TimestampOperation<>(key, now)));
+      } catch (TimeoutException e) {
+        LOG.debug("Failed to append timestamp operation", e);
+      }
+      return null;
+    } else {
+      return new ClusteredValueHolder<>(resolved.getValue(), resolved.expirationTime());
+    }
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> resolveAll(Chain chain, long now) {
+    Map<K, PutOperation<K, V>> resolved = resolveAll(chain);
+
+    Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
+    for (Map.Entry<K, PutOperation<K, V>> e : resolved.entrySet()) {
+      if (now < e.getValue().expirationTime()) {
+        values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue(), e.getValue().expirationTime()));
+      }
+    }
+    return unmodifiableMap(values);
+  }
+
   /**
    * Applies the given operation returning a result with an expiry time determined by this resolvers expiry policy.
    * <p>
@@ -58,18 +105,18 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
    * @return the equivalent put operation
    */
   @Override
-  protected PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
+  public PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation) {
+    if (existing != null && operation.timeStamp() >= existing.expirationTime()) {
+      existing = null;
+    }
+
     final Result<K, V> newValue = operation.apply(existing);
     if (newValue == null) {
       return null;
+    } else if (newValue == existing) {
+      return existing;
     } else {
-      long expirationTime = calculateExpiryTime(key, existing, operation, newValue);
-
-      if (now >= expirationTime) {
-        return null;
-      } else {
-        return newValue.asOperationExpiringAt(expirationTime);
-      }
+      return newValue.asOperationExpiringAt(calculateExpiryTime(key, existing, operation, newValue));
     }
   }
 

@@ -18,15 +18,17 @@ package org.ehcache.impl.internal.store.offheap;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -35,8 +37,11 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.impl.internal.util.CheckerUtil;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -50,20 +55,17 @@ import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.impl.store.HashUtils;
+import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.management.model.stats.StatisticType;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.StatisticType;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticBuilder.operation;
-import static org.terracotta.statistics.StatisticsManager.tags;
-import static org.terracotta.statistics.StatisticType.GAUGE;
+import static org.terracotta.management.model.stats.StatisticType.GAUGE;
 
-public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
+public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
@@ -71,8 +73,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     // Do nothing
   };
 
-  private final Class<K> keyType;
-  private final Class<V> valueType;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> eventDispatcher;
 
@@ -106,37 +106,37 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   @SuppressWarnings("unchecked")
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
-  public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
-    keyType = config.getKeyType();
-    valueType = config.getValueType();
+  public AbstractOffHeapStore(Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, StatisticsService statisticsService) {
+    super(config, statisticsService);
+
     expiry = config.getExpiry();
 
     this.timeSource = timeSource;
     this.eventDispatcher = eventDispatcher;
 
-    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, statisticsTag);
-    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, statisticsTag);
-    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, statisticsTag);
-    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, statisticsTag);
-    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, statisticsTag);
-    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, statisticsTag);
-    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, statisticsTag);
-    this.computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, statisticsTag);
-    this.computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, statisticsTag);
-    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, statisticsTag);
-    this.expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, statisticsTag);
+    this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
+    this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
+    this.putIfAbsentObserver = createObserver("putIfAbsent", StoreOperationOutcomes.PutIfAbsentOutcome.class, true);
+    this.removeObserver = createObserver("remove", StoreOperationOutcomes.RemoveOutcome.class, true);
+    this.conditionalRemoveObserver = createObserver("conditionalRemove", StoreOperationOutcomes.ConditionalRemoveOutcome.class, true);
+    this.replaceObserver = createObserver("replace", StoreOperationOutcomes.ReplaceOutcome.class, true);
+    this.conditionalReplaceObserver = createObserver("conditionalReplace", StoreOperationOutcomes.ConditionalReplaceOutcome.class, true);
+    this.computeObserver = createObserver("compute", StoreOperationOutcomes.ComputeOutcome.class, true);
+    this.computeIfAbsentObserver = createObserver("computeIfAbsent", StoreOperationOutcomes.ComputeIfAbsentOutcome.class, true);
+    this.evictionObserver = createObserver("eviction", StoreOperationOutcomes.EvictionOutcome.class, false);
+    this.expirationObserver = createObserver("expiration", StoreOperationOutcomes.ExpirationOutcome.class, false);
 
-    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, statisticsTag);
-    this.computeIfAbsentAndFaultObserver = createObserver("computeIfAbsentAndFault", AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.class, statisticsTag);
-    this.flushObserver = createObserver("flush", AuthoritativeTierOperationOutcomes.FlushOutcome.class, statisticsTag);
+    this.getAndFaultObserver = createObserver("getAndFault", AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, true);
+    this.computeIfAbsentAndFaultObserver = createObserver("computeIfAbsentAndFault", AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.class, true);
+    this.flushObserver = createObserver("flush", AuthoritativeTierOperationOutcomes.FlushOutcome.class, true);
 
-    this.invalidateObserver = createObserver("invalidate", LowerCachingTierOperationsOutcome.InvalidateOutcome.class, statisticsTag);
-    this.invalidateAllObserver = createObserver("invalidateAll", LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class, statisticsTag);
-    this.invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.class, statisticsTag);
-    this.getAndRemoveObserver= createObserver("getAndRemove", LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class, statisticsTag);
-    this.installMappingObserver= createObserver("installMapping", LowerCachingTierOperationsOutcome.InstallMappingOutcome.class, statisticsTag);
+    this.invalidateObserver = createObserver("invalidate", LowerCachingTierOperationsOutcome.InvalidateOutcome.class, true);
+    this.invalidateAllObserver = createObserver("invalidateAll", LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class, true);
+    this.invalidateAllWithHashObserver = createObserver("invalidateAllWithHash", LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.class, true);
+    this.getAndRemoveObserver= createObserver("getAndRemove", LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class, true);
+    this.installMappingObserver= createObserver("installMapping", LowerCachingTierOperationsOutcome.InstallMappingOutcome.class, true);
 
-    Set<String> tags = tags(statisticsTag, "tier");
+    Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
     registerStatistic("allocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::allocatedMemory);
     registerStatistic("occupiedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::occupiedMemory);
     registerStatistic("dataAllocatedMemory", GAUGE, tags, EhcacheOffHeapBackingMap::dataAllocatedMemory);
@@ -152,12 +152,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.mapEvictionListener = new BackingMapEvictionListener<>(eventDispatcher, evictionObserver);
   }
 
-  private <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome, String statisticsTag) {
-    return operation(outcome).named(name).of(this).tag(statisticsTag).build();
-  }
-
   private <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Function<EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>>, T> fn) {
-    StatisticsManager.createPassThroughStatistic(this, name, tags, type, () -> {
+    registerStatistic(name, type, tags, () -> {
       EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
       // Returning null means not available.
       // Do not return -1 because a stat can be negative and it's hard to tell the difference
@@ -188,7 +184,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       OffHeapValueHolder<V> result = backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         }
@@ -237,7 +233,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           mappedValue = null;
         }
 
@@ -268,7 +264,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, StoreAccessException {
+  public Store.ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws NullPointerException, StoreAccessException {
     checkKey(key);
     checkValue(value);
 
@@ -281,7 +277,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             onExpiration(mappedKey, mappedValue, eventSink);
           }
@@ -323,7 +319,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
       backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         }
@@ -364,7 +360,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         } else if (mappedValue.get().equals(value)) {
@@ -409,12 +405,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
 
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
         return null;
       } else {
+        mappedValue.forceDeserialization();
         returnValue.set(mappedValue);
         return newUpdatedValueHolder(mappedKey, value, mappedValue, now, eventSink);
       }
@@ -450,7 +447,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
 
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -528,12 +525,76 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+
+    computeObserver.begin();
+
+    AtomicBoolean write = new AtomicBoolean(false);
+    AtomicReference<OffHeapValueHolder<V>> valueHeld = new AtomicReference<>();
+    AtomicReference<OffHeapValueHolder<V>> existingValueHolder = new AtomicReference<>();
+    StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
+      long now = timeSource.getTimeMillis();
+      V existingValue = null;
+      if (mappedValue == null || mappedValue.isExpired(now)) {
+        if (mappedValue != null) {
+          onExpiration(mappedKey, mappedValue, eventSink);
+        }
+        mappedValue = null;
+      } else {
+        existingValue = mappedValue.get();
+        existingValueHolder.set(mappedValue);
+      }
+      V computedValue = mappingFunction.apply(mappedKey, existingValue);
+      if (computedValue == null) {
+        if (mappedValue != null) {
+          write.set(true);
+          eventSink.removed(mappedKey, mappedValue);
+        }
+        return null;
+      }
+
+      checkValue(computedValue);
+      write.set(true);
+      if (mappedValue != null) {
+        OffHeapValueHolder<V> valueHolder = newUpdatedValueHolder(key, computedValue, mappedValue, now, eventSink);
+        if (valueHolder == null) {
+          valueHeld.set(new BasicOffHeapValueHolder<>(mappedValue.getId(), computedValue, now, now));
+        }
+        return valueHolder;
+      } else {
+        return newCreateValueHolder(key, computedValue, now, eventSink);
+      }
+    };
+
+    OffHeapValueHolder<V> result;
+    try {
+      result = computeWithRetry(key, computeFunction, false);
+      if (result == null && valueHeld.get() != null) {
+        result = valueHeld.get();
+      }
+      eventDispatcher.releaseEventSink(eventSink);
+      if (result == null) {
+        if (write.get()) {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+        } else {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
+        }
+      } else if (write.get()) {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
+      } else {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
+      }
+      return existingValueHolder.get();
+    } catch (StoreAccessException | RuntimeException caex) {
+      eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
+      throw caex;
+    }
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -544,7 +605,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
       V existingValue = null;
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -628,7 +689,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -727,7 +788,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         }
       };
-      ValueHolder<V> computed = compute(key, biFunction, replaceEqual);
+      ValueHolder<V> computed = computeAndGet(key, biFunction, replaceEqual, () -> false);
       result.put(key, computed);
     }
     return result;
@@ -763,7 +824,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
       mappedValue = backingMap().computeIfPresentAndPin(key, (mappedKey, mappedValue1) -> {
-        if(mappedValue1.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        if(mappedValue1.isExpired(timeSource.getTimeMillis())) {
           onExpiration(mappedKey, mappedValue1, eventSink);
           return null;
         }
@@ -800,7 +861,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       boolean result = backingMap().computeIfPinned(key, (k, valuePresent) -> {
         if (valuePresent.getId() == valueFlushed.getId()) {
-          if (valueFlushed.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+          if (valueFlushed.isExpired(timeSource.getTimeMillis())) {
             onExpiration(k, valuePresent, eventSink);
             return null;
           }
@@ -907,7 +968,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final AtomicReference<ValueHolder<V>> valueHolderAtomicReference = new AtomicReference<>();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpirationInCachingTier(mappedValue, key);
         }
@@ -941,7 +1002,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       ValueHolder<V> valueHolder = source.apply(k);
       if (valueHolder != null) {
-        if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        if (valueHolder.isExpired(timeSource.getTimeMillis())) {
           onExpirationInCachingTier(valueHolder, key);
           return null;
         } else {
@@ -1029,7 +1090,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
 
     if (duration == null) {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime());
     } else if (isExpiryDurationInfinite(duration)) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
@@ -1055,12 +1116,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
       return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
-        valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
+        valueHolder.creationTime(), valueHolder.expirationTime(),
+        valueHolder.lastAccessTime());
     } else {
-      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder
-        .hits());
+      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(),
+        valueHolder.expirationTime(), valueHolder.lastAccessTime());
     }
   }
 
@@ -1069,14 +1129,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     if (valve != null) {
       valve.invalidateAll();
     }
-  }
-
-  private void checkKey(K keyObject) {
-    CheckerUtil.checkKey(keyType, keyObject);
-  }
-
-  private void checkValue(V valueObject) {
-    CheckerUtil.checkValue(valueType, valueObject);
   }
 
   private void onExpirationInCachingTier(ValueHolder<V> mappedValue, K key) {
@@ -1099,6 +1151,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
   protected abstract SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor();
+
+  protected OffHeapValueHolderPortability<V> createValuePortability(Serializer<V> serializer) {
+    return new OffHeapValueHolderPortability<>(serializer);
+  }
 
   protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<>(delegate);

@@ -24,10 +24,9 @@ import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.DefaultStatisticsManagementProvider;
+import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.collect.StatisticProvider;
-import org.terracotta.statistics.registry.Statistic;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -72,8 +71,7 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
     if (exposedObject == null) {
       return Collections.emptyMap();
     }
-    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames, since);
-
+    return exposedObject.collectStatistics(statisticNames, since);
   }
 
 }

@@ -20,10 +20,11 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -37,7 +38,7 @@ import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
@@ -55,10 +56,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.mockito.Mockito.mock;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -107,10 +108,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
 
         try {
-          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
@@ -122,7 +123,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
             new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
             config, timeSource,
             new TestStoreEventDispatcher<>(),
-            unit.toBytes(diskPool.getSize()));
+            unit.toBytes(diskPool.getSize()), new DefaultStatisticsService());
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;
@@ -154,13 +155,13 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
         try {
-          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
-          return new ServiceConfiguration[] {space};
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          return new ServiceConfiguration<?, ?>[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
         }

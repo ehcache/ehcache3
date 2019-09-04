@@ -30,14 +30,12 @@ import java.net.URL;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
-import static org.ehcache.xml.DomUtil.COLON;
-
 public class ManagementRegistryServiceConfigurationParser extends BaseConfigParser<DefaultManagementRegistryConfiguration> implements CacheManagerServiceConfigurationParser<ManagementRegistryService> {
 
   private static final String NAMESPACE = "http://www.ehcache.org/v3/management";
   private static final URI NAMESPACE_URI = URI.create(NAMESPACE);
   private static final URL XML_SCHEMA = ManagementRegistryServiceConfigurationParser.class.getResource("/ehcache-management-ext.xsd");
-  private static final String MANAGEMENT_NAMESPACE_PREFIX = "mgm";
+  private static final String MANAGEMENT_NAMESPACE_PREFIX = "mgm:";
   private static final String MANAGEMENT_ELEMENT_NAME = "management";
   private static final String CACHE_MANAGER_ATTRIBUTE_NAME = "cache-manager-alias";
   private static final String COLLECTOR_EXECUTOR_ATTRIBUTE_NAME = "collector-executor-alias";
@@ -55,7 +53,7 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   }
 
   @Override
-  public ServiceCreationConfiguration<ManagementRegistryService> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<ManagementRegistryService, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     if ("management".equals(fragment.getLocalName())) {
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration();
 
@@ -104,13 +102,13 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService, ?> serviceCreationConfiguration) {
     return unparseConfig(serviceCreationConfiguration);
   }
 
   @Override
   protected Element createRootElement(Document doc, DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
-    Element rootElement = doc.createElementNS(NAMESPACE,MANAGEMENT_NAMESPACE_PREFIX + COLON + MANAGEMENT_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE,MANAGEMENT_NAMESPACE_PREFIX + MANAGEMENT_ELEMENT_NAME);
     rootElement.setAttribute(CACHE_MANAGER_ATTRIBUTE_NAME, defaultManagementRegistryConfiguration.getCacheManagerAlias());
     rootElement.setAttribute(COLLECTOR_EXECUTOR_ATTRIBUTE_NAME, defaultManagementRegistryConfiguration.getCollectorExecutorAlias());
     processManagementTags(doc, rootElement, defaultManagementRegistryConfiguration);
@@ -119,9 +117,9 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
 
   private void processManagementTags(Document doc, Element parent, DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
     if (!defaultManagementRegistryConfiguration.getTags().isEmpty()) {
-      Element tagsName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + COLON + TAGS_NAME);
+      Element tagsName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + TAGS_NAME);
       for (String tag : defaultManagementRegistryConfiguration.getTags()) {
-        Element tagName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + COLON + TAG_NAME);
+        Element tagName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + TAG_NAME);
         tagName.setTextContent(tag);
         tagsName.appendChild(tagName);
       }

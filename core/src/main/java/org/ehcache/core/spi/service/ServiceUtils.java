@@ -18,6 +18,7 @@ package org.ehcache.core.spi.service;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,11 +73,24 @@ public final class ServiceUtils {
    * @throws IllegalArgumentException if more than one matching instance
    */
   public static <T> T findSingletonAmongst(Class<T> clazz, Collection<?> instances) {
+    return findOptionalAmongst(clazz, instances)
+      .orElse(null);
+  }
+
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the optionally found compatible instance
+   * @throws IllegalArgumentException if more than one matching instance
+   */
+  public static <T> Optional<T> findOptionalAmongst(Class<T> clazz, Collection<?> instances) {
     return findStreamAmongst(clazz, instances)
       .reduce((i1, i2) -> {
         throw new IllegalArgumentException("More than one " + clazz.getName() + " found");
-      })
-      .orElse(null);
+      });
   }
 
   /**
@@ -90,5 +104,18 @@ public final class ServiceUtils {
    */
   public static <T> T findSingletonAmongst(Class<T> clazz, Object ... instances) {
     return findSingletonAmongst(clazz, Arrays.asList(instances));
+  }
+
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the optionally found compatible instance
+   * @throws IllegalArgumentException if more than one matching instance
+   */
+  public static <T> Optional<T> findOptionalAmongst(Class<T> clazz, Object ... instances) {
+    return findOptionalAmongst(clazz, Arrays.asList(instances));
   }
 }

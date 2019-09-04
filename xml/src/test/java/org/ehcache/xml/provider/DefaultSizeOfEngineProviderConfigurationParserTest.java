@@ -21,6 +21,7 @@ import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.SizeofType;
 import org.junit.Test;
@@ -33,20 +34,16 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultSizeOfEngineProviderConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
-
-  public DefaultSizeOfEngineProviderConfigurationParserTest() {
-    super(new DefaultSizeOfEngineProviderConfigurationParser());
-  }
+public class DefaultSizeOfEngineProviderConfigurationParserTest {
 
   @Test
   public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
-    Configuration xmlConfig = parseXmlConfiguration("/configs/sizeof-engine.xml");
+    Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/sizeof-engine.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(DefaultSizeOfEngineProviderConfiguration.class);
 
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = (DefaultSizeOfEngineProviderConfiguration) configuration;
@@ -58,8 +55,8 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest extends ServiceP
   public void unparseServiceCreationConfiguration() {
     ConfigType configType = new ConfigType();
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
-    configType = parser.unparseServiceCreationConfiguration(config, configType);
+      .withService(new DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
+    configType = new DefaultSizeOfEngineProviderConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     SizeofType heapStore = configType.getHeapStore();
     assertThat(heapStore.getMaxObjectGraphSize().getValue()).isEqualTo(987);

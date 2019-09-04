@@ -23,7 +23,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link SizeOfEngineProvider}.
  */
-public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreationConfiguration<SizeOfEngineProvider> {
+public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreationConfiguration<SizeOfEngineProvider, DefaultSizeOfEngineProviderConfiguration> {
 
   private final long objectGraphSize;
   private final long maxObjectSize;
@@ -88,5 +88,15 @@ public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreation
    */
   public MemoryUnit getUnit() {
     return this.unit;
+  }
+
+  @Override
+  public DefaultSizeOfEngineProviderConfiguration derive() {
+    return new DefaultSizeOfEngineProviderConfiguration(maxObjectSize, unit, objectGraphSize);
+  }
+
+  @Override
+  public DefaultSizeOfEngineProviderConfiguration build(DefaultSizeOfEngineProviderConfiguration configuration) {
+    return configuration;
   }
 }
