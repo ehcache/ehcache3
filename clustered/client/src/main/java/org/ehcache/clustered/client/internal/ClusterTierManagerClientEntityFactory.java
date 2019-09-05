@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
@@ -262,7 +263,7 @@ public class ClusterTierManagerClientEntityFactory {
         } catch (EntityAlreadyExistsException e) {
           // Ignore - entity exists
         } catch (EntityConfigurationException e) {
-          throw new CachePersistenceException("Unable to create cluster tier", e);
+          throw new PerpetualCachePersistenceException("Unable to create cluster tier", e);
         } catch (EntityException e) {
           throw new AssertionError(e);
         }

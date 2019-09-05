@@ -31,7 +31,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   public ReconnectingServerStoreProxy(ServerStoreProxy serverStoreProxy, Runnable onReconnect) {
     this.delegate = serverStoreProxy;
-    this.delegateRef = new AtomicReference(serverStoreProxy);
+    this.delegateRef = new AtomicReference<>(serverStoreProxy);
     this.onReconnect = onReconnect;
   }
 

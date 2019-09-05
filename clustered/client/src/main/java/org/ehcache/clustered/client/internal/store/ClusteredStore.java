@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -646,6 +647,14 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     @Override
     public void initStore(final Store<?, ?> resource) {
+      try {
+        initStoreInternal(resource);
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void initStoreInternal(Store<?, ?> resource) throws CachePersistenceException {
       reconnectLock.lock();
       try {
         StoreConfig storeConfig = createdStores.get(resource);
@@ -654,87 +663,79 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         }
         final ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
-        try {
-          ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-                  new ServerCallback() {
-                    @Override
-                    public void onInvalidateHash(long hash) {
-                      EvictionOutcome result = EvictionOutcome.SUCCESS;
-                      clusteredStore.evictionObserver.begin();
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
-                          clusteredStore.invalidationValve.invalidateAllWithHash(hash);
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating hash {}", hash, sae);
-                          result = EvictionOutcome.FAILURE;
-                        }
-                      }
-                      clusteredStore.evictionObserver.end(result);
-                    }
+        ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
+          new ServerCallback() {
+            @Override
+            public void onInvalidateHash(long hash) {
+              EvictionOutcome result = EvictionOutcome.SUCCESS;
+              clusteredStore.evictionObserver.begin();
+              if (clusteredStore.invalidationValve != null) {
+                try {
+                  LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+                  clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+                } catch (StoreAccessException sae) {
+                  //TODO: what should be done here? delegate to resilience strategy?
+                  LOGGER.error("Error invalidating hash {}", hash, sae);
+                  result = EvictionOutcome.FAILURE;
+                }
+              }
+              clusteredStore.evictionObserver.end(result);
+            }
 
-                    @Override
-                    public void onInvalidateAll() {
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for all");
-                          clusteredStore.invalidationValve.invalidateAll();
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating all", sae);
-                        }
-                      }
-                    }
+            @Override
+            public void onInvalidateAll() {
+              if (clusteredStore.invalidationValve != null) {
+                try {
+                  LOGGER.debug("CLIENT: calling invalidation valve for all");
+                  clusteredStore.invalidationValve.invalidateAll();
+                } catch (StoreAccessException sae) {
+                  //TODO: what should be done here? delegate to resilience strategy?
+                  LOGGER.error("Error invalidating all", sae);
+                }
+              }
+            }
 
-                    @Override
-                    public Chain compact(Chain chain) {
-                      return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
-                    }
-                  });
-          ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
-            Runnable reconnectTask = () -> {
-              reconnectLock.lock();
+            @Override
+            public Chain compact(Chain chain) {
+              return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
+            }
+          });
+        ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
+          Runnable reconnectTask = () -> {
+            String cacheId = cacheIdentifier.getId();
+            reconnectLock.lock();
+            try {
               try {
                 //TODO: handle race between disconnect event and connection closed exception being thrown
                 // this guy should wait till disconnect event processing is complete.
-                String cacheId = clusteredStore.storeProxy.getCacheId();
                 LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
                 clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
-                initStore(clusteredStore);
+                initStoreInternal(clusteredStore);
                 LOGGER.info("Cache {} got reconnected to cluster", cacheId);
-              } finally {
-                reconnectLock.unlock();
+              } catch (PerpetualCachePersistenceException t) {
+                LOGGER.error("Cache {} failed reconnecting to cluster (failure is perpetual)", cacheId, t);
+                clusteredStore.storeProxy = new FailedReconnectStoreProxy(cacheId, t);
               }
-            };
-            CompletableFuture.runAsync(reconnectTask);
-          });
-          clusteredStore.storeProxy = reconnectingServerStoreProxy;
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
-        }
+            } catch (CachePersistenceException e) {
+              throw new RuntimeException(e);
+            } finally {
+              reconnectLock.unlock();
+            }
+          };
+          CompletableFuture.runAsync(reconnectTask);
+        });
+        clusteredStore.storeProxy = reconnectingServerStoreProxy;
 
         Serializer keySerializer = clusteredStore.codec.getKeySerializer();
         if (keySerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
           ((StatefulSerializer) keySerializer).init(stateRepository);
         }
         Serializer valueSerializer = clusteredStore.codec.getValueSerializer();
         if (valueSerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
           ((StatefulSerializer) valueSerializer).init(stateRepository);
         }
-
       } finally {
         reconnectLock.unlock();
       }
