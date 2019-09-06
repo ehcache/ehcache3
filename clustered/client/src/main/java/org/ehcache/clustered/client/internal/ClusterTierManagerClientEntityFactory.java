@@ -287,7 +287,7 @@ public class ClusterTierManagerClientEntityFactory {
         } catch (EntityAlreadyExistsException e) {
           // Ignore - entity exists
         } catch (EntityConfigurationException e) {
-          throw new CachePersistenceException("Unable to create cluster tier", e);
+          throw new PerpetualCachePersistenceException("Unable to create cluster tier", e);
         } catch (EntityException e) {
           throw new AssertionError(e);
         }
