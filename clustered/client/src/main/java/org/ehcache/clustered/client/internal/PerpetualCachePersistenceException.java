@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache;
+package org.ehcache.clustered.client.internal;
+
+import org.ehcache.CachePersistenceException;
 
 /**
  * Thrown to indicate a perpetual (non-transient) failure in a persistent cache manager.

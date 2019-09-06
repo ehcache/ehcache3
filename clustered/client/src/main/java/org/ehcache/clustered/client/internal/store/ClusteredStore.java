@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.PerpetualCachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;

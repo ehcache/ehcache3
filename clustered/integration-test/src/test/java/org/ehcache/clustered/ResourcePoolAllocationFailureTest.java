@@ -16,8 +16,7 @@
 
 package org.ehcache.clustered;
 
-import org.ehcache.CachePersistenceException;
-import org.ehcache.PerpetualCachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;

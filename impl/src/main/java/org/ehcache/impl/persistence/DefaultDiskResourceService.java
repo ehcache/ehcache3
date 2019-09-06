@@ -17,7 +17,6 @@
 package org.ehcache.impl.persistence;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.PerpetualCachePersistenceException;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
@@ -219,8 +218,8 @@ public class DefaultDiskResourceService implements DiskResourceService {
     return stateRepository;
   }
 
-  private PerpetualCachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
-    return new PerpetualCachePersistenceException("Unknown space: " + identifier);
+  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
+    return new CachePersistenceException("Unknown space: " + identifier);
   }
 
   private PersistenceSpace getPersistenceSpace(PersistenceSpaceIdentifier<?> identifier) {

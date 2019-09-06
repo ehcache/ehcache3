@@ -19,7 +19,6 @@ package org.ehcache.impl.persistence;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.PerpetualCachePersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +95,7 @@ final class FileUtils {
       // if create directory fails, check once more if it is due to concurrent creation.
       LOGGER.debug("Reusing {}", directory.getAbsolutePath());
     } else {
-      throw new PerpetualCachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
+      throw new CachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
     }
   }
 
