@@ -106,6 +106,15 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
     return holder;
   }
 
+  @Override
+  public boolean containsKey(K key) throws StoreAccessException {
+    try {
+      return super.getInternal(key) != null;
+    } catch (TimeoutException e) {
+      return false;
+    }
+  }
+
   private void append(K key, V value) throws TimeoutException {
     PutOperation<K, V> operation = new PutOperation<>(key, value, timeSource.getTimeMillis());
     ByteBuffer payload = codec.encode(operation);
