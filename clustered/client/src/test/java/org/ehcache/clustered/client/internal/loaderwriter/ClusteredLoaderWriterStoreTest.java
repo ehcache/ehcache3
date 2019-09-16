@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -57,6 +58,32 @@ public class ClusteredLoaderWriterStoreTest {
   private OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
   private EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
   private TimeSource timeSource = mock(TimeSource.class);
+
+  @Test
+  public void testContainsKeyValueAbsentInCache() throws Exception {
+    ServerStoreProxy storeProxy = mock(LockingServerStoreProxyImpl.class);
+    @SuppressWarnings("unchecked")
+    CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
+    when(storeProxy.get(eq(1L))).thenReturn(entryOf());
+    ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
+            timeSource, loaderWriter, new DefaultStatisticsService());
+    assertThat(store.containsKey(1L), is(false));
+    verify(loaderWriter, never()).load(anyLong());
+  }
+
+  @Test
+  public void testContainsKeyValuePresentInCache() throws Exception {
+    ServerStoreProxy storeProxy = mock(LockingServerStoreProxyImpl.class);
+    @SuppressWarnings("unchecked")
+    CacheLoaderWriter<Long, String> loaderWriter = mock(CacheLoaderWriter.class);
+    PutOperation<Long, String> operation = new PutOperation<>(1L, "one", System.currentTimeMillis());
+    ServerStoreProxy.ChainEntry toReturn = entryOf(codec.encode(operation));
+    when(storeProxy.get(anyLong())).thenReturn(toReturn);
+    ClusteredLoaderWriterStore<Long, String> store = new ClusteredLoaderWriterStore<>(configuration, codec, resolver, storeProxy,
+            timeSource, loaderWriter, new DefaultStatisticsService());
+    assertThat(store.containsKey(1L), is(true));
+    verify(loaderWriter, never()).load(anyLong());
+  }
 
   @Test
   public void testGetValueAbsentInSOR() throws Exception {
