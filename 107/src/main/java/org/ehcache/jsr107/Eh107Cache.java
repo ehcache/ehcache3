@@ -440,25 +440,9 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   void closeInternal(MultiCacheException closeException) {
-    closeInternal(false, closeException);
-  }
-
-  private void closeInternal(boolean destroy, MultiCacheException closeException) {
     if (closed.compareAndSet(false, true)) {
-      if (destroy) {
-        try {
-          clear(false);
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
-      }
-
       cacheResources.closeResources(closeException);
     }
-  }
-
-  void destroy(MultiCacheException destroyException) {
-    closeInternal(true, destroyException);
   }
 
   @Override

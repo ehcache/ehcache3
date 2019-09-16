@@ -36,6 +36,7 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.internal.serialization.JavaSerializationProvider;
 import org.ehcache.internal.store.service.OnHeapStoreServiceConfig;
@@ -293,12 +294,20 @@ class Eh107CacheManager implements CacheManager {
         destroyException.addThrowable(t);
       }
 
-      cache.destroy(destroyException);
+      cache.closeInternal(destroyException);
 
       try {
         ehCacheManager.removeCache(cache.getName());
       } catch (Throwable t) {
         destroyException.addThrowable(t);
+      }
+
+      if (ehCacheManager instanceof PersistentCacheManager) {
+        try {
+          ((PersistentCacheManager) ehCacheManager).destroyCache(cache.getName());
+        } catch (Throwable t) {
+          destroyException.addThrowable(t);
+        }
       }
     }
 
