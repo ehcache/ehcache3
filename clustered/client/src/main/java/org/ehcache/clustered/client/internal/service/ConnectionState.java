@@ -17,6 +17,7 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
@@ -98,12 +99,8 @@ class ConnectionState {
     ClusterTierClientEntity storeClientEntity;
     while (true) {
       try {
-        if (isReconnect) {
-          storeClientEntity = entityFactory.getClusterTierClientEntity(entityIdentifier, cacheId);
-        } else {
-          storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
-                  clientStoreConfiguration, serviceConfiguration.isAutoCreate());
-        }
+        storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+                clientStoreConfiguration, serviceConfiguration.getClientMode(), isReconnect);
         clusterTierEntities.put(cacheId, storeClientEntity);
         break;
       } catch (EntityNotFoundException e) {
@@ -134,6 +131,9 @@ class ConnectionState {
     while (true) {
       try {
         connect();
+        if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+          autoCreateEntity();
+        }
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
       } catch (ConnectionException e) {
@@ -196,10 +196,17 @@ class ConnectionState {
 
   public void initializeState() {
     try {
-      if (serviceConfiguration.isAutoCreate()) {
-        autoCreateEntity();
-      } else {
-        retrieveEntity();
+      switch (serviceConfiguration.getClientMode()) {
+        case CONNECT:
+        case EXPECTING:
+          retrieveEntity();
+          break;
+        case AUTO_CREATE:
+        case AUTO_CREATE_ON_RECONNECT:
+          autoCreateEntity();
+          break;
+        default:
+          throw new AssertionError(serviceConfiguration.getClientMode());
       }
     } catch (RuntimeException e) {
       entityFactory = null;

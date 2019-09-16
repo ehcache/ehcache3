@@ -19,18 +19,13 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
-import org.ehcache.spi.resilience.RecoveryStore;
-import org.ehcache.spi.resilience.ResilienceStrategy;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -38,30 +33,16 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class CacheManagerReconnectTest extends ClusteredTests {
+public class AutoCreateOnReconnectTest extends ClusteredTests {
   public static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
       + "</ohr:offheap-resources>"
-      + "</config>\n"
-
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>30</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
+      + "</config>\n";
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(1)
@@ -75,16 +56,12 @@ public class CacheManagerReconnectTest extends ClusteredTests {
 
     try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
       .with(cluster(connectionURI.resolve("/crud-cm"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
+        .autoCreateOnReconnect(server -> server.defaultServerResource("primary-server-resource")))
       .build(true)) {
-
-      @SuppressWarnings("unchecked")
-      ResilienceStrategy<Long, String> resilienceStrategy = spy(new RobustResilienceStrategy<>(mock(RecoveryStore.class)));
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache",
         newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
           .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-          .withResilienceStrategy(resilienceStrategy)
           .build());
 
       cache.put(1L, "one");
@@ -92,30 +69,11 @@ public class CacheManagerReconnectTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateAllServers();
       CLUSTER.getClusterControl().startAllServers();
 
-      for (int i = 0; i < 400; i++) {
-        try {
-          assertThat(cache.get(1L), nullValue());
-          verify(resilienceStrategy).getFailure(eq(1L), argThat(cause(hasMessage(is("Cache clustered-cache failed reconnecting to cluster")))));
-          return;
-        } catch (AssertionError e) {
-          Thread.sleep(100);
-        }
+      while (cache.get(1L) == null) {
+        Thread.sleep(100);
+        cache.put(1L, "two");
       }
-      throw new AssertionError();
+      assertThat(cache.get(1L), is("two"));
     }
-  }
-
-  private static <T extends Throwable> Matcher<T> cause(Matcher<? super T> matches) {
-    return new TypeSafeMatcher<T>() {
-      @Override
-      protected boolean matchesSafely(Throwable item) {
-        return matches.matches(item.getCause());
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("a throwable whose cause is ").appendDescriptionOf(matches);
-      }
-    };
   }
 }
