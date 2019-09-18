@@ -113,6 +113,22 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   PutStatus put(K key, V value) throws StoreAccessException;
 
   /**
+   * Maps the specified key to the specified value in this store.
+   * Neither the key nor the value can be {@code null}.
+   *
+   * @param key   key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws StoreAccessException if the mapping can't be installed
+   */
+  default ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> value);
+  }
+
+  /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
    * already exists.
    * <p>
@@ -159,6 +175,24 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping can't be removed
    */
   boolean remove(K key) throws StoreAccessException;
+
+
+  /**
+   * Removes the key (and its corresponding value) from this store.
+   * This method does nothing if the key is not mapped.
+   * <p>
+   * The key cannot be {@code null}.
+   *
+   * @param key the key that needs to be removed
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if the specified key is null
+   * @throws NullPointerException if the argument is {@code null}
+   * @throws StoreAccessException if the mapping can't be removed
+   */
+  default ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> null);
+  }
 
   /**
    * Removes the entry for a key only if currently mapped to the given value
