@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'org.ehcache.build.deploy'
+}
 
 dependencies {
   // optional: if we want xml config

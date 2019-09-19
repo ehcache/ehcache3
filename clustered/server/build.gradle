@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'org.ehcache.build.deploy'
+}
 
 dependencies {
   api "org.terracotta:client-message-tracker:$terracottaPlatformVersion"

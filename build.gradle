@@ -19,15 +19,13 @@ import org.gradle.internal.jvm.Jvm
 plugins {
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
-  id 'io.codearte.nexus-staging' version '0.21.0'
-  // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '2.0.0' apply false
-  // Declare osgi-ds at the top
-  id 'org.jayware.osgi-ds' version '0.5.6' apply false
+  id 'io.codearte.nexus-staging'
   //OWASP Security Vulnerability Detection
-  id 'org.owasp.dependencycheck' version '5.2.0' apply false
+  id 'org.owasp.dependencycheck'
+  // Declare spotbugs at the top
+  id 'com.github.spotbugs' apply false
   // Declare bnd at the top
-  id 'biz.aQute.bnd.builder' version '4.1.0' apply false
+  id 'biz.aQute.bnd.builder' apply false
 }
 
 wrapper {
@@ -84,8 +82,6 @@ if (hasProperty('testVM')) {
   println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
-apply plugin: 'org.owasp.dependencycheck'
-
 dependencyCheck {
   failBuildOnCVSS = 0
   suppressionFile = 'config/owasp-supressions.xml'
@@ -129,8 +125,8 @@ subprojects {
 
   dependencies {
     implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    compileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
-    testCompileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
+    compileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
+    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
     testImplementation "junit:junit:$junitVersion"
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
@@ -183,15 +179,19 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = checkstyleVersion
   }
 
   spotbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    toolVersion = spotbugsVersion
+
   }
 
+  // Spotbugs itself has a divergence in it's slf4j dependencies.
+  // This version is independent of the version we use.
+  configurations.spotbugs.resolutionStrategy {
+    force 'org.slf4j:slf4j-api:1.8.0-beta4'
+  }
   spotbugsMain {
     reports {
       // Switch from xml to html by changing these flags

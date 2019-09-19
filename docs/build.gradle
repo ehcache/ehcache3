@@ -18,7 +18,7 @@ import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
 import org.asciidoctor.gradle.jvm.AsciidoctorTask
 
 plugins {
-  id 'org.asciidoctor.jvm.base' version '2.3.0'
+  id 'org.asciidoctor.jvm.base'
 }
 
 asciidoctorj {

@@ -14,9 +14,30 @@
  * limitations under the License.
  */
 
-apply plugin: 'groovy'
+plugins {
+  id 'groovy'
+  id 'java-gradle-plugin'
+}
 
 repositories { jcenter() }
+
+gradlePlugin {
+  plugins {
+    ehDeploy {
+      id = 'org.ehcache.build.deploy'
+      implementationClass = 'EhDeploy'
+    }
+    ehDistribute {
+      id = 'org.ehcache.build.distribute'
+      implementationClass = 'EhDistribute'
+    }
+    ehPomMangle {
+      id = 'org.ehcache.build.pom-mangle'
+      implementationClass = 'EhPomMangle'
+    }
+  }
+}
+
 dependencies {
   compile gradleApi()
   compile localGroovy()

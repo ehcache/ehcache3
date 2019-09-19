@@ -15,11 +15,10 @@
  */
 
 plugins {
-  id 'org.unbroken-dome.xjc' version '1.4.3'
+  id 'org.unbroken-dome.xjc'
+  id 'org.ehcache.build.deploy'
+  id 'biz.aQute.bnd.builder'
 }
-
-apply plugin: EhDeploy
-apply plugin: 'biz.aQute.bnd.builder'
 
 dependencies {
   api project(':api')
