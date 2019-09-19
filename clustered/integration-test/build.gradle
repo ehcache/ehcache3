@@ -38,10 +38,6 @@ dependencies {
   testRuntimeOnly project(':clustered:clustered-dist')
 
   testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
-  testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
-    exclude group:'junit', module:'junit'
-    exclude group:'org.hamcrest', module:'hamcrest-core'
-  }
   testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
   serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {

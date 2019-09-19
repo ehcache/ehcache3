@@ -2,7 +2,7 @@
 
 :toc:
 
-The `Store` in Ehcache is designed to hold data in a tiered model. 
+The `Store` in Ehcache is designed to hold data in a tiered model.
 A cache will always have at least one tier, possible multiple.
 As soon as there are multiple tiers, they are immediately divided between a single `AuthoritativeTier` and one or more `CachingTier`.
 It is the `TieredStore` that wires the authority and caching tiers and provides a unified view of the `Store` for the Cache.
@@ -49,7 +49,7 @@ authority.
 
 [plantuml]
 ....
-include::../../uml/put.puml[]
+include::{includedir}/../../uml/put.puml[]
 ....
  * All writes directly go to the Authoritative tier.This tier has all the data such that caching tier always has a subset of authority
  * On return, the mapping in the caching tier is invalidated.
@@ -57,7 +57,7 @@ include::../../uml/put.puml[]
 
 [plantuml]
 ....
-include::../../uml/get.puml[]
+include::{includedir}/../../uml/get.puml[]
 ....
  * Any reading thread tries to get data from the caching tier and returns
  * If the key is not found in caching tier, it is faulted from authority

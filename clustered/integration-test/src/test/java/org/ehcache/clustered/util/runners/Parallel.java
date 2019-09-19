@@ -13,12 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.util.runners;
 
-apply plugin: 'groovy'
+import org.junit.runners.BlockJUnit4ClassRunner;
+import org.junit.runners.model.InitializationError;
 
-repositories { jcenter() }
-dependencies {
-  compile gradleApi()
-  compile localGroovy()
-  compile 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
+import static java.util.concurrent.Executors.newCachedThreadPool;
+
+public class Parallel extends BlockJUnit4ClassRunner {
+
+  public Parallel(Class<?> klass) throws InitializationError {
+    super(klass);
+    setScheduler(new ExecutorScheduler(newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + klass))));
+  }
 }
