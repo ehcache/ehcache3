@@ -9,4 +9,9 @@
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-11065</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[file name: Ehcache modules are not Gradle!]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
+    <cve>CVE-2019-16370</cve>
+  </suppress>
 </suppressions>
