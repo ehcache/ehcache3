@@ -27,6 +27,12 @@ dependencies {
   testCompile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   testCompile "org.terracotta:runnel:$terracottaPlatformVersion"
   testCompile "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testCompile("javax.cache:cache-tests:$jcacheTckVersion") {
+    exclude group:'junit', module:'junit'
+  }
+  testCompile("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+    exclude group:'junit', module:'junit'
+  }
 
   testImplementation project(':management')
   testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"

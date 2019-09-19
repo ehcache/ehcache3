@@ -130,13 +130,25 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
   }
 
   @Override
-  protected PutStatus silentPut(final K key, final V value) throws StoreAccessException {
+  protected void silentPut(final K key, final V value) throws StoreAccessException {
     try {
       PutWithWriterOperation<K, V> operation = new PutWithWriterOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       storeProxy.append(extractedKey, payload);
-      return PutStatus.PUT;
+    } catch (Exception re) {
+      throw handleException(re);
+    }
+  }
+
+  @Override
+  protected ValueHolder<V> silentGetAndPut(K key, V value) throws StoreAccessException {
+    try {
+      PutWithWriterOperation<K, V> operation = new PutWithWriterOperation<>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      long extractedKey = extractLongKey(key);
+      final ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -156,13 +168,13 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
   }
 
   @Override
-  protected boolean silentRemove(K key) throws StoreAccessException {
+  protected ValueHolder<V> silentRemove(K key) throws StoreAccessException {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
-      return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE) != null;
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
     }

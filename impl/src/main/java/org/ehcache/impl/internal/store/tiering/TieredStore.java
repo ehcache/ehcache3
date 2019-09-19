@@ -111,6 +111,15 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    try {
+      return authoritativeTier.getAndPut(key, value);
+    } finally {
+      cachingTier().invalidate(key);
+    }
+  }
+
+  @Override
   public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     try {
       return authoritativeTier.putIfAbsent(key, value, put);
@@ -123,6 +132,15 @@ public class TieredStore<K, V> implements Store<K, V> {
   public boolean remove(K key) throws StoreAccessException {
     try {
       return authoritativeTier.remove(key);
+    } finally {
+      cachingTier().invalidate(key);
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    try {
+      return authoritativeTier.getAndRemove(key);
     } finally {
       cachingTier().invalidate(key);
     }
