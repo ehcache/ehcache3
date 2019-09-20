@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered;
 
-import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -69,7 +69,7 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
       cacheManagerBuilder.build(true);
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
-      Throwable cause = getCause(e, CachePersistenceException.class);
+      Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
       assertThat(cause, notNullValue());
       assertThat(cause.getMessage(), startsWith("Unable to create"));
     }

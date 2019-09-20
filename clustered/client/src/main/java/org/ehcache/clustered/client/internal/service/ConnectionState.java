@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFacto
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.ConnectionSource;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -106,7 +107,7 @@ class ConnectionState {
         clusterTierEntities.put(cacheId, storeClientEntity);
         break;
       } catch (EntityNotFoundException e) {
-        throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
+        throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
         handleConnectionClosedException();

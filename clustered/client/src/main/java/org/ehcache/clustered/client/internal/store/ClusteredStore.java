@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -716,6 +717,14 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     @Override
     public void initStore(Store<?, ?> resource) {
+      try {
+        initStoreInternal(resource);
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void initStoreInternal(Store<?, ?> resource) throws CachePersistenceException {
       connectLock.lock();
       try {
         StoreConfig storeConfig = createdStores.get(resource);
@@ -724,52 +733,44 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
-        try {
-          ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-                                                                              getServerCallback(clusteredStore));
-          ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
-            Runnable reconnectTask = () -> {
-              connectLock.lock();
+        ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
+                                                                            getServerCallback(clusteredStore));
+        ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
+          Runnable reconnectTask = () -> {
+            String cacheId = cacheIdentifier.getId();
+            connectLock.lock();
+            try {
               try {
                 //TODO: handle race between disconnect event and connection closed exception being thrown
                 // this guy should wait till disconnect event processing is complete.
-                String cacheId = cacheIdentifier.getId();
                 LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
                 clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
-                initStore(clusteredStore);
+                initStoreInternal(clusteredStore);
                 LOGGER.info("Cache {} got reconnected to cluster", cacheId);
-              } finally {
-                connectLock.unlock();
+              } catch (PerpetualCachePersistenceException t) {
+                LOGGER.error("Cache {} failed reconnecting to cluster (failure is perpetual)", cacheId, t);
+                clusteredStore.setStoreProxy(new FailedReconnectStoreProxy(cacheId, t));
               }
-            };
-            CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
-          });
-          clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
-        }
+            } catch (CachePersistenceException e) {
+              throw new RuntimeException(e);
+            } finally {
+              connectLock.unlock();
+            }
+          };
+          CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
+        });
+        clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
 
         Serializer<?> keySerializer = clusteredStore.codec.getKeySerializer();
         if (keySerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
           ((StatefulSerializer) keySerializer).init(stateRepository);
         }
         Serializer<?> valueSerializer = clusteredStore.codec.getValueSerializer();
         if (valueSerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
           ((StatefulSerializer) valueSerializer).init(stateRepository);
         }
-
       } finally {
         connectLock.unlock();
       }
