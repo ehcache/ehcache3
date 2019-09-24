@@ -23,7 +23,7 @@
   <eh:service>
     <tc:cluster>
       <tc:connection url="terracotta://example.com/myCacheManager`+"/>
-      <tc:server-side-config auto-create="false"/>
+      <tc:server-side-config client-mode="expecting"/>
     </tc:cluster>
   </eh:service>
 

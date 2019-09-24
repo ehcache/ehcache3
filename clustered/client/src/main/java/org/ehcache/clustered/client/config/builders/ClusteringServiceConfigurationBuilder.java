@@ -27,12 +27,13 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 
-import static org.ehcache.clustered.client.config.ClusteringServiceConfiguration.DEFAULT_AUTOCREATE;
+import static org.ehcache.clustered.client.config.ClusteringServiceConfiguration.DEFAULT_CLIENT_MODE;
 
 /**
  * A builder of ClusteringService configurations.
@@ -41,7 +42,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private final ConnectionSource connectionSource;
   private final Timeouts timeouts;
-  private final boolean autoCreate;
+  private final ClientMode clientMode;
   private final ServerSideConfigurationBuilder serverSideConfiguration;
   private final Properties properties;
 
@@ -53,7 +54,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE, null, new Properties());
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), TimeoutsBuilder.timeouts().build(), DEFAULT_CLIENT_MODE, null, new Properties());
   }
 
   /**
@@ -65,7 +66,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(Iterable<InetSocketAddress> servers, String clusterTierManager) {
-    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE, null, new Properties());
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), TimeoutsBuilder.timeouts().build(), DEFAULT_CLIENT_MODE, null, new Properties());
   }
 
   /**
@@ -79,17 +80,17 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
     ServerSideConfiguration serverSideConfiguration = configuration.getServerConfiguration();
     if (serverSideConfiguration == null) {
       return new ClusteringServiceConfigurationBuilder(configuration.getConnectionSource(), configuration.getTimeouts(),
-        configuration.isAutoCreate(), null, configuration.getProperties());
+        configuration.getClientMode(), null, configuration.getProperties());
     } else {
       return new ClusteringServiceConfigurationBuilder(configuration.getConnectionSource(), configuration.getTimeouts(),
-        configuration.isAutoCreate(), new ServerSideConfigurationBuilder(serverSideConfiguration), configuration.getProperties());
+        configuration.getClientMode(), new ServerSideConfigurationBuilder(serverSideConfiguration), configuration.getProperties());
     }
   }
 
-  private ClusteringServiceConfigurationBuilder(ConnectionSource connectionSource, Timeouts timeouts, boolean autoCreate, ServerSideConfigurationBuilder serverSideConfiguration, Properties properties) {
+  private ClusteringServiceConfigurationBuilder(ConnectionSource connectionSource, Timeouts timeouts, ClientMode clientMode, ServerSideConfigurationBuilder serverSideConfiguration, Properties properties) {
     this.connectionSource = connectionSource;
     this.timeouts = Objects.requireNonNull(timeouts, "Timeouts can't be null");
-    this.autoCreate = autoCreate;
+    this.clientMode = clientMode;
     this.serverSideConfiguration = serverSideConfiguration;
     this.properties = properties;
   }
@@ -100,7 +101,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ClusteringServiceConfigurationBuilder usingUri(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), timeouts, autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), timeouts, clientMode, serverSideConfiguration, properties);
   }
 
   /**
@@ -109,7 +110,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ClusteringServiceConfigurationBuilder usingServers(Iterable<InetSocketAddress> servers) {
-    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, connectionSource.getClusterTierManager()), timeouts, autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, connectionSource.getClusterTierManager()), timeouts, clientMode, serverSideConfiguration, properties);
   }
 
   /**
@@ -118,7 +119,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ClusteringServiceConfigurationBuilder usingServers(Iterable<InetSocketAddress> servers, String clusterTierManager) {
-    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), timeouts, autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), timeouts, clientMode, serverSideConfiguration, properties);
   }
 
   /**
@@ -129,7 +130,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    */
   @Deprecated
   public ServerSideConfigurationBuilder autoCreate() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, true, serverSideConfiguration, properties));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, ClientMode.AUTO_CREATE, serverSideConfiguration, properties));
   }
 
   /**
@@ -140,7 +141,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    */
   @Deprecated
   public ServerSideConfigurationBuilder expecting() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, false, serverSideConfiguration, properties));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, ClientMode.EXPECTING, serverSideConfiguration, properties));
   }
 
   /**
@@ -152,7 +153,20 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ClusteringServiceConfigurationBuilder autoCreate(UnaryOperator<ServerSideConfigurationBuilder> serverSideConfig) {
-    return new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, true,
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, ClientMode.AUTO_CREATE,
+      serverSideConfig.apply(new ServerSideConfigurationBuilder()), properties);
+  }
+
+  /**
+   * Support connection to an existing entity or create if the entity if absent on initial connection or any subsequent reconnect attempt.
+   * <p>
+   * An empty server-side configuration can be created by performing no operations on the supplied builder:
+   * {@code builder.autoCreateOnReconnect(b -> b)}
+   *
+   * @return a clustering service configuration builder
+   */
+  public ClusteringServiceConfigurationBuilder autoCreateOnReconnect(UnaryOperator<ServerSideConfigurationBuilder> serverSideConfig) {
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, ClientMode.AUTO_CREATE_ON_RECONNECT,
       serverSideConfig.apply(new ServerSideConfigurationBuilder()), properties);
   }
 
@@ -165,7 +179,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ClusteringServiceConfigurationBuilder expecting(UnaryOperator<ServerSideConfigurationBuilder> serverSideConfig) {
-    return new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, false,
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, ClientMode.EXPECTING,
       serverSideConfig.apply(new ServerSideConfigurationBuilder()), properties);
   }
 
@@ -182,7 +196,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
   public ClusteringServiceConfigurationBuilder timeouts(Timeouts timeouts) {
-    return new ClusteringServiceConfigurationBuilder(connectionSource, timeouts, autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfigurationBuilder(connectionSource, timeouts, clientMode, serverSideConfiguration, properties);
   }
 
   /**
@@ -198,7 +212,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
   public ClusteringServiceConfigurationBuilder timeouts(Builder<? extends Timeouts> timeoutsBuilder) {
-    return new ClusteringServiceConfigurationBuilder(connectionSource, timeoutsBuilder.build(), autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfigurationBuilder(connectionSource, timeoutsBuilder.build(), clientMode, serverSideConfiguration, properties);
   }
 
   /**
@@ -240,7 +254,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *        {@code ClusteringServiceConfigurationBuilder} and the {@code serverSideConfiguration} provided
    */
   ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
-    return new ClusteringServiceConfiguration(connectionSource, timeouts, autoCreate, serverSideConfiguration, properties);
+    return new ClusteringServiceConfiguration(connectionSource, timeouts, clientMode, serverSideConfiguration, properties);
   }
 
   private static ChronoUnit toChronoUnit(TimeUnit unit) {
@@ -258,5 +272,4 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
       default: throw new AssertionError("Unknown unit: " + unit);
     }
   }
-
 }

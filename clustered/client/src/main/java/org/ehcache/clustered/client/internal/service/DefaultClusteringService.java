@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -176,7 +177,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
     ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
     if (knownPersistenceSpaces.remove(clusterCacheIdentifier.getId()) == null) {
-      throw new CachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
+      throw new PerpetualCachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
     }
   }
 
@@ -185,7 +186,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(clusterCacheIdentifier.getId());
     if (clusteredSpace == null) {
-      throw new CachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
+      throw new PerpetualCachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
     }
     ConcurrentMap<String, ClusterStateRepository> stateRepositories = clusteredSpace.stateRepositories;
     ClusterStateRepository currentRepo = stateRepositories.get(name);
@@ -271,15 +272,25 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
 
     try {
-      storeClientEntity.validate(clientStoreConfiguration);
-    } catch (ClusterTierException e) {
-      serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
-                                          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
-    } catch (TimeoutException e) {
-      serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
-                                          + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
+      try {
+        storeClientEntity.validate(clientStoreConfiguration);
+      } catch (ClusterTierValidationException e) {
+        throw new PerpetualCachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
+      } catch (ClusterTierException e) {
+        throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
+      } catch (TimeoutException e) {
+        throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
+      }
+    } catch (Throwable t) {
+      try {
+        serverStoreProxy.close();
+      } catch (Throwable u) {
+        t.addSuppressed(u);
+      }
+      throw t;
     }
 
     if (storeConfig.getCacheLoaderWriter() != null) {
