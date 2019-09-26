@@ -121,6 +121,8 @@ public class ManagementClusterConnectionTest {
     // test_notifs_sent_at_CM_init
     AbstractClusteringManagementTest.waitForAllNotifications(
             "CLIENT_CONNECTED",
+            "CLIENT_PROPERTY_ADDED",
+            "CLIENT_PROPERTY_ADDED",
             "CLIENT_REGISTRY_AVAILABLE",
             "CLIENT_TAGS_UPDATED",
             "EHCACHE_RESOURCE_POOLS_CONFIGURED",
