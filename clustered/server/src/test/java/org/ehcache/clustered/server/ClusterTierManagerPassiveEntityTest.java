@@ -366,6 +366,11 @@ public class ClusterTierManagerPassiveEntityTest {
             public OffHeapResource getOffHeapResource(OffHeapResourceIdentifier identifier) {
               return pools.get(identifier);
             }
+
+            @Override
+            public boolean addOffHeapResource(OffHeapResourceIdentifier identifier, long capacity) {
+              return false;
+            }
           }, config.getConfig().getConfiguration(), DEFAULT_MAPPER, service -> {});
         }
         return (T) (this.storeManagerService);
