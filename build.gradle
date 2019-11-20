@@ -78,7 +78,11 @@ ext {
 }
 
 if (hasProperty('testVM')) {
-  testJava = Utils.jvmForHome(new File(testVM))
+  File jvmHome = new File(testVM)
+  if (!jvmHome.exists() && hasProperty(testVM)) {
+    jvmHome = new File(project.property(testVM).toString())
+  }
+  testJava = Utils.jvmForHome(jvmHome)
   println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
