@@ -35,4 +35,5 @@ dependencies {
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
 
   testImplementation project(':clustered:test-utils')
+  testImplementation ("org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion")
 }

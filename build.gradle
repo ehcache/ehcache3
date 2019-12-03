@@ -149,6 +149,9 @@ subprojects {
     if (parent.isCloudbees) {
       systemProperty 'disable.concurrent.tests', 'true'
     }
+    jacoco {
+      excludes += "org.terracotta.tripwire.*"
+    }
   }
 
   task slowTest(type: Test) {
