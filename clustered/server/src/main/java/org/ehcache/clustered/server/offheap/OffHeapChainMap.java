@@ -359,37 +359,43 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
     }
 
     public Iterator<Entry<K, InternalChain>> detachedEntryIterator() {
-      return new LockedEntryIterator() {
-        @Override
-        protected Entry<K, InternalChain> create(IntBuffer entry) {
-          Entry<K, InternalChain> attachedEntry = super.create(entry);
+      Lock lock = readLock();
+      lock.lock();
+      try {
+        return new LockedEntryIterator() {
+          @Override
+          protected Entry<K, InternalChain> create(IntBuffer entry) {
+            Entry<K, InternalChain> attachedEntry = super.create(entry);
 
-          try (InternalChain chain = attachedEntry.getValue()) {
-            Chain detachedChain = chain.detach();
-            return new SimpleImmutableEntry<>(attachedEntry.getKey(), new InternalChain() {
-              @Override
-              public Chain detach() {
-                return detachedChain;
-              }
+            try (InternalChain chain = attachedEntry.getValue()) {
+              Chain detachedChain = chain.detach();
+              return new SimpleImmutableEntry<>(attachedEntry.getKey(), new InternalChain() {
+                @Override
+                public Chain detach() {
+                  return detachedChain;
+                }
 
-              @Override
-              public boolean append(ByteBuffer element) {
-                throw new UnsupportedOperationException();
-              }
+                @Override
+                public boolean append(ByteBuffer element) {
+                  throw new UnsupportedOperationException();
+                }
 
-              @Override
-              public boolean replace(Chain expected, Chain replacement) {
-                throw new UnsupportedOperationException();
-              }
+                @Override
+                public boolean replace(Chain expected, Chain replacement) {
+                  throw new UnsupportedOperationException();
+                }
 
-              @Override
-              public void close() {
-                //
-              }
-            });
+                @Override
+                public void close() {
+                  //
+                }
+              });
+            }
           }
-        }
-      };
+        };
+      } finally {
+        lock.unlock();
+      }
     }
   }
 }
