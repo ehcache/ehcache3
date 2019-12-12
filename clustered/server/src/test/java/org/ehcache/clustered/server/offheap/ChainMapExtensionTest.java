@@ -32,11 +32,13 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 import org.terracotta.offheapstore.util.Factory;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.clustered.server.offheap.OffHeapChainMap.chain;
+import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -338,8 +340,8 @@ public class ChainMapExtensionTest {
 
     private class ExtendedEngineOwner implements OffHeapStorageArea.Owner {
       @Override
-      public boolean evictAtAddress(long address, boolean shrink) {
-        return false;
+      public Collection<Long> evictAtAddress(long address, boolean shrink) {
+        return emptyList();
       }
 
       @Override

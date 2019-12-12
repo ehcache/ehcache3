@@ -17,6 +17,7 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 import org.terracotta.offheapstore.util.Factory;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 
 public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, BinaryStorageEngine {
@@ -800,16 +802,31 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
   class StorageOwner implements OffHeapStorageArea.Owner {
 
     @Override
-    public boolean evictAtAddress(long address, boolean shrink) {
-      long chain = findHead(address);
+    public Collection<Long> evictAtAddress(long address, boolean shrink) {
+      Collection<Long> elements = new ArrayList<>();
+      long chain = -1L;
+      long element = address;
+      do {
+        elements.add(element);
+        if (isHead(element)) {
+          chain = element;
+          element += OffHeapChainStorageEngine.this.totalChainHeaderSize;
+        }
+        element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
+      } while (element != address);
+
       for (AttachedInternalChain activeChain : activeChains) {
         if (activeChain.chain == chain) {
-          return false;
+          return emptyList();
         }
       }
       int hash = storage.readInt(chain + CHAIN_HEADER_KEY_HASH_OFFSET);
       int slot = owner.getSlotForHashAndEncoding(hash, chain, ~0);
-      return owner.evict(slot, shrink);
+      if (owner.evict(slot, shrink)) {
+        return elements;
+      } else {
+        return emptyList();
+      }
     }
 
     @Override
