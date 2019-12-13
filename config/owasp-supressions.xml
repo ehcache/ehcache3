@@ -19,4 +19,9 @@
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-16370</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[file name: TC Tripwire is unrelated to the other Tripwire]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.terracotta/tc\-tripwire\-plugin@.*$</packageUrl>
+    <cpe>cpe:/a:tripwire:tripwire</cpe>
+  </suppress>
 </suppressions>
