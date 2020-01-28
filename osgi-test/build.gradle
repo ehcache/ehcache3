@@ -37,6 +37,22 @@ dependencies {
 
 }
 
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.0.0'))
+//              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.0.0'))
+//              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.0.0'))
+//              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+    }
+  }
+}
+
 sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir
