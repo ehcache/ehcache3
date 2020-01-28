@@ -50,7 +50,7 @@ dependencies {
   testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.4.5") {
+  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 }
@@ -61,6 +61,22 @@ configurations.all {
      force 'org.ops4j.base:ops4j-base-net:1.5.0'
      force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
    }
+}
+
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+    }
+  }
 }
 
 sourceSets {
