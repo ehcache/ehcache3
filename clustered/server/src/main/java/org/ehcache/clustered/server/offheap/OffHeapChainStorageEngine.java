@@ -27,7 +27,6 @@ import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.SequencedElement;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.BinaryStorageEngine;
@@ -38,15 +37,37 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 import org.terracotta.offheapstore.util.Factory;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableList;
 import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, BinaryStorageEngine {
+
+  /*
+   *          ELEMENT
+   *    0                 7
+   *  0 | sequence number |
+   *  8 | length |  next  |
+   * 16 |  next  | [[-----
+   *     --- contents ---]] (length bytes)
+   *
+   * `next` is the address of the next element in the chain.
+   * `next` on the last element in the chain points to the chain head.
+   * (byte 0 in the heads chain structure, not byte 0 in the element)
+   */
   private static final int ELEMENT_HEADER_SEQUENCE_OFFSET = 0;
   private static final int ELEMENT_HEADER_LENGTH_OFFSET = 8;
   private static final int ELEMENT_HEADER_NEXT_OFFSET = 12;
   private static final int ELEMENT_HEADER_SIZE = 20;
 
+  /*
+   *           CHAIN
+   *    0                 7
+   *  0 |k-length| k-hash |
+   *  8 |      tail       |
+   *    [[--- ELEMENT ---]]
+   *    [[ key-contents  ]] (k-length bytes)
+   *
+   * `tail` is the address of the last element in the chain
+   */
   private static final int CHAIN_HEADER_KEY_LENGTH_OFFSET = 0;
   private static final int CHAIN_HEADER_KEY_HASH_OFFSET = 4;
   private static final int CHAIN_HEADER_TAIL_OFFSET = 8;
@@ -509,20 +530,20 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     /**
      * @return false if storage can't be allocated for new header when whole chain is not removed, true otherwise
      */
-    public boolean removeHeader(Chain header) {
+    public boolean removeHeader(Chain expected) {
       long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
-      long prefixTail;
 
-      Iterator<Element> iterator = header.iterator();
+      Iterator<Element> expectedIt = expected.iterator();
       do {
-        if (!compare(iterator.next(), suffixHead)) {
+        if (!compare(expectedIt.next(), suffixHead)) {
           return true;
         }
-        prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
-      } while (iterator.hasNext());
+      } while (expectedIt.hasNext() && suffixHead != chain);
 
-      if (suffixHead == chain) {
+      if (expectedIt.hasNext()) {
+        return true;
+      } else if (suffixHead == chain) {
         //whole chain removed
         int slot = owner.getSlotForHashAndEncoding(readKeyHash(chain), chain, ~0);
         if (!owner.evict(slot, true)) {
@@ -547,7 +568,10 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
             }
 
             if (owner.updateEncoding(hash, chain, newChainAddress, ~0)) {
-              storage.writeLong(prefixTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
+              // NOTE: we leave the original suffix head attached to the prefix so that it gets freed along with the
+              // prefix since we took a copy of it for the new chain.
+              storage.writeLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET, chain);
+              storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, suffixHead);
               chainMoved(chain, newChainAddress);
               free();
               return true;
@@ -575,7 +599,11 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
-      } while (expectedIt.hasNext());
+      } while (expectedIt.hasNext() && suffixHead != chain);
+
+      if (expectedIt.hasNext()) {
+        return true;
+      }
 
       int hash = readKeyHash(chain);
       Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement.iterator());
