@@ -29,7 +29,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -49,7 +48,7 @@ public class OversizedCacheOpsTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Test
   public void overSizedCacheOps() throws Exception {

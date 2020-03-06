@@ -41,26 +41,40 @@ dependencies {
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
+def voltronProvides = { Configuration c ->
+  c.exclude group:'org.slf4j', module:'slf4j-api'
+  c.exclude group:'org.terracotta', module:'entity-server-api'
+  c.exclude group:'org.terracotta', module:'entity-common-api'
+  c.exclude group:'org.terracotta', module:'packaging-support'
+  c.exclude group:'org.terracotta', module:'standard-cluster-services'
+}
+
 configurations {
   kit
-  serverLibs
+  serverApis(voltronProvides)
+  serverLibs(voltronProvides)
 }
 
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
-  serverLibs(project(':clustered:server')) {
-    exclude group: 'org.terracotta', module: 'entity-server-api'
-    exclude group: 'org.terracotta', module: 'entity-common-api'
-    exclude group: 'org.terracotta', module: 'packaging-support'
-    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  serverApis "org.terracotta:statistics:$statisticVersion"
+  serverApis("org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion") {
+    transitive = false
   }
+  //  this is here because monitoring-service-api depends on mnm-common.  if that can be unwound,
+  //  mnm-common can go into lib
+  serverApis "org.terracotta.management.dist:mnm-common:$terracottaPlatformVersion"
 
-  // Needed because declared as provided in the different projects
-  serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  serverApis project(':clustered:server:service-api')
+  serverLibs project(':clustered:server:entity')
+  serverLibs project(':clustered:server:service')
 
-  serverLibs "org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion"
+  serverLibs("org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion") {
+    transitive = false
+  }
+  serverLibs "org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion"
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
 
@@ -100,8 +114,11 @@ distributions {
         }
         includeEmptyDirs = false
       }
+      into ("server/plugins/api") {
+        from configurations.serverApis
+      }
       into ("server/plugins/lib") {
-        from configurations.serverLibs
+        from (configurations.serverLibs - configurations.serverApis)
       }
       into ('client/ehcache') {
         from jar

@@ -34,7 +34,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -58,7 +57,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
   private static Cache<Long, String> CACHE2;
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).withServiceFragment(CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath()).withServiceFragment(CONFIG).build();
 
   @Before
   public void setUp() throws Exception {

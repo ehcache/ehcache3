@@ -33,7 +33,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +74,7 @@ public class BasicCacheReconnectTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-          newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

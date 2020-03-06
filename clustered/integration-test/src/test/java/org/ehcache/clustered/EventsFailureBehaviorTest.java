@@ -39,11 +39,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -73,7 +70,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
   @Rule
   public final TestName testName = new TestName();
 

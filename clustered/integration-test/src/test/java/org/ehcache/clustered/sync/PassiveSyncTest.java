@@ -32,7 +32,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,7 +50,7 @@ public class PassiveSyncTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {

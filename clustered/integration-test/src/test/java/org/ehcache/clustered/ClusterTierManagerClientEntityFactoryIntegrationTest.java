@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection CONNECTION;
 
   @BeforeClass

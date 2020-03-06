@@ -23,9 +23,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -46,7 +44,7 @@ public class AutoCreateOnReconnectTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(1)
-    .in(new File("build/cluster"))
+    .in(clusterPath())
     .withServiceFragment(RESOURCE_CONFIG)
     .build();
 

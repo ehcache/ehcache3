@@ -35,7 +35,6 @@ import org.terracotta.testing.rules.Cluster;
 
 import com.tc.util.Assert;
 
-import java.io.File;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -67,7 +66,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

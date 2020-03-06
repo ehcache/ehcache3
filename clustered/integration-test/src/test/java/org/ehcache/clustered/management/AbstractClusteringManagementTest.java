@@ -31,6 +31,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.exception.EntityConfigurationException;
@@ -49,7 +51,6 @@ import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -71,6 +72,8 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 @SuppressWarnings("rawtypes") // Need to suppress because of a Javac bug giving a rawtype on AbstractManageableNode::isManageable.
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClusteringManagementTest.class);
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -95,7 +98,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2)
-    .in(new File("build/cluster"))
+    .in(clusterPath())
     .withServiceFragment(RESOURCE_CONFIG)
     .build();
 
@@ -333,11 +336,14 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
         nmsService.waitForMessage(message -> {
           if (message.getType().equals("NOTIFICATION")) {
             for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
-              if (waitingFor.remove(notification.getType())) {
+              if ("org.terracotta.management.entity.nms.client.NmsEntity".equals(notification.getContext().get("entityType"))) {
+                LOGGER.info("IGNORE:" + notification); // this is the passive NmsEntity, sometimes we catch it, sometimes not
+              } else if (waitingFor.remove(notification.getType())) {
                 existingOnes.add(notification);
-//                System.out.println("Remove " + notification.getType());
-//                System.out.println("Still waiting for: " + waitingFor);
+                LOGGER.debug("Remove " + notification);
+                LOGGER.debug("Still waiting for: " + waitingFor);
               } else {
+                LOGGER.debug("Extra: " + notification);
                 missingOnes.add(notification);
               }
             }

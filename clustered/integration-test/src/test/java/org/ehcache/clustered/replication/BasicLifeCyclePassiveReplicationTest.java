@@ -27,10 +27,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-
-import java.io.File;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -54,7 +51,7 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
 
   @Before
   public void startServers() throws Exception {
