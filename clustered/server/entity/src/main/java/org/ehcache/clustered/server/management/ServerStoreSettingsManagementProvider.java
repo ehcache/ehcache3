@@ -16,12 +16,14 @@
 package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.server.ServerSideServerStore;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.offheapstore.MapInternals;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,17 +68,21 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
 
     Settings getSettings() {
       // names taken from ServerStoreConfiguration.isCompatible()
-      PoolAllocation poolAllocation = getBinding().getValue().getStoreConfiguration().getPoolAllocation();
+      ServerSideServerStore value = getBinding().getValue();
+      PoolAllocation poolAllocation = value.getStoreConfiguration().getPoolAllocation();
       Settings settings = new Settings(getContext())
-        .set("resourcePoolType", poolAllocation.getClass().getSimpleName().toLowerCase())
-        .set("allocatedMemoryAtTime", getBinding().getValue().getAllocatedMemory())
-        .set("tableCapacityAtTime", getBinding().getValue().getTableCapacity())
-        .set("vitalMemoryAtTime", getBinding().getValue().getVitalMemory())
-        .set("longSizeAtTime", getBinding().getValue().getSize())
-        .set("dataAllocatedMemoryAtTime", getBinding().getValue().getDataAllocatedMemory())
-        .set("dataOccupiedMemoryAtTime", getBinding().getValue().getDataOccupiedMemory())
-        .set("dataSizeAtTime", getBinding().getValue().getDataSize())
-        .set("dataVitalMemoryAtTime", getBinding().getValue().getDataVitalMemory());
+        .set("resourcePoolType", poolAllocation.getClass().getSimpleName().toLowerCase());
+      if (value instanceof MapInternals) {
+        MapInternals internals = (MapInternals) value;
+        settings.set("allocatedMemoryAtTime", internals.getAllocatedMemory())
+          .set("tableCapacityAtTime", internals.getTableCapacity())
+          .set("vitalMemoryAtTime", internals.getVitalMemory())
+          .set("longSizeAtTime", internals.getSize())
+          .set("dataAllocatedMemoryAtTime", internals.getDataAllocatedMemory())
+          .set("dataOccupiedMemoryAtTime", internals.getDataOccupiedMemory())
+          .set("dataSizeAtTime", internals.getDataSize())
+          .set("dataVitalMemoryAtTime", internals.getDataVitalMemory());
+      }
       if (poolAllocation instanceof PoolAllocation.DedicatedPoolAllocation) {
         settings.set("resourcePoolDedicatedResourceName", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getResourceName());
         settings.set("resourcePoolDedicatedSize", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getSize());

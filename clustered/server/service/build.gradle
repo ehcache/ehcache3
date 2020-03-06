@@ -24,6 +24,7 @@ dependencies {
   service "org.terracotta:offheap-resource:$terracottaPlatformVersion"
 
   implementation project(':clustered:common')
+  implementation "org.terracotta:offheap-store:$offheapVersion"
 
   testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"

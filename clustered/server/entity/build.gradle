@@ -25,6 +25,8 @@ dependencies {
   service "org.terracotta.management.dist:mnm-common:$terracottaPlatformVersion"
 
   implementation project(':clustered:common')
+  implementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  implementation "org.terracotta:offheap-store:$offheapVersion"
   implementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
 
   testImplementation project(':clustered:server:service')

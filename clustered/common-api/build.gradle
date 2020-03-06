@@ -18,7 +18,3 @@ plugins {
   id 'org.ehcache.build.deploy'
   id 'org.ehcache.build.voltron'
 }
-
-dependencies {
-  implementation "org.terracotta:runnel:$terracottaPlatformVersion"
-}

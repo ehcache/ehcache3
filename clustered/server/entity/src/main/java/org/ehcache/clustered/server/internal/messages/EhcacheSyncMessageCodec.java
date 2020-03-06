@@ -24,6 +24,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.SyncMessageCodec;
+import org.terracotta.runnel.EnumMapping;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.Enm;
 import org.terracotta.runnel.decoding.StructArrayDecoder;
@@ -47,15 +48,14 @@ import static org.ehcache.clustered.common.internal.store.Util.unmarshall;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.DATA;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.MESSAGE_TRACKER;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.STATE_REPO;
-import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_FIELD_NAME;
-import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_MAPPING;
+import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMessage> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheSyncMessageCodec.class);
 
+  private static final String SYNC_MESSAGE_TYPE_FIELD = "msgType";
   private static final String CHAIN_FIELD = "chain";
   private static final String CHAIN_MAP_ENTRIES_SUB_STRUCT = "entries";
   private static final String STATE_REPO_ENTRIES_SUB_STRUCT = "mappings";
@@ -67,13 +67,20 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final String MESSAGE_TRACKER_TRANSACTION_ID_FIELD = "tId";
   private static final String MESSAGE_TRACKER_SEGMENT_FIELD = "segment";
 
+  private static final int SYNC_MESSAGE_TYPE_FIELD_INDEX = 10;
+  private static final EnumMapping<SyncMessageType> SYNC_MESSAGE_TYPE_MAPPING = newEnumMappingBuilder(SyncMessageType.class)
+    .mapping(STATE_REPO, 1)
+    .mapping(DATA, 10)
+    .mapping(MESSAGE_TRACKER, 20)
+    .build();
+
   private static final Struct CHAIN_MAP_ENTRY_STRUCT = newStructBuilder()
     .int64(KEY_FIELD, 10)
     .struct(CHAIN_FIELD, 20, CHAIN_STRUCT)
     .build();
 
   private static final Struct DATA_SYNC_STRUCT = newStructBuilder()
-    .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
+    .enm(SYNC_MESSAGE_TYPE_FIELD, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
     .structs(CHAIN_MAP_ENTRIES_SUB_STRUCT, 20, CHAIN_MAP_ENTRY_STRUCT)
     .build();
 
@@ -83,7 +90,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .build();
 
   private static final Struct STATE_REPO_SYNC_STRUCT = newStructBuilder()
-    .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
+    .enm(SYNC_MESSAGE_TYPE_FIELD, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
     .string(SERVER_STORE_NAME_FIELD, 20)
     .string(STATE_REPO_MAP_NAME_FIELD, 30)
     .structs(STATE_REPO_ENTRIES_SUB_STRUCT, 40, STATE_REPO_ENTRY_STRUCT)
@@ -100,7 +107,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .build();
 
   private static final Struct MESSAGE_TRACKER_SYNC_STRUCT = newStructBuilder()
-    .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
+    .enm(SYNC_MESSAGE_TYPE_FIELD, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
     .structs(MESSAGE_TRACKER_CLIENTS_STRUCT, 20, MESSAGE_TRACKER_CLIENT_STRUCT)
     .int32(MESSAGE_TRACKER_SEGMENT_FIELD, 30)
     .build();
@@ -133,7 +140,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private byte[] encodeMessageTrackerSync(EhcacheMessageTrackerMessage syncMessage) {
     StructEncoder<Void> encoder = MESSAGE_TRACKER_SYNC_STRUCT.encoder();
     encoder
-      .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, MESSAGE_TRACKER)
+      .enm(SYNC_MESSAGE_TYPE_FIELD, MESSAGE_TRACKER)
       .structs(MESSAGE_TRACKER_CLIENTS_STRUCT, syncMessage.getTrackedMessages().entrySet(),
         (clientEncoder, entry) -> {
           Map<Long, EhcacheEntityResponse> responses = entry.getValue();
@@ -157,7 +164,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
 
   private byte[] encodeStateRepoSync(EhcacheStateRepoSyncMessage syncMessage) {
     StructEncoder<Void> encoder = STATE_REPO_SYNC_STRUCT.encoder();
-    encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, STATE_REPO)
+    encoder.enm(SYNC_MESSAGE_TYPE_FIELD, STATE_REPO)
       .string(SERVER_STORE_NAME_FIELD, syncMessage.getCacheId())
       .string(STATE_REPO_MAP_NAME_FIELD, syncMessage.getMapId());
     encoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT, syncMessage.getMappings().entrySet(),
@@ -169,7 +176,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private byte[] encodeDataSync(EhcacheDataSyncMessage syncMessage) {
     StructEncoder<Void> encoder;
     encoder = DATA_SYNC_STRUCT.encoder();
-    encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, DATA);
+    encoder.enm(SYNC_MESSAGE_TYPE_FIELD, DATA);
     encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
       syncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
         entryEncoder.int64(KEY_FIELD, entry.getKey());
@@ -182,7 +189,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   public EhcacheSyncMessage decode(final int concurrencyKey, final byte[] payload) {
     ByteBuffer message = wrap(payload);
     StructDecoder<Void> decoder = DATA_SYNC_STRUCT.decoder(message);
-    Enm<SyncMessageType> enm = decoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME);
+    Enm<SyncMessageType> enm = decoder.enm(SYNC_MESSAGE_TYPE_FIELD);
     if (!enm.isFound()) {
       throw new AssertionError("Invalid message format - misses the message type field");
     }

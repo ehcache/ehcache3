@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
@@ -30,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class ServerStoreImpl implements ServerSideServerStore {
+public class ServerStoreImpl implements ServerSideServerStore, MapInternals {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final ResourcePageSource pageSource;

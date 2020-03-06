@@ -16,10 +16,6 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.terracotta.runnel.EnumMapping;
-
-import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
-
 /**
  * EhcacheResponseType
  */
@@ -40,25 +36,4 @@ public enum EhcacheResponseType {
   ITERATOR_BATCH,
   SERVER_APPEND,
   ;
-
-
-  public static final String RESPONSE_TYPE_FIELD_NAME = "opCode";
-  public static final int RESPONSE_TYPE_FIELD_INDEX = 10;
-  public static final EnumMapping<EhcacheResponseType> EHCACHE_RESPONSE_TYPES_ENUM_MAPPING = newEnumMappingBuilder(EhcacheResponseType.class)
-    .mapping(EhcacheResponseType.SUCCESS, 80)
-    .mapping(EhcacheResponseType.FAILURE, 81)
-    .mapping(EhcacheResponseType.GET_RESPONSE, 82)
-    .mapping(EhcacheResponseType.HASH_INVALIDATION_DONE, 83)
-    .mapping(EhcacheResponseType.ALL_INVALIDATION_DONE, 84)
-    .mapping(EhcacheResponseType.CLIENT_INVALIDATE_HASH, 85)
-    .mapping(EhcacheResponseType.CLIENT_INVALIDATE_ALL, 86)
-    .mapping(EhcacheResponseType.SERVER_INVALIDATE_HASH, 87)
-    .mapping(EhcacheResponseType.MAP_VALUE, 88)
-    .mapping(EhcacheResponseType.PREPARE_FOR_DESTROY, 89)
-    .mapping(EhcacheResponseType.RESOLVE_REQUEST, 90)
-    .mapping(EhcacheResponseType.LOCK_SUCCESS, 91)
-    .mapping(EhcacheResponseType.LOCK_FAILURE, 92)
-    .mapping(EhcacheResponseType.ITERATOR_BATCH, 93)
-    .mapping(EhcacheResponseType.SERVER_APPEND, 94)
-    .build();
 }

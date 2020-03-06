@@ -16,10 +16,6 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.terracotta.runnel.EnumMapping;
-
-import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
-
 /**
  * SyncMessageType
  */
@@ -27,12 +23,4 @@ public enum SyncMessageType {
   STATE_REPO,
   DATA,
   MESSAGE_TRACKER;
-
-  public static final String SYNC_MESSAGE_TYPE_FIELD_NAME = "msgType";
-  public static final int SYNC_MESSAGE_TYPE_FIELD_INDEX = 10;
-  public static final EnumMapping<SyncMessageType> SYNC_MESSAGE_TYPE_MAPPING = newEnumMappingBuilder(SyncMessageType.class)
-    .mapping(STATE_REPO, 1)
-    .mapping(DATA, 10)
-    .mapping(MESSAGE_TRACKER, 20)
-    .build();
 }

@@ -30,10 +30,10 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;

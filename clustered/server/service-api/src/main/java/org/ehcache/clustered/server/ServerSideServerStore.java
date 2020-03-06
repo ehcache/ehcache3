@@ -18,12 +18,11 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.terracotta.offheapstore.MapInternals;
 
 import java.util.List;
 import java.util.Set;
 
-public interface ServerSideServerStore extends ServerStore, MapInternals {
+public interface ServerSideServerStore extends ServerStore {
   void setEventListener(ServerStoreEventListener listener);
   void enableEvents(boolean enable);
   ServerStoreConfiguration getStoreConfiguration();

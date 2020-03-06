@@ -16,12 +16,9 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.terracotta.runnel.EnumMapping;
-
 import java.util.EnumSet;
 
 import static java.util.EnumSet.of;
-import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 
 /**
  * EhcacheMessageType
@@ -58,36 +55,6 @@ public enum EhcacheMessageType {
   CHAIN_REPLICATION_OP,
   CLEAR_INVALIDATION_COMPLETE,
   INVALIDATION_COMPLETE;
-
-  public static final String MESSAGE_TYPE_FIELD_NAME = "opCode";
-  public static final int MESSAGE_TYPE_FIELD_INDEX = 10;
-  public static final EnumMapping<EhcacheMessageType> EHCACHE_MESSAGE_TYPES_ENUM_MAPPING = newEnumMappingBuilder(EhcacheMessageType.class)
-    .mapping(VALIDATE, 1)
-    .mapping(VALIDATE_SERVER_STORE, 2)
-    .mapping(PREPARE_FOR_DESTROY, 3)
-
-    .mapping(GET_AND_APPEND, 21)
-    .mapping(APPEND, 22)
-    .mapping(REPLACE, 23)
-    .mapping(CLIENT_INVALIDATION_ACK, 24)
-    .mapping(CLIENT_INVALIDATION_ALL_ACK, 25)
-    .mapping(CLEAR, 26)
-    .mapping(GET_STORE, 27)
-    .mapping(LOCK, 28)
-    .mapping(UNLOCK, 29)
-    .mapping(ITERATOR_OPEN, 30)
-    .mapping(ITERATOR_CLOSE, 31)
-    .mapping(ITERATOR_ADVANCE, 32)
-    .mapping(ENABLE_EVENT_LISTENER, 33)
-
-    .mapping(GET_STATE_REPO, 41)
-    .mapping(PUT_IF_ABSENT, 42)
-    .mapping(ENTRY_SET, 43)
-
-    .mapping(CHAIN_REPLICATION_OP, 61)
-    .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
-    .mapping(INVALIDATION_COMPLETE, 64)
-    .build();
 
   public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, VALIDATE_SERVER_STORE, PREPARE_FOR_DESTROY);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {

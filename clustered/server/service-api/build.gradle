@@ -21,6 +21,4 @@ plugins {
 
 dependencies {
   api project(':clustered:common-api')
-  api "org.terracotta:offheap-store:$offheapVersion"
-  api "org.terracotta:runnel:$terracottaPlatformVersion"
 }
