@@ -79,6 +79,8 @@ public class ChainMapTest {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     assertThat(map.get("foo"), emptyIterable());
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -87,6 +89,8 @@ public class ChainMapTest {
 
     map.append("foo", buffer(1));
     assertThat(map.get("foo"), contains(element(1)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -95,6 +99,8 @@ public class ChainMapTest {
 
     assertThat(map.getAndAppend("foo", buffer(1)), emptyIterable());
     assertThat(map.get("foo"), contains(element(1)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -104,6 +110,8 @@ public class ChainMapTest {
 
     map.append("foo", buffer(2));
     assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -113,6 +121,8 @@ public class ChainMapTest {
 
     assertThat(map.getAndAppend("foo", buffer(2)), contains(element(1)));
     assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -123,6 +133,8 @@ public class ChainMapTest {
 
     map.append("foo", buffer(3));
     assertThat(map.get("foo"), contains(element(1), element(2), element(3)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -133,6 +145,8 @@ public class ChainMapTest {
 
     assertThat(map.getAndAppend("foo", buffer(3)), contains(element(1), element(2)));
     assertThat(map.get("foo"), contains(element(1), element(2), element(3)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -144,6 +158,8 @@ public class ChainMapTest {
 
     map.append("foo", buffer(4));
     assertThat(map.get("foo"), contains(element(1), element(2), element(3), element(4)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -155,6 +171,8 @@ public class ChainMapTest {
 
     assertThat(map.getAndAppend("foo", buffer(4)), contains(element(1), element(2), element(3)));
     assertThat(map.get("foo"), contains(element(1), element(2), element(3), element(4)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -167,6 +185,8 @@ public class ChainMapTest {
     } catch (IllegalArgumentException e) {
       //expected
     }
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -180,6 +200,8 @@ public class ChainMapTest {
     } catch (IllegalArgumentException e) {
       //expected
     }
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -189,6 +211,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -198,6 +222,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
+
+     emptyAndValidate(map);
   }
 
   @Test
@@ -208,6 +234,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -219,6 +247,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2), element(3)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -229,6 +259,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1), buffer(3)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -239,6 +271,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -250,6 +284,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(3)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -263,6 +299,8 @@ public class ChainMapTest {
     map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf());
     assertThat(map.getDataOccupiedMemory(), lessThan(before));
     assertThat(map.get("foo"), contains(element(3)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -274,6 +312,8 @@ public class ChainMapTest {
 
     map.replaceAtHead("foo", map.get("foo"), chainOf());
     assertThat(map.get("foo"), emptyIterable());
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -287,6 +327,8 @@ public class ChainMapTest {
     map.replaceAtHead("foo", chainOf(buffer(1), buffer(2), buffer(3)), chainOf());
     assertThat(map.getDataOccupiedMemory(), is(0L));
     assertThat(map.get("foo"), emptyIterable());
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -312,6 +354,9 @@ public class ChainMapTest {
           break;
         }
       }
+
+      emptyAndValidate(mapA);
+      emptyAndValidate(mapB);
     } else {
       OffHeapChainMap<String> map = new OffHeapChainMap<>(pageSource, StringPortability.INSTANCE, minPageSize, maxPageSize, false);
 
@@ -329,6 +374,8 @@ public class ChainMapTest {
           break;
         }
       }
+
+      emptyAndValidate(map);
     }
   }
 
@@ -339,6 +386,8 @@ public class ChainMapTest {
     map.put("key", chainOf(buffer(1), buffer(2)));
 
     assertThat(map.get("key"), contains(element(1), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -347,6 +396,8 @@ public class ChainMapTest {
     map.put("key", chainOf(buffer(1), buffer(2)));
 
     assertThat(map.get("key"), contains(element(1), element(2)));
+
+    emptyAndValidate(map);
   }
 
   @Test
@@ -375,6 +426,7 @@ public class ChainMapTest {
 
     assertThat(chainStorage.getActiveChains().size(), is(0));
 
+    emptyAndValidate(map);
   }
 
   @Test
@@ -391,6 +443,7 @@ public class ChainMapTest {
 
     assertThat(chainStorage.getActiveChains().size(), is(0));
 
+    emptyAndValidate(map);
   }
 
   @Test
@@ -446,5 +499,11 @@ public class ChainMapTest {
     };
   }
 
-
+  private void emptyAndValidate(OffHeapChainMap<String> map) {
+    for (String key : map.keySet()) {
+      map.replaceAtHead(key, map.get(key), chainOf());
+    }
+    assertThat(map.getSize(), is(0L));
+    assertThat(map.getDataOccupiedMemory(), is(0L));
+  }
 }
