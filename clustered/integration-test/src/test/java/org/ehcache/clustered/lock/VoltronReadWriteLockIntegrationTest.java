@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.lock;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -43,7 +42,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

@@ -95,4 +95,8 @@ public abstract class ClusteredTests {
       return null;
     }
   }
+
+  protected static Path clusterPath() {
+    return Paths.get("build", "cluster");
+  }
 }

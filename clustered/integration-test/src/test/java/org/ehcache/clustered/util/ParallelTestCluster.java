@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.util;
 
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.Connection;
@@ -70,18 +68,8 @@ public class ParallelTestCluster extends Cluster {
       }
 
       @Override
-      public void startOneServerWithConsistency() {
-        request(ClusterTask.START_ONE_SERVER_WITH_CONSISTENCY);
-      }
-
-      @Override
       public void startAllServers() {
         request(ClusterTask.START_ALL_SERVERS);
-      }
-
-      @Override
-      public void startAllServersWithConsistency() {
-        request(ClusterTask.START_ALL_SERVERS_WITH_CONSISTENCY);
       }
 
       @Override
@@ -171,9 +159,7 @@ public class ParallelTestCluster extends Cluster {
 
   enum ClusterTask implements Consumer<IClusterControl> {
     START_ONE_SERVER(IClusterControl::startOneServer),
-    START_ONE_SERVER_WITH_CONSISTENCY(IClusterControl::startOneServerWithConsistency),
     START_ALL_SERVERS(IClusterControl::startAllServers),
-    START_ALL_SERVERS_WITH_CONSISTENCY(IClusterControl::startAllServersWithConsistency),
     TERMINATE_ACTIVE(IClusterControl::terminateActive),
     TERMINATE_ONE_PASSIVE(IClusterControl::terminateOnePassive),
     TERMINATE_ALL_SERVERS(IClusterControl::terminateAllServers);

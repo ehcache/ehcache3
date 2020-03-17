@@ -153,7 +153,7 @@ public class OsgiTestUtils {
     }
     serverProcess.command().addAll(asList(
       "-Dtc.install-root=" + serverDir,
-      "-cp", serverDir.resolve("lib").resolve("tc.jar") + File.pathSeparator + pluginClasspath,
+      "-cp", serverDir.resolve("lib").resolve("tc.jar").toString(),
       "com.tc.server.TCServerMain",
       "-f", configFile.toString()));
     serverProcess.inheritIO();

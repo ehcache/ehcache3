@@ -21,6 +21,7 @@ import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -34,7 +35,6 @@ import org.junit.Test;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,7 +56,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class ManagementClusterConnectionTest {
+public class ManagementClusterConnectionTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -78,7 +78,7 @@ public class ManagementClusterConnectionTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster()
-          .in(new File("build/cluster"))
+          .in(clusterPath())
           .withServiceFragment(RESOURCE_CONFIG).build();
 
 

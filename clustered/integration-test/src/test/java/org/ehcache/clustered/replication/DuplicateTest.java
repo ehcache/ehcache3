@@ -35,7 +35,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
@@ -62,7 +61,7 @@ public class DuplicateTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {

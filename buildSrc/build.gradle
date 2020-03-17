@@ -35,6 +35,10 @@ gradlePlugin {
       id = 'org.ehcache.build.pom-mangle'
       implementationClass = 'EhPomMangle'
     }
+    ehVoltron {
+      id = 'org.ehcache.build.voltron'
+      implementationClass = 'EhVoltron'
+    }
   }
 }
 

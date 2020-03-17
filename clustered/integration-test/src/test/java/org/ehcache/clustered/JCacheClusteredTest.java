@@ -24,7 +24,6 @@ import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.URL;
 import java.util.Properties;
 
@@ -57,7 +56,7 @@ public class JCacheClusteredTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
