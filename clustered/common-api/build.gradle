@@ -16,5 +16,8 @@
 
 plugins {
   id 'org.ehcache.build.deploy'
-  id 'org.ehcache.build.voltron'
+}
+
+dependencies {
+  api "org.terracotta:entity-common-api:$terracottaApisVersion"
 }
