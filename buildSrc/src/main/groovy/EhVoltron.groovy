@@ -5,10 +5,14 @@ import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.bundling.Jar
 
 class EhVoltron implements Plugin<Project> {
+
+  static String VOLTRON_CONFIGURATION_NAME = 'voltron'
+  static String SERVICE_CONFIGURATION_NAME = 'service'
+
   @Override
   void apply(Project project) {
     project.plugins.withId('java') {
-      def voltron = project.configurations.create('voltron') { voltron ->
+      def voltron = project.configurations.create(VOLTRON_CONFIGURATION_NAME) { voltron ->
         description "Dependencies provided by Voltron from server/lib"
         canBeResolved true
         canBeConsumed true
@@ -18,7 +22,7 @@ class EhVoltron implements Plugin<Project> {
         voltron.dependencies.add(project.dependencies.create(group: 'org.terracotta', name: 'packaging-support', version: project.terracottaApisVersion))
         voltron.dependencies.add(project.dependencies.create(group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion))
       }
-      def service = project.configurations.create('service') { service ->
+      def service = project.configurations.create(SERVICE_CONFIGURATION_NAME) { service ->
         description "Services consumed by this plugin"
         canBeResolved true
         canBeConsumed true
@@ -39,7 +43,7 @@ class EhVoltron implements Plugin<Project> {
       project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) {
         doFirst {
           manifest {
-            attributes('Class-Path': (project.configurations.runtimeClasspath - project.configurations.voltron - project.configurations.service).collect { it.getName() }.join(' '))
+            attributes('Class-Path': (project.configurations.runtimeClasspath - voltron - service).collect { it.getName() }.join(' '))
           }
         }
       }
