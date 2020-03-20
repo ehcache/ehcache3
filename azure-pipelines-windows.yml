@@ -26,14 +26,14 @@ resources:
 jobs:
 - template: build-templates/gradle-common.yml@templates
   parameters:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'windows-latest'
     gradleTasks: 'test -x :clustered:integration-test:test'
     jdkVersion: '1.8'
     jobName: 'Java8'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'windows-latest'
     gradleTasks: 'test -x :clustered:integration-test:test'
     jdkVersion: '1.8'
     options: '-PtestVM=java11Home'
