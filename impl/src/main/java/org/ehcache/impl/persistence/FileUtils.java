@@ -17,23 +17,22 @@
 package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.ehcache.CachePersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.utilities.io.Files;
 
 import java.io.File;
-import java.nio.charset.Charset;
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
 import static java.lang.Integer.toHexString;
-import static java.nio.charset.Charset.forName;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * A bunch of utility functions, mainly used by {@link DefaultLocalPersistenceService} and
@@ -41,7 +40,6 @@ import static java.nio.charset.Charset.forName;
  */
 final class FileUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileUtils.class);
-  private static final Charset UTF8 = forName("UTF8");
   private static final int DEL = 0x7F;
   private static final char ESCAPE = '%';
 
@@ -99,67 +97,19 @@ final class FileUtils {
     }
   }
 
-  static boolean recursiveDeleteDirectoryContent(File file) {
-    File[] contents = file.listFiles();
-    if (contents == null) {
-      throw new IllegalArgumentException("File " + file.getAbsolutePath() + " is not a directory");
-    } else {
-      boolean deleteSuccessful = true;
-      for (File f : contents) {
-        deleteSuccessful &= tryRecursiveDelete(f);
-      }
-      return deleteSuccessful;
+  static boolean tryRecursiveDelete(File file) {
+    try {
+      Files.deleteTree(file.toPath(), Duration.ofMillis(250), FileUtils::gc);
+      return true;
+    } catch (IOException ioe) {
+      return false;
     }
-  }
-
-  private static boolean recursiveDelete(File file) {
-    Deque<File> toDelete = new ArrayDeque<>();
-    toDelete.push(file);
-    while (!toDelete.isEmpty()) {
-      File target = toDelete.pop();
-      File[] contents = target.listFiles();
-      if (contents == null || contents.length == 0) {
-        if (target.exists() && !target.delete()) {
-          return false;
-        }
-      } else {
-        toDelete.push(target);
-        for (File f : contents) {
-          toDelete.push(f);
-        }
-      }
-    }
-    return true;
   }
 
   @SuppressFBWarnings("DM_GC")
-  static boolean tryRecursiveDelete(File file) {
-    boolean interrupted = false;
-    try {
-      for (int i = 0; i < 5; i++) {
-        if (recursiveDelete(file) || !isWindows()) {
-          return true;
-        } else {
-          System.gc();
-          System.runFinalization();
-
-          try {
-            Thread.sleep(50);
-          } catch (InterruptedException e) {
-            interrupted = true;
-          }
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
-    }
-    return false;
-  }
-
-  private static boolean isWindows() {
-    return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows");
+  private static void gc() {
+    System.gc();
+    System.runFinalization();
   }
 
   /**
@@ -192,7 +142,7 @@ final class FileUtils {
 
   private static String sha1(String input) {
     StringBuilder sb = new StringBuilder();
-    for (byte b : getSha1Digest().digest(input.getBytes(UTF8))) {
+    for (byte b : getSha1Digest().digest(input.getBytes(UTF_8))) {
       sb.append(toHexString((b & 0xf0) >>> 4));
       sb.append(toHexString((b & 0xf)));
     }
