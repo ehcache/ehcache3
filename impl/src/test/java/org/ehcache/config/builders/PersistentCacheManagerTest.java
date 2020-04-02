@@ -37,6 +37,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.terracotta.utilities.io.Files.delete;
 
 /**
  * @author Alex Snaps
@@ -57,7 +58,7 @@ public class PersistentCacheManagerTest {
   @Before
   public void setup() throws IOException {
     rootDirectory = folder.newFolder("testInitializesDiskResourceService");
-    assertTrue(rootDirectory.delete());
+    delete(rootDirectory.toPath());
     builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
   }
 
