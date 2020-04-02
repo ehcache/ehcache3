@@ -150,7 +150,6 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
-    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
