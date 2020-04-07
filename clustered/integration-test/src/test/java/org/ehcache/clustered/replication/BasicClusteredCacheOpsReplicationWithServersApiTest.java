@@ -28,6 +28,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -57,7 +58,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
   private static Cache<Long, String> CACHE2;
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(clusterPath()).withServiceFragment(CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath()).withServiceFragment(CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @Before
   public void setUp() throws Exception {

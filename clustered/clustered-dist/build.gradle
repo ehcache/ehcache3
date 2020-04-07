@@ -41,42 +41,37 @@ dependencies {
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
-def voltronProvides = { Configuration c ->
+def kitProvides = { Configuration c ->
   c.exclude group:'org.slf4j', module:'slf4j-api'
   c.exclude group:'org.terracotta', module:'entity-server-api'
   c.exclude group:'org.terracotta', module:'entity-common-api'
   c.exclude group:'org.terracotta', module:'packaging-support'
   c.exclude group:'org.terracotta', module:'standard-cluster-services'
+  c.exclude group:'org.terracotta', module:'statistics'
+  c.exclude group:'org.terracotta', module:'runnel'
+  c.exclude group:'org.terracotta', module:'client-message-tracker'
+  c.exclude group:'org.terracotta.management', module:'monitoring-service-api'
+  c.exclude group:'org.terracotta.management', module:'management-model'
+  c.exclude group:'org.terracotta.management', module:'management-registry'
+  c.exclude group:'org.terracotta.management', module:'cluster-topology'
+  c.exclude group:'org.terracotta.management', module:'sequence-generator'
 }
 
 configurations {
   kit
-  serverApis(voltronProvides)
-  serverLibs(voltronProvides)
+  serverApis(kitProvides)
+  serverLibs(kitProvides)
 }
 
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
-  serverApis "org.terracotta:statistics:$statisticVersion"
-  serverApis("org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion") {
-    transitive = false
-  }
-  //  this is here because monitoring-service-api depends on mnm-common.  if that can be unwound,
-  //  mnm-common can go into lib
-  serverApis "org.terracotta.management.dist:mnm-common:$terracottaPlatformVersion"
-
   serverApis project(':clustered:server:service-api')
   serverLibs project(':clustered:server:entity')
   serverLibs project(':clustered:server:service')
 
-  serverLibs("org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion") {
-    transitive = false
-  }
-  serverLibs "org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion"
-
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
+  kit "org.terracotta:platform-kit:$terracottaPlatformVersion@tar.gz"
 
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
@@ -93,7 +88,7 @@ jar {
     'Bundle-SymbolicName': 'org.ehcache.clustered',
     'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
       'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
-    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, *'
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.annotation, *'
   )
 }
 
@@ -101,12 +96,16 @@ distributions {
   main {
     baseName = archivesBaseName
     contents {
+      filesMatching('**/*.jar') {
+        // We can safely exclude JAR duplicates as our dependency strategy is fail on conflict
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
+      }
       //tc kit
       into ('') {
         from configurations.kit.files.collect { tarTree(it) }
         eachFile { f ->
           // remove top level directory from the kit
-          f.path = f.path.replace("terracotta-$terracottaCoreVersion/", "")
+          f.path = f.path.replace("platform-kit-$terracottaPlatformVersion/", "")
         }
         exclude { f ->
           // Exclude tc's client subdir and README.txt - Issue 1273

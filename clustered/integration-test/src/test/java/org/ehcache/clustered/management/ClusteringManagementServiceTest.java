@@ -263,15 +263,17 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     // tms entity
 
     managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
-    assertThat(managerCapabilities.length).isEqualTo(3);
+    assertThat(managerCapabilities.length).isEqualTo(5);
 
-    assertThat(managerCapabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
-    assertThat(managerCapabilities[1].getName()).isEqualTo("OffHeapResourceStatistics");
-    assertThat(managerCapabilities[2].getName()).isEqualTo("StatisticCollectorCapability");
+    assertThat(managerCapabilities[0].getName()).isEqualTo("DataRootSettings");
+    assertThat(managerCapabilities[1].getName()).isEqualTo("DataRootStatistics");
+    assertThat(managerCapabilities[2].getName()).isEqualTo("OffHeapResourceSettings");
+    assertThat(managerCapabilities[3].getName()).isEqualTo("OffHeapResourceStatistics");
+    assertThat(managerCapabilities[4].getName()).isEqualTo("StatisticCollectorCapability");
 
-    assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
+    assertThat(managerCapabilities[2].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(managerCapabilities[3].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test

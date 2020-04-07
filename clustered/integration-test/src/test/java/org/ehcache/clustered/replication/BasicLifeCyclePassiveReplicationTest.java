@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.clustered.util.runners.Parallel;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -51,7 +52,7 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build());
 
   @Before
   public void startServers() throws Exception {

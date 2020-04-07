@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -42,7 +43,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

@@ -22,25 +22,20 @@ import org.ops4j.pax.exam.options.WrappedUrlProvisionOption;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
-import static java.nio.file.Files.find;
 import static java.nio.file.Files.isRegularFile;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.joining;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.cleanCaches;
 import static org.ops4j.pax.exam.CoreOptions.composite;
@@ -52,7 +47,7 @@ import static org.ops4j.pax.exam.CoreOptions.wrappedBundle;
 
 public class OsgiTestUtils {
 
-  public static Option baseConfiguration(String ... path) {
+  public static Option baseConfiguration(String... path) {
     return composite(
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
@@ -101,51 +96,15 @@ public class OsgiTestUtils {
 
   public static Cluster startServer(Path serverDirectory) throws IOException {
     Path kitLocation = Paths.get(System.getProperty("kitInstallationPath"));
-
-    Path configFile = serverDirectory.resolve("tc-config.xml");
     int tsaPort = selectAvailableEphemeralPort();
     int tsaGroupPort = selectAvailableEphemeralPort();
 
-    try (PrintWriter writer = new PrintWriter(new FileWriter(configFile.toFile()))) {
-      writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-      writer.println("<tc-config xmlns=\"http://www.terracotta.org/config\">");
-      writer.println("<plugins>");
-      writer.println("<config>");
-      writer.println("<ohr:offheap-resources xmlns:ohr=\"http://www.terracotta.org/config/offheap-resource\">");
-      writer.println("<ohr:resource name=\"main\" unit=\"MB\">32</ohr:resource>");
-      writer.println("</ohr:offheap-resources>");
-      writer.println("</config>");
-      writer.println("</plugins>");
-      writer.println("<servers>");
-      writer.println("<server host=\"localhost\" name=\"default-server\" bind=\"0.0.0.0\">");
-      writer.println("<logs>" + serverDirectory.toString() + "</logs>");
-      writer.println("<tsa-port bind=\"0.0.0.0\">" + tsaPort + "</tsa-port>");
-      writer.println("<tsa-group-port bind=\"0.0.0.0\">" + tsaGroupPort + "</tsa-group-port>");
-      writer.println("</server>");
-      writer.println("<client-reconnect-window>120</client-reconnect-window>");
-      writer.println("</servers>");
-      writer.println("<failover-priority><availability/></failover-priority>");
-      writer.println("</tc-config>");
-    }
-
-
     Path serverDir = kitLocation.resolve("server");
-
-    String pluginClasspath = Stream.of(
-      serverDir.resolve("plugins").resolve("lib"),
-      serverDir.resolve("plugins").resolve("api")
-    ).flatMap(dir -> {
-      try {
-        return find(dir, 10, (p, a) -> a.isRegularFile() && p.getFileName().toString().endsWith(".jar"));
-      } catch (IOException e) {
-        return Stream.empty();
-      }
-    }).map(p -> p.toString()).collect(joining(File.pathSeparator));
 
     ProcessBuilder serverProcess = new ProcessBuilder()
       .directory(serverDirectory.toFile())
       .command(Paths.get(System.getProperty("java.home")).resolve("bin")
-          .resolve(System.getProperty("os.name").contains("Windows") ? "java.exe" : "java").toString());
+        .resolve(System.getProperty("os.name").contains("Windows") ? "java.exe" : "java").toString());
 
     String tcServerOptions = System.getProperty("tc-server-opts");
     if (tcServerOptions != null) {
@@ -155,7 +114,16 @@ public class OsgiTestUtils {
       "-Dtc.install-root=" + serverDir,
       "-cp", serverDir.resolve("lib").resolve("tc.jar").toString(),
       "com.tc.server.TCServerMain",
-      "-f", configFile.toString()));
+      "--cluster-name=foo",
+      "--failover-priority=availability",
+      "--client-reconnect-window=120s",
+      "--node-name=default-server",
+      "--node-hostname=localhost",
+      "--node-port=" + tsaPort,
+      "--node-group-port=" + tsaGroupPort,
+      "--node-log-dir=" + serverDirectory.resolve("logs"),
+      "--node-repository-dir=" + serverDirectory.resolve("repository"),
+      "--offheap-resources=main:32MB"));
     serverProcess.inheritIO();
 
     return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort), serverDirectory);

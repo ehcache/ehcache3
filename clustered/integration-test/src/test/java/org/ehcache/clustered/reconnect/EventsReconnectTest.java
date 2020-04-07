@@ -32,6 +32,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -109,7 +110,7 @@ public class EventsReconnectTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

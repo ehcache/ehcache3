@@ -365,9 +365,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerClientEntityService(service);
       }
 
-      if (!this.resources.getResource().isEmpty()) {
-        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
-      }
+      newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {
         newServer.registerServiceProvider(entry.getKey(), entry.getValue());

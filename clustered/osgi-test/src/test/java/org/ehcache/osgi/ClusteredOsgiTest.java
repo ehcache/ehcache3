@@ -45,7 +45,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
 import java.io.File;
 import java.util.ServiceLoader;
 import java.util.Set;
