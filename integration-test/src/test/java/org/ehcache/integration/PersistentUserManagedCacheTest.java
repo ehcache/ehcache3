@@ -27,7 +27,7 @@ import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.Serializable;

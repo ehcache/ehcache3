@@ -34,22 +34,23 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import com.tc.util.Assert;
-
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just
@@ -130,7 +131,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     };
   }
 
-  private void doSyncAndPut(PersistentCacheManager cacheManager) throws InterruptedException {
+  private void doSyncAndPut(PersistentCacheManager cacheManager) throws InterruptedException, TimeoutException {
     String customValue = "value";
     Cache<String, Boolean> synCache = cacheManager.getCache(SYN_CACHE_NAME, String.class, Boolean.class);
     Cache<Long, String> customValueCache = cacheManager.getCache(CLUSTERED_CACHE_NAME, Long.class, String.class);
@@ -141,15 +142,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
       assertThat(customValueCache.get(1L), is(customValue));
       synCache.put(firstClientEndKey, true);
     } else {
-      int retry = 0, maxRetryCount = 30;
-      while (++retry <= maxRetryCount && synCache.get(firstClientEndKey) == null) {
-        Thread.sleep(1000L);
-      }
-
-      if (retry > maxRetryCount) {
-        Assert.fail("Couldn't find " + firstClientEndKey + " in synCache after " + maxRetryCount + " retries!");
-      }
-
+      assertThatEventually(() -> synCache.get(firstClientEndKey), notNullValue()).within(Duration.ofSeconds(30));
       assertThat(customValueCache.get(1L), is(customValue));
     }
   }

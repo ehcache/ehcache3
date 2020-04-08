@@ -135,6 +135,7 @@ subprojects {
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
     testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 

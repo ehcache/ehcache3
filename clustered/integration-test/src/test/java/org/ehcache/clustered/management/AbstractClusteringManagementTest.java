@@ -204,38 +204,35 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     ehcacheClientIdentifier = null;
     clusterTierManagerEntityIdentifier = null;
 
-    do {
-      tmsServerEntityIdentifier = readTopology()
+    while ((tmsServerEntityIdentifier = readTopology()
         .activeServerEntityStream()
         .filter(serverEntity -> serverEntity.getType().equals(NmsConfig.ENTITY_TYPE))
         .filter(AbstractManageableNode::isManageable)
         .map(ServerEntity::getServerEntityIdentifier)
         .findFirst()
-        .orElse(null);
-      sleep(500);
-    } while (tmsServerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
+        .orElse(null)) == null) {
+      sleep(200);
+    }
 
-    do {
-      ehcacheClientIdentifier = readTopology().getClients().values()
+    while ((ehcacheClientIdentifier = readTopology().getClients().values()
         .stream()
         .filter(client -> client.getName().equals("Ehcache:my-server-entity-1"))
         .filter(AbstractManageableNode::isManageable)
         .findFirst()
         .map(Client::getClientIdentifier)
-        .orElse(null);
-      sleep(500);
-    } while (ehcacheClientIdentifier == null && !Thread.currentThread().isInterrupted());
+        .orElse(null)) == null) {
+      sleep(200);
+    }
 
-    do {
-      clusterTierManagerEntityIdentifier = readTopology()
+    while ((clusterTierManagerEntityIdentifier = readTopology()
         .activeServerEntityStream()
         .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
         .filter(AbstractManageableNode::isManageable)
         .map(ServerEntity::getServerEntityIdentifier)
         .findFirst()
-        .orElse(null);
-      sleep(500);
-    } while (clusterTierManagerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
+        .orElse(null)) == null) {
+      sleep(200);
+    }
   }
 
   public static void tearDownCacheManagerAndStatsCollector() throws Exception {

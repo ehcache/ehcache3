@@ -45,6 +45,7 @@ import org.terracotta.testing.rules.Cluster;
 import com.tc.net.proxy.TCPProxy;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -55,6 +56,7 @@ import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 /**
  * ReconnectDuringDestroyTest
@@ -165,25 +167,11 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
       Thread.sleep(6000);
       setDelay(0L, proxies);
 
-      cache2 = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
-      int count = 0;
-      while (count < 5) {
-        Thread.sleep(2000);
-        count++;
-        try {
-          cache2.get(1L);
-          break;
-        } catch (Exception e) {
-          // Can happen during reconnect
-        }
-      }
-      if (count == 5) {
-        Assert.fail("Unexpected reconnection exception");
-      }
-      assertThat(cache2.get(1L), equalTo("The one"));
-      assertThat(cache2.get(2L), equalTo("The two"));
-      cache2.put(3L, "The three");
-      assertThat(cache2.get(3L), equalTo("The three"));
+      Cache<Long, String> cache2Again = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
+      assertThatEventually(() -> cache2Again.get(1L), equalTo("The one")).within(Duration.ofSeconds(10));
+      assertThat(cache2Again.get(2L), equalTo("The two"));
+      cache2Again.put(3L, "The three");
+      assertThat(cache2Again.get(3L), equalTo("The three"));
     } finally {
       cacheManager.close();
     }

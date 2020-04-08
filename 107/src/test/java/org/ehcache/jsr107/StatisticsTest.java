@@ -26,6 +26,7 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.concurrent.Callable;
 
@@ -35,6 +36,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.not;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 /**
  * @author Ludovic Orban
@@ -210,8 +212,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertFor(1100L, () -> heapStatistics.getAverageGetTime(), is(not(0.0f)));
-    assertThat(heapStatistics.getAverageGetTime(), greaterThan(0.0f));
+    assertThatEventually(() -> heapStatistics.getAverageGetTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
   }
 
   @Test
@@ -224,8 +225,7 @@ public class StatisticsTest {
     heapCache.put("key", "value");
     heapCache.put("key", "value");
 
-    assertFor(1100L, () -> heapStatistics.getAveragePutTime(), is(not(0.0f)));
-    assertThat(heapStatistics.getAveragePutTime(), greaterThan(0.0f));
+    assertThatEventually(() -> heapStatistics.getAveragePutTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
   }
 
   @Test
@@ -244,28 +244,6 @@ public class StatisticsTest {
     heapCache.remove("key3");
     heapCache.remove("key4");
 
-    assertFor(1100L, () -> heapStatistics.getAverageRemoveTime(), is(not(0.0f)));
-    assertThat(heapStatistics.getAverageRemoveTime(), greaterThan(0.0f));
+    assertThatEventually(() -> heapStatistics.getAverageRemoveTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
   }
-
-  private static void assertFor(long timeoutInMs, Callable<Float> callable, Matcher<Float> matcher) throws Exception {
-    long timeLeftInMs = timeoutInMs;
-
-    while (timeLeftInMs > 0) {
-      try {
-        assertThat(callable.call(), matcher);
-        return;
-      } catch (AssertionError assertionError) {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-        timeLeftInMs -= 100;
-      }
-    }
-
-    assertThat(callable.call(), matcher);
-  }
-
 }

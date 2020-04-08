@@ -28,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;

@@ -27,11 +27,11 @@ import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

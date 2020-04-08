@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
+import java.time.Duration;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -33,6 +34,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class AutoCreateOnReconnectTest extends ClusteredTests {
   public static final String RESOURCE_CONFIG =
@@ -67,11 +69,10 @@ public class AutoCreateOnReconnectTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateAllServers();
       CLUSTER.getClusterControl().startAllServers();
 
-      while (cache.get(1L) == null) {
-        Thread.sleep(100);
+      assertThatEventually(() -> {
         cache.put(1L, "two");
-      }
-      assertThat(cache.get(1L), is("two"));
+        return cache.get(1L);
+      }, is("two")).within(Duration.ofSeconds(30));
     }
   }
 }
