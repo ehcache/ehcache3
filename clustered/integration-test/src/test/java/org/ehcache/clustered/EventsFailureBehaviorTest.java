@@ -18,6 +18,7 @@ package org.ehcache.clustered;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.reconnect.ThrowingResiliencyStrategy;
@@ -41,6 +42,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.EnumSet;
@@ -62,8 +65,11 @@ import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 @Ignore("Issue#2758: Fails on linux PR builds")
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventsFailureBehaviorTest.class);
+
   private static final int KEYS = 500;
   private static final Duration TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration FAILOVER_TIMEOUT = Duration.ofMinutes(1);
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -97,9 +103,17 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
   @After
   public void tearDown() {
     try {
-      cacheManager1.close();
+      try {
+        cacheManager1.close();
+      } catch (StateTransitionException e) {
+        LOGGER.warn("Failed to shutdown cache manager", e);
+      }
     } finally {
-      cacheManager2.close();
+      try {
+        cacheManager2.close();
+      } catch (StateTransitionException e) {
+        LOGGER.warn("Failed to shutdown cache manager", e);
+      }
     }
   }
 
@@ -129,7 +143,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       } catch (Exception e) {
         return false;
       }
-    }, is(true)).within(TIMEOUT);
+    }, is(true)).within(FAILOVER_TIMEOUT);
   }
 
   @Test

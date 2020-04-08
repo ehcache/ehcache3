@@ -45,7 +45,7 @@ import static org.junit.Assert.assertThat;
 
 public class DefaultCollectorServiceTest {
 
-  @Test(timeout = 6000)
+  @Test
   public void test_collector() throws Exception {
     final Queue<Object> messages = new ConcurrentLinkedQueue<>();
     final List<String> notifs = new ArrayList<>(7);
@@ -104,7 +104,7 @@ public class DefaultCollectorServiceTest {
     cache.put("key", "val");
     cache.clear();
 
-    num.await();
+    num.await(10, TimeUnit.SECONDS);
     cacheManager.removeCache("my-cache");
     cacheManager.close();
 

@@ -19,14 +19,8 @@ package org.ehcache.clustered;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -36,19 +30,25 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.nCopies;
+import static java.util.stream.Collectors.toList;
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
@@ -83,94 +83,66 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private static final int NUM_THREADS = 8;
   private static final int MAX_WAIT_TIME_SECONDS = 30;
 
-  private final AtomicReference<Throwable> exception = new AtomicReference<>();
   private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
   @Ignore("Issue#2758: Fails on linux PR builds")
-  public void testMulipleClients() throws Throwable {
-    CountDownLatch latch = new CountDownLatch(NUM_THREADS + 1);
+  public void testMultipleClients() {
+    ExecutorService executorService = Executors.newFixedThreadPool(NUM_THREADS);
+    try {
+      List<? extends Future<?>> results = nCopies(NUM_THREADS, content()).stream().map(executorService::submit).collect(toList());
 
-    List<Thread> threads = new ArrayList<>(NUM_THREADS);
-    for (int i = 0; i < NUM_THREADS; i++) {
-      Thread t1 = new Thread(content(latch));
-      t1.start();
-      threads.add(t1);
-    }
-
-    latch.countDown();
-    assertTrue(latch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
-
-    for (Thread t : threads) {
-      t.join();
-    }
-
-    Throwable throwable = exception.get();
-    if (throwable != null) {
-      throw throwable;
+      results.stream().map(f -> {
+        try {
+          f.get();
+          return Optional.<Exception>empty();
+        } catch (Exception e) {
+          return Optional.of(e);
+        }
+      }).filter(Optional::isPresent).map(Optional::get).reduce((a, b) -> {
+          a.addSuppressed(b);
+          return a;
+        }
+      ).ifPresent(t -> {
+        throw new AssertionError(t);
+      });
+    } finally {
+      executorService.shutdownNow();
     }
   }
 
-  private Runnable content(CountDownLatch latch) {
+  private Callable<?> content() {
     return () -> {
       try (PersistentCacheManager cacheManager = createCacheManager(CLUSTER.getConnectionURI())) {
-        latch.countDown();
-        try {
-          assertTrue(latch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
-        } catch (InterruptedException e) {
-          // continue
+        Cache<String, Boolean> synCache = cacheManager.getCache(SYN_CACHE_NAME, String.class, Boolean.class);
+        Cache<Long, String> customValueCache = cacheManager.getCache(CLUSTERED_CACHE_NAME, Long.class, String.class);
+        parallelPuts(customValueCache);
+        String firstClientStartKey = "first_client_start", firstClientEndKey = "first_client_end";
+        if (synCache.putIfAbsent(firstClientStartKey, true) == null) {
+          customValueCache.put(1L, "value");
+          assertThat(customValueCache.get(1L), is("value"));
+          synCache.put(firstClientEndKey, true);
+        } else {
+          assertThatEventually(() -> synCache.get(firstClientEndKey), notNullValue()).within(Duration.ofSeconds(30));
+          assertThat(customValueCache.get(1L), is("value"));
         }
-
-        cacheManager.init();
-        doSyncAndPut(cacheManager);
-      } catch (Throwable t) {
-        if (!exception.compareAndSet(null, t)) {
-          exception.get().addSuppressed(t);
-        }
+        return null;
       }
     };
   }
 
-  private void doSyncAndPut(PersistentCacheManager cacheManager) throws InterruptedException, TimeoutException {
-    String customValue = "value";
-    Cache<String, Boolean> synCache = cacheManager.getCache(SYN_CACHE_NAME, String.class, Boolean.class);
-    Cache<Long, String> customValueCache = cacheManager.getCache(CLUSTERED_CACHE_NAME, Long.class, String.class);
-    parallelPuts(customValueCache);
-    String firstClientStartKey = "first_client_start", firstClientEndKey = "first_client_end";
-    if (synCache.putIfAbsent(firstClientStartKey, true) == null) {
-      customValueCache.put(1L, customValue);
-      assertThat(customValueCache.get(1L), is(customValue));
-      synCache.put(firstClientEndKey, true);
-    } else {
-      assertThatEventually(() -> synCache.get(firstClientEndKey), notNullValue()).within(Duration.ofSeconds(30));
-      assertThat(customValueCache.get(1L), is(customValue));
-    }
-  }
-
   private static PersistentCacheManager createCacheManager(URI clusterURI) {
-    ClusteringServiceConfigurationBuilder clusteringConfig = cluster(clusterURI.resolve(CACHE_MANAGER_NAME))
-      .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(30)))
-      .autoCreate(server -> server.defaultServerResource(PRIMARY_SERVER_RESOURCE_NAME));
-
-    ResourcePool resourcePool = ClusteredResourcePoolBuilder
-      .clusteredDedicated(PRIMARY_SERVER_RESOURCE_NAME, PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB);
-
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder
-      .newCacheManagerBuilder()
-      .with(clusteringConfig)
-      .withCache(CLUSTERED_CACHE_NAME,
-        CacheConfigurationBuilder
-          .newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(resourcePool))
-          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)))
-      .withCache(SYN_CACHE_NAME,
-        CacheConfigurationBuilder
-          .newCacheConfigurationBuilder(String.class, Boolean.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(resourcePool))
-          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
-    return clusteredCacheManagerBuilder.build(false);
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
+      .with(cluster(clusterURI.resolve(CACHE_MANAGER_NAME))
+        .timeouts(timeouts().read(Duration.ofSeconds(MAX_WAIT_TIME_SECONDS)).write(Duration.ofSeconds(MAX_WAIT_TIME_SECONDS)))
+        .autoCreate(server -> server.defaultServerResource(PRIMARY_SERVER_RESOURCE_NAME)))
+      .withCache(CLUSTERED_CACHE_NAME, newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
+        .with(clusteredDedicated(PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB)))
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG)))
+      .withCache(SYN_CACHE_NAME, newCacheConfigurationBuilder(String.class, Boolean.class,  newResourcePoolsBuilder()
+        .with(clusteredDedicated(PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB)))
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
+    return clusteredCacheManagerBuilder.build(true);
   }
 
   private void parallelPuts(Cache<Long, String> customValueCache) {
