@@ -25,12 +25,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.createNmsService;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.nmsService;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -55,13 +52,12 @@ public class CMClosedEventSentTest extends ClusteredTests {
       + "</service>";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster()
+    .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {
-    createNmsService(CLUSTER);
-
-    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
+    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getCluster().getConnectionURI().resolve("/my-server-entity-1"))
       .autoCreate(server -> server
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
@@ -89,7 +85,7 @@ public class CMClosedEventSentTest extends ClusteredTests {
 
   private void waitFor(String notifType) throws InterruptedException {
     while (!Thread.currentThread().isInterrupted()) {
-      Message message = nmsService.waitForMessage();
+      Message message = CLUSTER.getNmsService().waitForMessage();
       if (message.getType().equals("NOTIFICATION")) {
         ContextualNotification notification = message.unwrap(ContextualNotification.class).get(0);
         if (notification.getType().equals(notifType)) {

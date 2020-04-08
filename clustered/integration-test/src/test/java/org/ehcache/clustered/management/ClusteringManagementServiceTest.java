@@ -133,7 +133,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = nmsService.readTopology();
+    Cluster cluster = CLUSTER.getNmsService().readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     //System.out.println(json);
   }
@@ -262,7 +262,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // tms entity
 
-    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(CLUSTER.getTmsServerEntityIdentifier())).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(managerCapabilities.length).isEqualTo(5);
 
     assertThat(managerCapabilities[0].getName()).isEqualTo("DataRootSettings");

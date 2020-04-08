@@ -27,13 +27,11 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.hamcrest.Matchers;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
-import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
 import java.time.Duration;
@@ -43,11 +41,7 @@ import java.util.List;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.createNmsService;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.initIdentifiers;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.readTopology;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.sendManagementCallOnEntityToCollectStats;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.tearDownCacheManagerAndStatsCollector;
+import static org.ehcache.clustered.management.AbstractClusteringManagementTest.waitForAllNotifications;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
@@ -79,9 +73,8 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster()
-          .in(clusterPath())
-          .withServiceFragment(RESOURCE_CONFIG).build();
+  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster()
+          .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
 
 
   @BeforeClass
@@ -89,12 +82,9 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
-    CLUSTER.getClusterControl().waitForActive();
+    CLUSTER.getCluster().getClusterControl().waitForActive();
 
-    // simulate a TMS client
-    createNmsService(CLUSTER);
-
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getCluster().getConnectionURI(), proxies);
 
     cacheManager = newCacheManagerBuilder()
             // cluster config
@@ -121,7 +111,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
 
     // test_notifs_sent_at_CM_init
-    AbstractClusteringManagementTest.waitForAllNotifications(
+    waitForAllNotifications(CLUSTER.getNmsService(),
             "CLIENT_CONNECTED",
             "CLIENT_PROPERTY_ADDED",
             "CLIENT_PROPERTY_ADDED",
@@ -135,15 +125,11 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
             "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
             "SERVER_ENTITY_UNFETCHED"
     );
-
-    initIdentifiers();
-
-    sendManagementCallOnEntityToCollectStats();
   }
 
   @Test
   public void test_reconnection() throws Exception {
-    long count = readTopology().clientStream()
+    long count = CLUSTER.getNmsService().readTopology().clientStream()
             .filter(client -> client.getName()
                     .startsWith("Ehcache:") && client.isManageable() && client.getTags()
                     .containsAll(Arrays.asList("webapp-1", "server-node-1")))
@@ -165,7 +151,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     assertThatEventually(() -> {
       try {
-        return readTopology().clientStream()
+        return CLUSTER.getNmsService().readTopology().clientStream()
                   .filter(client -> client.getName()
                           .startsWith("Ehcache:") && client.isManageable() && client.getTags()
                           .containsAll(Arrays.asList("webapp-1", "server-node-1")))
@@ -178,7 +164,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   }
 
   private String getInstanceId() throws Exception {
-    return readTopology().clientStream()
+    return CLUSTER.getNmsService().readTopology().clientStream()
       .filter(client -> client.getName().startsWith("Ehcache:") && client.isManageable())
       .findFirst().get()
       .getManagementRegistry().get()
@@ -188,10 +174,4 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
       .map(settings -> settings.getString("instanceId"))
       .findFirst().get();
   }
-
-  @AfterClass
-  public static void afterClass() throws Exception {
-    tearDownCacheManagerAndStatsCollector();
-  }
-
 }
