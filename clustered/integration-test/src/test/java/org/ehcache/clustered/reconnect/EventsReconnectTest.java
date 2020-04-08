@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -49,16 +50,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import static org.awaitility.Awaitility.await;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class EventsReconnectTest extends ClusteredTests {
-  private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
+  private static final Duration TIMEOUT = Duration.ofSeconds(5);
   public static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
                   + "<ohr:offheap-resources>"
@@ -160,7 +161,7 @@ public class EventsReconnectTest extends ClusteredTests {
 
       getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
 
-      await().atMost(TIMEOUT).until(() -> cacheEventListener.events.get(EventType.CREATED).size(), is(beforeDisconnectionEventCounter + 1));
+      assertThatEventually(() -> cacheEventListener.events.get(EventType.CREATED), hasSize(beforeDisconnectionEventCounter + 1)).within(TIMEOUT);
 
     } finally {
       cacheManager.destroyCache("clustered-cache");

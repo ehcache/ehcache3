@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 @RunWith(Parameterized.class)
 public class LeaseTest extends ClusteredTests {
@@ -124,27 +125,7 @@ public class LeaseTest extends ClusteredTests {
 
     setDelay(0L, proxies);
 
-    AtomicBoolean timedout = new AtomicBoolean(false);
-
-    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-      while (!timedout.get()) {
-        try {
-          Thread.sleep(200);
-        } catch (InterruptedException e) {
-          throw new AssertionError(e);
-        }
-        String result = cache.get(1L);
-        if (result != null) {
-          return result;
-        }
-      }
-      return null;
-    });
-
-    assertThat(future.get(30, TimeUnit.SECONDS), is("The one"));
-
-    timedout.set(true);
-
+    assertThatEventually(() -> cache.get(1L), is("The one")).within(Duration.ofSeconds(30));
     assertThat(cache.get(2L), equalTo("The two"));
     assertThat(cache.get(3L), equalTo("The three"));
 

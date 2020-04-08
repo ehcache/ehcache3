@@ -38,7 +38,6 @@ dependencies {
   testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-  testImplementation "org.awaitility:awaitility:3.1.6"
 
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   testRuntimeOnly project(':clustered:clustered-dist')

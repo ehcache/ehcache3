@@ -36,6 +36,7 @@ import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,6 +56,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class ManagementClusterConnectionTest extends ClusteredTests {
 
@@ -161,23 +163,17 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     assertThat(initiate_reconnect, Matchers.nullValue());
 
-    while (!Thread.currentThread().isInterrupted()) {
-//      System.out.println(mapper.writeValueAsString(readTopology().toMap()));
-
-      count = readTopology().clientStream()
-              .filter(client -> client.getName()
-                      .startsWith("Ehcache:") && client.isManageable() && client.getTags()
-                      .containsAll(Arrays.asList("webapp-1", "server-node-1")))
-              .count();
-
-      if (count == 1) {
-        break;
-      } else {
-        Thread.sleep(1_000);
+    assertThatEventually(() -> {
+      try {
+        return readTopology().clientStream()
+                  .filter(client -> client.getName()
+                          .startsWith("Ehcache:") && client.isManageable() && client.getTags()
+                          .containsAll(Arrays.asList("webapp-1", "server-node-1")))
+                  .count();
+      } catch (Exception e) {
+        throw new AssertionError(e);
       }
-    }
-
-    assertThat(Thread.currentThread().isInterrupted(), is(false));
+    }, is(1L)).within(Duration.ofSeconds(30));
     assertThat(getInstanceId(), equalTo(instanceId));
   }
 

@@ -30,7 +30,7 @@ import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.nio.ByteBuffer;
 

@@ -20,7 +20,6 @@ import org.assertj.core.api.ThrowableAssertAlternative;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.Diagnostics;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -43,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
+import org.terracotta.utilities.test.Diagnostics;
 
 import com.tc.net.protocol.transport.ClientMessageTransport;
 import com.tc.properties.TCProperties;

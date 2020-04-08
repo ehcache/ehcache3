@@ -49,6 +49,7 @@ public class OsgiTestUtils {
 
   public static Option baseConfiguration(String... path) {
     return composite(
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-test-tools"),
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),

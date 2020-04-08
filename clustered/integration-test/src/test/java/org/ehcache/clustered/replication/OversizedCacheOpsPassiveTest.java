@@ -106,7 +106,8 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
           // a small pause
           try {
             Thread.sleep(10);
-          } catch (InterruptedException ignored) {
+          } catch (InterruptedException e) {
+            throw new AssertionError(e);
           }
         }
         cache.put(i, LARGE_VALUE);

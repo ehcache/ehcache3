@@ -26,8 +26,8 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.Serializable;
