@@ -114,9 +114,7 @@ public class ConnectionStateTest {
 
     assertThat(connections.size(), is(1));
 
-    Connection connection = connections.iterator().next();
-
-    connection.close();
+    connections.iterator().next().close();
   }
 
 }

@@ -127,7 +127,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection, Runnable::run);
     try {
-      factory.retrieve("test", null);
+      factory.retrieve("test", null).close();
       fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       // expected
@@ -147,7 +147,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection, Runnable::run);
     try {
-      factory.retrieve("test", null);
+      factory.retrieve("test", null).close();
       fail("Expected EntityNotFoundException");
     } catch (EntityNotFoundException e) {
       //expected

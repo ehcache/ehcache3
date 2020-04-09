@@ -79,29 +79,28 @@ public class ConnectionClosedTest {
                             .autoCreate(c -> c))
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                             resourcePoolsBuilder));
-    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
-    Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
+      Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
 
-    Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
+      Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
 
-    assertThat(connectionProperties.size(), is(1));
-    Properties properties = connectionProperties.iterator().next();
+      assertThat(connectionProperties.size(), is(1));
+      Properties properties = connectionProperties.iterator().next();
 
-    assertThat(properties.getProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT), is("20000"));
+      assertThat(properties.getProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT), is("20000"));
 
-    cache.put(1L, "value");
-    assertThat(cache.get(1L), is("value"));
+      cache.put(1L, "value");
+      assertThat(cache.get(1L), is("value"));
 
-    Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
+      Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
 
-    assertThat(connections.size(), is(1));
+      assertThat(connections.size(), is(1));
 
-    Connection connection = connections.iterator().next();
+      connections.iterator().next().close();
 
-    connection.close();
-
-    assertThatEventually(() -> cache.get(1L), is("value")).within(Duration.ofSeconds(5));
+      assertThatEventually(() -> cache.get(1L), is("value")).within(Duration.ofSeconds(60));
+    }
   }
 
 }

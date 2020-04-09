@@ -38,6 +38,7 @@ import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Arrays;
 
@@ -144,6 +145,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public void close(final Store<String, String> store) {
         OffHeapStore.Provider.close((OffHeapStore)store);
+        StatisticsManager.nodeFor(store).clean();
       }
     };
   }
@@ -164,6 +166,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
   public static void closeStore(OffHeapStore<?, ?> offHeapStore) {
     OffHeapStore.Provider.close(offHeapStore);
+    StatisticsManager.nodeFor(offHeapStore).clean();
   }
 
 }

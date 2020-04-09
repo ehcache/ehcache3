@@ -110,7 +110,7 @@ public class ClusteredConcurrencyTest {
           // continue
         }
 
-        clusteredCacheManagerBuilder.build(true);
+        clusteredCacheManagerBuilder.build(true).close();
       } catch (Throwable t) {
         exception.compareAndSet(null, t); // only keep the first exception
       }

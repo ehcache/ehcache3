@@ -34,6 +34,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -129,5 +130,6 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected void destroyStore(AbstractOffHeapStore<?, ?> store) {
     OffHeapStore.Provider.close((OffHeapStore<?, ?>) store);
+    StatisticsManager.nodeFor(store).clean();
   }
 }

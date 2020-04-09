@@ -37,7 +37,6 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -62,7 +61,6 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 @RunWith(Parallel.class)
-@Ignore("Issue#2758: Fails on linux PR builds")
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventsFailureBehaviorTest.class);

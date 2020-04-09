@@ -173,7 +173,7 @@ public class ClusteredStoreTest {
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   private void assertTimeoutOccurred(ThrowableAssert.ThrowingCallable throwingCallable) {
