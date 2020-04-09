@@ -68,7 +68,6 @@ ext {
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
-  isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
 
 
@@ -145,11 +144,6 @@ subprojects {
   }
 
   test {
-    maxHeapSize = "1408m"
-    systemProperty 'java.awt.headless', 'true'
-    if (parent.isCloudbees) {
-      systemProperty 'disable.concurrent.tests', 'true'
-    }
     jacoco {
       excludes += "org.terracotta.tripwire.*"
     }
@@ -226,7 +220,9 @@ subprojects {
   }
   tasks.withType(Test) {
     executable = testJava.javaExecutable
+    maxHeapSize = "256m"
     maxParallelForks 64
+    systemProperty 'java.awt.headless', 'true'
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')

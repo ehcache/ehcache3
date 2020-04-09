@@ -112,6 +112,7 @@ public class OsgiTestUtils {
       serverProcess.command().addAll(asList(tcServerOptions.split("\\s")));
     }
     serverProcess.command().addAll(asList(
+      "-Xmx128m",
       "-Dtc.install-root=" + serverDir,
       "-cp", serverDir.resolve("lib").resolve("tc.jar").toString(),
       "com.tc.server.TCServerMain",

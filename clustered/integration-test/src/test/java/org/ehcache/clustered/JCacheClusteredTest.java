@@ -24,6 +24,8 @@ import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.terracotta.testing.rules.Cluster;
 
+import javax.cache.Caching;
+import javax.cache.spi.CachingProvider;
 import java.net.URL;
 import java.util.Properties;
 
@@ -69,7 +71,11 @@ public class JCacheClusteredTest extends ClusteredTests {
 
   @AfterClass
   public static void cleanup() {
-    System.clearProperty("ehcache.jsr107.config.default");
-    TCK_PROPERTIES.forEach((k, v) -> System.clearProperty(k.toString()));
+    try {
+      Caching.getCachingProviders().forEach(CachingProvider::close);
+    } finally {
+      System.clearProperty("ehcache.jsr107.config.default");
+      TCK_PROPERTIES.forEach((k, v) -> System.clearProperty(k.toString()));
+    }
   }
 }

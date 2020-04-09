@@ -41,6 +41,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.longThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,7 +54,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.STRONG, false);
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
@@ -63,7 +66,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -84,7 +87,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -121,6 +124,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(store1InvalidatedHashes.size(), is(ITERATIONS - entryCount));
     // test that each time the server evicted, the other client got notified on top of normal invalidations
     assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + evictionCount));
+    assertThat(store1InvalidatedAll.get(), is(false));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   @Test
@@ -129,6 +134,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.STRONG, false);
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
@@ -139,7 +145,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -156,6 +162,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy1.append(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test
@@ -164,6 +171,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testConcurrentHashInvalidationListenerWithAppend", Consistency.STRONG, false);
 
     final AtomicBoolean invalidating = new AtomicBoolean();
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
@@ -183,7 +191,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -214,6 +222,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     } finally {
       executor.shutdown();
     }
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test
@@ -222,7 +231,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.STRONG, false);
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
-
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, new ServerCallback() {
       @Override
@@ -232,7 +241,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -249,6 +258,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy1.getAndAppend(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test
@@ -350,6 +360,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, true);
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, false);
 
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
+
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
       @Override
@@ -359,7 +371,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -379,6 +391,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     } catch (RuntimeException re) {
       assertThat(re.getCause(), instanceOf(IllegalStateException.class));
     }
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test

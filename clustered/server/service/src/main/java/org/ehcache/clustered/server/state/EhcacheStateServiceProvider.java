@@ -29,6 +29,7 @@ import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapresource.OffHeapResources;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentMap;
  * {@link ServiceProvider} for {@link EhcacheStateService}
  */
 @BuiltinService
-public class EhcacheStateServiceProvider implements ServiceProvider {
+public class EhcacheStateServiceProvider implements ServiceProvider, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceProvider.class);
 
@@ -113,6 +114,12 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   @Override
   public void prepareForSynchronization() {
     serviceMap.clear();
+  }
+
+  @Override
+  public void close() {
+    //passthrough test cleanup
+    serviceMap.values().forEach(EhcacheStateService::destroy);
   }
 
   public interface DestroyCallback {

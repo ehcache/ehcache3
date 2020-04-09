@@ -31,6 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
@@ -59,6 +60,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), true, true);
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity1, mock(ServerCallback.class));
+    AtomicBoolean invalidatedAll = new AtomicBoolean();
 
     ExecutorService executor =  Executors.newSingleThreadExecutor();
     CountDownLatch beforeValidationLatch = new CountDownLatch(1);
@@ -74,7 +76,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
 
           @Override
           public void onInvalidateAll() {
-            throw new AssertionError("Should not be called");
+            invalidatedAll.set(true);
           }
 
           @Override
@@ -103,7 +105,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
     assertTrue(afterValidationLatch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
     serverStoreProxy1.append(1L, createPayload(1L));
     assertThat(invalidatedHash.get(), is(1L));
-
+    assertThat(invalidatedAll.get(), is(false));
     executor.shutdownNow();
   }
 }
