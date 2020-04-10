@@ -101,7 +101,7 @@ public class ConnectionClosedTest {
 
       connections.iterator().next().close();
 
-      assertThatEventually(() -> cache.get(1L), is("value")).within(Duration.ofSeconds(5));
+      assertThatEventually(() -> cache.get(1L), is("value")).within(Duration.ofSeconds(60));
     }
   }
 

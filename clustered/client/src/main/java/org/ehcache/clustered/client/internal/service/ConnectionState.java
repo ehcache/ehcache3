@@ -44,6 +44,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -53,6 +54,7 @@ class ConnectionState {
 
   private static final String CONNECTION_PREFIX = "Ehcache:";
 
+  private volatile Executor asyncWorker;
   private volatile Connection clusterConnection = null;
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
@@ -118,7 +120,8 @@ class ConnectionState {
     clusterTierEntities.remove(cacheId);
   }
 
-  public void initClusterConnection() {
+  public void initClusterConnection(Executor asyncWorker) {
+    this.asyncWorker = asyncWorker;
     try {
       connect();
     } catch (ConnectionException ex) {
@@ -144,7 +147,7 @@ class ConnectionState {
 
   private void connect() throws ConnectionException {
     clusterConnection = connectionSource.connect(connectionProperties);
-    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, asyncWorker, timeouts);
   }
 
   public void closeConnection() {

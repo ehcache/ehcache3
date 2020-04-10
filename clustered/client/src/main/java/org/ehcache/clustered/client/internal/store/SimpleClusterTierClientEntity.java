@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -49,6 +48,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
@@ -82,11 +83,14 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private volatile boolean connected = true;
   private volatile boolean eventsEnabled;
 
+  private final Executor asyncWorker;
+
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
-                                       Timeouts timeouts, String storeIdentifier) {
+                                       Timeouts timeouts, String storeIdentifier, Executor asyncWorker) {
     this.endpoint = endpoint;
     this.timeouts = timeouts;
     this.storeIdentifier = storeIdentifier;
+    this.asyncWorker = asyncWorker;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -126,7 +130,22 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
     LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
     for (ResponseListener<T> responseListener : responseListeners) {
-      responseListener.onResponse(response);
+      Runnable responseProcessing = () -> {
+        try {
+          responseListener.onResponse(response);
+        } catch (TimeoutException e) {
+          LOGGER.debug("Timeout exception processing: {} - resubmitting", response, e);
+          fireResponseEvent(response);
+        } catch (Exception e) {
+          LOGGER.warn("Unhandled failure processing: {}", response, e);
+        }
+      };
+      try {
+        asyncWorker.execute(responseProcessing);
+      } catch (RejectedExecutionException f) {
+        LOGGER.warn("Response task execution rejected using inline execution: {}", response, f);
+        responseProcessing.run();
+      }
     }
   }
 

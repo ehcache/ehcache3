@@ -17,6 +17,7 @@ package org.ehcache.testing;
 
 import org.junit.runner.Description;
 import org.junit.runner.Request;
+import org.junit.runner.Runner;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.ParentRunner;
@@ -70,7 +71,7 @@ public class ExternalTests extends ParentRunner<Request> {
 
   private static class IgnoreFilter extends Filter {
 
-    private Ignore ignore;
+    private final Ignore ignore;
 
     public static Filter ignore(Ignore ignore) {
       return new IgnoreFilter(ignore);
