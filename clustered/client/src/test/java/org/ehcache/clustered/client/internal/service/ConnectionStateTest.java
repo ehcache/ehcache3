@@ -73,7 +73,7 @@ public class ConnectionStateTest {
   public void testInitializeStateAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     closeConnection();
 
@@ -93,7 +93,7 @@ public class ConnectionStateTest {
   public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
     connectionState.initializeState();
 
     closeConnection();

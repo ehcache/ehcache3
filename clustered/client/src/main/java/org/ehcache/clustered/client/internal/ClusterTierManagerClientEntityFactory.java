@@ -44,10 +44,13 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
+import static java.util.Objects.requireNonNull;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 
 public class ClusterTierManagerClientEntityFactory {
@@ -58,14 +61,16 @@ public class ClusterTierManagerClientEntityFactory {
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<>();
   private final Map<String, Hold> fetchHolds = new ConcurrentHashMap<>();
 
+  private final Executor asyncWorker;
   private final Timeouts entityTimeouts;
 
-  public ClusterTierManagerClientEntityFactory(Connection connection) {
-    this(connection, TimeoutsBuilder.timeouts().build());
+  public ClusterTierManagerClientEntityFactory(Connection connection, Executor asyncWorker) {
+    this(connection, asyncWorker, TimeoutsBuilder.timeouts().build());
   }
 
-  public ClusterTierManagerClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
+  public ClusterTierManagerClientEntityFactory(Connection connection, Executor asyncWorker, Timeouts entityTimeouts) {
     this.connection = connection;
+    this.asyncWorker = requireNonNull(asyncWorker);
     this.entityTimeouts = entityTimeouts;
   }
 
@@ -292,7 +297,7 @@ public class ClusterTierManagerClientEntityFactory {
           throw new AssertionError(e);
         }
         try {
-          return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
+          return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier, asyncWorker));
         } catch (EntityNotFoundException e) {
           // Ignore - will try to create again
         } catch (EntityException e) {
@@ -319,7 +324,7 @@ public class ClusterTierManagerClientEntityFactory {
                                   EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef)
     throws EntityNotFoundException {
     try {
-      return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
+      return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier, asyncWorker));
     } catch (EntityNotFoundException e) {
       throw e;
     } catch (EntityException e) {

@@ -142,7 +142,7 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
+    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection, Runnable::run);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.emptyMap());

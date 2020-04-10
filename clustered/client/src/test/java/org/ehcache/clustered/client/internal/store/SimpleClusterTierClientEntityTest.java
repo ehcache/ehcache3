@@ -54,7 +54,7 @@ public class SimpleClusterTierClientEntityTest {
   public void testFireWithInit() throws Exception {
     MockEndpointBuilder eb = new MockEndpointBuilder();
     SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint,
-      TimeoutsBuilder.timeouts().build(), "store1");
+      TimeoutsBuilder.timeouts().build(), "store1", Runnable::run);
     AtomicBoolean responseRcvd = new AtomicBoolean(false);
     entity.addResponseListener(MockedEntityResponse.class, response -> responseRcvd.set(true));
     entity.validate(mock(ServerStoreConfiguration.class));
@@ -66,7 +66,7 @@ public class SimpleClusterTierClientEntityTest {
   public void testFireWithDelayedInit() throws Exception {
     MockEndpointBuilder eb = new MockEndpointBuilder();
     SimpleClusterTierClientEntity entity = new SimpleClusterTierClientEntity(eb.mockEndpoint,
-      TimeoutsBuilder.timeouts().build(), "store1");
+      TimeoutsBuilder.timeouts().build(), "store1", Runnable::run);
     AtomicBoolean responseRcvd = new AtomicBoolean(false);
     entity.addResponseListener(MockedEntityResponse.class, response -> responseRcvd.set(true));
     CountDownLatch beforeLatch = new CountDownLatch(1);

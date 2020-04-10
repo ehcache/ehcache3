@@ -118,7 +118,6 @@ public class ConnectionClosedTest {
     });
 
     assertThat(future.get(5, TimeUnit.SECONDS), is("value"));
-
   }
 
 }
