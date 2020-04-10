@@ -22,7 +22,7 @@ plugins {
 dependencies {
   service project(':clustered:server:service-api')
   service "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
-  service "org.terracotta.management.dist:mnm-common:$terracottaPlatformVersion"
+  service "org.terracotta.management:management-registry:$terracottaPlatformVersion"
 
   api project(':clustered:common')
   implementation "org.terracotta:runnel:$terracottaPlatformVersion"

@@ -21,6 +21,7 @@ import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.management.model.message.Message;
@@ -55,7 +56,7 @@ public class CMClosedEventSentTest extends ClusteredTests {
       + "</service>";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {

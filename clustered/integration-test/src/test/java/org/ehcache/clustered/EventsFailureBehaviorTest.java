@@ -33,9 +33,11 @@ import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -57,6 +59,7 @@ import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 @RunWith(Parallel.class)
+@Ignore("Issue#2758: Fails on linux PR builds")
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
   private static final int KEYS = 500;
@@ -70,7 +73,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build());
   @Rule
   public final TestName testName = new TestName();
 

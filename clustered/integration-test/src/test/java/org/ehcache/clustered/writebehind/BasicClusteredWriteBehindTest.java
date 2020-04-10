@@ -18,6 +18,7 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -45,7 +46,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;

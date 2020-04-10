@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.entity.PlatformConfiguration;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceProvider;
-import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -64,16 +63,16 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
     Collection<OffHeapResources> extendedConfiguration = platformConfiguration.getExtendedConfiguration(OffHeapResources.class);
     if (extendedConfiguration.size() > 1) {
       throw new UnsupportedOperationException("There are " + extendedConfiguration.size() + " OffHeapResourcesProvider, this is not supported. " +
-                                              "There must be only one!");
+        "There must be only one!");
     }
     Iterator<OffHeapResources> iterator = extendedConfiguration.iterator();
     if (iterator.hasNext()) {
       offHeapResourcesProvider = iterator.next();
       if (offHeapResourcesProvider.getAllIdentifiers().isEmpty()) {
-        throw new UnsupportedOperationException("There are no offheap-resource defined, this is not supported. There must be at least one!");
+        LOGGER.warn("No offheap-resource defined - this will prevent provider from offering any EhcacheStateService.");
       }
     } else {
-      LOGGER.warn("No offheap-resource defined - this will prevent provider from offering any EhcacheStateService.");
+      throw new UnsupportedOperationException("There are no offheap-resource defined, this is not supported");
     }
     return true;
   }

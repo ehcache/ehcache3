@@ -17,7 +17,6 @@ package org.ehcache.clustered.management;
 
 import org.ehcache.clustered.util.BeforeAll;
 import org.junit.FixMethodOrder;
-import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -30,8 +29,6 @@ public class AfterFailoverManagementServiceTest extends ClusteringManagementServ
 
     CLUSTER.getClusterControl().terminateActive();
     CLUSTER.getClusterControl().waitForActive();
-
-    createNmsService();
 
     initIdentifiers();
 

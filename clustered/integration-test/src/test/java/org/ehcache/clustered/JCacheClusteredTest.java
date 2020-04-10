@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered;
 
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.ehcache.testing.ExternalTests;
 import org.jsr107.tck.spi.CachingProviderTest;
 import org.junit.AfterClass;
@@ -56,7 +57,7 @@ public class JCacheClusteredTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

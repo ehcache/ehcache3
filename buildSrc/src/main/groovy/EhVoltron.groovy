@@ -26,13 +26,6 @@ class EhVoltron implements Plugin<Project> {
         description "Services consumed by this plugin"
         canBeResolved true
         canBeConsumed true
-
-        service.withDependencies { deps ->
-          def monitoringServiceApi = deps.find { it.group == 'org.terracotta.management' && it.name == 'monitoring-service-api' } as ModuleDependency
-          if (monitoringServiceApi != null) {
-            monitoringServiceApi.transitive = false
-          }
-        }
       }
 
       project.configurations.getByName(JavaPlugin.API_CONFIGURATION_NAME) { api ->

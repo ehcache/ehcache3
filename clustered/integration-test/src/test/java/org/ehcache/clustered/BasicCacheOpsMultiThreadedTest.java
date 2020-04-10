@@ -28,8 +28,10 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
@@ -66,7 +68,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
@@ -85,6 +87,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
+  @Ignore("Issue#2758: Fails on linux PR builds")
   public void testMulipleClients() throws Throwable {
     CountDownLatch latch = new CountDownLatch(NUM_THREADS + 1);
 

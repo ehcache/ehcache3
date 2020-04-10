@@ -22,6 +22,7 @@ plugins {
 dependencies {
   service project(':clustered:server:service-api')
   service "org.terracotta:offheap-resource:$terracottaPlatformVersion"
+  service "org.terracotta:statistics:$statisticVersion"
 
   implementation project(':clustered:common')
   implementation "org.terracotta:offheap-store:$offheapVersion"
