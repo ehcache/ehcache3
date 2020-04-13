@@ -125,6 +125,11 @@ public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDi
   }
 
   @Override
+  public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+    //dispatcher is synchronous by default
+  }
+
+  @Override
   public boolean isEventOrdering() {
     return ordered;
   }
