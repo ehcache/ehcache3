@@ -37,9 +37,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import static java.time.Duration.ofSeconds;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.LongStream.range;
+import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -78,11 +80,9 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-
-    try {
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource"))
+        .timeouts(timeouts().read(ofSeconds(10))));
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -126,8 +126,6 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));
 
       assertThat(smallMap, is(range(0, KEYS).boxed().collect(toMap(identity(), k -> Long.toString(k)))));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -137,10 +135,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -187,8 +182,6 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));
 
       assertThat(smallMap, is(range(0, KEYS).boxed().collect(toMap(identity(), k -> Long.toString(k)))));
-    } finally {
-      cacheManager.close();
     }
   }
 }
