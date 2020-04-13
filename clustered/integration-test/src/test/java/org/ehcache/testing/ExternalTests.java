@@ -32,12 +32,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 public class ExternalTests extends ParentRunner<Request> {
 
@@ -45,7 +46,7 @@ public class ExternalTests extends ParentRunner<Request> {
 
   public ExternalTests(Class<?> testClass) throws InitializationError, IOException, ClassNotFoundException {
     super(testClass);
-    this.children = parseChildren(getTestClass(), parseFilter(getTestClass()));
+    this.children = singletonList(parseRequest(getTestClass(), parseFilter(getTestClass())));
   }
 
   @Override
@@ -102,7 +103,7 @@ public class ExternalTests extends ParentRunner<Request> {
     }
   }
 
-  private static List<Request> parseChildren(TestClass testClass, Filter filter) throws IOException, ClassNotFoundException {
+  private static Request parseRequest(TestClass testClass, Filter filter) throws IOException, ClassNotFoundException {
     List<From> froms = groupAnnotations(testClass, From.class, Froms.class);
     List<Test> tests = groupAnnotations(testClass, Test.class, Tests.class);
 
@@ -125,10 +126,9 @@ public class ExternalTests extends ParentRunner<Request> {
       classes.add(test.value());
     }
 
-    return classes.stream()
+    return Request.classes(classes.stream()
       .filter(c -> Modifier.isPublic(c.getModifiers()) && !Modifier.isAbstract(c.getModifiers()))
-      .filter(c -> !c.getSimpleName().startsWith("Abstract"))
-      .map(Request::aClass).map(r -> r.filterWith(filter)).collect(Collectors.toList());
+      .filter(c -> !c.getSimpleName().startsWith("Abstract")).toArray(Class[]::new)).filterWith(filter);
 
   }
 

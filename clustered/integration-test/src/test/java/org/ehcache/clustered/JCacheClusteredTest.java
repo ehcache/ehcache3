@@ -17,6 +17,7 @@
 package org.ehcache.clustered;
 
 import org.ehcache.testing.ExternalTests;
+import org.jsr107.tck.event.CacheListenerTest;
 import org.jsr107.tck.spi.CachingProviderTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -38,6 +39,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(ExternalTests.class)
 @ExternalTests.From(javax.cache.CachingTest.class)
 @ExternalTests.Ignore(value=CachingProviderTest.class, method="getCacheManagerUsingDefaultURI")
+@ExternalTests.Ignore(CacheListenerTest.class)
 public class JCacheClusteredTest extends ClusteredTests {
 
   private static final Properties TCK_PROPERTIES = new Properties();

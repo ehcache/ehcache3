@@ -639,14 +639,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-        CacheEventListenerConfiguration<?> eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
-        if (eventListenerConfiguration != null) {
-          if (eventListenerConfiguration.firingMode() == EventFiring.SYNCHRONOUS) {
-            // Forget it. Never.
-            throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
-          }
-        }
-
         if (clusteringService == null) {
           throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteringServiceConfiguration");
         }
@@ -1024,9 +1016,19 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       delegate.addEventFilter(eventFilter);
     }
     @Override
-    public void setEventOrdering(boolean ordering) {
+    public void setEventOrdering(boolean ordering) throws IllegalArgumentException {
       delegate.setEventOrdering(ordering);
     }
+
+    @Override
+    public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+      if (synchronous) {
+        throw new IllegalArgumentException("Synchronous CacheEventListener is not supported with clustered tiers");
+      } else {
+        delegate.setSynchronous(synchronous);
+      }
+    }
+
     @Override
     public boolean isEventOrdering() {
       return delegate.isEventOrdering();
