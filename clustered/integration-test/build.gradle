@@ -43,7 +43,7 @@ dependencies {
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   testRuntimeOnly project(':clustered:clustered-dist')
 
-  testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
+  testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
   testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 }
 
