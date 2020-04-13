@@ -25,7 +25,6 @@ import org.ehcache.clustered.util.BeforeAllRule;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -101,7 +100,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   public static Cluster CLUSTER = newCluster(2)
     .in(clusterPath())
     .withServiceFragment(RESOURCE_CONFIG)
-    .startupBuilder(DynamicConfigStartupBuilder::new)
     .build();
 
   @Rule

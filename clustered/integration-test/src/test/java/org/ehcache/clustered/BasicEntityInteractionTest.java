@@ -30,7 +30,6 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -63,7 +62,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
 
   @BeforeClass

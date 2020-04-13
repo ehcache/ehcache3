@@ -20,7 +20,6 @@ import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -46,7 +45,7 @@ public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath())
-                                              .withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+                                              .withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void beforeClass() throws Exception {

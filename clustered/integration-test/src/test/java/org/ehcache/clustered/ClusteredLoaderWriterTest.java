@@ -32,7 +32,6 @@ import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -82,7 +81,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

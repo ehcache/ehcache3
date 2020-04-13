@@ -37,7 +37,6 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -69,7 +68,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass

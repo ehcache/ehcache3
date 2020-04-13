@@ -18,7 +18,6 @@ package org.ehcache.clustered;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -59,7 +58,7 @@ public class ClusteredIterationTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Rule
   public final TestName testName = new TestName();

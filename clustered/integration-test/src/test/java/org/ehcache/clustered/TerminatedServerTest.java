@@ -34,7 +34,6 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.DefaultStatisticsService;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -133,7 +132,7 @@ public class TerminatedServerTest extends ClusteredTests {
   }
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
   @Rule
   public final TestName testName = new TestName();
 

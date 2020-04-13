@@ -26,7 +26,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -51,7 +50,7 @@ public class PassiveSyncTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {
