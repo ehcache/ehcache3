@@ -19,6 +19,7 @@ import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.TestRetryer;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
@@ -30,6 +31,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
@@ -41,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.EnumSet.of;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -50,17 +54,6 @@ import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicCacheReconnectTest extends ClusteredTests {
-  public static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-                  + "<ohr:offheap-resources>"
-                  + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "</ohr:offheap-resources>"
-                  + "</config>\n"
-                  + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-                  + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-                  + "</lease:connection-leasing>"
-                  + "</service>";
 
   private static PersistentCacheManager cacheManager;
 
@@ -72,15 +65,26 @@ public class BasicCacheReconnectTest extends ClusteredTests {
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
-  @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final TestRetryer<Integer, Cluster> CLUSTER = new TestRetryer<>(leaseLength -> newCluster()
+    .in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>\n"
+        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+        + "<lease:connection-leasing>"
+        + "<lease:lease-length unit='seconds'>" + leaseLength + "</lease:lease-length>"
+        + "</lease:connection-leasing>"
+        + "</service>")
+    .build(), of(TestRetryer.OutputIs.CLASS_RULE), 1, 10, 30);
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+    CLUSTER.getOutput().getClusterControl().waitForActive();
 
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getOutput().getConnectionURI(), proxies);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
@@ -157,10 +161,13 @@ public class BasicCacheReconnectTest extends ClusteredTests {
 
   }
 
-  private static void expireLease() throws InterruptedException {
-    setDelay(6000, proxies);
-    Thread.sleep(6000);
-
-    setDelay(0L, proxies);
+  private void expireLease() throws InterruptedException {
+    long delay = SECONDS.toMillis(CLUSTER.getInput() + 1);
+    setDelay(delay, proxies);
+    try {
+      Thread.sleep(delay);
+    } finally {
+      setDelay(0L, proxies);
+    }
   }
 }

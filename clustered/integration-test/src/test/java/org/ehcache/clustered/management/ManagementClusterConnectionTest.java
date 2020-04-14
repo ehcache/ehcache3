@@ -22,6 +22,8 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.TestRetryer;
+import org.ehcache.clustered.TestRetryer.OutputIs;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -30,6 +32,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 
@@ -39,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.util.EnumSet.of;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.clustered.management.AbstractClusteringManagementTest.waitForAllNotifications;
@@ -54,37 +59,35 @@ import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class ManagementClusterConnectionTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-                  + "<ohr:offheap-resources>"
-                  + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "</ohr:offheap-resources>"
-                  + "</config>\n"
-                  + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-                  + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-                  + "</lease:connection-leasing>"
-                  + "</service>";
-
   protected static CacheManager cacheManager;
   protected static ObjectMapper mapper = new ObjectMapper();
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
-  @ClassRule
-  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster()
-          .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
-
+  @ClassRule @Rule
+  public static TestRetryer<Integer, ClusterWithManagement> CLUSTER = new TestRetryer<>(leaseLength -> new ClusterWithManagement(newCluster()
+     .in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>\n"
+        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+        + "<lease:connection-leasing>"
+        + "<lease:lease-length unit='seconds'>" + leaseLength + "</lease:lease-length>"
+        + "</lease:connection-leasing>"
+        + "</service>")
+    .build()), of(OutputIs.CLASS_RULE), 1, 10, 30);
 
   @BeforeClass
   public static void beforeClass() throws Exception {
 
     mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
-    CLUSTER.getCluster().getClusterControl().waitForActive();
+    CLUSTER.getOutput().getCluster().getClusterControl().waitForActive();
 
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getCluster().getConnectionURI(), proxies);
+    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getOutput().getCluster().getConnectionURI(), proxies);
 
     cacheManager = newCacheManagerBuilder()
             // cluster config
@@ -111,7 +114,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
 
     // test_notifs_sent_at_CM_init
-    waitForAllNotifications(CLUSTER.getNmsService(),
+    waitForAllNotifications(CLUSTER.getOutput().getNmsService(),
             "CLIENT_CONNECTED",
             "CLIENT_PROPERTY_ADDED",
             "CLIENT_PROPERTY_ADDED",
@@ -129,7 +132,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
   @Test
   public void test_reconnection() throws Exception {
-    long count = CLUSTER.getNmsService().readTopology().clientStream()
+    long count = CLUSTER.getOutput().getNmsService().readTopology().clientStream()
             .filter(client -> client.getName()
                     .startsWith("Ehcache:") && client.isManageable() && client.getTags()
                     .containsAll(Arrays.asList("webapp-1", "server-node-1")))
@@ -139,10 +142,13 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     String instanceId = getInstanceId();
 
-    setDelay(6000, proxies);
-    Thread.sleep(6000);
-
-    setDelay(0L, proxies);
+    long delay = SECONDS.toMillis(CLUSTER.getInput() + 1);
+    setDelay(delay, proxies);
+    try {
+      Thread.sleep(delay);
+    } finally {
+      setDelay(0L, proxies);
+    }
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     String initiate_reconnect = cache.get("initiate reconnect");
@@ -151,7 +157,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     assertThatEventually(() -> {
       try {
-        return CLUSTER.getNmsService().readTopology().clientStream()
+        return CLUSTER.getOutput().getNmsService().readTopology().clientStream()
                   .filter(client -> client.getName()
                           .startsWith("Ehcache:") && client.isManageable() && client.getTags()
                           .containsAll(Arrays.asList("webapp-1", "server-node-1")))
@@ -164,7 +170,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   }
 
   private String getInstanceId() throws Exception {
-    return CLUSTER.getNmsService().readTopology().clientStream()
+    return CLUSTER.getOutput().getNmsService().readTopology().clientStream()
       .filter(client -> client.getName().startsWith("Ehcache:") && client.isManageable())
       .findFirst().get()
       .getManagementRegistry().get()

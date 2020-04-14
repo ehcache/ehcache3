@@ -18,14 +18,18 @@ package org.ehcache.clustered.management;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.TestRetryer;
+import org.ehcache.clustered.TestRetryer.OutputIs;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 
+import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -38,26 +42,25 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class CMClosedEventSentTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>"
-      + "</config>\n"
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
-
-  @ClassRule
-  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster()
-    .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  @ClassRule @Rule
+  public static TestRetryer<Integer, ClusterWithManagement> CLUSTER = new TestRetryer<>(leaseLength -> new ClusterWithManagement(newCluster()
+    .in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>\n"
+        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+        + "<lease:connection-leasing>"
+        + "<lease:lease-length unit='seconds'>" + leaseLength + "</lease:lease-length>"
+        + "</lease:connection-leasing>"
+        + "</service>")
+    .build()), of(OutputIs.CLASS_RULE), 1, 10, 30);
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {
-    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getCluster().getConnectionURI().resolve("/my-server-entity-1"))
+    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getOutput().getCluster().getConnectionURI().resolve("/my-server-entity-1"))
       .autoCreate(server -> server
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
@@ -85,7 +88,7 @@ public class CMClosedEventSentTest extends ClusteredTests {
 
   private void waitFor(String notifType) throws InterruptedException {
     while (!Thread.currentThread().isInterrupted()) {
-      Message message = CLUSTER.getNmsService().waitForMessage();
+      Message message = CLUSTER.getOutput().getNmsService().waitForMessage();
       if (message.getType().equals("NOTIFICATION")) {
         ContextualNotification notification = message.unwrap(ContextualNotification.class).get(0);
         if (notification.getType().equals(notifType)) {

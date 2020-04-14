@@ -35,6 +35,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
@@ -50,8 +51,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import static java.util.EnumSet.of;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
-import static org.ehcache.clustered.reconnect.BasicCacheReconnectTest.RESOURCE_CONFIG;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -67,15 +69,26 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
   private static List<TCPProxy> proxies;
   PersistentCacheManager cacheManager;
 
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final TestRetryer<Integer, Cluster> CLUSTER = new TestRetryer<>(leaseLength -> newCluster()
+    .in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>\n"
+        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+        + "<lease:connection-leasing>"
+        + "<lease:lease-length unit='seconds'>" + leaseLength + "</lease:lease-length>"
+        + "</lease:connection-leasing>"
+        + "</service>")
+    .build(), of(TestRetryer.OutputIs.CLASS_RULE), 1, 10, 30);
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+    CLUSTER.getOutput().getClusterControl().waitForActive();
     proxies = new ArrayList<>();
-    connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getOutput().getConnectionURI(), proxies);
   }
 
   @Before
@@ -117,9 +130,13 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
         }
       }
       // For reconnection.
-      setDelay(6000, proxies); // Connection Lease time is 5 seconds so delaying for more than 5 seconds.
-      Thread.sleep(6000);
-      setDelay(0L, proxies);
+      long delay = SECONDS.toMillis(CLUSTER.getInput() + 1);
+      setDelay(delay, proxies);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        setDelay(0L, proxies);
+      }
       client = LeasedConnectionFactory.connect(connectionURI, new Properties());
 
       // For mimicking the cacheManager.destroy() in the reconnect path.
@@ -163,9 +180,13 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
       cacheManager.destroyCache("clustered-cache-1");
 
       // For reconnection.
-      setDelay(6000, proxies); // Connection Lease time is 5 seconds so delaying for more than 5 seconds.
-      Thread.sleep(6000);
-      setDelay(0L, proxies);
+      long delay = SECONDS.toMillis(CLUSTER.getInput() + 1);
+      setDelay(delay, proxies);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        setDelay(0L, proxies);
+      }
 
       Cache<Long, String> cache2Again = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
       assertThatEventually(() -> cache2Again.get(1L), equalTo("The one")).within(Duration.ofSeconds(10));
