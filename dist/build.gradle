@@ -43,6 +43,6 @@ jar {
 
     'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
     'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*, org.terracotta.statistics.*, org.terracotta.context',
-    'Import-Package': 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, *'
+    'Import-Package': 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version=!, *'
   )
 }
