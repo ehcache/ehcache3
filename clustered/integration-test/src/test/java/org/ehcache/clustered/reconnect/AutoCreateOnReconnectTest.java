@@ -19,7 +19,6 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
@@ -47,7 +46,6 @@ public class AutoCreateOnReconnectTest extends ClusteredTests {
   public static Cluster CLUSTER = newCluster(1)
     .in(clusterPath())
     .withServiceFragment(RESOURCE_CONFIG)
-    .startupBuilder(DynamicConfigStartupBuilder::new)
     .build();
 
   @Test

@@ -26,7 +26,6 @@ import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -80,7 +79,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   @ClassRule
   public static Cluster CLUSTER = newCluster()
           .in(clusterPath())
-          .withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build();
+          .withServiceFragment(RESOURCE_CONFIG).build();
 
 
   @BeforeClass

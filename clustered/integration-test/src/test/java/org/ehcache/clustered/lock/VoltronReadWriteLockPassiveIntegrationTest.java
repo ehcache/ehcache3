@@ -24,7 +24,6 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.clustered.util.runners.Parallel;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -41,7 +40,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).startupBuilder(DynamicConfigStartupBuilder::new).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).build());
   @Rule
   public final TestName testName = new TestName();
 

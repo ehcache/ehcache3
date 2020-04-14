@@ -24,7 +24,6 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -55,7 +54,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).startupBuilder(DynamicConfigStartupBuilder::new).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection CONNECTION;
 
   @BeforeClass

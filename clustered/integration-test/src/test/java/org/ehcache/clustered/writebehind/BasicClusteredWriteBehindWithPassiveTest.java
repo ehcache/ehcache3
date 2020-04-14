@@ -20,7 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.clustered.util.runners.Parallel;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -35,7 +34,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
-      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).startupBuilder(DynamicConfigStartupBuilder::new).build()
+      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
   );
 
   private PersistentCacheManager cacheManager;

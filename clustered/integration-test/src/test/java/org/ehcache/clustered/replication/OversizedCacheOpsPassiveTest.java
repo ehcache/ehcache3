@@ -26,7 +26,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.DynamicConfigStartupBuilder;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -60,7 +59,6 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
         .withServiceFragment(RESOURCE_CONFIG)
-        .startupBuilder(DynamicConfigStartupBuilder::new)
         .build();
 
   @BeforeClass
