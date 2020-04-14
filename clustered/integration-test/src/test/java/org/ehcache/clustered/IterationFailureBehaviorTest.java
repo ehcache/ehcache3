@@ -27,17 +27,24 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.testing.TestRetryer;
+import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.testing.rules.Cluster;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.util.EnumSet.of;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.LongStream.range;
@@ -53,33 +60,33 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
 
   private static final int KEYS = 100;
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>"
-      + "</config>"
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Cluster> CLUSTER = TestRetryer.tryValues(
+    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
+    leaseLength -> newCluster(2).in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>\n"
+        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+        + "<lease:connection-leasing>"
+        + "<lease:lease-length unit='seconds'>" + leaseLength.get(SECONDS) + "</lease:lease-length>"
+        + "</lease:connection-leasing>"
+        + "</service>").build(),
+    of(OutputIs.CLASS_RULE));
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+    CLUSTER.get().getClusterControl().startAllServers();
+    CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
   }
 
   @Test
   public void testIteratorFailover() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/iterator-cm"))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource"))
         .timeouts(timeouts().read(ofSeconds(10))));
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
@@ -110,7 +117,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
-      CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.get().getClusterControl().terminateActive();
 
       //large iterator fails
       try {
@@ -133,7 +140,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
   public void testIteratorReconnect() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/iterator-cm"))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -163,10 +170,10 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
-      CLUSTER.getClusterControl().terminateAllServers();
-      Thread.sleep(10000);
-      CLUSTER.getClusterControl().startAllServers();
-      CLUSTER.getClusterControl().waitForActive();
+      CLUSTER.get().getClusterControl().terminateAllServers();
+      Thread.sleep(CLUSTER.input().multipliedBy(2L).toMillis());
+      CLUSTER.get().getClusterControl().startAllServers();
+      CLUSTER.get().getClusterControl().waitForActive();
 
       //large iterator fails
       try {

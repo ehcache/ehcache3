@@ -38,22 +38,15 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class CMClosedEventSentTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>"
-      + "</config>\n"
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
-
   @ClassRule
-  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster()
-    .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static ClusterWithManagement CLUSTER = new ClusterWithManagement(
+    newCluster().in(clusterPath()).withServiceFragment(
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+        + "<ohr:offheap-resources>"
+        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
+        + "</ohr:offheap-resources>"
+        + "</config>").build());
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {

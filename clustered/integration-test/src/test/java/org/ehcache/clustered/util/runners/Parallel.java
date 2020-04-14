@@ -24,6 +24,6 @@ public class Parallel extends BlockJUnit4ClassRunner {
 
   public Parallel(Class<?> klass) throws InitializationError {
     super(klass);
-    setScheduler(new ExecutorScheduler(newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + klass))));
+    setScheduler(new ExecutorScheduler(() -> newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + klass))));
   }
 }

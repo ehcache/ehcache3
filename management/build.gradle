@@ -39,4 +39,5 @@ dependencies {
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
   testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
   testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
+  testImplementation project(':test-utilities')
 }
