@@ -51,9 +51,9 @@ public class DiagnosticTest extends AbstractClusteringManagementTest {
     int activePort = readTopology().serverStream().filter(Server::isActive).findFirst().get().getBindPort();
 
     Properties properties = new Properties();
-    properties.setProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT, String.valueOf("5000"));
+    properties.setProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT, String.valueOf("10000"));
     properties.setProperty(ConnectionPropertyNames.CONNECTION_NAME, "diagnostic");
-    properties.setProperty(PROP_REQUEST_TIMEOUT, "5000");
+    properties.setProperty(PROP_REQUEST_TIMEOUT, "10000");
     properties.setProperty(PROP_REQUEST_TIMEOUTMESSAGE, "timed out");
     URI uri = URI.create("diagnostic://localhost:" + activePort);
 
