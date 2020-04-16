@@ -24,7 +24,6 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
@@ -86,7 +85,6 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
-  @Ignore("Issue#2758: Fails on linux PR builds")
   public void testMultipleClients() {
     ExecutorService executorService = Executors.newFixedThreadPool(NUM_THREADS);
     try {
