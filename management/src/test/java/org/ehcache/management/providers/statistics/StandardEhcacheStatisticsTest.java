@@ -26,11 +26,14 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.LatencyHistogramConfiguration;
 import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.TestRetryer;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
@@ -46,23 +49,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
+import static org.ehcache.management.TestRetryer.tryValues;
 
 public class StandardEhcacheStatisticsTest {
 
-  private static final int HISTOGRAM_WINDOW_MILLIS = 400;
-  private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Duration> TIME_BASE = tryValues(Stream.of(1, 2, 4, 8, 16, 32).map(i -> ofMillis(50).multipliedBy(i)));
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;
   private ManagementRegistryService managementRegistry;
   private Context context;
 
-  private long latency;
+  private Duration latency = Duration.ZERO;
   private final Map<Long, String> systemOfRecords = new HashMap<>();
 
   @Before
@@ -99,7 +104,7 @@ public class StandardEhcacheStatisticsTest {
     LatencyHistogramConfiguration latencyHistogramConfiguration = new LatencyHistogramConfiguration(
       LatencyHistogramConfiguration.DEFAULT_PHI,
       LatencyHistogramConfiguration.DEFAULT_BUCKET_COUNT,
-      Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)
+      TIME_BASE.get().multipliedBy(8L)
     );
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration()
       .setCacheManagerAlias("myCacheManager3")
@@ -162,25 +167,25 @@ public class StandardEhcacheStatisticsTest {
     Consumer<LatencyHistogramStatistic> verifier = histogram -> {
       assertThat(histogram.count()).isEqualTo(0L);
 
-      latency = 100;
+      latency = TIME_BASE.get().multipliedBy(2L);
       cache.get(1L);
 
-      latency = 50;
+      latency = TIME_BASE.get().multipliedBy(1L);
       cache.get(2L);
 
       assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100L));
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TIME_BASE.get().multipliedBy(2L).toNanos());
 
-      minimumSleep(NEXT_WINDOW_SLEEP_MILLIS);
+      minimumSleep(TIME_BASE.get().multipliedBy(10));
 
-      latency = 50;
+      latency = TIME_BASE.get().multipliedBy(1L);
       cache.get(3L);
 
-      latency = 150;
+      latency = TIME_BASE.get().multipliedBy(3L);
       cache.get(4L);
 
       assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(150L));
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TIME_BASE.get().multipliedBy(3L).toNanos());
     };
 
     verifier.accept(getHistogram(CacheOperationOutcomes.GetOutcome.MISS, "get"));
@@ -217,8 +222,8 @@ public class StandardEhcacheStatisticsTest {
   // Using System.nanoTime (accurate to 1 micro-second or better) in lieu of System.currentTimeMillis (on Windows
   // accurate to ~16ms), the inaccuracy of which compounds when invoked multiple times, as in this method.
 
-  private void minimumSleep(long millis) {
-    long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis);
+  private void minimumSleep(Duration sleep) {
+    long end = System.nanoTime() + sleep.toNanos();
     while (true) {
       long nanosLeft = end - System.nanoTime();
 

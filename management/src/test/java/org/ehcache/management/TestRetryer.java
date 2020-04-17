@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered;
+package org.ehcache.management;
 
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -30,8 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
-import static org.ehcache.clustered.TestRetryer.OutputIs.CLASS_RULE;
-import static org.ehcache.clustered.TestRetryer.OutputIs.RULE;
 import static org.junit.Assert.assertTrue;
 
 public class TestRetryer<T, R> implements TestRule {
@@ -48,12 +46,24 @@ public class TestRetryer<T, R> implements TestRule {
   private final Map<Description, Throwable> failures = new ConcurrentHashMap<>();
 
 
-  @SafeVarargs @SuppressWarnings("varargs")
-  public TestRetryer(Function<T, R> mapper, Set<OutputIs> isRule, T... values) {
-    this(mapper, isRule, Arrays.stream(values));
+  @SafeVarargs @SuppressWarnings("varargs") // Creating a stream from an array is safe
+  public static <T> TestRetryer<T, T> tryValues(T... values) {
+    return tryValues(Stream.of(values));
   }
 
-  public TestRetryer(Function<T, R> mapper, Set<OutputIs> outputIs, Stream<T> values) {
+  public static <T> TestRetryer<T, T> tryValues(Stream<T> values) {
+    return tryValues(values, Function.identity());
+  }
+
+  public static <T, R> TestRetryer<T, R> tryValues(Stream<T> values, Function<T, R> mapper) {
+    return tryValues(values, mapper, EnumSet.noneOf(OutputIs.class));
+  }
+
+  public static <T, R> TestRetryer<T, R> tryValues(Stream<T> values, Function<T, R> mapper, Set<OutputIs> outputIs) {
+    return new TestRetryer<>(values, mapper, outputIs);
+  }
+
+  private TestRetryer(Stream<T> values, Function<T, R> mapper, Set<OutputIs> outputIs) {
     this.mapper = mapper;
     this.outputIs = outputIs;
     this.inputs = values;
@@ -63,8 +73,8 @@ public class TestRetryer<T, R> implements TestRule {
   public Statement apply(Statement base, Description description) {
     if (description.isTest()) {
       Statement target;
-      R output = getOutput();
-      if (output instanceof TestRule && outputIs.contains(RULE)) {
+      R output = get();
+      if (output instanceof TestRule && outputIs.contains(OutputIs.RULE)) {
         target = ((TestRule) output).apply(base, description);
       } else {
         target = base;
@@ -94,7 +104,7 @@ public class TestRetryer<T, R> implements TestRule {
               R output = mapper.apply(input);
               assertTrue(outputRef.compareAndSet(null, output));
               try {
-                if (output instanceof TestRule && outputIs.contains(CLASS_RULE)) {
+                if (output instanceof TestRule && outputIs.contains(OutputIs.CLASS_RULE)) {
                   ((TestRule) output).apply(base, description).evaluate();
                 } else {
                   base.evaluate();
@@ -126,15 +136,15 @@ public class TestRetryer<T, R> implements TestRule {
     if (isTerminalAttempt()) {
       return merged;
     } else {
-      return new AssumptionViolatedException("Failure for input parameter: " + getInput(), merged);
+      return new AssumptionViolatedException("Failure for input parameter: " + input(), merged);
     }
   }
 
-  public T getInput() {
+  public T input() {
     return requireNonNull(inputRef.get());
   }
 
-  public R getOutput() {
+  public R get() {
     return requireNonNull(outputRef.get());
   }
 
