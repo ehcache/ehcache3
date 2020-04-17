@@ -21,6 +21,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -49,6 +50,7 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.LongStream.range;
 import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -126,7 +128,9 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ConnectionClosedException.class)) //lost in the space between active and passive
+            .or(instanceOf(InvalidOperationException.class))); //picked up by the passive - it doesn't have our iterator
       }
 
       //small iterator completes... it fetched the entire batch in one shot
@@ -182,7 +186,9 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ConnectionClosedException.class)) //lost in the space between the two cluster executions
+            .or(instanceOf(InvalidOperationException.class))); //picked up by the new cluster - it doesn't have our iterator
       }
 
       //small iterator completes... it fetched the entire batch in one shot
