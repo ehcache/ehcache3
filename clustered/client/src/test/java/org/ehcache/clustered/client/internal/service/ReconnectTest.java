@@ -30,7 +30,6 @@ import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 
 public class ReconnectTest {
 

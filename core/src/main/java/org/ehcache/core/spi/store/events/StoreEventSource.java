@@ -16,8 +16,6 @@
 
 package org.ehcache.core.spi.store.events;
 
-import org.ehcache.event.EventFiring;
-
 /**
  * Interface to enable listening on and configuring the {@link org.ehcache.core.spi.store.Store} eventing system.
  */
