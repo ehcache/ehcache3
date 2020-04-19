@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static java.util.stream.LongStream.range;
+import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -91,10 +92,12 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
 
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(testName.getMethodName()))
+        .timeouts(timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(20)))
         .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(testName.getMethodName()))
+        .timeouts(timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(20)))
         .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
   }
 
