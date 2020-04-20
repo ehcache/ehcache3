@@ -34,6 +34,7 @@ public abstract class ClusteredTests {
   private static final boolean FORCE_KIT_REFRESH = false;
 
   static {
+    System.setProperty("java.io.tmpdir", "build/tmp");
     initInstallationPath();
   }
 
