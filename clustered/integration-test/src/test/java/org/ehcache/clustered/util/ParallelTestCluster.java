@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.util;
 
+import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.Connection;
@@ -27,7 +28,7 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class ParallelTestCluster extends Cluster {
+public class ParallelTestCluster implements TestRule {
 
   private final Cluster cluster;
   private final IClusterControl control;
@@ -109,22 +110,18 @@ public class ParallelTestCluster extends Cluster {
     };
   }
 
-  @Override
   public URI getConnectionURI() {
     return cluster.getConnectionURI();
   }
 
-  @Override
   public String[] getClusterHostPorts() {
     return cluster.getClusterHostPorts();
   }
 
-  @Override
   public Connection newConnection() throws ConnectionException {
     return cluster.newConnection();
   }
 
-  @Override
   public IClusterControl getClusterControl() {
     return control;
   }
@@ -169,6 +166,7 @@ public class ParallelTestCluster extends Cluster {
     ClusterTask(Task task) {
       this.task = task;
     }
+
     public void accept(IClusterControl control) {
       try {
         task.run(control);
