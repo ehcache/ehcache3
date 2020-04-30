@@ -63,12 +63,11 @@ public class JCacheClusteredTest extends ClusteredTests {
   public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
+  public static void configureEnvironment() throws Exception {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/jcache-clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     System.setProperty("ehcache.jsr107.config.default", substitutedXml.toURI().toString());
     TCK_PROPERTIES.forEach((k, v) -> System.setProperty(k.toString(), v.toString()));
-    CLUSTER.getClusterControl().waitForActive();
   }
 
   @AfterClass

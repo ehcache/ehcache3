@@ -55,7 +55,6 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
     cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);

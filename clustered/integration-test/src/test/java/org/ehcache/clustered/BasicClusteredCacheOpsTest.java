@@ -63,11 +63,6 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
   public static Cluster CLUSTER =
       newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
   public void basicCacheCRUD() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder

@@ -79,11 +79,6 @@ public class LeaseTest extends ClusteredTests {
 
   private final List<TCPProxy> proxies = new ArrayList<>();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.get().getClusterControl().waitForActive();
-  }
-
   @After
   public void after() {
     proxies.forEach(TCPProxy::stop);

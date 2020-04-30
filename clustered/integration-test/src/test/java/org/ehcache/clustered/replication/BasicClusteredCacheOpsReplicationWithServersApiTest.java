@@ -62,8 +62,6 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
   @Before
   public void setUp() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
@@ -115,6 +113,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {

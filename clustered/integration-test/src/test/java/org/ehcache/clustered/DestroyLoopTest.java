@@ -59,11 +59,6 @@ public class DestroyLoopTest extends ClusteredTests {
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
   public void testDestroyLoop() throws Exception {
     for (int i = 0; i < 10; i++) {

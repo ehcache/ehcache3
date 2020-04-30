@@ -56,15 +56,11 @@ public class PassiveSyncTest extends ClusteredTests {
 
   @Before
   public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+    CLUSTER.getClusterControl().terminateOnePassive();
   }
 
   @Test(timeout = 150000)
   public void testSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
@@ -86,7 +82,6 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().startOneServer();
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().waitForActive();
 
 
       assertThatEventually(() -> cache.get(0L), notNullValue()).within(Duration.ofSeconds(130));
@@ -101,8 +96,6 @@ public class PassiveSyncTest extends ClusteredTests {
   @Ignore
   @Test
   public void testLifeCycleOperationsOnSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))

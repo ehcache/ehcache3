@@ -86,8 +86,6 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
@@ -128,6 +126,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {
@@ -153,6 +152,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     entriesMap.put(6L, "six");
     caches.forEach(cache -> cache.putAll(entriesMap));
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> keySet = entriesMap.keySet();
@@ -180,6 +180,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       assertThat(cache.replace(3L, "another one", "yet another one"), is(false));
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(cache -> {
@@ -220,6 +221,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     cacheOne.clear();
     cacheTwo.clear();
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     keySet.forEach(x -> assertThat(cacheOne.get(x), nullValue()));

@@ -69,11 +69,6 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   public static Cluster CLUSTER =
     newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   private static final String CLUSTERED_CACHE_NAME    = "clustered-cache";
   private static final String SYN_CACHE_NAME = "syn-cache";
   private static final String PRIMARY_SERVER_RESOURCE_NAME = "primary-server-resource";

@@ -95,8 +95,6 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
@@ -137,6 +135,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
       }
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
@@ -176,6 +175,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
       }
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
@@ -216,6 +216,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
 
     cache1.clear();
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     if (cacheConsistency == Consistency.STRONG) {

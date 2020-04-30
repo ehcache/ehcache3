@@ -45,9 +45,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
   public final TestName testName = new TestName();
 
   @Before
-  public void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  public void startAllServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
   }
 
   @Test
@@ -57,8 +56,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
       Hold hold = lock.writeLock();
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       hold.unlock();
     }
@@ -83,8 +82,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
         //expected
       }
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);
@@ -119,8 +118,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
         //expected
       }
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);

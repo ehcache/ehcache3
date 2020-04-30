@@ -45,6 +45,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.utilities.test.WaitForAssert;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -117,8 +118,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
@@ -143,9 +142,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
   @After
   public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-
     List<Runnable> unprocessed = executorService.shutdownNow();
     if(!unprocessed.isEmpty()) {
       log.warn("Tearing down with {} unprocess task", unprocessed);
@@ -178,6 +174,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
       cache2.get(x);
     })));
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     drainTasks(futures);
@@ -222,6 +219,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
       });
     }));
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     drainTasks(futures);
@@ -270,6 +268,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
     Future<?> clearFuture = executorService.submit(() -> cache1.clear());
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     clearFuture.get();

@@ -66,8 +66,6 @@ public class DuplicateTest extends ClusteredTests {
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
   }
 
   @After
@@ -113,6 +111,7 @@ public class DuplicateTest extends ClusteredTests {
       while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
 
       // Failover to mirror when put & replication are in progress
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
 
       puts.get(30, TimeUnit.SECONDS);

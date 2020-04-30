@@ -56,13 +56,6 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().terminateActive();
   }
 
   @Test
@@ -81,8 +74,8 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
       e.printStackTrace();
     }
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager1.createCache("test", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(clusteredDedicated(10, MB))));
   }
@@ -95,8 +88,8 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
     VoltronReadWriteLock lock2 = new VoltronReadWriteLock(CLUSTER.newConnection(), "my-lock");
     assertThat(lock2.tryWriteLock(), nullValue());
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     hold1.unlock();
   }

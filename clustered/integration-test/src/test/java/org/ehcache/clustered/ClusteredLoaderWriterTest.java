@@ -84,8 +84,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
           newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  public static void initCacheManager() throws Exception {
     cacheManager = newCacheManager();
   }
 

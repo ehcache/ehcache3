@@ -43,8 +43,6 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
     cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());
@@ -85,8 +83,8 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     client2.put(KEY, "The one one from client2");
     assertValue(client1, "The one one from client2");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(client1, "The one one from client2");
     assertValue(client2, "The one one from client2");

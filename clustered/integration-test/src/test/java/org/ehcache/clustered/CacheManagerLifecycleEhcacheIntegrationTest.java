@@ -73,7 +73,6 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
     ASSERTION_CONNECTION = CLUSTER.newConnection();
   }
 

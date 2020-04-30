@@ -61,12 +61,6 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
         .withServiceFragment(RESOURCE_CONFIG)
         .build();
 
-  @BeforeClass
-  public static void waitForServers() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
   @Test
   public void oversizedPuts() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
@@ -80,10 +74,10 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
 
     syncLatch.await();
     for (int i = 0; i < MAX_SWITCH_OVER; i++) {
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
       CLUSTER.getClusterControl().waitForActive();
       CLUSTER.getClusterControl().startOneServer();
-      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       Thread.sleep(2000);
     }
 

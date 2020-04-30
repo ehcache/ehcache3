@@ -132,8 +132,8 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
 
   private void failover(Cache<Long, byte[]> cache1, Cache<Long, byte[]> cache2) throws Exception {
     // failover passive -> active
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     // wait for clients to be back in business
     assertThatEventually(() -> {

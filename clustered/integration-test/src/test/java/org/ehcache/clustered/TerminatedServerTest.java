@@ -147,9 +147,8 @@ public class TerminatedServerTest extends ClusteredTests {
   public final TestName testName = new TestName();
 
   @Before
-  public void waitForActive() throws Exception {
+  public void startAllServers() throws Exception {
     CLUSTER.get().getClusterControl().startAllServers();
-    CLUSTER.get().getClusterControl().waitForActive();
   }
 
   /**

@@ -47,11 +47,6 @@ public class EhcacheConfigWithManagementTest extends ClusteredTests {
   public static Cluster CLUSTER = newCluster().in(clusterPath())
                                               .withServiceFragment(RESOURCE_CONFIG).build();
 
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
   public void create_cache_manager() throws Exception {
     CacheManager cacheManager = newCacheManagerBuilder()

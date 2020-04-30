@@ -66,9 +66,7 @@ public class CacheManagerDestroyReconnectTest extends ClusteredTests {
     of(OutputIs.CLASS_RULE));
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.get().getClusterControl().waitForActive();
-
+  public static void initializeCacheManager() throws Exception {
     URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder

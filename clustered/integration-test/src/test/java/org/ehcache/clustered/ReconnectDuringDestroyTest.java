@@ -91,8 +91,7 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
     of(OutputIs.CLASS_RULE));
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.get().getClusterControl().waitForActive();
+  public static void initializeProxy() throws Exception {
     proxies = new ArrayList<>();
     connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
   }

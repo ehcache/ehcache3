@@ -58,8 +58,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   private static Connection CONNECTION;
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  public static void initConnection() throws Exception {
     CONNECTION = CLUSTER.newConnection();
   }
 

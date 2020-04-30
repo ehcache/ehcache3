@@ -30,6 +30,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.testing.TestRetryer;
 import org.ehcache.testing.TestRetryer.OutputIs;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -78,10 +79,9 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
         + "</service>").build(),
     of(OutputIs.CLASS_RULE));
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
+  @Before
+  public void startAllServers() throws Exception {
     CLUSTER.get().getClusterControl().startAllServers();
-    CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
   }
 
   @Test
@@ -119,6 +119,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
+      CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.get().getClusterControl().terminateActive();
 
       //large iterator fails
@@ -174,10 +175,10 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
+      CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.get().getClusterControl().terminateAllServers();
       Thread.sleep(CLUSTER.input().multipliedBy(2L).toMillis());
       CLUSTER.get().getClusterControl().startAllServers();
-      CLUSTER.get().getClusterControl().waitForActive();
 
       //large iterator fails
       try {
