@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just
@@ -109,7 +109,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
           assertThat(customValueCache.get(1L), is("value"));
           synCache.put(firstClientEndKey, true);
         } else {
-          assertThatEventually(() -> synCache.get(firstClientEndKey), notNullValue()).within(Duration.ofSeconds(30));
+          assertThat(() -> synCache.get(firstClientEndKey), within(Duration.ofSeconds(30)).matches(notNullValue()));
           assertThat(customValueCache.get(1L), is("value"));
         }
         return null;

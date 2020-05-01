@@ -191,6 +191,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     return success();
   }
 
+  @SuppressWarnings("deprecation")
   private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) {
     switch (message.getMessageType()) {
       case DATA:

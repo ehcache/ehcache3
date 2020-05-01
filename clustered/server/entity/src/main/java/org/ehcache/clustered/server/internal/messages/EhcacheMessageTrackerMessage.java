@@ -39,6 +39,7 @@ public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
     this.trackedMessages = trackedMessages;
   }
 
+  @SuppressWarnings("deprecation")
   public EhcacheMessageTrackerMessage(int segmentId, OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler)  {
     this(segmentId, messageHandler.getTrackedClients()
       .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(segmentId, clientSourceId))));

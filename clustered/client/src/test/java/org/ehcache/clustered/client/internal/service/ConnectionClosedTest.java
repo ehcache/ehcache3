@@ -40,7 +40,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ConnectionClosedTest {
 
@@ -99,7 +99,7 @@ public class ConnectionClosedTest {
 
       connections.iterator().next().close();
 
-      assertThatEventually(() -> cache.get(1L), is("value")).within(Duration.ofSeconds(60));
+      assertThat(() -> cache.get(1L), within(Duration.ofSeconds(60)).is("value"));
     }
   }
 

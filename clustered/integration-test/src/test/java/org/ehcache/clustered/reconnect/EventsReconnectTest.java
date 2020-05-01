@@ -64,7 +64,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class EventsReconnectTest extends ClusteredTests {
   private static final Duration TIMEOUT = ofSeconds(5);
@@ -159,7 +159,7 @@ public class EventsReconnectTest extends ClusteredTests {
 
       getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
 
-      assertThatEventually(() -> cacheEventListener.events.get(EventType.CREATED), hasSize(beforeDisconnectionEventCounter + 1)).within(TIMEOUT);
+      assertThat(() -> cacheEventListener.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(beforeDisconnectionEventCounter + 1)));
 
     } finally {
       cacheManager.destroyCache("clustered-cache");

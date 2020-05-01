@@ -62,7 +62,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ManagementClusterConnectionTest extends ClusteredTests {
 
@@ -161,7 +161,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     assertThat(initiate_reconnect, Matchers.nullValue());
 
-    assertThatEventually(() -> {
+    assertThat(() -> {
       try {
         return CLUSTER.get().getNmsService().readTopology().clientStream()
                   .filter(client -> client.getName()
@@ -171,7 +171,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
       } catch (Exception e) {
         throw new AssertionError(e);
       }
-    }, is(1L)).within(Duration.ofSeconds(30));
+    }, within(Duration.ofSeconds(30)).is(1L));
     assertThat(getInstanceId(), equalTo(instanceId));
   }
 

@@ -59,7 +59,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 @RunWith(Parallel.class)
 public class EventsFailureBehaviorTest extends ClusteredTests {
@@ -130,7 +130,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     CLUSTER.getClusterControl().terminateActive();
 
     // wait for clients to be back in business
-    assertThatEventually(() -> {
+    assertThat(() -> {
       try {
         cache1.replace(1L, new byte[0], new byte[0]);
         cache2.replace(1L, new byte[0], new byte[0]);
@@ -138,7 +138,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       } catch (Exception e) {
         return false;
       }
-    }, is(true)).within(FAILOVER_TIMEOUT);
+    }, within(FAILOVER_TIMEOUT).is(true));
   }
 
   @Test
@@ -154,10 +154,10 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -165,20 +165,20 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.UPDATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.UPDATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.UPDATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.UPDATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
 
     range(0, KEYS).forEach(cache1::remove);
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.REMOVED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.REMOVED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.REMOVED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.REMOVED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
 
     range(KEYS, KEYS * 2).forEach(k -> {
       cache1.put(k, value);
     });
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
   }
 
   @Test
@@ -194,10 +194,10 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -205,8 +205,8 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       assertThat(cache1.get(k), is(nullValue()));
     });
-    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EXPIRED), hasSize(greaterThan(0))).within(TIMEOUT);
-    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EXPIRED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThat(() -> accountingCacheEventListener1.events.get(EventType.EXPIRED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
+    assertThat(() -> accountingCacheEventListener2.events.get(EventType.EXPIRED), within(TIMEOUT).matches(hasSize(greaterThan(0))));
   }
 
 

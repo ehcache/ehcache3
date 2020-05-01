@@ -31,9 +31,10 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class AutoCreateOnReconnectTest extends ClusteredTests {
 
@@ -60,10 +61,10 @@ public class AutoCreateOnReconnectTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateAllServers();
       CLUSTER.getClusterControl().startAllServers();
 
-      assertThatEventually(() -> {
+      assertThat(() -> {
         cache.put(1L, "two");
         return cache.get(1L);
-      }, is("two")).within(Duration.ofSeconds(30));
+      }, within(Duration.ofSeconds(30)).is("two"));
     }
   }
 }
