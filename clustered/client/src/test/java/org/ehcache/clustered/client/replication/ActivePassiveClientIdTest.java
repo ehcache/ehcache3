@@ -133,6 +133,7 @@ public class ActivePassiveClientIdTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void messageTrackedAndRemovedWhenClientLeaves() throws Exception {
     assertThat(activeMessageHandler.getTrackedClients().count()).isZero(); // no client tracked
 
@@ -167,6 +168,7 @@ public class ActivePassiveClientIdTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void trackedMessagesReplicatedToPassive() throws Exception {
     clusterControl.terminateOnePassive();
 
@@ -186,6 +188,7 @@ public class ActivePassiveClientIdTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void messageTrackedAndRemovedByPassiveWhenClientLeaves() throws Exception {
     assertThat(passiveMessageHandler.getTrackedClients().count()).isZero(); // nothing tracked right now
 

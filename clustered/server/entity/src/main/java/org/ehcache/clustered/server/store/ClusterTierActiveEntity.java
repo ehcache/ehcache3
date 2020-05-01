@@ -962,6 +962,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     boolean execute();
   }
 
+  @SuppressWarnings("deprecation")
   private void sendMessageTrackerReplication(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
     Map<Long, Map<Long, EhcacheEntityResponse>> clientSourceIdTrackingMap = messageHandler.getTrackedClients()
       .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(concurrencyKey, clientSourceId)));
