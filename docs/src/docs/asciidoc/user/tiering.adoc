@@ -336,5 +336,5 @@ You should then notice the following:
 * A full cache miss (the value isn't on any tier) will always go all the way down to the authoritative tier.
 
 NOTE: The slower your authoritative tier, the slower your `put` operations will be.
-For a normal cache usage, it usually doesn't matter since`get` operations are much more frequent than`put` opreations.
+For a normal cache usage, it usually doesn't matter since`get` operations are much more frequent than`put` operations.
 The opposite would mean you probably shouldn't be using a cache in the first place.

@@ -86,7 +86,7 @@ org.ehcache[org.ehcache.core.osgi.EhcacheActivator] : JDK Service Loading Sees:
 ----
 
 In this configuration only features in the bundle with the Ehcache core classes are available. Using this service lookup
-mechanism only the `org.ehcache:ehcache` (bundle symbolic name: `org.ehcache`) bundle can be succesfully deployed. Use
+mechanism only the `org.ehcache:ehcache` (bundle symbolic name: `org.ehcache`) bundle can be successfully deployed. Use
 of this bundle provides for most of the regular Ehcache features, but *does not support transactional or clustered
 caching*.
 
