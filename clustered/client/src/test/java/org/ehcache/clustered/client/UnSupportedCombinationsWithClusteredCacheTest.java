@@ -110,6 +110,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
                   .build()
           )
           .build(true).close();
+      fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getCause().getMessage(), is("Unsupported resource type : interface org.ehcache.clustered.client.config.DedicatedClusteredResourcePool"));
     }
