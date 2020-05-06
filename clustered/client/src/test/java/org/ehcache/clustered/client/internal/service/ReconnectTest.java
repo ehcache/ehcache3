@@ -30,6 +30,7 @@ import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 
 public class ReconnectTest {
 
@@ -45,7 +46,7 @@ public class ReconnectTest {
     MockConnectionService.mockConnection = null;
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
   }
 
   @Test
@@ -59,7 +60,7 @@ public class ReconnectTest {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     CompletableFuture<Void> future = CompletableFuture.runAsync(() -> connectionState.initializeState());
 

@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
@@ -84,8 +85,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
         entity.invokeAndWaitForSend(new ClientInvalidationAck(key, invalidationId), false);
-      } catch (Exception e) {
-        //TODO: what should be done here?
+      } catch (ClusterException e) {
         LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
       }
     });
@@ -98,8 +98,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
         entity.invokeAndWaitForSend(new ClientInvalidationAllAck(invalidationId), false);
-      } catch (Exception e) {
-        //TODO: what should be done here?
+      } catch (ClusterException e) {
         LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
       }
     });
