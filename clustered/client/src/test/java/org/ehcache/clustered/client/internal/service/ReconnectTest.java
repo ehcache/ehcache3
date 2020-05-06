@@ -45,7 +45,7 @@ public class ReconnectTest {
     MockConnectionService.mockConnection = null;
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
   }
 
   @Test
@@ -59,7 +59,7 @@ public class ReconnectTest {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     CompletableFuture<Void> future = CompletableFuture.runAsync(() -> connectionState.initializeState());
 

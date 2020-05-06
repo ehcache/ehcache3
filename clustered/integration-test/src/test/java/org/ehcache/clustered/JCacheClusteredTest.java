@@ -17,6 +17,7 @@
 package org.ehcache.clustered;
 
 import org.ehcache.testing.ExternalTests;
+import org.jsr107.tck.event.CacheListenerTest;
 import org.jsr107.tck.spi.CachingProviderTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -24,6 +25,8 @@ import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.terracotta.testing.rules.Cluster;
 
+import javax.cache.Caching;
+import javax.cache.spi.CachingProvider;
 import java.net.URL;
 import java.util.Properties;
 
@@ -36,6 +39,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(ExternalTests.class)
 @ExternalTests.From(javax.cache.CachingTest.class)
 @ExternalTests.Ignore(value=CachingProviderTest.class, method="getCacheManagerUsingDefaultURI")
+@ExternalTests.Ignore(value= CacheListenerTest.class)
 public class JCacheClusteredTest extends ClusteredTests {
 
   private static final Properties TCK_PROPERTIES = new Properties();
@@ -48,28 +52,25 @@ public class JCacheClusteredTest extends ClusteredTests {
     TCK_PROPERTIES.setProperty("javax.cache.Cache.Entry", "org.ehcache.Cache$Entry");
     TCK_PROPERTIES.setProperty("javax.cache.annotation.CacheInvocationContext", "javax.cache.annotation.impl.cdi.CdiCacheKeyInvocationContextImpl");
   }
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary\" unit=\"MB\">256</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary", 256)).build();
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
+  public static void configureEnvironment() throws Exception {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/jcache-clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     System.setProperty("ehcache.jsr107.config.default", substitutedXml.toURI().toString());
     TCK_PROPERTIES.forEach((k, v) -> System.setProperty(k.toString(), v.toString()));
-    CLUSTER.getClusterControl().waitForActive();
   }
 
   @AfterClass
   public static void cleanup() {
-    System.clearProperty("ehcache.jsr107.config.default");
-    TCK_PROPERTIES.forEach((k, v) -> System.clearProperty(k.toString()));
+    try {
+      Caching.getCachingProviders().forEach(CachingProvider::close);
+    } finally {
+      System.clearProperty("ehcache.jsr107.config.default");
+      TCK_PROPERTIES.forEach((k, v) -> System.clearProperty(k.toString()));
+    }
   }
 }

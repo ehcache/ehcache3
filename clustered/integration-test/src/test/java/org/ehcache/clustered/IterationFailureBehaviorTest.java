@@ -21,25 +21,37 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.testing.TestRetryer;
+import org.ehcache.testing.TestRetryer.OutputIs;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.testing.rules.Cluster;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
+import static java.time.Duration.ofSeconds;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.util.EnumSet.of;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.LongStream.range;
+import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -51,38 +63,26 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
 
   private static final int KEYS = 100;
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>"
-      + "</config>"
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Cluster> CLUSTER = TestRetryer.tryValues(
+    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
+    leaseLength -> newCluster(2).in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
+    of(OutputIs.CLASS_RULE));
 
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @Before
+  public void startAllServers() throws Exception {
+    CLUSTER.get().getClusterControl().startAllServers();
   }
 
   @Test
   public void testIteratorFailover() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-
-    try {
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/iterator-cm"))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource"))
+        .timeouts(timeouts().read(ofSeconds(10))));
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -110,7 +110,8 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
-      CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
+      CLUSTER.get().getClusterControl().terminateActive();
 
       //large iterator fails
       try {
@@ -119,15 +120,15 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ConnectionClosedException.class)) //lost in the space between active and passive
+            .or(instanceOf(InvalidOperationException.class))); //picked up by the passive - it doesn't have our iterator
       }
 
       //small iterator completes... it fetched the entire batch in one shot
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));
 
       assertThat(smallMap, is(range(0, KEYS).boxed().collect(toMap(identity(), k -> Long.toString(k)))));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -135,12 +136,9 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
   public void testIteratorReconnect() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/iterator-cm"))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -168,10 +166,10 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       Cache.Entry<Long, byte[]> largeNext = largeIterator.next();
       assertThat(largeCache.get(largeNext.getKey()), notNullValue());
 
-      CLUSTER.getClusterControl().terminateAllServers();
-      Thread.sleep(10000);
-      CLUSTER.getClusterControl().startAllServers();
-      CLUSTER.getClusterControl().waitForActive();
+      CLUSTER.get().getClusterControl().waitForRunningPassivesInStandby();
+      CLUSTER.get().getClusterControl().terminateAllServers();
+      Thread.sleep(CLUSTER.input().multipliedBy(2L).toMillis());
+      CLUSTER.get().getClusterControl().startAllServers();
 
       //large iterator fails
       try {
@@ -180,15 +178,15 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ConnectionClosedException.class)) //lost in the space between the two cluster executions
+            .or(instanceOf(InvalidOperationException.class))); //picked up by the new cluster - it doesn't have our iterator
       }
 
       //small iterator completes... it fetched the entire batch in one shot
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));
 
       assertThat(smallMap, is(range(0, KEYS).boxed().collect(toMap(identity(), k -> Long.toString(k)))));
-    } finally {
-      cacheManager.close();
     }
   }
 }

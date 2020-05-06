@@ -43,26 +43,13 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(Parallel.class)
 public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
 
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().terminateActive();
   }
 
   @Test
@@ -81,8 +68,8 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
       e.printStackTrace();
     }
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager1.createCache("test", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(clusteredDedicated(10, MB))));
   }
@@ -95,8 +82,8 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
     VoltronReadWriteLock lock2 = new VoltronReadWriteLock(CLUSTER.newConnection(), "my-lock");
     assertThat(lock2.tryWriteLock(), nullValue());
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     hold1.unlock();
   }

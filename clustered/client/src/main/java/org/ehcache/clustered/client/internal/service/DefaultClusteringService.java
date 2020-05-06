@@ -52,6 +52,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
@@ -72,6 +74,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final Collection<Runnable> connectionRecoveryListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean inMaintenance = false;
+  private ExecutorService asyncExecutor;
 
   DefaultClusteringService(ClusteringServiceConfiguration configuration) {
     this.configuration = configuration;
@@ -115,13 +118,15 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    connectionState.initClusterConnection();
+    asyncExecutor = createAsyncWorker();
+    connectionState.initClusterConnection(asyncExecutor);
     connectionState.initializeState();
   }
 
   @Override
   public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
-    connectionState.initClusterConnection();
+    asyncExecutor = createAsyncWorker();
+    connectionState.initClusterConnection(asyncExecutor);
     if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
       connectionState.acquireLeadership();
     }
@@ -141,6 +146,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
      */
     connectionState.destroyState(true);
     inMaintenance = false;
+    asyncExecutor.shutdown();
     connectionState.closeConnection();
   }
 
@@ -354,4 +360,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     return connectionState;
   }
 
+  private static ExecutorService createAsyncWorker() {
+    return Executors.newSingleThreadExecutor(r -> {
+      Thread t = new Thread(r, "Async DefaultClusteringService Worker");
+      t.setDaemon(true);
+      return t;
+    });
+  }
 }

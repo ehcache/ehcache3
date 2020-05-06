@@ -72,8 +72,14 @@ public class ClusteredResourcePoolUpdationTest {
 
   @AfterClass
   public static void tearDown() throws Exception {
-    cacheManager.close();
-    UnitTestConnectionService.remove(CLUSTER_URI);
+    try {
+      cacheManager.close();
+      UnitTestConnectionService.remove(CLUSTER_URI);
+    } finally {
+      cacheManager = null;
+      dedicatedCache = null;
+      sharedCache = null;
+    }
   }
 
   @Test

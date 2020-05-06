@@ -17,6 +17,8 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
 
+import java.util.concurrent.Executor;
+
 /**
  * ClusterTierUserData
  *
@@ -25,10 +27,12 @@ import org.ehcache.clustered.client.config.Timeouts;
 public class ClusterTierUserData {
   private final Timeouts timeouts;
   private final String storeIdentifier;
+  private final Executor asyncWorker;
 
-  public ClusterTierUserData(Timeouts timeouts, String storeIdentifier) {
+  public ClusterTierUserData(Timeouts timeouts, String storeIdentifier, Executor asyncWorker) {
     this.timeouts = timeouts;
     this.storeIdentifier = storeIdentifier;
+    this.asyncWorker = asyncWorker;
   }
 
   public Timeouts getTimeouts() {
@@ -37,5 +41,9 @@ public class ClusterTierUserData {
 
   public String getStoreIdentifier() {
     return storeIdentifier;
+  }
+
+  public Executor getAsyncWorker() {
+    return asyncWorker;
   }
 }

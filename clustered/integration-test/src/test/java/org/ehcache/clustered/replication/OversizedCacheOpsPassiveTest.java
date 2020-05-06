@@ -47,25 +47,12 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
   private static final int CACHE_SIZE_IN_MB = 2;
   private static final String LARGE_VALUE = buildLargeString();
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">2</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
   public static Cluster CLUSTER =
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
-        .withServiceFragment(RESOURCE_CONFIG)
+        .withServiceFragment(offheapResource("primary-server-resource", 2))
         .build();
-
-  @BeforeClass
-  public static void waitForServers() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
 
   @Test
   public void oversizedPuts() throws Exception {
@@ -80,10 +67,10 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
 
     syncLatch.await();
     for (int i = 0; i < MAX_SWITCH_OVER; i++) {
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
       CLUSTER.getClusterControl().waitForActive();
       CLUSTER.getClusterControl().startOneServer();
-      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       Thread.sleep(2000);
     }
 
@@ -106,7 +93,8 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
           // a small pause
           try {
             Thread.sleep(10);
-          } catch (InterruptedException ignored) {
+          } catch (InterruptedException e) {
+            throw new AssertionError(e);
           }
         }
         cache.put(i, LARGE_VALUE);

@@ -35,6 +35,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.terracotta.statistics.StatisticsManager;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
@@ -123,6 +124,7 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
       @Override
       public void close(final Store<String, String> store) {
         OnHeapStore.Provider.close((OnHeapStore)store);
+        StatisticsManager.nodeFor(store).clean();
       }
 
       @Override

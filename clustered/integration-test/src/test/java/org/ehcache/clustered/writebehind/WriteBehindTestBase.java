@@ -46,12 +46,7 @@ import static org.junit.Assert.assertThat;
 
 public class WriteBehindTestBase extends ClusteredTests {
 
-  static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
+  static final String RESOURCE_CONFIG = offheapResource("primary-server-resource", 64);
 
   static final long KEY = 1L;
 

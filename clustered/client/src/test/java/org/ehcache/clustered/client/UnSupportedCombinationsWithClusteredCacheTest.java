@@ -77,9 +77,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
             .autoCreate(c -> c));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
-
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
@@ -91,7 +89,6 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     } catch (IllegalStateException e){
       assertThat(e.getCause().getMessage(), is("Synchronous CacheEventListener is not supported with clustered tiers"));
     }
-    cacheManager.close();
   }
 
   @Test
@@ -101,7 +98,6 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     BitronixTransactionManager transactionManager =
         TransactionManagerServices.getTransactionManager();
 
-    PersistentCacheManager persistentCacheManager = null;
     try {
       CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
@@ -113,7 +109,8 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
                   .withService(new XAStoreConfiguration("xaCache"))
                   .build()
           )
-          .build(true);
+          .build(true).close();
+      fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getCause().getMessage(), is("Unsupported resource type : interface org.ehcache.clustered.client.config.DedicatedClusteredResourcePool"));
     }

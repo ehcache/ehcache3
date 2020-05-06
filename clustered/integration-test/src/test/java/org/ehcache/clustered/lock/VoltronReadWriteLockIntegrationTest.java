@@ -44,11 +44,6 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath()).build();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
   public void testSingleThreadSingleClientInteraction() throws Throwable {
     try (Connection client = CLUSTER.newConnection()) {

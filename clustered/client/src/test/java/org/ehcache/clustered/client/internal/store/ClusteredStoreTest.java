@@ -151,7 +151,7 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
+    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection, Runnable::run);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.emptyMap());
@@ -173,7 +173,7 @@ public class ClusteredStoreTest {
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   private void assertTimeoutOccurred(ThrowableAssert.ThrowingCallable throwingCallable) {

@@ -44,7 +44,6 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
-import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
@@ -64,7 +63,6 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
-import org.ehcache.event.EventFiring;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.impl.store.HashUtils;
@@ -639,14 +637,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-        CacheEventListenerConfiguration<?> eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
-        if (eventListenerConfiguration != null) {
-          if (eventListenerConfiguration.firingMode() == EventFiring.SYNCHRONOUS) {
-            // Forget it. Never.
-            throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
-          }
-        }
-
         if (clusteringService == null) {
           throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteringServiceConfiguration");
         }
@@ -1024,9 +1014,19 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       delegate.addEventFilter(eventFilter);
     }
     @Override
-    public void setEventOrdering(boolean ordering) {
+    public void setEventOrdering(boolean ordering) throws IllegalArgumentException {
       delegate.setEventOrdering(ordering);
     }
+
+    @Override
+    public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+      if (synchronous) {
+        throw new IllegalArgumentException("Synchronous CacheEventListener is not supported with clustered tiers");
+      } else {
+        delegate.setSynchronous(synchronous);
+      }
+    }
+
     @Override
     public boolean isEventOrdering() {
       return delegate.isEventOrdering();

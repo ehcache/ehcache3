@@ -53,6 +53,7 @@ public class ByteSizedOnHeapOsgiTest {
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "individualModules")
     );

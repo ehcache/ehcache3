@@ -32,11 +32,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.context.CapabilityContext;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

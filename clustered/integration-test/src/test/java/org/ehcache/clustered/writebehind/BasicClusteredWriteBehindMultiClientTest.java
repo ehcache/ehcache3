@@ -43,7 +43,6 @@ public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBas
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
     cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());

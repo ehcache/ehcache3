@@ -15,7 +15,6 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.assertj.core.api.AbstractLongAssert;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
@@ -30,11 +29,12 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.testing.TestRetryer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.statistics.OperationStatistic;
@@ -49,25 +49,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.time.Duration.ofMillis;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
+import static org.ehcache.testing.TestRetryer.tryValues;
 
 public class StandardEhcacheStatisticsTest {
 
-  private static final int HISTOGRAM_WINDOW_MILLIS = 400;
-  private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Duration> TIME_BASE = tryValues(Stream.of(1, 2, 4, 8, 16, 32).map(i -> ofMillis(50).multipliedBy(i)));
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;
   private ManagementRegistryService managementRegistry;
   private Context context;
 
-  private long latency;
+  private Duration latency = Duration.ZERO;
   private final Map<Long, String> systemOfRecords = new HashMap<>();
 
   @Before
@@ -104,7 +104,7 @@ public class StandardEhcacheStatisticsTest {
     LatencyHistogramConfiguration latencyHistogramConfiguration = new LatencyHistogramConfiguration(
       LatencyHistogramConfiguration.DEFAULT_PHI,
       LatencyHistogramConfiguration.DEFAULT_BUCKET_COUNT,
-      Duration.ofMillis(HISTOGRAM_WINDOW_MILLIS)
+      TIME_BASE.get().multipliedBy(8L)
     );
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration()
       .setCacheManagerAlias("myCacheManager3")
@@ -134,25 +134,19 @@ public class StandardEhcacheStatisticsTest {
     cache.get(1L); // hit
     cache.remove(1L);  // removal
 
-    IntStream.of(50, 95, 99, 100)
-      .forEach(i -> {
-        assertStatistic("Cache:MissCount").isEqualTo(1L);
-        assertStatistic("Cache:GetMissLatency#" + i).isGreaterThan(0);
+    assertThat(getStatistic("Cache:MissCount")).isEqualTo(1L);
+    assertThat(getStatistic("Cache:HitCount")).isEqualTo(1L);
+    assertThat(getStatistic("Cache:PutCount")).isEqualTo(1L);
+    assertThat(getStatistic("Cache:RemovalCount")).isEqualTo(1L);
 
-        assertStatistic("Cache:HitCount").isEqualTo(1L);
-        assertStatistic("Cache:GetHitLatency#" + i).isGreaterThan(0);
-
-        assertStatistic("Cache:PutCount").isEqualTo(1L);
-        assertStatistic("Cache:PutLatency#" + i).isGreaterThan(0);
-
-        assertStatistic("Cache:RemovalCount").isEqualTo(1L);
-        assertStatistic("Cache:RemoveLatency#" + i).isGreaterThan(0);
-      });
-  }
-
-  private AbstractLongAssert<?> assertStatistic(String statName) {
-    long value = getStatistic(statName);
-    return assertThat(value).describedAs(statName);
+    for (String statistic : asList("GetMiss", "GetHit", "Put", "Remove")) {
+      long last = 0L;
+      for (String percentile : asList("50", "95", "99", "100")) {
+        long value = getStatistic("Cache:" + statistic + "Latency#" + percentile);
+        assertThat(value).isGreaterThanOrEqualTo(last);
+        last = value;
+      }
+    }
   }
 
   private long getStatistic(String statName) {
@@ -173,25 +167,25 @@ public class StandardEhcacheStatisticsTest {
     Consumer<LatencyHistogramStatistic> verifier = histogram -> {
       assertThat(histogram.count()).isEqualTo(0L);
 
-      latency = 100;
+      latency = TIME_BASE.get().multipliedBy(2L);
       cache.get(1L);
 
-      latency = 50;
+      latency = TIME_BASE.get().multipliedBy(1L);
       cache.get(2L);
 
       assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100L));
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TIME_BASE.get().multipliedBy(2L).toNanos());
 
-      minimumSleep(NEXT_WINDOW_SLEEP_MILLIS);
+      minimumSleep(TIME_BASE.get().multipliedBy(10));
 
-      latency = 50;
+      latency = TIME_BASE.get().multipliedBy(1L);
       cache.get(3L);
 
-      latency = 150;
+      latency = TIME_BASE.get().multipliedBy(3L);
       cache.get(4L);
 
       assertThat(histogram.count()).isEqualTo(2L);
-      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(150L));
+      assertThat(histogram.maximum()).isGreaterThanOrEqualTo(TIME_BASE.get().multipliedBy(3L).toNanos());
     };
 
     verifier.accept(getHistogram(CacheOperationOutcomes.GetOutcome.MISS, "get"));
@@ -228,12 +222,10 @@ public class StandardEhcacheStatisticsTest {
   // Using System.nanoTime (accurate to 1 micro-second or better) in lieu of System.currentTimeMillis (on Windows
   // accurate to ~16ms), the inaccuracy of which compounds when invoked multiple times, as in this method.
 
-  private void minimumSleep(long millis) {
-    long nanos = TimeUnit.MILLISECONDS.toNanos(millis);
-    long start = System.nanoTime();
-
+  private void minimumSleep(Duration sleep) {
+    long end = System.nanoTime() + sleep.toNanos();
     while (true) {
-      long nanosLeft = nanos - (System.nanoTime() - start);
+      long nanosLeft = end - System.nanoTime();
 
       if (nanosLeft <= 0) {
         break;
@@ -242,8 +234,7 @@ public class StandardEhcacheStatisticsTest {
       try {
         TimeUnit.NANOSECONDS.sleep(nanosLeft);
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        return;
+        throw new AssertionError(e);
       }
     }
   }

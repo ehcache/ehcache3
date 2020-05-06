@@ -86,6 +86,11 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+    throw new UnsupportedOperationException("Test impl cannot be made synchronous");
+  }
+
+  @Override
   public boolean isEventOrdering() {
     return false;
   }

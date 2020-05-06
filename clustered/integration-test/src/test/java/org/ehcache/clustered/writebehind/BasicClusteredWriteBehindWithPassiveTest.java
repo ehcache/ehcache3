@@ -45,8 +45,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
     cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
@@ -67,8 +65,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
 
     assertValue(cache, "9");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
@@ -95,8 +93,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     cache.put(KEY, "new value");
     assertValue(cache, "new value");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter(cache,"new value");

@@ -58,13 +58,6 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">32</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cacheOne;
   private Cache<Long, String> cacheTwo;
@@ -78,7 +71,8 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   public Consistency cacheConsistency;
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 32)).build());
 
   @Rule
   public final TestName testName = new TestName();
@@ -86,8 +80,6 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
@@ -128,6 +120,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {
@@ -153,6 +146,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     entriesMap.put(6L, "six");
     caches.forEach(cache -> cache.putAll(entriesMap));
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> keySet = entriesMap.keySet();
@@ -180,6 +174,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       assertThat(cache.replace(3L, "another one", "yet another one"), is(false));
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(cache -> {
@@ -220,6 +215,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     cacheOne.clear();
     cacheTwo.clear();
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     keySet.forEach(x -> assertThat(cacheOne.get(x), nullValue()));
