@@ -66,13 +66,6 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
   private Cache<Long, BlobValue> cache1;
@@ -87,7 +80,8 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
   public Consistency cacheConsistency;
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
 
   @Rule
   public final TestName testName = new TestName();

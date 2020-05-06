@@ -67,16 +67,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
   public static final TestRetryer<Duration, Cluster> CLUSTER = TestRetryer.tryValues(
     Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
     leaseLength -> newCluster(2).in(clusterPath()).withServiceFragment(
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-        + "<ohr:offheap-resources>"
-        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-        + "</ohr:offheap-resources>"
-        + "</config>\n"
-        + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-        + "<lease:connection-leasing>"
-        + "<lease:lease-length unit='seconds'>" + leaseLength.get(SECONDS) + "</lease:lease-length>"
-        + "</lease:connection-leasing>"
-        + "</service>").build(),
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
     of(OutputIs.CLASS_RULE));
 
   @Before

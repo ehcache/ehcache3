@@ -58,13 +58,6 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(Parameterized.class)
 public class ClusteredLoaderWriterTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-            + "<ohr:offheap-resources>"
-            + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-            + "</ohr:offheap-resources>" +
-            "</config>\n";
-
   @Parameterized.Parameters(name = "consistency={0}")
   public static Consistency[] data() {
     return Consistency.values();
@@ -80,8 +73,8 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
   private ConcurrentMap<Long, String> sor;
 
   @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @BeforeClass
   public static void initCacheManager() throws Exception {

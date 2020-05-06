@@ -58,16 +58,9 @@ import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
  */
 public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
-
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster().in(clusterPath()).withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   private static final String CLUSTERED_CACHE_NAME    = "clustered-cache";
   private static final String SYN_CACHE_NAME = "syn-cache";

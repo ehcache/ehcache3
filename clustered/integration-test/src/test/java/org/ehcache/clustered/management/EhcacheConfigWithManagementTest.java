@@ -25,6 +25,10 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -35,17 +39,17 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+  private static final Map<String, Long> resources;
+  static {
+    HashMap<String, Long> map = new HashMap<>();
+    map.put("primary-server-resource", 64L);
+    map.put("secondary-server-resource", 64L);
+    resources = unmodifiableMap(map);
+  }
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath())
-                                              .withServiceFragment(RESOURCE_CONFIG).build();
+    .withServiceFragment(offheapResources(resources)).build();
 
   @Test
   public void create_cache_manager() throws Exception {

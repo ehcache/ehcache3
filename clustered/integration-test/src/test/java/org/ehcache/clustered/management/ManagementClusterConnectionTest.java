@@ -40,11 +40,15 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
 import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -66,23 +70,20 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   protected static ObjectMapper mapper = new ObjectMapper();
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
+  private static final Map<String, Long> resources;
+  static {
+    HashMap<String, Long> map = new HashMap<>();
+    map.put("primary-server-resource", 64L);
+    map.put("secondary-server-resource", 64L);
+    resources = unmodifiableMap(map);
+  }
 
   @ClassRule @Rule
   public static TestRetryer<Duration, ClusterWithManagement> CLUSTER = tryValues(
     Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
     leaseLength -> new ClusterWithManagement(
       newCluster().in(clusterPath()).withServiceFragment(
-        "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-          + "<ohr:offheap-resources>"
-          + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-          + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-          + "</ohr:offheap-resources>"
-          + "</config>\n"
-          + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-          + "<lease:connection-leasing>"
-          + "<lease:lease-length unit='seconds'>" + leaseLength.get(SECONDS) + "</lease:lease-length>"
-          + "</lease:connection-leasing>"
-          + "</service>").build()),
+        offheapResources(resources) + leaseLength(leaseLength)).build()),
     of(OutputIs.CLASS_RULE));
 
   @BeforeClass

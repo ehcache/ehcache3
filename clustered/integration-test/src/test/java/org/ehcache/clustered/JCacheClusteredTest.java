@@ -52,15 +52,9 @@ public class JCacheClusteredTest extends ClusteredTests {
     TCK_PROPERTIES.setProperty("javax.cache.Cache.Entry", "org.ehcache.Cache$Entry");
     TCK_PROPERTIES.setProperty("javax.cache.annotation.CacheInvocationContext", "javax.cache.annotation.impl.cdi.CdiCacheKeyInvocationContextImpl");
   }
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary\" unit=\"MB\">256</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary", 256)).build();
 
   @BeforeClass
   public static void configureEnvironment() throws Exception {

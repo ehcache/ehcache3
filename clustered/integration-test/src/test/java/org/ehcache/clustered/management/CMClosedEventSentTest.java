@@ -26,6 +26,10 @@ import org.junit.Test;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -38,15 +42,17 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class CMClosedEventSentTest extends ClusteredTests {
 
+  private static final Map<String, Long> resources;
+  static {
+    HashMap<String, Long> map = new HashMap<>();
+    map.put("primary-server-resource", 64L);
+    map.put("secondary-server-resource", 64L);
+    resources = unmodifiableMap(map);
+  }
+
   @ClassRule
   public static ClusterWithManagement CLUSTER = new ClusterWithManagement(
-    newCluster().in(clusterPath()).withServiceFragment(
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-        + "<ohr:offheap-resources>"
-        + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-        + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-        + "</ohr:offheap-resources>"
-        + "</config>").build());
+    newCluster().in(clusterPath()).withServiceFragment(offheapResources(resources)).build());
 
   @Test(timeout = 60_000)
   public void test_CACHE_MANAGER_CLOSED() throws Exception {

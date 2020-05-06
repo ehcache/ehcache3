@@ -131,16 +131,7 @@ public class TerminatedServerTest extends ClusteredTests {
     Stream.of(ofSeconds(2), ofSeconds(10), ofSeconds(30)),
     leaseLength -> new ParallelTestCluster(
       newCluster().in(clusterPath()).withServiceFragment(
-        "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-          + "<ohr:offheap-resources>"
-          + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-          + "</ohr:offheap-resources>"
-          + "</config>"
-          + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-          + "<lease:connection-leasing>"
-          + "<lease:lease-length unit='seconds'>" + leaseLength.get(SECONDS) + "</lease:lease-length>"
-          + "</lease:connection-leasing>"
-          + "</service>\n").build()),
+        offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()),
     of(OutputIs.CLASS_RULE, OutputIs.RULE));
 
   @Rule

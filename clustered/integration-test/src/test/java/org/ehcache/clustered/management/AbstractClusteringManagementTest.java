@@ -45,12 +45,15 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
+import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -68,13 +71,13 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClusteringManagementTest.class);
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+  private static final Map<String, Long> resources;
+  static {
+    HashMap<String, Long> map = new HashMap<>();
+    map.put("primary-server-resource", 64L);
+    map.put("secondary-server-resource", 64L);
+    resources = unmodifiableMap(map);
+  }
 
   protected static CacheManager cacheManager;
   protected static ClientIdentifier ehcacheClientIdentifier;
@@ -83,7 +86,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   @ClassRule
   public static final ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster(2)
-    .in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+    .in(clusterPath()).withServiceFragment(offheapResources(resources)).build());
 
   @Rule
   public final RuleChain rules = outerRule(Timeout.seconds(90)).around(new BeforeAllRule(this));

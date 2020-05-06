@@ -47,18 +47,11 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
   private static final int CACHE_SIZE_IN_MB = 2;
   private static final String LARGE_VALUE = buildLargeString();
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">2</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
   public static Cluster CLUSTER =
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
-        .withServiceFragment(RESOURCE_CONFIG)
+        .withServiceFragment(offheapResource("primary-server-resource", 2))
         .build();
 
   @Test

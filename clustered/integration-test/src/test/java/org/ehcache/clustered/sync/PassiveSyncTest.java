@@ -43,16 +43,10 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class PassiveSyncTest extends ClusteredTests {
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
 
   @Before
   public void startServers() throws Exception {

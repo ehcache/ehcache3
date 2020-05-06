@@ -70,15 +70,9 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
   private static final Duration TIMEOUT = Duration.ofSeconds(5);
   private static final Duration FAILOVER_TIMEOUT = Duration.ofMinutes(1);
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build());
   @Rule
   public final TestName testName = new TestName();
 
