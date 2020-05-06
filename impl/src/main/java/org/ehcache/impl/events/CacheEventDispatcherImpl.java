@@ -107,6 +107,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
         aSyncListenersList.add(wrapper);
         break;
       case SYNCHRONOUS:
+        if (syncListenersList.isEmpty()) {
+          storeEventSource.setSynchronous(true);
+        }
         syncListenersList.add(wrapper);
         break;
       default:
@@ -148,6 +151,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       if (--listenersCount == 0) {
         storeEventSource.removeEventListener(eventListener);
       }
+      if (syncListenersList.isEmpty()) {
+        storeEventSource.setSynchronous(false);
+      }
       return true;
     }
     return false;
@@ -160,6 +166,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   public synchronized void shutdown() {
     storeEventSource.removeEventListener(eventListener);
     storeEventSource.setEventOrdering(false);
+    storeEventSource.setSynchronous(false);
     syncListenersList.clear();
     aSyncListenersList.clear();
     unOrderedExectuor.shutdown();
