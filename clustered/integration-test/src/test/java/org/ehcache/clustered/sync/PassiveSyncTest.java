@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class PassiveSyncTest extends ClusteredTests {
 
@@ -78,7 +78,7 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateActive();
 
 
-      assertThatEventually(() -> cache.get(0L), notNullValue()).within(Duration.ofSeconds(130));
+      assertThat(() -> cache.get(0L), within(Duration.ofSeconds(130)).matches(notNullValue()));
       for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }

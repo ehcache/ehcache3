@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 /**
  * @author Ludovic Orban
@@ -209,7 +209,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertThatEventually(() -> heapStatistics.getAverageGetTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
+    assertThat(heapStatistics::getAverageGetTime, within(Duration.ofMillis(1100)).matches(greaterThan(0.0f)));
   }
 
   @Test
@@ -222,7 +222,7 @@ public class StatisticsTest {
     heapCache.put("key", "value");
     heapCache.put("key", "value");
 
-    assertThatEventually(() -> heapStatistics.getAveragePutTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
+    assertThat(heapStatistics::getAveragePutTime, within(Duration.ofMillis(1100)).matches(greaterThan(0.0f)));
   }
 
   @Test
@@ -241,6 +241,6 @@ public class StatisticsTest {
     heapCache.remove("key3");
     heapCache.remove("key4");
 
-    assertThatEventually(() -> heapStatistics.getAverageRemoveTime(), greaterThan(0.0f)).within(Duration.ofMillis(1100));
+    assertThat(heapStatistics::getAverageRemoveTime, within(Duration.ofMillis(1100)).matches(greaterThan(0.0f)));
   }
 }

@@ -107,24 +107,21 @@ public class OsgiTestUtils {
       .command(Paths.get(System.getProperty("java.home")).resolve("bin")
         .resolve(System.getProperty("os.name").contains("Windows") ? "java.exe" : "java").toString());
 
-    String tcServerOptions = System.getProperty("tc-server-opts");
-    if (tcServerOptions != null) {
-      serverProcess.command().addAll(asList(tcServerOptions.split("\\s")));
-    }
     serverProcess.command().addAll(asList(
       "-Xmx128m",
       "-Dtc.install-root=" + serverDir,
       "-cp", serverDir.resolve("lib").resolve("tc.jar").toString(),
       "com.tc.server.TCServerMain",
+      "--auto-activate",
       "--cluster-name=foo",
       "--failover-priority=availability",
       "--client-reconnect-window=120s",
-      "--node-name=default-server",
-      "--node-hostname=localhost",
-      "--node-port=" + tsaPort,
-      "--node-group-port=" + tsaGroupPort,
-      "--node-log-dir=" + serverDirectory.resolve("logs"),
-      "--node-repository-dir=" + serverDirectory.resolve("repository"),
+      "--name=default-server",
+      "--hostname=localhost",
+      "--port=" + tsaPort,
+      "--group-port=" + tsaGroupPort,
+      "--log-dir=" + serverDirectory.resolve("logs"),
+      "--config-dir=" + serverDirectory.resolve("repository"),
       "--offheap-resources=main:32MB"));
     serverProcess.inheritIO();
 

@@ -18,6 +18,7 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.MatcherAssert;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -45,7 +46,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteredResourcePool
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -143,13 +144,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_A_client_tags_exposed() throws Exception {
-    assertThatEventually(() -> {
+    MatcherAssert.assertThat(() -> {
       try {
         return readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
       } catch (Exception e) {
         throw new AssertionError(e);
       }
-    }, arrayContainingInAnyOrder("server-node-1", "webapp-1")).within(Duration.ofSeconds(5));
+    }, within(Duration.ofSeconds(5)).matches(arrayContainingInAnyOrder("server-node-1", "webapp-1")));
   }
 
   @Test
