@@ -64,5 +64,5 @@ sourceJar {
 
 compileUnsafeJava {
   //no -Werror due to unsafe
-  options.compilerArgs = ['-Xlint:all']
+  options.compilerArgs -= '-Werror'
 }
