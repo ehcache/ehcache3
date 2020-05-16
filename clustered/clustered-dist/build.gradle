@@ -88,7 +88,7 @@ jar {
     'Bundle-SymbolicName': 'org.ehcache.clustered',
     'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
       'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
-    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.annotation, *'
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.annotation, !com.fasterxml.jackson.core, !com.fasterxml.jackson.databind.module, *'
   )
 }
 
