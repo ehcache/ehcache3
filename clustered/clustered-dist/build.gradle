@@ -66,6 +66,7 @@ configurations {
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
+  compileOnly "org.terracotta.dynamic-config.entities:dynamic-config-topology-entity-client:$terracottaPlatformVersion"
 
   serverApis project(':clustered:server:service-api')
   serverLibs project(':clustered:server:entity')
@@ -88,7 +89,7 @@ jar {
     'Bundle-SymbolicName': 'org.ehcache.clustered',
     'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
       'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
-    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.annotation, !com.fasterxml.jackson.core, !com.fasterxml.jackson.databind.module, *'
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.*, !org.terracotta.json, *'
   )
 }
 

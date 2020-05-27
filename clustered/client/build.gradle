@@ -26,6 +26,7 @@ dependencies {
   providedImplementation "org.terracotta:entity-client-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
   providedImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta.dynamic-config.entities:dynamic-config-topology-entity-client:$terracottaPlatformVersion"
   providedImplementation "org.terracotta:connection-api:$terracottaApisVersion"
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
 
