@@ -284,12 +284,9 @@ public class EhcacheManagerTest {
     cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     assertNotNull(cache);
-    try {
-      cacheManager.createCache("bar", cacheConfiguration);
-      fail("Should have thrown");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("bar"));
-    }
+
+    Cache<Object, Object> oldCache = cacheManager.createCache("bar", cacheConfiguration);
+    assertSame("Should have returned an existing cache", oldCache, cache);
   }
 
   @Test

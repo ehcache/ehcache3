@@ -262,8 +262,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Class<V> valueType = config.getValueType();
 
     CacheHolder value = new CacheHolder(keyType, valueType);
-    if (caches.putIfAbsent(alias, value) != null) {
-      throw new IllegalArgumentException("Cache '" + alias +"' already exists");
+    CacheHolder oldValue = caches.putIfAbsent(alias, value);
+    if (oldValue != null) {
+      return oldValue.retrieve(keyType, valueType);
     }
 
     InternalCache<K, V> cache = null;
