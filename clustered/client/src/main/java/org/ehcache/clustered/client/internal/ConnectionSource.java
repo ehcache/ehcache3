@@ -16,9 +16,18 @@
 package org.ehcache.clustered.client.internal;
 
 import org.terracotta.connection.ConnectionException;
+import org.terracotta.connection.entity.Entity;
+import org.terracotta.connection.entity.EntityRef;
+import org.terracotta.dynamic_config.api.model.Node;
+import org.terracotta.dynamic_config.entity.topology.client.DynamicTopologyEntity;
+import org.terracotta.dynamic_config.entity.topology.common.DynamicTopologyEntityConstants;
+import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.exception.EntityNotProvidedException;
+import org.terracotta.exception.EntityVersionMismatchException;
 import org.terracotta.lease.connection.LeasedConnection;
 import org.terracotta.lease.connection.LeasedConnectionFactory;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -26,6 +35,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 public abstract class ConnectionSource {
 
@@ -81,12 +95,19 @@ public abstract class ConnectionSource {
 
   public static class ServerList extends ConnectionSource {
 
-    private final Iterable<InetSocketAddress> servers;
+    private final CopyOnWriteArraySet<InetSocketAddress> servers;
     private final String clusterTierManager;
 
     public ServerList(Iterable<InetSocketAddress> servers, String clusterTierManager) {
-      this.servers = cloneServers(Objects.requireNonNull(servers, "Servers cannot be null"));
+      this.servers = createServerList(servers);
       this.clusterTierManager = Objects.requireNonNull(clusterTierManager, "Cluster tier manager identifier cannot be null");
+    }
+
+    private CopyOnWriteArraySet<InetSocketAddress> createServerList(Iterable<InetSocketAddress> servers) {
+      Objects.requireNonNull(servers, "Servers cannot be null");
+      CopyOnWriteArraySet<InetSocketAddress> serverList = new CopyOnWriteArraySet<>();
+      servers.forEach(server -> serverList.add(server));
+      return serverList;
     }
 
     @Override
@@ -96,7 +117,45 @@ public abstract class ConnectionSource {
 
     @Override
     public LeasedConnection connect(Properties connectionProperties) throws ConnectionException {
-      return LeasedConnectionFactory.connect(servers, connectionProperties);
+      LeasedConnection connection = LeasedConnectionFactory.connect(servers, connectionProperties);
+      try {
+        EntityRef<DynamicTopologyEntity, Object, DynamicTopologyEntity.Settings> ref = connection.getEntityRef(DynamicTopologyEntity.class, 1, DynamicTopologyEntityConstants.ENTITY_NAME);
+        DynamicTopologyEntity dynamicTopologyEntity = ref.fetchEntity(null);
+        dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
+          @Override
+          public void onNodeRemoval(int stripeId, Node removedNode) {
+            servers.remove(removedNode.getNodeAddress());
+          }
+
+          @Override
+          public void onNodeAddition(int stripeId, Node addedNode) {
+            servers.add(addedNode.getNodeAddress());
+          }
+        });
+        return new LeasedConnection() {
+          @Override
+          public <T extends Entity, C, U> EntityRef<T, C, U> getEntityRef(Class<T> cls, long version, String name) throws EntityNotProvidedException {
+            return connection.getEntityRef(cls, version, name);
+          }
+
+          @Override
+          public void close() throws IOException {
+            Future<?> close = dynamicTopologyEntity.releaseEntity();
+            try {
+              close.get(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+              throw new IOException(e.getCause());
+            } catch (TimeoutException e) {
+            } finally {
+              connection.close();
+            }
+          }
+        };
+      } catch (EntityNotProvidedException | EntityVersionMismatchException | EntityNotFoundException e) {
+        throw new AssertionError(e);
+      }
     }
 
     @Override
