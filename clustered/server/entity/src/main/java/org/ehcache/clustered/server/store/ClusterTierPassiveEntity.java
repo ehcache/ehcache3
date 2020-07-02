@@ -36,6 +36,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.ReconnectPassiveReplicationMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.RecordedMessage;
 import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
@@ -54,11 +56,13 @@ import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isReconnectPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
@@ -158,6 +162,38 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           return context.getConcurrencyKey();
         }
       };
+    } else if (message instanceof ReconnectPassiveReplicationMessage) {
+      realContext = new InvokeContext() {
+        @Override
+        public ClientSourceId getClientSource() {
+          return context.makeClientSourceId(((ReconnectPassiveReplicationMessage) message).getClientSourceId());
+        }
+
+        @Override
+        public long getCurrentTransactionId() {
+          return ((ReconnectPassiveReplicationMessage) message).getTransactionId();
+        }
+
+        @Override
+        public long getOldestTransactionId() {
+          return ((ReconnectPassiveReplicationMessage)message).getTransactionId();
+        }
+
+        @Override
+        public boolean isValidClientInformation() {
+          return true;
+        }
+
+        @Override
+        public ClientSourceId makeClientSourceId(long l) {
+          return context.makeClientSourceId(l);
+        }
+
+        @Override
+        public int getConcurrencyKey() {
+          return context.getConcurrencyKey();
+        }
+      };
     }
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
   }
@@ -173,7 +209,9 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         } else if (isStateRepoOperationMessage(messageType)) {
           return stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage) message);
         } else if (isPassiveReplicationMessage(messageType)) {
-          return invokeRetirementMessages((PassiveReplicationMessage) message);
+          return invokeRetirementMessages((PassiveReplicationMessage)message);
+        } else if (isReconnectPassiveReplicationMessage(messageType)) {
+          return invokePassiveInternal(context, ((ReconnectPassiveReplicationMessage)message).getRequest());
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }

@@ -35,6 +35,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.ITERATOR_OPEN;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.LOCK;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.PUT_IF_ABSENT;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.RECONNECT_PASSIVE_REPLICATION_MESSAGE;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.REPLACE;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.UNLOCK;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.VALIDATE;
@@ -85,6 +86,7 @@ public class BaseCodec {
     .mapping(CHAIN_REPLICATION_OP, 61)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
     .mapping(INVALIDATION_COMPLETE, 64)
+    .mapping(RECONNECT_PASSIVE_REPLICATION_MESSAGE, 70)
     .build();
 
   public static final String RESPONSE_TYPE_FIELD_NAME = "opCode";
