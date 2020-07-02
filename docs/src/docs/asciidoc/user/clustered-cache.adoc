@@ -129,37 +129,19 @@ Here is a pictorial representation of the concepts explained above:
 [[starting-server]]
 == Starting the Terracotta Server
 
-You can start the Terracotta Server with the following configuration.
-It contains the bare minimum configuration required for the samples in the rest of the document to work.
+The snippet below defines two offheap resources named `primary-server-resource` and `secondary-server-resource` having
+sizes `128MB` and `96MB` respectively:
 
-[source,xml,indent=0]
+[listing]
 ----
-include::{sourcedir38}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
+offheap-resources=primary-server-resource:128MB,secondary-server-resource:96MB
 ----
 
-The above configuration defines two named server off-heap resources:
-
-<1> An off-heap resource of 128 MB size named `primary-server-resource`.
-<2> Another off-heap resource named `secondary-server-resource` with 96 MB capacity.
-
-The rest of the document explains in detail how you can configure cache managers and caches to consume the server's off-heap resources.
+This can either be defined in config properties file or during server startup.
 
 Assuming that you have the clustered Ehcache kit available locally, start with extracting the *ehcache-clustered* kit.
-Change to your extracted directory and then execute the *start-tc-server* script as below to start the Terracotta server with the above configuration:
-
-On Windows:
-[source,cmd]
-----
-cd <path/to/terracotta/kit>/server/bin
-start-tc-server.bat -f <path/to/server/config>/tc-config.xml
-----
-
-On Unix/Mac:
-[source,bash]
-----
-cd <path/to/terracotta/kit>/server/bin
-./start-tc-server.sh -f <path/to/server/config>/tc-config.xml
-----
+Change to your extracted directory and then execute the *start-tc-server* script located under `$KIT_DIR/server/bin` to start the Terracotta server.
+You will then need to activate the cluster using `activate` command of config tool which is located under `$KIT_DIR/tools/bin`.
 
 NOTE: You will need to have `JAVA_HOME` point to a Java 8 installation while starting the Terracotta server.
 
