@@ -24,7 +24,6 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ClusterTierUserData;
-import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
@@ -278,9 +277,9 @@ public class ClusterTierManagerClientEntityFactory {
   public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
                                                                    ClientMode clientMode, boolean isReconnect) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
+    EntityRef<ClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
-      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
+      entityRef = connection.getEntityRef(ClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     }
@@ -310,7 +309,7 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,
-                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef)
+                                  EntityRef<ClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef)
     throws EntityNotFoundException {
     try {
       return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier, asyncWorker));
@@ -322,9 +321,9 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   public void destroyClusteredStoreEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    EntityRef<ClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
     try {
-      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
+      entityRef = connection.getEntityRef(ClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
       if (!entityRef.destroy()) {
         throw new CachePersistenceException("Cannot destroy cluster tier '" + storeIdentifier + "': in use by other client(s)");
       }
