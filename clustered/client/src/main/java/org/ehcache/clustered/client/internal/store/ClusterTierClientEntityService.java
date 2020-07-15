@@ -39,7 +39,7 @@ public class ClusterTierClientEntityService implements EntityClientService<Clust
 
   @Override
   public boolean handlesEntityType(Class<ClusterTierClientEntity> cls) {
-    return InternalClusterTierClientEntity.class.isAssignableFrom(cls);
+    return ClusterTierClientEntity.class.isAssignableFrom(cls);
   }
 
   @Override
