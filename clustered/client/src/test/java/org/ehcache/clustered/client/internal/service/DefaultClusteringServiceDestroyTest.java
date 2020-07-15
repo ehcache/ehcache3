@@ -19,7 +19,7 @@ package org.ehcache.clustered.client.internal.service;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
-import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
@@ -61,7 +61,7 @@ public class DefaultClusteringServiceDestroyTest {
   @Mock
   private EntityRef<ClusterTierManagerClientEntity, Object, Void> managerEntityRef;
   @Mock
-  private EntityRef<ClusterTierClientEntity, Object, Void> tierEntityRef;
+  private EntityRef<InternalClusterTierClientEntity, Object, Void> tierEntityRef;
   @Mock
   private EntityRef<VoltronReadWriteLockClient, Object, Void> lockEntityRef;
 
@@ -84,7 +84,7 @@ public class DefaultClusteringServiceDestroyTest {
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(getEntityRef(ClusterTierClientEntity.class)).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
@@ -124,7 +124,7 @@ public class DefaultClusteringServiceDestroyTest {
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(getEntityRef(ClusterTierClientEntity.class)).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
@@ -174,7 +174,7 @@ public class DefaultClusteringServiceDestroyTest {
     stores.add("store2");
     when(managerEntity.prepareForDestroy()).thenReturn(stores);
 
-    when(getEntityRef(ClusterTierClientEntity.class)).thenReturn(tierEntityRef);
+    when(getEntityRef(InternalClusterTierClientEntity.class)).thenReturn(tierEntityRef);
 
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);

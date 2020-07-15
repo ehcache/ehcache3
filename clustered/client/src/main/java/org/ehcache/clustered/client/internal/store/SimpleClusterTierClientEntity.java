@@ -60,7 +60,7 @@ import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 /**
  * ClusterTierClientEntity
  */
-public class SimpleClusterTierClientEntity implements ClusterTierClientEntity {
+public class SimpleClusterTierClientEntity implements InternalClusterTierClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierClientEntity.class);
   private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(
