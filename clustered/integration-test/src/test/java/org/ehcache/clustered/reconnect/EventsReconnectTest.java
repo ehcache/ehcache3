@@ -55,19 +55,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.EnumSet.of;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class EventsReconnectTest extends ClusteredTests {
-  private static final Duration TIMEOUT = ofSeconds(5);
 
   private static PersistentCacheManager cacheManager;
 
@@ -157,10 +155,9 @@ public class EventsReconnectTest extends ClusteredTests {
         }
       });
 
-      getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
-
-      assertThat(() -> cacheEventListener.events.get(EventType.CREATED), within(TIMEOUT).matches(hasSize(beforeDisconnectionEventCounter + 1)));
-
+      assertThat(getSucceededFuture::isDone, eventually().is(true));
+      getSucceededFuture.getNow(null);
+      assertThat(() -> cacheEventListener.events.get(EventType.CREATED), eventually().matches(hasSize(beforeDisconnectionEventCounter + 1)));
     } finally {
       cacheManager.destroyCache("clustered-cache");
     }

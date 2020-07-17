@@ -41,11 +41,11 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class DuplicateTest extends ClusteredTests {
@@ -107,11 +107,12 @@ public class DuplicateTest extends ClusteredTests {
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
 
-      puts.get(30, TimeUnit.SECONDS);
+      assertThat(puts::isDone, eventually().is(true));
+      puts.get();
 
       //Verify cache entries on mirror
       for (int i = 0; i < numEntries; i++) {
-        assertThat(cache.get(i)).isEqualTo("value:" + i);
+        assertThat(cache.get(i), is("value:" + i));
       }
     } finally {
       executorService.shutdownNow();
@@ -120,14 +121,13 @@ public class DuplicateTest extends ClusteredTests {
   }
 
   @SuppressWarnings("unchecked")
-  private ResilienceStrategy<Integer, String> failingResilienceStrategy() throws Exception {
+  private ResilienceStrategy<Integer, String> failingResilienceStrategy() {
     return (ResilienceStrategy<Integer, String>)
       Proxy.newProxyInstance(getClass().getClassLoader(),
         new Class<?>[] { ResilienceStrategy.class},
         (proxy, method, args) -> {
           if(method.getName().endsWith("Failure")) {
-            fail("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
-            return null;
+            throw new AssertionError("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
           }
 
           switch(method.getName()) {
@@ -136,8 +136,7 @@ public class DuplicateTest extends ClusteredTests {
             case "equals":
               return proxy == args[0];
             default:
-              fail("Unexpected method call: " + method.getName());
-              return null;
+              throw new AssertionError("Unexpected method call: " + method.getName());
           }
         });
   }
@@ -148,7 +147,6 @@ public class DuplicateTest extends ClusteredTests {
         return (StoreAccessException) o;
       }
     }
-    fail("There should be an exception somewhere in " + Arrays.toString(objects));
-    return null;
+    throw new AssertionError("There should be an exception somewhere in " + Arrays.toString(objects));
   }
 }

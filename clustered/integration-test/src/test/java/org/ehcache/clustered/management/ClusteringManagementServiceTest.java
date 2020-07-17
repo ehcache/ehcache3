@@ -32,7 +32,6 @@ import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,8 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -150,7 +149,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       } catch (Exception e) {
         throw new AssertionError(e);
       }
-    }, within(Duration.ofSeconds(5)).matches(arrayContainingInAnyOrder("server-node-1", "webapp-1")));
+    }, eventually().matches(arrayContainingInAnyOrder("server-node-1", "webapp-1")));
   }
 
   @Test

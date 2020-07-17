@@ -30,7 +30,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.testing.TestRetryer;
 import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,17 +44,15 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 @RunWith(Parameterized.class)
 public class LeaseTest extends ClusteredTests {
@@ -119,10 +116,11 @@ public class LeaseTest extends ClusteredTests {
       setDelay(0L, proxies);
     }
 
-    assertThat(() -> cache.get(1L), within(Duration.ofSeconds(60)).is("The one"));
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
-
+    eventually().runsCleanly(() -> {
+      assertThat(cache.get(1L), equalTo("The one"));
+      assertThat(cache.get(2L), equalTo("The two"));
+      assertThat(cache.get(3L), equalTo("The three"));
+    });
   }
 
 }

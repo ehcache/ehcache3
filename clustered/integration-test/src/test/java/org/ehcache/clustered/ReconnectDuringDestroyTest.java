@@ -55,15 +55,14 @@ import java.util.Properties;
 import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.EnumSet.of;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 /**
  * ReconnectDuringDestroyTest
@@ -185,8 +184,10 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
       }
 
       Cache<Long, String> cache2Again = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
-      assertThat(() -> cache2Again.get(1L), within(ofSeconds(10)).is("The one"));
-      assertThat(cache2Again.get(2L), equalTo("The two"));
+      eventually().runsCleanly(() -> {
+        assertThat(cache2Again.get(1L), equalTo("The one"));
+        assertThat(cache2Again.get(2L), equalTo("The two"));
+      });
       cache2Again.put(3L, "The three");
       assertThat(cache2Again.get(3L), equalTo("The three"));
     } finally {
