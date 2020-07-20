@@ -40,14 +40,12 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
@@ -57,12 +55,11 @@ import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ManagementClusterConnectionTest extends ClusteredTests {
 
@@ -171,7 +168,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
       } catch (Exception e) {
         throw new AssertionError(e);
       }
-    }, within(Duration.ofSeconds(30)).is(1L));
+    }, eventually().is(1L));
     assertThat(getInstanceId(), equalTo(instanceId));
   }
 

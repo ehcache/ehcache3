@@ -24,17 +24,15 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
-import java.time.Duration;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class AutoCreateOnReconnectTest extends ClusteredTests {
 
@@ -64,7 +62,7 @@ public class AutoCreateOnReconnectTest extends ClusteredTests {
       assertThat(() -> {
         cache.put(1L, "two");
         return cache.get(1L);
-      }, within(Duration.ofSeconds(30)).is("two"));
+      }, eventually().is("two"));
     }
   }
 }
