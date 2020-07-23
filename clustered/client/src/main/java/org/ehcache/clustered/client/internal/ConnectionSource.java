@@ -124,12 +124,12 @@ public abstract class ConnectionSource {
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
           public void onNodeRemoval(int stripeId, Node removedNode) {
-            servers.remove(removedNode.getNodeAddress());
+            servers.remove(removedNode.getAddress());
           }
 
           @Override
           public void onNodeAddition(int stripeId, Node addedNode) {
-            servers.add(addedNode.getNodeAddress());
+            servers.add(addedNode.getAddress());
           }
         });
         return new LeasedConnection() {

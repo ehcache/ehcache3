@@ -383,7 +383,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .map(ContextualStatistics::getCapability)
       .collect(Collectors.toCollection(TreeSet::new));
 
-    assertThat(capabilities).containsOnly("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
+    assertThat(capabilities).contains("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
 
     // ensure we collect stats from all registered objects (pools and stores)
 
