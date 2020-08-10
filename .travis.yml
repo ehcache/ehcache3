@@ -1,0 +1,8 @@
+version: ~> 1.0
+
+jdk:
+  - openjdk8
+import: land-of-apps/land-of-apps:travis/java-imports.yml
+
+script:
+  - ./gradlew test

@@ -147,6 +147,11 @@ subprojects {
     jacoco {
       excludes += "org.terracotta.tripwire.*"
     }
+    systemProperty 'appmap.debug', true
+    systemProperty 'appmap.config.file', "$rootDir/appmap.yml"
+    systemProperty 'appmap.output.directory', "$rootDir/tmp/appmap"
+    ignoreFailures true
+    jvmArgs "-javaagent:$rootDir/appmap.jar"
   }
 
   task slowTest(type: Test) {

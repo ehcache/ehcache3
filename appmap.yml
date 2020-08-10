@@ -1,0 +1,18 @@
+name: ehcache3
+packages:
+  - path: org.ehcache
+    exclude:
+    - org.ehcache.integration.transactions.xa.XACacheTest
+    - org.ehcache.impl.internal.concurrent.ConcurrentHashMapTest
+    - org.ehcache.impl.internal.store.disk.OffHeapDiskStoreTest
+    - org.ehcache.impl.store.DefaultStoreEventDispatcherTest
+    - org.ehcache.clustered.server.offheap.OffHeapServerStoreTest
+    - org.ehcache.clustered.client.BasicClusteredCacheTest
+    - org.ehcache.integration.EventNotificationTest
+    - org.ehcache.integration.statistics.CacheCalculationTest
+    - org.ehcache.clustered.server.offheap.ChainMapTest
+    - org.ehcache.clustered.EventsFailureBehaviorTest
+    - org.ehcache.impl.serialization.StringSerializerTest
+    - org.ehcache.clustered.DestroyLoopTest
+    - org.ehcache.clustered.replication.OversizedCacheOpsPassiveTest
+    - org.ehcache.clustered.replication.BasicClusteredCacheOpsReplicationWithMultipleClientsTest
