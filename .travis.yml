@@ -5,4 +5,4 @@ jdk:
 import: land-of-apps/land-of-apps:travis/java-imports.yml
 
 script:
-  - travis_wait ./gradlew core:test --tests org.ehcache.core.collections.ConcurrentWeakIdentityHashMapTest --rerun-tasks
+  - travis_wait ./gradlew core:test --rerun-tasks
