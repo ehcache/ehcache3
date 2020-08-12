@@ -16,6 +16,7 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -34,7 +35,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class EhcacheConfigWithManagementTest {
+public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -60,8 +61,8 @@ public class EhcacheConfigWithManagementTest {
       .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-3"))
         .autoCreate()
         .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 28, MemoryUnit.MB, "secondary-server-resource") // <2>
-        .resourcePool("resource-pool-b", 16, MemoryUnit.MB)) // will take from primary-server-resource
+        .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+        .resourcePool("resource-pool-b", 8, MemoryUnit.MB)) // will take from primary-server-resource
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")

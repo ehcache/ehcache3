@@ -17,15 +17,22 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':api'), project(':core')
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {
+  api project(':core')
+  implementation group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
+  implementation (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
-  testCompile group: 'net.sf.ehcache', name: 'ehcache', version: parent.ehcache2Version
+  implementation ("org.terracotta:statistics:$parent.statisticVersion")
+  testImplementation project(':core-spi-test')
+  testImplementation 'org.ow2.asm:asm:6.2'
+  testImplementation 'org.ow2.asm:asm-commons:6.2'
 }
 
 jar {
   from "$rootDir/NOTICE"
+}
+
+compileJava {
+  //no -Werror due to unsafe
+  options.compilerArgs = ['-Xlint:all']
 }

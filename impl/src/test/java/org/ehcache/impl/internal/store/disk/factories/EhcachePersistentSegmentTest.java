@@ -52,20 +52,20 @@ public class EhcachePersistentSegmentTest {
   public final TemporaryFolder folder = new TemporaryFolder();
 
   @SuppressWarnings("unchecked")
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
-    return createTestSegment(noAdvice(), mock(EvictionListener.class));
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegmentWithAdvisorAndListener() throws IOException {
+    return createTestSegmentWithAdvisorAndListener(noAdvice(), mock(EvictionListener.class));
   }
 
   @SuppressWarnings("unchecked")
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
-    return createTestSegment(evictionPredicate, mock(EvictionListener.class));
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegmentWithAdvisor(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
+    return createTestSegmentWithAdvisorAndListener(evictionPredicate, mock(EvictionListener.class));
   }
 
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(noAdvice(), evictionListener);
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegmentWithListener(EvictionListener<String, String> evictionListener) throws IOException {
+    return createTestSegmentWithAdvisorAndListener(noAdvice(), evictionListener);
   }
 
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegmentWithAdvisorAndListener(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -73,8 +73,8 @@ public class EhcachePersistentSegmentTest {
       MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
-      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
-      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
+      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<>(keySerializer));
+      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<>(valueSerializer));
       Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
       SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
 
@@ -95,7 +95,7 @@ public class EhcachePersistentSegmentTest {
           this.enabled = switchedOn;
         }
       };
-      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
+      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
@@ -103,11 +103,8 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutAdvisedAgainstEvictionComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcachePersistentSegment<String, String> segment = createTestSegmentWithAdvisor((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.put("please-do-not-evict-me", "value");
@@ -119,11 +116,8 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testPutPinnedAdvisedAgainstEvictionComputesMetadata() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcachePersistentSegment<String, String> segment = createTestSegmentWithAdvisor((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.putPinned("please-do-not-evict-me", "value");
@@ -135,7 +129,7 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testAdviceAgainstEvictionPreventsEviction() throws IOException {
-    EhcachePersistentSegment<String, String> segment = createTestSegment();
+    EhcachePersistentSegment<String, String> segment = createTestSegmentWithAdvisorAndListener();
     try {
       assertThat(segment.evictable(1), is(true));
       assertThat(segment.evictable(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION | 1), is(false));
@@ -148,7 +142,7 @@ public class EhcachePersistentSegmentTest {
   public void testEvictionFiresEvent() throws IOException {
     @SuppressWarnings("unchecked")
     EvictionListener<String, String> evictionListener = mock(EvictionListener.class);
-    EhcachePersistentSegment<String, String> segment = createTestSegment(evictionListener);
+    EhcachePersistentSegment<String, String> segment = createTestSegmentWithListener(evictionListener);
     try {
       segment.put("key", "value");
       segment.evict(segment.getEvictionIndex(), false);

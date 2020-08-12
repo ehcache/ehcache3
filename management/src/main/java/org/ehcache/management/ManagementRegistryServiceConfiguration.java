@@ -42,4 +42,8 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    */
   Collection<String> getTags();
 
+  /**
+   * @return an identifier used to identify this running instance. It will be the same even if a clustered Ehcache client reconnects (and clientId changes).
+   */
+  String getInstanceId();
 }

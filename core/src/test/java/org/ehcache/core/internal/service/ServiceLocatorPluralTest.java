@@ -141,7 +141,7 @@ public class ServiceLocatorPluralTest {
 class StartStopCounter {
   private AtomicInteger startCounter = new AtomicInteger(0);
   private AtomicInteger stopCounter = new AtomicInteger(0);
-  private AtomicReference<ServiceProvider<Service>> serviceProvider = new AtomicReference<ServiceProvider<Service>>();
+  private AtomicReference<ServiceProvider<Service>> serviceProvider = new AtomicReference<>();
 
   public void countStart(final ServiceProvider<Service> serviceProvider) {
     this.startCounter.incrementAndGet();

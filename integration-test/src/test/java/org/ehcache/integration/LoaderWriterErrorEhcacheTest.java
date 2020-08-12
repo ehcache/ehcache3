@@ -102,7 +102,7 @@ public class LoaderWriterErrorEhcacheTest {
       @SuppressWarnings("unchecked")
       Iterable<Integer> iterable = (Iterable<Integer>) invocation.getArguments()[0];
 
-      Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result = new HashMap<>();
 
       for (int i : iterable) {
         switch (i) {
@@ -163,28 +163,25 @@ public class LoaderWriterErrorEhcacheTest {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testRemoveAllWithWriterException() throws Exception {
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
-        Set<Integer> result = new HashSet<Integer>();
+    doAnswer(invocation -> {
+      Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
+      Set<Integer> result = new HashSet<>();
 
-        for (Integer i : iterable) {
-          switch (i) {
-            case 2:
-              throw new Exception("Mock Exception: cannot write 2");
-            case 1:
-            case 3:
-            case 4:
-              result.add(i);
-              break;
-            default:
-              throw new AssertionError("should not try to delete key " + i);
-          }
+      for (Integer i : iterable) {
+        switch (i) {
+          case 2:
+            throw new Exception("Mock Exception: cannot write 2");
+          case 1:
+          case 3:
+          case 4:
+            result.add(i);
+            break;
+          default:
+            throw new AssertionError("should not try to delete key " + i);
         }
-
-        return result;
       }
+
+      return result;
     }).when(cacheLoaderWriter).deleteAll(ArgumentMatchers.<Iterable>any());
 
     try {
@@ -294,7 +291,7 @@ public class LoaderWriterErrorEhcacheTest {
   public void testPutAllWithWriterException() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).writeAll(ArgumentMatchers.<Iterable>any());
 
-    Map<Integer, String> values = new HashMap<Integer, String>();
+    Map<Integer, String> values = new HashMap<>();
     values.put(1, "one");
     values.put(2, "two");
 

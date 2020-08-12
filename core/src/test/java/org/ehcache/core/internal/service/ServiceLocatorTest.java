@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.store.CacheProvider;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
@@ -37,7 +38,6 @@ import org.ehcache.core.spi.services.FancyCacheProvider;
 import org.ehcache.core.spi.services.TestProvidedService;
 import org.ehcache.core.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
@@ -239,13 +239,12 @@ public class ServiceLocatorTest {
     serviceLocator.startAllServices();
   }
 
-  @Test
-  @Ignore
+  @Test(expected = IllegalStateException.class)
   public void testCircularDeps() throws Exception {
 
     final class StartStopCounter {
       final AtomicInteger startCounter = new AtomicInteger(0);
-      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<ServiceProvider<Service>>();
+      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<>();
       final AtomicInteger stopCounter = new AtomicInteger(0);
       public void countStart(ServiceProvider<Service> serviceProvider) {
         startCounter.incrementAndGet();
@@ -347,7 +346,99 @@ public class ServiceLocatorTest {
     assertThat(myTestProvidedService.startStopCounter.stopCounter.get(), is(1));
     assertThat(dependsOnMe.startStopCounter.stopCounter.get(), is(1));
   }
+
+  @Test
+  public void testAbsentOptionalDepGetIgnored() {
+    ServiceLocator serviceLocator = dependencySet().with(new ServiceWithOptionalDeps()).build();
+
+    assertThat(serviceLocator.getService(ServiceWithOptionalDeps.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(TestService.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(OptService1.class), is(nullValue()));
+    assertThat(serviceLocator.getService(OptService2.class), is(nullValue()));
+  }
+
+  @Test
+  public void testPresentOptionalDepGetLoaded() {
+    ServiceLocator serviceLocator = dependencySet().with(new ServiceWithOptionalDeps()).with(new OptService1()).with(new OptService2()).build();
+
+    assertThat(serviceLocator.getService(ServiceWithOptionalDeps.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(TestService.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(OptService1.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(OptService2.class), is(notNullValue()));
+  }
+
+  @Test
+  public void testMixedPresentAndAbsentOptionalDepGetLoadedAndIgnored() {
+    ServiceLocator serviceLocator = dependencySet().with(new ServiceWithOptionalDeps()).with(new OptService2()).build();
+
+    assertThat(serviceLocator.getService(ServiceWithOptionalDeps.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(TestService.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(OptService1.class), is(nullValue()));
+    assertThat(serviceLocator.getService(OptService2.class), is(notNullValue()));
+  }
+
+  @Test
+  public void testOptionalDepWithAbsentClass() {
+    ServiceLocator serviceLocator = dependencySet().with(new ServiceWithOptionalNonExistentDeps()).with(new OptService2()).build();
+
+    assertThat(serviceLocator.getService(ServiceWithOptionalNonExistentDeps.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(TestService.class), is(notNullValue()));
+    assertThat(serviceLocator.getService(OptService2.class), is(notNullValue()));
+  }
 }
+
+@ServiceDependencies(TestService.class)
+@OptionalServiceDependencies({
+  "org.ehcache.core.internal.service.OptService1",
+  "org.ehcache.core.internal.service.OptService2"})
+class ServiceWithOptionalDeps implements Service {
+
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+
+  }
+
+  @Override
+  public void stop() {
+
+  }
+}
+
+@ServiceDependencies(TestService.class)
+@OptionalServiceDependencies({
+  "org.ehcache.core.internal.service.ServiceThatDoesNotExist",
+  "org.ehcache.core.internal.service.OptService2"})
+class ServiceWithOptionalNonExistentDeps implements Service {
+
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+
+  }
+
+  @Override
+  public void stop() {
+
+  }
+}
+
+class OptService1 implements Service {
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+  }
+  @Override
+  public void stop() {
+  }
+}
+
+class OptService2 implements Service {
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+  }
+  @Override
+  public void stop() {
+  }
+}
+
 
 @ServiceDependencies(FancyCacheProvider.class)
 class YetAnotherCacheProvider implements CacheProvider {

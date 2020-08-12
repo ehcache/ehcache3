@@ -16,8 +16,8 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.CacheStatistics;
-import org.ehcache.core.statistics.TypedValueStatistic;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
@@ -25,48 +25,27 @@ import org.terracotta.management.model.capabilities.descriptors.StatisticDescrip
 import org.terracotta.management.registry.collect.StatisticRegistry;
 
 import java.util.Collection;
-import java.util.Map;
 
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
   private final StatisticRegistry statisticRegistry;
-  private final String cacheName;
 
-  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService) {
+  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService, TimeSource timeSource) {
     super(registryConfiguration, cacheBinding);
-    this.cacheName = cacheBinding.getAlias();
-    this.statisticRegistry = new StatisticRegistry(cacheBinding.getCache());
+    this.statisticRegistry = new StatisticRegistry(cacheBinding.getCache(), timeSource::getTimeMillis);
 
+    String cacheName = cacheBinding.getAlias();
     CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
-    Map<String, TypedValueStatistic> knownStatistics = cacheStatistics.getKnownStatistics();
-
-    for(Map.Entry<String, TypedValueStatistic> stat : knownStatistics.entrySet()) {
-      String name = stat.getKey();
-      TypedValueStatistic valueStatistic = stat.getValue();
-      switch (valueStatistic.getType()) {
-        case COUNTER:
-          statisticRegistry.registerCounter(name, valueStatistic);
-          break;
-        case SIZE:
-          statisticRegistry.registerSize(name, valueStatistic);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported statistic type: " + valueStatistic.getType());
-      }
-    }
-  }
-
-  public Number queryStatistic(String fullStatisticName) {
-    return statisticRegistry.queryStatistic(fullStatisticName);
-  }
-
-  public Map<String, Number> queryStatistics() {
-    return statisticRegistry.queryStatistics();
+    cacheStatistics.getKnownStatistics().forEach(statisticRegistry::registerStatistic);
   }
 
   @Override
   public Collection<StatisticDescriptor> getDescriptors() {
     return statisticRegistry.getDescriptors();
+  }
+
+  StatisticRegistry getStatisticRegistry() {
+    return statisticRegistry;
   }
 
 }

@@ -151,32 +151,32 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
   private static class TestLoaderWriter implements CacheLoaderWriter<Long, String> {
 
     @Override
-    public String load(Long key) throws Exception {
+    public String load(Long key) {
       return null;
     }
 
     @Override
-    public Map<Long, String> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
+    public Map<Long, String> loadAll(Iterable<? extends Long> keys) {
       return null;
     }
 
     @Override
-    public void write(Long key, String value) throws Exception {
+    public void write(Long key, String value) {
 
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends String>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends String>> entries) {
 
     }
 
     @Override
-    public void delete(Long key) throws Exception {
+    public void delete(Long key) {
 
     }
 
     @Override
-    public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends Long> keys) {
 
     }
   }

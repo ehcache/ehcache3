@@ -1,9 +1,9 @@
 ---
 ---
 = Migration Guide
-ifndef::sourcedir34[]
+ifndef::sourcedir35[]
 include::common.adoc[]
-endif::sourcedir34[]
+endif::sourcedir35[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -25,9 +25,32 @@ Here we are creating a cache manager that has a default time-to-live (TTL) expir
 
 Before adding, we verify the expiry and set it on the `Element` only when different than the `Cache` expiry.
 
-[source%nowrap,java,indent=0]
+[source,java]
 ----
-include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/Ehcache2.java[tag=CustomExpiryEhcache2]
+int defaultCacheTTLInSeconds = 20;
+
+CacheManager cacheManager = initCacheManager();
+CacheConfiguration cacheConfiguration = new CacheConfiguration().name("cache")
+    .maxEntriesLocalHeap(100)
+    .timeToLiveSeconds(defaultCacheTTLInSeconds);   // <1>
+cacheManager.addCache(new Cache(cacheConfiguration));
+
+Element element = new Element(10L, "Hello");
+
+int ttlInSeconds = getTimeToLiveInSeconds((Long)element.getObjectKey(), (String)element.getObjectValue()); // <2>
+
+if (ttlInSeconds != defaultCacheTTLInSeconds) {   // <3>
+  element.setTimeToLive(ttlInSeconds);
+}
+
+cacheManager.getCache("cache").put(element);
+
+System.out.println(cacheManager.getCache("cache").get(10L).getObjectValue());
+
+sleep(2100);  // <4>
+
+// Now the returned element should be null, as the mapping is expired.
+System.out.println(cacheManager.getCache("cache").get(10L));
 ----
 
 <1> Expiry duration defined at the cache level.
@@ -42,7 +65,7 @@ having dedicated logic in the methods called during the lifecycle of added and u
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+include::{sourcedir35}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
 ----
 
 <1> Defining custom expiry to be called during the lifecycle of added mappings.

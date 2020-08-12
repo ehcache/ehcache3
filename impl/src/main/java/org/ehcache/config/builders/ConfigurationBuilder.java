@@ -37,13 +37,13 @@ import static java.util.Collections.unmodifiableMap;
  *
  * @author Alex Snaps
  */
-class ConfigurationBuilder implements Builder<Configuration> {
+public class ConfigurationBuilder implements Builder<Configuration> {
 
   private final Map<String, CacheConfiguration<?, ?>> caches;
   private final List<ServiceCreationConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
 
-  static ConfigurationBuilder newConfigurationBuilder() {
+  public static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();
   }
 
@@ -76,8 +76,8 @@ class ConfigurationBuilder implements Builder<Configuration> {
     return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+  public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
     if(newCaches.put(alias, config) != null) {
       throw new IllegalArgumentException("Cache alias '" + alias + "' already exists");
     }
@@ -85,17 +85,17 @@ class ConfigurationBuilder implements Builder<Configuration> {
   }
 
   public ConfigurationBuilder removeCache(String alias) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
+    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
     newCaches.remove(alias);
     return new ConfigurationBuilder(this, newCaches);
   }
 
-  ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
+  public ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
     if (findServiceByClass(serviceConfiguration.getClass()) != null) {
       throw new IllegalArgumentException("There is already a ServiceCreationConfiguration registered for service " + serviceConfiguration
           .getServiceType() + " of type " + serviceConfiguration.getClass());
     }
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
     newServiceConfigurations.add(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
@@ -109,13 +109,17 @@ class ConfigurationBuilder implements Builder<Configuration> {
     return null;
   }
 
-  ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
+  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
+    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
+  public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
     return new ConfigurationBuilder(this, classLoader);
+  }
+
+  public boolean containsCache(String alias) {
+    return caches.containsKey(alias);
   }
 }

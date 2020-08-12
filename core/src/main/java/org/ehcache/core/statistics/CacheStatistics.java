@@ -16,6 +16,10 @@
 
 package org.ehcache.core.statistics;
 
+import org.ehcache.Cache;
+import org.terracotta.statistics.ValueStatistic;
+import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
+
 import java.util.Map;
 
 /**
@@ -28,7 +32,7 @@ public interface CacheStatistics {
    *
    * @return a map of statistics per name
    */
-  Map<String, TypedValueStatistic> getKnownStatistics();
+  Map<String, ValueStatistic<?>> getKnownStatistics();
 
   /**
    * Map of tier statistics on this cache. Per tier name
@@ -88,13 +92,6 @@ public interface CacheStatistics {
   long getCachePuts();
 
   /**
-   * How many updates occurred on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return update count
-   */
-  long getCacheUpdates();
-
-  /**
    * How many removals occurred on the cache since its creation or the latest {@link #clear()}
    *
    * @return removal count
@@ -135,4 +132,33 @@ public interface CacheStatistics {
    * @return average remove response time
    */
   float getCacheAverageRemoveTime();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a HIT.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheGetHitLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#get(Object)} operations when the outcome is a MISS.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheGetMissLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#put(Object, Object)} operations when the outcome is a PUT.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCachePutLatencies();
+
+  /**
+   * The histogram representing the current latencies for {@link org.ehcache.Cache#remove(Object)} operations when the outcome is a SUCCESS.
+   *
+   * @return the histogram statistic
+   */
+  LatencyHistogramStatistic getCacheRemoveLatencies();
+
 }

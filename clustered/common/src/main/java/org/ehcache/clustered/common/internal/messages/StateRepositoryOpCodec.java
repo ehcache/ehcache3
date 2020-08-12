@@ -22,16 +22,15 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.Predicate;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
@@ -42,9 +41,6 @@ public class StateRepositoryOpCodec {
 
   private static final Struct GET_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
     .string(SERVER_STORE_NAME_FIELD, 30)
     .string(MAP_ID_FIELD, 35)
     .byteBuffer(KEY_FIELD, 40)
@@ -52,9 +48,6 @@ public class StateRepositoryOpCodec {
 
   private static final Struct PUT_IF_ABSENT_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
     .string(SERVER_STORE_NAME_FIELD, 30)
     .string(MAP_ID_FIELD, 35)
     .byteBuffer(KEY_FIELD, 40)
@@ -63,9 +56,6 @@ public class StateRepositoryOpCodec {
 
   private static final Struct ENTRY_SET_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
     .string(SERVER_STORE_NAME_FIELD, 30)
     .string(MAP_ID_FIELD, 35)
     .build();
@@ -137,51 +127,53 @@ public class StateRepositoryOpCodec {
   private StateRepositoryOpMessage.EntrySetMessage decodeEntrySetMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = ENTRY_SET_MESSAGE_STRUCT.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
 
-    StateRepositoryOpMessage.EntrySetMessage message = new StateRepositoryOpMessage.EntrySetMessage(storeName, mapId, clientId);
-    message.setId(msgId);
-    return message;
+    return new StateRepositoryOpMessage.EntrySetMessage(storeName, mapId);
   }
 
   private StateRepositoryOpMessage.PutIfAbsentMessage decodePutIfAbsentMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = PUT_IF_ABSENT_MESSAGE_STRUCT.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
     ByteBuffer valueBuffer = decoder.byteBuffer(VALUE_FIELD);
-    Object value = Util.unmarshall(valueBuffer);
+    Object value = Util.unmarshall(valueBuffer, WHITELIST_PREDICATE);
 
-    StateRepositoryOpMessage.PutIfAbsentMessage message = new StateRepositoryOpMessage.PutIfAbsentMessage(storeName, mapId, key, value, clientId);
-    message.setId(msgId);
-    return message;
+    return new StateRepositoryOpMessage.PutIfAbsentMessage(storeName, mapId, key, value);
   }
 
   private StateRepositoryOpMessage.GetMessage decodeGetMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
-    StateRepositoryOpMessage.GetMessage getMessage = new StateRepositoryOpMessage.GetMessage(storeName, mapId, key, clientId);
-    getMessage.setId(msgId);
-    return getMessage;
+    return new StateRepositoryOpMessage.GetMessage(storeName, mapId, key);
   }
+
+  public static final Predicate<Class<?>> WHITELIST_PREDICATE = new HashSet<>(Arrays.asList(
+    java.lang.Integer.class,
+    java.lang.Long.class,
+    java.lang.Float.class,
+    java.lang.Double.class,
+    java.lang.Byte.class,
+    java.lang.Character.class,
+    java.lang.String.class,
+    java.lang.Boolean.class,
+    java.lang.Short.class,
+    java.lang.Number.class,
+
+    org.ehcache.clustered.common.internal.store.ValueWrapper.class,
+    byte[].class,
+    java.util.HashSet.class,
+    java.util.AbstractMap.SimpleEntry.class))::contains;
 }

@@ -16,16 +16,15 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,10 +48,6 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
@@ -68,19 +63,14 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     V value = factory.createValue(1);
 
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
-    when(computedValueHolder.value()).thenReturn(value);
+    when(computedValueHolder.get()).thenReturn(value);
 
     tier = factory.newCachingTier(1L);
 
     try {
-      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return computedValueHolder;
-        }
-      });
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> computedValueHolder);
 
-      assertThat(valueHolder.value(), is(equalTo(value)));
+      assertThat(valueHolder.get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -92,27 +82,18 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
-    when(computedValueHolder.value()).thenReturn(value);
+    when(computedValueHolder.get()).thenReturn(value);
     when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
     tier = factory.newCachingTier();
 
     try {
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {   // actually put mapping in tier
-        @Override
-        public Store.ValueHolder<V> apply(final K o) {
-          return computedValueHolder;
-        }
-      });
+      // actually put mapping in tier
+      tier.getOrComputeIfAbsent(key, o -> computedValueHolder);
 
-      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return null;
-        }
-      });
+      Store.ValueHolder<V> valueHolder = tier.getOrComputeIfAbsent(key, k -> null);
 
-      assertThat(valueHolder.value(), is(equalTo(value)));
+      assertThat(valueHolder.get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

@@ -16,6 +16,7 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.CacheBindingManagementProvider;
@@ -23,72 +24,56 @@ import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.registry.DefaultStatisticsManagementProvider;
 import org.terracotta.management.registry.Named;
-import org.terracotta.management.registry.ExposedObject;
 import org.terracotta.management.registry.collect.StatisticProvider;
+import org.terracotta.statistics.registry.Statistic;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.Objects;
+
+import static java.util.stream.Collectors.toList;
 
 @Named("StatisticsCapability")
 @StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = new Comparator<StatisticDescriptor>() {
-    @Override
-    public int compare(StatisticDescriptor o1, StatisticDescriptor o2) {
-      return o1.getName().compareTo(o2.getName());
-    }
-  };
-
   private final StatisticsService statisticsService;
+  private final TimeSource timeSource;
 
-  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, StatisticsService statisticsService) {
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, StatisticsService statisticsService, TimeSource timeSource) {
     super(configuration);
-    this.statisticsService = statisticsService;
+    this.statisticsService = Objects.requireNonNull(statisticsService);
+    this.timeSource = Objects.requireNonNull(timeSource);
   }
 
   @Override
   protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsService);
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsService, timeSource);
   }
 
   @Override
   public final Collection<? extends Descriptor> getDescriptors() {
-    Collection<StatisticDescriptor> capabilities = new HashSet<StatisticDescriptor>();
-    for (ExposedObject o : getExposedObjects()) {
-      capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
-    }
-    List<StatisticDescriptor> list = new ArrayList<StatisticDescriptor>(capabilities);
-    Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
-    return list;
+    // To keep ordering because these objects end up in an immutable
+    // topology so this is easier for testing to compare with json payloads
+    return super.getDescriptors()
+      .stream()
+      .map(d -> (StatisticDescriptor) d)
+      .sorted(STATISTIC_DESCRIPTOR_COMPARATOR)
+      .collect(toList());
   }
 
   @Override
-  public Map<String, Number> collectStatistics(Context context, Collection<String> statisticNames) {
-    StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
-    if (ehcacheStatistics != null) {
-      if (statisticNames == null || statisticNames.isEmpty()) {
-        return ehcacheStatistics.queryStatistics();
-      } else {
-        Map<String, Number> statistics = new TreeMap<String, Number>();
-        for (String statisticName : statisticNames) {
-          try {
-            statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName));
-          } catch (IllegalArgumentException ignored) {
-            // ignore when statisticName does not exist and throws an exception
-          }
-        }
-        return statistics;
-      }
+  public Map<String, Statistic<? extends Serializable>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
+    StandardEhcacheStatistics exposedObject = (StandardEhcacheStatistics) findExposedObject(context);
+    if (exposedObject == null) {
+      return Collections.emptyMap();
     }
-    return Collections.emptyMap();
+    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames, since);
+
   }
 
 }

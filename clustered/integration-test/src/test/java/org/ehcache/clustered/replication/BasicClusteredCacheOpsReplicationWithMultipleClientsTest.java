@@ -18,9 +18,11 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -41,6 +43,7 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,7 +63,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
  * The point of this test is to assert proper data read after fail-over handling.
  */
 @RunWith(Parameterized.class)
-public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
+public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -94,6 +97,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
+                .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(20)))
             .autoCreate()
             .defaultServerResource("primary-server-resource"));
     CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);
@@ -213,11 +217,18 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
 
     CLUSTER.getClusterControl().terminateActive();
 
-    readKeysByCache2BeforeFailOver.forEach(x -> assertThat(CACHE2.get(x), nullValue()));
+    if (cacheConsistency == Consistency.STRONG) {
+      readKeysByCache2BeforeFailOver.forEach(x -> assertThat(CACHE2.get(x), nullValue()));
+    } else {
+      readKeysByCache2BeforeFailOver.forEach(x -> assertThat(CACHE1.get(x), nullValue()));
+    }
 
   }
 
   private static class BlobValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final byte[] data = new byte[10 * 1024];
   }
 }

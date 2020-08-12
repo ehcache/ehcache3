@@ -55,7 +55,7 @@ public class StatisticsTest {
   public void setUp() throws Exception {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-stats.xml").toURI(), ClassLoader.getSystemClassLoader());
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
     heapCache = cacheManager.createCache("heap", configuration);
     heapStatistics = (Eh107CacheStatisticsMXBean) ((Eh107Cache<String, String>) heapCache).getStatisticsMBean();
@@ -139,7 +139,7 @@ public class StatisticsTest {
     heapCache.put("key3", "value3");
     heapCache.put("key5", "value5");
 
-    HashSet<String> keys = new HashSet<String>(5);
+    HashSet<String> keys = new HashSet<>(5);
     for (int i = 1; i <= 5; i++) {
       keys.add("key" + i);
     }
@@ -210,12 +210,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAverageGetTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAverageGetTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAverageGetTime(), greaterThan(0.0f));
   }
 
@@ -229,12 +224,7 @@ public class StatisticsTest {
     heapCache.put("key", "value");
     heapCache.put("key", "value");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAveragePutTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAveragePutTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAveragePutTime(), greaterThan(0.0f));
   }
 
@@ -254,12 +244,7 @@ public class StatisticsTest {
     heapCache.remove("key3");
     heapCache.remove("key4");
 
-    assertFor(1100L, new Callable<Float>() {
-      @Override
-      public Float call() throws Exception {
-        return heapStatistics.getAverageRemoveTime();
-      }
-    }, is(not(0.0f)));
+    assertFor(1100L, () -> heapStatistics.getAverageRemoveTime(), is(not(0.0f)));
     assertThat(heapStatistics.getAverageRemoveTime(), greaterThan(0.0f));
   }
 

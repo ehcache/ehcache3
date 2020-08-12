@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -25,13 +24,13 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.TierStatistics;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.After;
@@ -39,8 +38,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -56,22 +55,22 @@ public class ClusteredCacheExpirationTest {
 
   private StatisticsService statisticsService = new DefaultStatisticsService();
 
-  private CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder(Expiry<Object, Object> expiry) {
+  private CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder(ExpiryPolicy<Object, Object> expiry) {
     return newCacheManagerBuilder()
         .using(statisticsService)
         .using(new TimeSourceConfiguration(timeSource))
         .with(cluster(CLUSTER_URI).autoCreate())
         .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10)
-                .offheap(10, MemoryUnit.MB)
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+                .heap(10, EntryUnit.ENTRIES)
+                .offheap(6, MemoryUnit.MB)
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .withExpiry(expiry)
             .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }
 
-  private Expiry<Object, Object> onSecondExpiration() {
-    return Expirations.timeToLiveExpiration(Duration.of(1, TimeUnit.SECONDS));
+  private ExpiryPolicy<Object, Object> oneSecondExpiration() {
+    return ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
   }
 
   @Before
@@ -89,7 +88,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testGetExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(onSecondExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
       Map<String, TierStatistics> tierStatistics = statisticsService.getCacheStatistics(CLUSTERED_CACHE).getTierStatistics();
@@ -118,7 +117,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testGetNoExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(Expirations.noExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(ExpiryPolicyBuilder.noExpiration());
 
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
@@ -139,7 +138,7 @@ public class ClusteredCacheExpirationTest {
 
   @Test
   public void testPutIfAbsentExpirationPropagatedToHigherTiers() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(onSecondExpiration());
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
 
     try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(CLUSTERED_CACHE, Long.class, String.class);

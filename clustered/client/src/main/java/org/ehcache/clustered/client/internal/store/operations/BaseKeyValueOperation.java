@@ -38,7 +38,13 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       throw new NullPointerException("Value can not be null");
     }
     this.key = key;
-    this.valueHolder = new LazyValueHolder<V>(value);
+    this.valueHolder = new LazyValueHolder<>(value);
+    this.timeStamp = timeStamp;
+  }
+
+  BaseKeyValueOperation(BaseKeyValueOperation<K, V> copy, long timeStamp) {
+    this.key = copy.key;
+    this.valueHolder = copy.valueHolder;
     this.timeStamp = timeStamp;
   }
 
@@ -59,7 +65,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
-    this.valueHolder = new LazyValueHolder<V>(buffer.slice(), valueSerializer);
+    this.valueHolder = new LazyValueHolder<>(buffer.slice(), valueSerializer);
   }
 
   public K getKey() {
@@ -117,7 +123,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       return false;
     }
 
-    BaseKeyValueOperation other = (BaseKeyValueOperation) obj;
+    BaseKeyValueOperation<?, ?> other = (BaseKeyValueOperation<?, ?>) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }

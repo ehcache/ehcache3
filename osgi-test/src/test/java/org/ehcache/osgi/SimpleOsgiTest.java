@@ -49,10 +49,11 @@ public class SimpleOsgiTest {
 
   @Configuration
   public Option[] config() {
+    String slf4jVersion = VersionUtil.version("ehcache.osgi.slf4j.version", "slf4jVersion");
     return options(
-        mavenBundle("org.slf4j", "slf4j-api", System.getProperty("ehcache.osgi.slf4j.version")),
-        mavenBundle("org.slf4j", "slf4j-simple", System.getProperty("ehcache.osgi.slf4j.version")).noStart(),
-        bundle("file:" + System.getProperty("ehcache.osgi.jar")),
+        mavenBundle("org.slf4j", "slf4j-api", slf4jVersion),
+        mavenBundle("org.slf4j", "slf4j-simple", slf4jVersion).noStart(),
+        bundle("file:" + VersionUtil.ehcacheOsgiJar()),
         junitBundles()
     );
   }
@@ -74,7 +75,7 @@ public class SimpleOsgiTest {
   public void testEhcache3WithSerializationAndClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10))
-            .add(new DefaultCopierConfiguration<Person>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
             .build())
         .build(true);
@@ -89,7 +90,7 @@ public class SimpleOsgiTest {
   public void testCustomCopier() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
             .build())
         .build(true);

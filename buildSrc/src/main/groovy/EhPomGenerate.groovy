@@ -33,22 +33,15 @@ class EhPomGenerate implements Plugin<Project> {
 
     def utils = new Utils(project.baseVersion, project.logger)
 
-    project.plugins.apply "maven-publish" // for generating pom.*
+    project.plugins.apply 'maven-publish' // for generating pom.*
 
     def mavenTempResourcePath = "${project.buildDir}/mvn/META-INF/maven/${project.group}/${project.archivesBaseName}"
 
-    // Write pom to temp location to be picked up later,
-    // generatePomFileForMavenJavaPublication task comes from maven-publish.
     project.model {
+      // Write pom to temp location to be picked up later,
+      // generatePomFileForMavenJavaPublication task comes from maven-publish.
       tasks.generatePomFileForMavenJavaPublication {
         destination = project.file("$mavenTempResourcePath/pom.xml")
-      }
-    }
-    //ensure that we generate maven stuff
-    project.model {
-      tasks.processResources {
-        dependsOn project.tasks.generatePomFileForMavenJavaPublication
-        dependsOn project.tasks.writeMavenProperties
       }
     }
 
@@ -59,6 +52,41 @@ class EhPomGenerate implements Plugin<Project> {
           artifactId project.archivesBaseName
           from project.components.java
           utils.pomFiller(pom, project.subPomName, project.subPomDesc)
+          if (project.hasProperty('shadowJar')) {
+            pom.withXml {
+              if (asNode().dependencies.isEmpty()) {
+                asNode().appendNode('dependencies')
+              }
+              project.configurations.shadowCompile.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'compile')
+              }
+              project.configurations.pomOnlyCompile.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'compile')
+              }
+              project.configurations.shadowProvided.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'provided')
+              }
+              project.configurations.pomOnlyProvided.dependencies.each {
+                def dep = asNode().dependencies[0].appendNode('dependency')
+                dep.appendNode('groupId', it.group)
+                dep.appendNode('artifactId', it.name)
+                dep.appendNode('version', it.version)
+                dep.appendNode('scope', 'provided')
+              }
+            }
+          }
         }
       }
     }
@@ -66,20 +94,30 @@ class EhPomGenerate implements Plugin<Project> {
     // Write pom.properties to temp location
     project.task('writeMavenProperties') {
       doLast {
+        project.file(mavenTempResourcePath).mkdirs()
         def propertyFile = project.file "$mavenTempResourcePath/pom.properties"
         def props = new Properties()
-        props.setProperty("version", project.version)
-        props.setProperty("groupId", project.group)
-        props.setProperty("artifactId", project.archivesBaseName)
+        props.setProperty('version', project.version)
+        props.setProperty('groupId', project.group)
+        props.setProperty('artifactId', project.archivesBaseName)
         props.store propertyFile.newWriter(), null
       }
     }
 
-    // Pick up pom.xml and pom.properties from temp location
-    project.sourceSets {
-      main {
-        resources {
-          srcDir "${project.buildDir}/mvn"
+    if (utils.isReleaseVersion) {
+      //ensure that we generate maven stuff and delay resolution as the first task is created dynamically
+      project.processResources.dependsOn {
+        project.tasks.findAll { task ->
+          task.name == 'generatePomFileForMavenJavaPublication' || task.name == 'writeMavenProperties'
+        }
+      }
+
+      // Pick up pom.xml and pom.properties from temp location
+      project.sourceSets {
+        main {
+          resources {
+            srcDir "${project.buildDir}/mvn"
+          }
         }
       }
     }

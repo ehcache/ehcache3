@@ -87,8 +87,8 @@ public class MemorySizeParser {
    * Memory size calculator.
    */
   private static final class MemorySize {
-    private String configuredMemorySizeWithoutUnit;
-    private long multiplicationFactor;
+    private final String configuredMemorySizeWithoutUnit;
+    private final long multiplicationFactor;
 
     private MemorySize(String configuredMemorySizeWithoutUnit, long multiplicationFactor) {
       this.configuredMemorySizeWithoutUnit = configuredMemorySizeWithoutUnit;

@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
+import static org.terracotta.statistics.registry.ValueStatisticDescriptor.descriptor;
 
 @Named("PoolStatistics")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
@@ -53,17 +53,17 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
   @Override
   protected StatisticRegistry getStatisticRegistry(PoolBinding managedObject) {
     if (managedObject == PoolBinding.ALL_SHARED) {
-      return StatisticRegistry.noop();
+      return new StatisticRegistry(null, () -> getTimeSource().getTimestamp());
     }
 
     String poolName = managedObject.getAlias();
     PoolBinding.AllocationType allocationType = managedObject.getAllocationType();
 
     if (allocationType == PoolBinding.AllocationType.DEDICATED) {
-      return new StatisticRegistry(ehcacheStateService.getDedicatedResourcePageSource(poolName));
+      return new StatisticRegistry(ehcacheStateService.getDedicatedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
 
     } else {
-      return new StatisticRegistry(ehcacheStateService.getSharedResourcePageSource(poolName));
+      return new StatisticRegistry(ehcacheStateService.getSharedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
     }
   }
 
@@ -76,7 +76,7 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
 
     PoolExposedStatistics(Context context, PoolBinding binding, StatisticRegistry statisticRegistry) {
       super(context.with("type", "Pool"), binding, statisticRegistry);
-      getRegistry().registerSize("AllocatedSize", descriptor("allocatedSize", tags("tier", "Pool")));
+      getStatisticRegistry().registerStatistic("AllocatedSize", descriptor("allocatedSize", tags("tier", "Pool")));
     }
 
   }

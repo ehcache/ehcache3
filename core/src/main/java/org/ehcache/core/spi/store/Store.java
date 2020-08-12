@@ -17,15 +17,12 @@
 package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -35,6 +32,9 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The {@code Store} interface represents the backing storage of a {@link Cache}. It abstracts the support for multiple
@@ -284,7 +284,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * </pre>
    * except that the action is performed atomically.
    * <p>
-   * This is equivalent to calling {@link Store#compute(Object, BiFunction, NullaryFunction)}
+   * This is equivalent to calling {@link Store#compute(Object, BiFunction, Supplier)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE true}.
    * <p>
    * Neither the key nor the function can be {@code null}
@@ -297,7 +297,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws StoreAccessException if the mapping can't be changed
    *
-   * @see #compute(Object, BiFunction, NullaryFunction)
+   * @see #compute(Object, BiFunction, Supplier)
    */
   ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
 
@@ -342,7 +342,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @see #compute(Object, BiFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException;
 
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
@@ -392,7 +392,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * Behaviour is equivalent to compute invocations in an external loop. There is no cross key atomicity
    * guarantee / requirement. Implementations may provide coarser grained guarantees.
    * <p>
-   * This is equivalent to calling {@link Store#bulkCompute(Set, Function, NullaryFunction)}
+   * This is equivalent to calling {@link Store#bulkCompute(Set, Function, Supplier)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE true}
    *
    * @param keys the set of keys on which to compute values
@@ -433,7 +433,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws NullPointerException if any of the arguments is null
    * @throws StoreAccessException if mappings can't be changed
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} <code>keys</code> argument using the <code>mappingFunction</code>
@@ -452,7 +452,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
-   * @throws StoreAccessException
+   * @throws StoreAccessException when a failure occurs when accessing the store
    */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException;
 
@@ -461,7 +461,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param <V> the value type
    */
-  interface ValueHolder<V> extends ValueSupplier<V> {
+  interface ValueHolder<V> extends Supplier<V> {
 
     /**
      * Constant value indicating no expiration - an eternal mapping.
@@ -608,7 +608,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * The expiration policy instance for this store
      */
-    Expiry<? super K, ? super V> getExpiry();
+    ExpiryPolicy<? super K, ? super V> getExpiry();
 
     /**
      * The resource pools this store can make use of
@@ -629,6 +629,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The concurrency level of the dispatcher that processes events
      */
     int getDispatcherConcurrency();
+
+    /**
+     * If operation statistics (e.g. get/put count) should be enabled. It is
+     * a default method to keep the original behavior which was enabled all the time.
+     */
+    default boolean isOperationStatisticsEnabled() {
+      return true;
+    }
   }
 
   /**
@@ -662,13 +670,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    */
   enum PutStatus {
     /**
-     * New value was put
+     * Value was put
      */
     PUT,
-    /**
-     * New value was put and replace old value
-     */
-    UPDATE,
     /**
      * New value was dropped
      */

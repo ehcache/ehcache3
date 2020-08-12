@@ -26,7 +26,6 @@ import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -37,13 +36,6 @@ public final class ChainCodec {
   private ChainCodec() {
     //no implementations please
   }
-
-  public static final StructEncoderFunction<Chain> CHAIN_ENCODER_FUNCTION = new StructEncoderFunction<Chain>() {
-    @Override
-    public void encode(StructEncoder<?> encoder, Chain chain) {
-      ChainCodec.encode(encoder, chain);
-    }
-  };
 
   private static final Struct ELEMENT_STRUCT = StructBuilder.newStructBuilder()
     .int64("sequence", 10)
@@ -84,7 +76,7 @@ public final class ChainCodec {
   public static Chain decode(StructDecoder<?> decoder) {
     StructArrayDecoder<? extends StructDecoder<?>> elementsDecoder = decoder.structs("elements");
 
-    final List<Element> elements = new ArrayList<Element>();
+    final List<Element> elements = new ArrayList<>();
     for (int i = 0; i < elementsDecoder.length(); i++) {
       StructDecoder<?> elementDecoder = elementsDecoder.next();
       Long sequence = elementDecoder.int64("sequence");

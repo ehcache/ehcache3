@@ -46,7 +46,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
   static final String PERSISTENCE_SPACE_OWNER = "file";
 
-  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
+  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private volatile LocalPersistenceService persistenceService;
   private volatile boolean isStarted;
 
@@ -170,7 +170,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    * {@inheritDoc}
    */
   @Override
-  public void destroy(String name) throws CachePersistenceException {
+  public void destroy(String name) {
     checkStarted();
 
     if(persistenceService == null) {
@@ -218,7 +218,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
     return stateRepository;
   }
 
-  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
     return new CachePersistenceException("Unknown space: " + identifier);
   }
 
@@ -246,7 +246,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
 
   private static class PersistenceSpace {
     final DefaultPersistenceSpaceIdentifier identifier;
-    final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<String, FileBasedStateRepository>();
+    final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<>();
 
     private PersistenceSpace(DefaultPersistenceSpaceIdentifier identifier) {
       this.identifier = identifier;

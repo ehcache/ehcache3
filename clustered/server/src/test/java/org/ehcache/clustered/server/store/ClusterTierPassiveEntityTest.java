@@ -20,7 +20,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.common.internal.store.Util;
@@ -35,23 +35,26 @@ import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.EntityMessage;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -64,8 +67,6 @@ import static org.mockito.Mockito.mock;
 
 public class ClusterTierPassiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -78,7 +79,6 @@ public class ClusterTierPassiveEntityTest {
 
   @Before
   public void setUp() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
     defaultStoreConfiguration = new ServerStoreConfigBuilder().dedicated(defaultResource, 1024, MemoryUnit.KILOBYTES).build();
@@ -149,25 +149,59 @@ public class ClusterTierPassiveEntityTest {
     Chain chain = Util.getChain(true, createPayload(1L));
     TestInvokeContext context = new TestInvokeContext();
 
-    UUID clientId = new UUID(3, 3);
+    long clientId = 3;
 
-    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(1, chain, 2L, 1L, clientId);
+    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
     passiveEntity.invokePassive(context, message1);
 
     // Should be added
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(1).isEmpty(), is(false));
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
-    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
+    Chain emptyChain = Util.getChain(true);
+    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
     passiveEntity.invokePassive(context, message2);
 
-    // Should not be added, it should be a duplicate
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(true));
+    // Should not be cleared, message is a duplicate
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
     PassiveReplicationMessage message3 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 3L, 1L, clientId);
     passiveEntity.invokePassive(context, message3);
 
     // Should be added as well, different message id
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
+  }
+
+  @Test
+  public void testOversizeReplaceAtHeadMessage() throws Exception {
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
+    TestInvokeContext context = new TestInvokeContext();
+
+    int key = 2;
+
+    Chain chain = Util.getChain(true, createPayload(1L));
+    PassiveReplicationMessage message = new PassiveReplicationMessage.ChainReplicationMessage(key, chain, 2L, 1L, 3L);
+    passiveEntity.invokePassive(context, message);
+
+    Chain oversizeChain = Util.getChain(true, createPayload(2L, 1024 * 1024));
+    ServerStoreOpMessage.ReplaceAtHeadMessage oversizeMsg = new ServerStoreOpMessage.ReplaceAtHeadMessage(key, chain, oversizeChain);
+    passiveEntity.invokePassive(context, oversizeMsg);
+    // Should be evicted, the value is oversize.
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
+  }
+
+  @Test
+  public void testOversizeChainReplicationMessage() throws Exception {
+    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    passiveEntity.createNew();
+    TestInvokeContext context = new TestInvokeContext();
+
+    long key = 2L;
+    Chain oversizeChain = Util.getChain(true, createPayload(key, 1024 * 1024));
+    PassiveReplicationMessage oversizeMsg = new PassiveReplicationMessage.ChainReplicationMessage(key, oversizeChain, 2L, 1L, (long) 3);
+    passiveEntity.invokePassive(context, oversizeMsg);
+    // Should be cleared, the value is oversize.
+    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
   }
 
   /**
@@ -238,7 +272,7 @@ public class ClusterTierPassiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     private final Map<String, ServerSideConfiguration.Pool> sharedPools = new HashMap<>();
 
@@ -286,7 +320,7 @@ public class ClusterTierPassiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -319,12 +353,14 @@ public class ClusterTierPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        return (T) new OOOMessageHandlerImpl(((OOOMessageHandlerConfiguration) serviceConfiguration).getTrackerPolicy());
+        OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

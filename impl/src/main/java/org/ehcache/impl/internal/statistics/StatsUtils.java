@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.statistics;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.ehcache.Cache;
@@ -29,19 +30,17 @@ import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 
-import static org.terracotta.context.query.Matchers.attributes;
-import static org.terracotta.context.query.Matchers.context;
-import static org.terracotta.context.query.Matchers.hasAttribute;
+import static org.terracotta.context.query.Matchers.*;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 /**
  * Class allowing to query cache and tier statistics
  */
-final class StatsUtils {
+public final class StatsUtils {
 
   private StatsUtils() {}
 
-  static Matcher<Map<String, Object>> hasTag(final String tag) {
+  public static Matcher<Map<String, Object>> hasTag(final String tag) {
     return hasAttribute("tags", new Matcher<Set<String>>() {
       @Override
       protected boolean matchesSafely(Set<String> object) {
@@ -50,12 +49,12 @@ final class StatsUtils {
     });
   }
 
-  static Matcher<Map<String, Object>> hasProperty(final String key, final String value) {
+  public static Matcher<Map<String, Object>> hasProperty(final String key, final String value) {
     return hasAttribute("properties", new Matcher<Map<String, Object>>() {
       @Override
       protected boolean matchesSafely(Map<String, Object> properties) {
         Object val = properties.get(key);
-        return val == null ? false : value.equals(val);
+        return val != null && value.equals(val);
       }
     });
   }
@@ -71,12 +70,12 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
+  public static <T> Optional<T> findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasProperty("discriminator", discriminator),
         hasTag(tag)))))
@@ -89,11 +88,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -106,12 +105,12 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String tag, String statName) {
+  public static <T> Optional<T> findStatisticOnDescendants(Object context, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasTag(tag)))))
       .build().execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -123,11 +122,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -140,11 +139,11 @@ final class StatsUtils {
    * @return the operation statistic searched for
    * @throws RuntimeException if 0 or more than 1 result is found
    */
-  static <T extends Enum<T>> OperationStatistic<T> findOperationStatisticOnChildren(Object context, Class<T> type, String statName) {
+  public static <T extends Enum<T>> OperationStatistic<T> findOperationStatisticOnChildren(Object context, Class<T> type, String statName) {
     @SuppressWarnings("unchecked")
     Query query = queryBuilder()
       .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
       .build();
 
     Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -172,12 +171,12 @@ final class StatsUtils {
    * @return an array of tier names
    * @throws RuntimeException if not tiers are found or if tiers have multiple tags
    */
-  static String[] findTiers(Cache<?, ?> cache) {
+  public static String[] findTiers(Cache<?, ?> cache) {
     // Here I'm randomly taking the eviction observer because it exists on all tiers
     @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
       .build();
 
     Set<TreeNode> statResult = statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
@@ -190,7 +189,7 @@ final class StatsUtils {
 
     int i = 0;
     for (TreeNode treeNode : statResult) {
-      Set tags = (Set) treeNode.getContext().attributes().get("tags");
+      Set<?> tags = (Set<?>) treeNode.getContext().attributes().get("tags");
       if (tags.size() != 1) {
         throw new RuntimeException("We expect tiers to have only one tag");
       }
@@ -208,7 +207,7 @@ final class StatsUtils {
    * @param tiers all tiers
    * @return the lowest tier
    */
-  static String findLowestTier(String[] tiers) {
+  public static String findLowestTier(String[] tiers) {
     //if only 1 store then you don't need to find the lowest tier
     if (tiers.length == 1) {
       return tiers[0];
@@ -229,5 +228,28 @@ final class StatsUtils {
     }
 
     return lowestTier;
+  }
+
+  public static <T extends Enum<T>> boolean hasOperationStat(Object rootNode, Class<T> statisticType, String statName) {
+    Query q = queryBuilder().descendants()
+      .filter(context(identifier(subclassOf(OperationStatistic.class))))
+      .filter(context(attributes(Matchers.allOf(
+        hasAttribute("name", statName),
+        hasAttribute("this", new Matcher<OperationStatistic<T>>() {
+          @Override
+          protected boolean matchesSafely(OperationStatistic<T> object) {
+            return object.type().equals(statisticType);
+          }
+        })
+      ))))
+      .build();
+
+    Set<TreeNode> result = q.execute(Collections.singleton(ContextManager.nodeFor(rootNode)));
+
+    if (result.size() > 1) {
+      throw new RuntimeException("a zero or a single stat was expected; found " + result.size());
+    }
+
+    return !result.isEmpty();
   }
 }

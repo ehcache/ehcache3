@@ -53,7 +53,7 @@ public abstract class AbstractJournalTest {
 
   @Test
   public void testGetInDoubtKeysReturnsCorrectKeysAfterSavedCollectionCleared() throws Exception {
-    Collection<Long> keys = new ArrayList<Long>(Arrays.asList(1L, 2L, 3L));
+    Collection<Long> keys = new ArrayList<>(Arrays.asList(1L, 2L, 3L));
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), keys);
     keys.clear();
 

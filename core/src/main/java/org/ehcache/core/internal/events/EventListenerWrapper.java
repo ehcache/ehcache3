@@ -73,7 +73,7 @@ public final class EventListenerWrapper<K, V> implements CacheEventListener<K, V
     if (!(other instanceof EventListenerWrapper)) {
       return false;
     }
-    EventListenerWrapper l2 = (EventListenerWrapper)other;
+    EventListenerWrapper<?, ?> l2 = (EventListenerWrapper<?, ?>)other;
     return listener.equals(l2.listener);
   }
 
@@ -82,7 +82,7 @@ public final class EventListenerWrapper<K, V> implements CacheEventListener<K, V
     listener.onEvent(event);
   }
 
-  public CacheEventListener getListener() {
+  public CacheEventListener<? super K, ? super V> getListener() {
     return listener;
   }
 

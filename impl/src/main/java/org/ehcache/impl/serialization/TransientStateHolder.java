@@ -26,7 +26,9 @@ import java.util.concurrent.ConcurrentMap;
 
 public class TransientStateHolder<K, V> implements StateHolder<K, V>, Serializable {
 
-  private final ConcurrentMap<K, V> map = new ConcurrentHashMap<K, V>();
+  private static final long serialVersionUID = -6350493651462112289L;
+
+  private final ConcurrentMap<K, V> map = new ConcurrentHashMap<>();
 
   @Override
   public V putIfAbsent(final K key, final V value) {

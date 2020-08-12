@@ -21,14 +21,17 @@ import org.terracotta.management.model.context.Context;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Collection<String> tags = new TreeSet<String>();
+  private final Collection<String> tags = new TreeSet<>();
+  private final String instanceId = UUID.randomUUID().toString();
   private Context context = Context.empty();
   private String collectorExecutorAlias = "collectorExecutor";
 
@@ -82,6 +85,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
+  public String getInstanceId() {
+    return instanceId;
+  }
+
+  @Override
   public Class<ManagementRegistryService> getServiceType() {
     return ManagementRegistryService.class;
   }
@@ -89,30 +97,26 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   @Override
   public String toString() {
     return "DefaultManagementRegistryConfiguration{" + "context=" + context +
-        ", tags=" + tags +
-        ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
-        '}';
+      ", tags=" + tags +
+      ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
+      ", instanceId='" + instanceId + '\'' +
+      '}';
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-
     DefaultManagementRegistryConfiguration that = (DefaultManagementRegistryConfiguration) o;
-
-    if (!tags.equals(that.tags)) return false;
-    if (!context.equals(that.context)) return false;
-    return collectorExecutorAlias != null ? collectorExecutorAlias.equals(that.collectorExecutorAlias) : that.collectorExecutorAlias == null;
-
+    return Objects.equals(tags, that.tags) &&
+      Objects.equals(instanceId, that.instanceId) &&
+      Objects.equals(context, that.context) &&
+      Objects.equals(collectorExecutorAlias, that.collectorExecutorAlias);
   }
 
   @Override
   public int hashCode() {
-    int result = tags.hashCode();
-    result = 31 * result + context.hashCode();
-    result = 31 * result + (collectorExecutorAlias != null ? collectorExecutorAlias.hashCode() : 0);
-    return result;
+    return Objects.hash(tags, instanceId, context, collectorExecutorAlias);
   }
 
 }

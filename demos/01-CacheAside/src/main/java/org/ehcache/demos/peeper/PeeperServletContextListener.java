@@ -17,10 +17,12 @@ package org.ehcache.demos.peeper;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 
 /**
  * @author Ludovic Orban
  */
+@WebListener
 public class PeeperServletContextListener implements ServletContextListener {
 
   public static final DataStore DATA_STORE = new DataStore();

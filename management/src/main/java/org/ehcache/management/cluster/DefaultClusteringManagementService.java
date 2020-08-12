@@ -16,7 +16,6 @@
 package org.ehcache.management.cluster;
 
 import org.ehcache.Cache;
-import org.ehcache.StateTransitionException;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -32,9 +31,9 @@ import org.ehcache.management.registry.DefaultCollectorService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.management.entity.nms.agent.client.DefaultNmsAgentService;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentEntity;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
@@ -42,17 +41,13 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringManagementService.class);
 
   private final ClusteringManagementServiceConfiguration configuration;
 
@@ -74,36 +69,39 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
+    // register this service BEFORE any other one so that the NMS entity gets created first in stateTransition() before
+    // the other services are called
+    this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+    this.cacheManager.registerListener(this);
+
     this.clusteringService = serviceProvider.getService(ClusteringService.class);
     this.managementRegistryService = serviceProvider.getService(ManagementRegistryService.class);
-    this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     // get an ordered executor to keep ordering of management call requests
     this.managementCallExecutor = serviceProvider.getService(ExecutionService.class).getOrderedExecutor(
-        configuration.getManagementCallExecutorAlias(),
-        new ArrayBlockingQueue<Runnable>(configuration.getManagementCallQueueSize()));
+      configuration.getManagementCallExecutorAlias(),
+      new ArrayBlockingQueue<>(configuration.getManagementCallQueueSize()));
 
     this.collectorService = new DefaultCollectorService(this);
     this.collectorService.start(serviceProvider);
 
     EntityService entityService = serviceProvider.getService(EntityService.class);
     this.nmsAgentFactory = entityService.newClientEntityFactory("NmsAgent", NmsAgentEntity.class, 1, null);
-
-    this.cacheManager.registerListener(this);
   }
 
   @Override
   public void stop() {
-    if(collectorService != null) {
+    if (collectorService != null) {
       collectorService.stop();
     }
     shutdownNow(managementCallExecutor);
 
     // nullify so that no further actions are done with them (see null-checks below)
-    if(nmsAgentService != null) {
+    if (nmsAgentService != null) {
       nmsAgentService.close();
       managementRegistryService = null;
+      nmsAgentService = null;
     }
-    nmsAgentService = null;
+
     managementCallExecutor = null;
   }
 
@@ -121,38 +119,11 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     switch (to) {
 
       case AVAILABLE: {
-        // create / fetch the management entity
-        NmsAgentEntity nmsAgentEntity;
-        try {
-          nmsAgentEntity = nmsAgentFactory.retrieve();
-        } catch (EntityNotFoundException e) {
-          // should never occur because entity is permanent
-          throw (AssertionError) new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " not found").initCause(e.getCause());
-        }
-        nmsAgentService = new NmsAgentService(nmsAgentEntity);
-        nmsAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
-        nmsAgentService.setManagementRegistry(managementRegistryService);
-        // setup the executor that will handle the management call requests received from the server. We log failures.
-        nmsAgentService.setManagementCallExecutor(new LoggingExecutor(
-            managementCallExecutor,
-            LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
-
-        try {
-          nmsAgentService.init();
-          // expose tags
-          nmsAgentService.setTags(managementRegistryService.getConfiguration().getTags());
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new StateTransitionException(e);
-        } catch (ExecutionException e) {
-          throw new StateTransitionException(e.getCause());
-        } catch (TimeoutException e) {
-          throw new StateTransitionException(e);
-        }
-
+        nmsAgentService = createNmsAgentService();
+        nmsAgentService.sendStates();
+        nmsAgentService.setTags(managementRegistryService.getConfiguration().getTags());
         break;
       }
-
 
       case UNINITIALIZED: {
         this.cacheManager.deregisterListener(this);
@@ -168,18 +139,38 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     }
   }
 
+  private NmsAgentService createNmsAgentService() {
+    DefaultNmsAgentService nmsAgentService = new DefaultNmsAgentService(() -> {
+      try {
+        return nmsAgentFactory.retrieve();
+      } catch (EntityNotFoundException e) {
+        // should never occur because entity is permanent
+        throw new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " not found", e.getCause());
+      }
+    });
+
+    nmsAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
+    nmsAgentService.setManagementRegistry(managementRegistryService);
+
+    // setup the executor that will handle the management call requests received from the server. We log failures.
+    nmsAgentService.setManagementCallExecutor(new LoggingExecutor(
+      managementCallExecutor,
+      LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
+
+    // when Ehcache reconnects, we resend to the server the management states
+    clusteringService.addConnectionRecoveryListener(() -> {
+      nmsAgentService.flushEntity();
+      nmsAgentService.sendStates();
+    });
+
+    return nmsAgentService;
+  }
+
   @Override
   public void onNotification(ContextualNotification notification) {
     NmsAgentService service = nmsAgentService;
     if (service != null && clusteringService.isConnected()) {
-      try {
-        service.pushNotification(notification);
-      } catch (InterruptedException e) {
-        LOGGER.error("Failed to push notification " + notification + ": " + e.getMessage(), e);
-        Thread.currentThread().interrupt();
-      } catch (Exception e) {
-        LOGGER.error("Failed to push notification " + notification + ": " + e.getMessage(), e);
-      }
+      service.pushNotification(notification);
     }
   }
 
@@ -187,14 +178,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   public void onStatistics(Collection<ContextualStatistics> statistics) {
     NmsAgentService service = nmsAgentService;
     if (service != null && clusteringService.isConnected()) {
-      try {
-        service.pushStatistics(statistics);
-      } catch (InterruptedException e) {
-        LOGGER.error("Failed to push statistics " + statistics + ": " + e.getMessage(), e);
-        Thread.currentThread().interrupt();
-      } catch (Exception e) {
-        LOGGER.error("Failed to push statistics " + statistics + ": " + e.getMessage(), e);
-      }
+      service.pushStatistics(statistics);
     }
   }
 

@@ -32,10 +32,12 @@ import java.util.Collection;
 @RequiredContext({@Named("cacheManagerName")})
 public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
+  private final ManagementRegistryServiceConfiguration configuration;
   private final CacheManager cacheManager;
 
   public EhcacheSettingsProvider(ManagementRegistryServiceConfiguration configuration, CacheManager cacheManager) {
     super(configuration);
+    this.configuration = configuration;
     this.cacheManager = cacheManager;
   }
 
@@ -46,7 +48,7 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
   @Override
   public Collection<? extends Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = new ArrayList<Descriptor>(super.getDescriptors());
+    Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(cacheManagerSettings());
     return descriptors;
   }
@@ -55,8 +57,9 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
     return new Settings()
         .set("cacheManagerDescription", ((HumanReadable)cacheManager.getRuntimeConfiguration()).readableString())
         .set("status", cacheManager.getStatus())
+        .set("instanceId", configuration.getInstanceId())
         .set("managementContext", new Settings(registryConfiguration.getContext()))
-        .set("tags", registryConfiguration.getTags().toArray(new String[registryConfiguration.getTags().size()]));
+        .set("tags", registryConfiguration.getTags().toArray(new String[0]));
   }
 
 }

@@ -51,7 +51,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     if (cfg.getClassLoader() == null) {
       throw new NullPointerException();
     }
-    this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations());
+    this.caches = new ConcurrentHashMap<>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
   }
@@ -80,7 +80,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
    */
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
-    this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(caches);
+    this.caches = new ConcurrentHashMap<>(caches);
     this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 
@@ -168,7 +168,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     }
 
     StringBuilder serviceCreationConfigurationsToStringBuilder = new StringBuilder();
-    for (ServiceCreationConfiguration serviceCreationConfiguration : services) {
+    for (ServiceCreationConfiguration<?> serviceCreationConfiguration : services) {
       serviceCreationConfigurationsToStringBuilder.append("- ");
       if(serviceCreationConfiguration instanceof HumanReadable) {
         serviceCreationConfigurationsToStringBuilder

@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
@@ -45,10 +43,6 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
@@ -66,30 +60,20 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     V newValue = factory.createValue(2);
 
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.value()).thenReturn(originalValue);
+    when(valueHolder.get()).thenReturn(originalValue);
 
     tier = factory.newCachingTier(1L);
 
     try {
-      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K k) {
-          return valueHolder;
-        }
-      });
+      tier.getOrComputeIfAbsent(key, k -> valueHolder);
 
       tier.invalidate(key);
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
-      when(newValueHolder.value()).thenReturn(newValue);
-      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-        @Override
-        public Store.ValueHolder<V> apply(final K o) {
-          return newValueHolder;
-        }
-      });
+      when(newValueHolder.get()).thenReturn(newValue);
+      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
-      assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
+      assertThat(newReturnedValueHolder.get(), is(equalTo(newValueHolder.get())));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

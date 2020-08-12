@@ -32,13 +32,13 @@ import static java.util.Collections.emptyList;
 @CommonComponent
 public class StateRepositoryManager {
 
-  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<String, ServerStateRepository>();
+  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<>();
 
-  public void destroyStateRepository(String cacheId) throws ClusterException {
+  public void destroyStateRepository(String cacheId) {
     mapRepositoryMap.remove(cacheId);
   }
 
-  public EhcacheEntityResponse invoke(StateRepositoryOpMessage message) throws ClusterException {
+  public EhcacheEntityResponse invoke(StateRepositoryOpMessage message) {
     String cacheId = message.getCacheId();
     ServerStateRepository currentRepo = getServerStateRepository(cacheId);
     return currentRepo.invoke(message);

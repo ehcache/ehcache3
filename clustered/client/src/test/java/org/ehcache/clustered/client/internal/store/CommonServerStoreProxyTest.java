@@ -17,79 +17,50 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
-import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terracotta.connection.Connection;
 
-import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Properties;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class CommonServerStoreProxyTest {
+public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
-  private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
-
-  private static ClusterTierClientEntity clientEntity;
-  private static CommonServerStoreProxy serverStoreProxy;
-
-  @BeforeClass
-  public static void setUp() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new PassthroughServerBuilder()
-            .resource("defaultResource", 128, MemoryUnit.MB)
-            .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
-
-    ServerSideConfiguration serverConfig =
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
-    entityFactory.create("TestCacheManager", serverConfig);
-
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
+  private static ClusterTierClientEntity createClientEntity(String name) throws Exception {
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
       .getName(), null);
-    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity.validate(serverStoreConfiguration);
-    serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity.getClientId()), clientEntity);
-  }
 
-  @AfterClass
-  public static void tearDown() throws Exception {
-    serverStoreProxy = null;
-    if (clientEntity != null) {
-      clientEntity.close();
-      clientEntity = null;
-    }
+    return createClientEntity(name, serverStoreConfiguration, true);
 
-    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test
   public void testGetKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetKeyNotPresent", clientEntity, mock(ServerCallback.class));
+
     Chain chain = serverStoreProxy.get(1);
 
     assertThat(chain.isEmpty(), is(true));
@@ -97,6 +68,9 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testAppendKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testAppendKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testAppendKeyNotPresent", clientEntity, mock(ServerCallback.class));
+
     serverStoreProxy.append(2, createPayload(2));
 
     Chain chain = serverStoreProxy.get(2);
@@ -106,6 +80,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAfterMultipleAppendsOnSameKey");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAfterMultipleAppendsOnSameKey", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(3L, createPayload(3L));
     serverStoreProxy.append(3L, createPayload(33L));
@@ -120,6 +96,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAndAppendKeyNotPresent() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendKeyNotPresent");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendKeyNotPresent", clientEntity, mock(ServerCallback.class));
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
     assertThat(chain.isEmpty(), is(true));
@@ -132,6 +110,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testGetAndAppendMultipleTimesOnSameKey() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendMultipleTimesOnSameKey");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendMultipleTimesOnSameKey", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.getAndAppend(5L, createPayload(5L));
     serverStoreProxy.getAndAppend(5L, createPayload(55L));
     serverStoreProxy.getAndAppend(5L, createPayload(555L));
@@ -143,6 +123,8 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testReplaceAtHeadSuccessFull() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testReplaceAtHeadSuccessFull");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testReplaceAtHeadSuccessFull", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.append(20L, createPayload(200L));
     serverStoreProxy.append(20L, createPayload(2000L));
     serverStoreProxy.append(20L, createPayload(20000L));
@@ -167,11 +149,34 @@ public class CommonServerStoreProxyTest {
 
   @Test
   public void testClear() throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity("testClear");
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testClear", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.append(1L, createPayload(100L));
 
     serverStoreProxy.clear();
     Chain chain = serverStoreProxy.get(1);
     assertThat(chain.isEmpty(), is(true));
+  }
+
+  @Test
+  public void testResolveRequestIsProcessedAtThreshold() throws Exception {
+    ByteBuffer buffer = createPayload(42L);
+
+    ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
+    ServerCallback serverCallback = mock(ServerCallback.class);
+    when(serverCallback.compact(any(Chain.class))).thenReturn(getChain(false, buffer.duplicate()));
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
+
+    for (int i = 0; i < 8; i++) {
+      serverStoreProxy.append(1L, buffer.duplicate());
+    }
+    verify(serverCallback, never()).compact(any(Chain.class));
+    assertChainHas(serverStoreProxy.get(1L), 42L, 42L, 42L, 42L, 42L, 42L, 42L, 42L);
+
+    //trigger compaction at > 8 entries
+    serverStoreProxy.append(1L, buffer.duplicate());
+    verify(serverCallback).compact(any(Chain.class));
+    assertChainHas(serverStoreProxy.get(1L), 42L);
   }
 
   private static void assertChainHas(Chain chain, long... payLoads) {

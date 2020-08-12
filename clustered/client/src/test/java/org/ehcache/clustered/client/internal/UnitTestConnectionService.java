@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -126,8 +127,8 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
-  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<String, StripeDescriptor>();
-  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<URI, ServerDescriptor>();
+  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<>();
+  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<>();
 
   private static final String PASSTHROUGH = "passthrough";
 
@@ -149,6 +150,7 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -169,10 +171,8 @@ public class UnitTestConnectionService implements ConnectionService {
       try {
         LOGGER.warn("Force close {}", formatConnectionId(connection));
         connection.close();
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // Ignored in case connection is already closed
-      } catch (IOException e) {
-        // Ignored
       }
     }
     stripeDescriptor.removeConnections();
@@ -222,10 +222,8 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError e) {
+        } catch (AssertionError | IOException e) {
           // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
-        } catch (IOException e) {
-          // Ignored
         }
       }
 
@@ -242,7 +240,7 @@ public class UnitTestConnectionService implements ConnectionService {
         String stringArg = (String) args[1];
 
         try {
-          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
+          EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
           LOGGER.error("Entity destroy failed (not provided???): ", ex);
@@ -286,11 +284,11 @@ public class UnitTestConnectionService implements ConnectionService {
    */
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
-    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>>();
+    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?>> clientEntityServices =
+      new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
-        new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
+      new IdentityHashMap<>();
 
     private final OffheapResourcesType resources = new OffheapResourcesType();
 
@@ -340,7 +338,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -364,7 +362,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 
@@ -389,6 +387,11 @@ public class UnitTestConnectionService implements ConnectionService {
     }
   }
 
+  public static Collection<Connection> getConnections(URI uri) {
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
+    return serverDescriptor.getConnections().keySet();
+  }
+
   @Override
   public boolean handlesURI(URI uri) {
     if (PASSTHROUGH.equals(uri.getScheme())) {
@@ -396,6 +399,11 @@ public class UnitTestConnectionService implements ConnectionService {
     }
     checkURI(uri);
     return SERVERS.containsKey(uri);
+  }
+
+  @Override
+  public boolean handlesConnectionType(String s) {
+    throw new UnsupportedOperationException("Operation not supported. Use handlesURI(URI) instead.");
   }
 
   @Override
@@ -440,8 +448,13 @@ public class UnitTestConnectionService implements ConnectionService {
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class[] { Connection.class },
+        new Class<?>[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
+  }
+
+  @Override
+  public Connection connect(Iterable<InetSocketAddress> iterable, Properties properties) {
+    throw new UnsupportedOperationException("Operation not supported. Use connect(URI, Properties) instead");
   }
 
   /**
@@ -478,8 +491,8 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   private static final class StripeDescriptor {
-    private final List<PassthroughServer> servers = new ArrayList<PassthroughServer>();
-    private final List<Connection> connections = new ArrayList<Connection>();
+    private final List<PassthroughServer> servers = new ArrayList<>();
+    private final List<Connection> connections = new ArrayList<>();
 
     synchronized void addServer (PassthroughServer server) {
       servers.add(server);
@@ -501,7 +514,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final class ServerDescriptor {
     private final PassthroughServer server;
-    private final Map<Connection, Properties> connections = new IdentityHashMap<Connection, Properties>();
+    private final Map<Connection, Properties> connections = new IdentityHashMap<>();
     private final Map<Class<? extends Entity>, Object[]> knownEntities = new LinkedHashMap<>();
 
     ServerDescriptor(PassthroughServer server) {

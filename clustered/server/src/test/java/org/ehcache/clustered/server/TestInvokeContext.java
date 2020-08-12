@@ -16,13 +16,16 @@
 
 package org.ehcache.clustered.server;
 
+import java.util.Properties;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.terracotta.entity.ActiveInvokeChannel;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class TestInvokeContext implements ActiveInvokeContext {
+public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntityResponse> {
 
   private final AtomicLong currentTransactionId = new AtomicLong();
 
@@ -35,6 +38,11 @@ public final class TestInvokeContext implements ActiveInvokeContext {
   @Override
   public ClientDescriptor getClientDescriptor() {
     return clientDescriptor;
+  }
+
+  @Override
+  public ActiveInvokeChannel<EhcacheEntityResponse> openInvokeChannel() {
+    return null;
   }
 
   @Override
@@ -60,5 +68,15 @@ public final class TestInvokeContext implements ActiveInvokeContext {
   @Override
   public ClientSourceId makeClientSourceId(long l) {
     return new TestClientSourceId(l);
+  }
+
+  @Override
+  public int getConcurrencyKey() {
+    return 1;
+  }
+
+  @Override
+  public Properties getClientSourceProperties() {
+    return new Properties();
   }
 }

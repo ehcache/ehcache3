@@ -1,9 +1,9 @@
 ---
 ---
 = XML Configuration
-ifndef::sourcedir34[]
+ifndef::sourcedir35[]
 include::common.adoc[]
-endif::sourcedir34[]
+endif::sourcedir35[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -105,7 +105,7 @@ NOTE: If you are obtaining your `CacheManager` through the JSR-107 API, what fol
 
 [source,java,indent=0]
 ----
-include::{sourcedir34}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlConfig]
+include::{sourcedir35}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlConfig]
 ----
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
@@ -118,14 +118,46 @@ to use a `<cache-template>` element from an XML file, e.g. the `/my-config.xml` 
 
 [source,xml,indent=0]
 ----
-include::{sourcedir34}/xml/src/test/resources/configs/docs/template-sample.xml[tag=templateSample]
+include::{sourcedir35}/xml/src/test/resources/configs/docs/template-sample.xml[tag=templateSample]
 ----
 
 Creating a `CacheConfigurationBuilder` of that `example` `<cache-template>` element, would be done as follows:
 
 [source,java,indent=0]
 ----
-include::{sourcedir34}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTemplate]
+include::{sourcedir35}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTemplate]
 ----
 <1> Creates a builder, inheriting the capacity constraint of 200 entries
 <2> The inherent properties can be overridden by simply providing a different value prior to building the `CacheConfiguration`
+
+== Programmatic configuration to XML
+
+Just like getting a cache manager configuration from its XML equivalent, the reverse translation is supported too.
+You can instantiate an `XmlConfiguration` object by passing the cache manager `Configuration`
+and the string representation of that object will give you the XML equivalent of the provided `Configuration`.
+
+[source,java,indent=0]
+----
+include::{sourcedir35}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTemplate]
+----
+<1> Creates a builder, inheriting the capacity constraint of 200 entries
+<2> The inherent properties can be overridden by simply providing a different value prior to building the `CacheConfiguration`
+
+[source,java,indent=0]
+----
+include::{sourcedir35}/xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTranslation]
+----
+<1> Instantiate an `XmlConfiguration` passing the cache manager `Configuration`
+<2> Retrieve the XML representation using the `toString` method.
+
+Not every programmatic configuration can be translated to its XML equivalent in this manner.
+Translation is not supported if the cache manager configuration contains a cache with any one of the following configured:
+
+. `EvictionAdvisor`
+. A custom `ExpiryPolicy` other than `timeToLiveExpiration` or `timeToIdleExpiration` from ExpiryPolicyBuilder`
+. Using an instance of the following instead of their classes:
+.. `Serializer`
+.. `Copier`
+.. `CacheLoaderWriter`
+.. `CacheEventListener`
+.. `ResilienceStrategy`

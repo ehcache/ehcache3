@@ -20,6 +20,7 @@ import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
+import org.ehcache.spi.copy.Copier;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,10 +38,9 @@ public class DefaultSizeOfEngineTest {
   public void testMaxObjectGraphSizeExceededException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
-      @SuppressWarnings("unchecked")
-      IdentityCopier<MaxDepthGreaterThanThree> valueCopier = new IdentityCopier();
+      Copier<MaxDepthGreaterThanThree> valueCopier = IdentityCopier.identityCopier();
       sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(),
-        new CopiedOnHeapValueHolder<MaxDepthGreaterThanThree>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
+        new CopiedOnHeapValueHolder<>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));
@@ -52,9 +52,8 @@ public class DefaultSizeOfEngineTest {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(Long.MAX_VALUE, 1000);
     try {
       String overSized = new String(new byte[1000]);
-      @SuppressWarnings("unchecked")
-      IdentityCopier<String> valueCopier = new IdentityCopier();
-      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<String>("test", 0L, true, valueCopier));
+      Copier<String> valueCopier = IdentityCopier.identityCopier();
+      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<>("test", 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));

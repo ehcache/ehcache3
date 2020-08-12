@@ -30,10 +30,12 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -43,6 +45,9 @@ import static java.util.Collections.singletonMap;
  */
 @SuppressWarnings("unused")
 public class ThreadPools {
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void diskStore() throws Exception {
@@ -92,7 +97,7 @@ public class ThreadPools {
         .withCache("cache1",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
+                .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .queueSize(3)
@@ -100,7 +105,7 @@ public class ThreadPools {
         .withCache("cache2",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
+                .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .useThreadPool("cache2Pool") // <3>
@@ -149,8 +154,8 @@ public class ThreadPools {
     // end::events[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 
 }

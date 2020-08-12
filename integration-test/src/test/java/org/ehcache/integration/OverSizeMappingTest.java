@@ -17,6 +17,7 @@
 package org.ehcache.integration;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -59,7 +60,7 @@ public class OverSizeMappingTest {
     CacheConfiguration<String, ObjectSizeGreaterThanN> objectGraphSize = CacheConfigurationBuilder
         .newCacheConfigurationBuilder(String.class, ObjectSizeGreaterThanN.class,
             newResourcePoolsBuilder()
-                .heap(100, MemoryUnit.KB).offheap(100, MemoryUnit.MB).build())
+                .heap(100, MemoryUnit.KB).offheap(10, MemoryUnit.MB).build())
         .build();
 
     Cache<String, ObjectSizeGreaterThanN> objectGraphSizeCache = cacheManager.createCache("objectGraphSize",
@@ -103,6 +104,8 @@ public class OverSizeMappingTest {
 
   private static class ObjectSizeGreaterThanN implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final Integer[] arr;
 
     private ObjectSizeGreaterThanN(int n) {
@@ -118,10 +121,12 @@ public class OverSizeMappingTest {
       if (this == obj) {
         return true;
       }
-      if (obj instanceof ObjectSizeGreaterThanN && this.arr.length == ((ObjectSizeGreaterThanN)obj).arr.length ) {
-        return true;
-      }
-      return false;
+      return obj instanceof ObjectSizeGreaterThanN && this.arr.length == ((ObjectSizeGreaterThanN)obj).arr.length;
+    }
+
+    @Override
+    public int hashCode() {
+      return arr.length;
     }
   }
 }

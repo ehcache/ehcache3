@@ -29,13 +29,12 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -47,7 +46,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -58,73 +56,18 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class ClusterTierManagerActiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private Management management = mock(Management.class);
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfigBuilder().build());
 
-  @Before
-  public void setClientId() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
-  }
-
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
     new ClusterTierManagerActiveEntity(null, null, null);
-  }
-
-  /**
-   * Ensures that a client connection is properly tracked.
-   */
-  @Test
-  public void testConnected() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-    verify(management).clientConnected(client);
-  }
-
-  @Test
-  public void testConnectedAgain() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    activeEntity.connected(client);
-    verify(management, times(2)).clientConnected(client);
-  }
-
-  @Test
-  public void testConnectedSecond() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    verify(management).clientConnected(client2);
   }
 
   /**
@@ -140,48 +83,6 @@ public class ClusterTierManagerActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.disconnected(client);
     // Not expected to fail ...
-  }
-
-  /**
-   * Ensures the disconnect of a connected client is properly tracked.
-   */
-  @Test
-  public void testDisconnected() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    activeEntity.disconnected(client);
-
-    verify(management).clientDisconnected(client);
-  }
-
-  /**
-   * Ensures the disconnect of a connected client is properly tracked and does not affect others.
-   */
-  @Test
-  public void testDisconnectedSecond() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
-    final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(blankConfiguration, ehcacheStateService, management);
-
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-    verify(management).clientConnected(client);
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    verify(management).clientConnected(client2);
-
-    activeEntity.disconnected(client);
-
-    verify(management).clientDisconnected(client);
   }
 
   /**
@@ -204,7 +105,6 @@ public class ClusterTierManagerActiveEntityTest {
     final ClusterTierManagerActiveEntity activeEntity = new ClusterTierManagerActiveEntity(configuration, ehcacheStateService, management);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
-    verify(management).clientConnected(client);
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
 
@@ -282,14 +182,14 @@ public class ClusterTierManagerActiveEntityTest {
   public void testConfigureLargeSharedPool() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
       .defaultResource("defaultServerResource")
       .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("tooBig", "serverResource2", 16, MemoryUnit.MEGABYTES)
       .build();
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
@@ -330,11 +230,9 @@ public class ClusterTierManagerActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    UUID client2Id = UUID.randomUUID();
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
   }
 
@@ -510,7 +408,7 @@ public class ClusterTierManagerActiveEntityTest {
     ServerSideConfiguration configure = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource1")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 32, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", configure);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
@@ -605,7 +503,7 @@ public class ClusterTierManagerActiveEntityTest {
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
+    if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
       throw ((Failure) response).getCause();
     }
   }
@@ -652,7 +550,7 @@ public class ClusterTierManagerActiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate a "closed" {@code ServiceRegistry}.  Using this constructor creates a
@@ -684,7 +582,7 @@ public class ClusterTierManagerActiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -711,7 +609,7 @@ public class ClusterTierManagerActiveEntityTest {
           }, config.getConfig().getConfiguration(), DEFAULT_MAPPER, service -> {});
         }
         return (T) (this.storeManagerService);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       }
 

@@ -17,8 +17,7 @@
 package org.ehcache.core.spi.store.tiering;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
@@ -27,6 +26,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Caching tier is the abstraction for tiers sitting atop the {@link AuthoritativeTier}.

@@ -18,13 +18,14 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.BiFunction;
 
 /**
  * The idea of this backend is to let all the store code deal in terms of {@code <K>} and hide the potentially different
@@ -37,9 +38,9 @@ interface Backend<K, V> {
 
   OnHeapValueHolder<V> compute(K key, BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> biFunction);
 
-  Backend<K, V> clear();
+  void clear();
 
-  Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash);
+  Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash);
 
   Iterable<K> keySet();
 

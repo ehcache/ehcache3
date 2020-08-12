@@ -57,7 +57,7 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String poolName, Pool poolDefinition) {
     this.clientSideBuilder = original.clientSideBuilder;
     this.defaultServerResource = original.defaultServerResource;
-    Map<String, Pool> pools = new HashMap<String, Pool>(original.pools);
+    Map<String, Pool> pools = new HashMap<>(original.pools);
     if (pools.put(poolName, poolDefinition) != null) {
       throw new IllegalArgumentException("Pool '" + poolName + "' already defined");
     }

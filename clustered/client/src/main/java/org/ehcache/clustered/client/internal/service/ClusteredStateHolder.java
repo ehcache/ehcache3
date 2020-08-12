@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 
 import static org.ehcache.clustered.client.internal.service.ValueCodecFactory.getCodecForClass;
 
@@ -39,11 +40,13 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   private final ValueCodec<K> keyCodec;
   private final ValueCodec<V> valueCodec;
 
-  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusterTierClientEntity entity, Class<K> keyClass, Class<V> valueClass) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusterTierClientEntity entity,
+                              Class<K> keyClass, Class<V> valueClass,
+                              Predicate<Class<?>> isClassPermittted, ClassLoader classLoader) {
     this.keyClass = keyClass;
-    this.keyCodec = getCodecForClass(keyClass);
-    this.valueCodec = getCodecForClass(valueClass);
-    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
+    this.keyCodec = getCodecForClass(keyClass, isClassPermittted, classLoader);
+    this.valueCodec = getCodecForClass(valueClass, isClassPermittted, classLoader);
+    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId);
     this.entity = entity;
   }
 
@@ -62,10 +65,8 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     try {
       EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
-    } catch (ClusterException ce) {
+    } catch (ClusterException | TimeoutException ce) {
       throw new ClusteredMapException(ce);
-    } catch (TimeoutException te) {
-      throw new ClusteredMapException(te);
     }
   }
 
@@ -74,10 +75,10 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   public Set<Map.Entry<K, V>> entrySet() {
     @SuppressWarnings("unchecked")
     Set<Map.Entry<Object, Object>> response = (Set<Map.Entry<Object, Object>>) getResponse(messageFactory.entrySetMessage(), true);
-    Set<Map.Entry<K, V>> entries = new HashSet<Map.Entry<K, V>>();
+    Set<Map.Entry<K, V>> entries = new HashSet<>();
     for (Map.Entry<Object, Object> objectEntry : response) {
-      entries.add(new AbstractMap.SimpleEntry<K, V>(keyCodec.decode(objectEntry.getKey()),
-                                                    valueCodec.decode(objectEntry.getValue())));
+      entries.add(new AbstractMap.SimpleEntry<>(keyCodec.decode(objectEntry.getKey()),
+        valueCodec.decode(objectEntry.getValue())));
     }
     return entries;
   }

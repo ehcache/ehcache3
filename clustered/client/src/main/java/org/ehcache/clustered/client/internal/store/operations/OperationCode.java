@@ -25,41 +25,41 @@ public enum OperationCode {
   PUT((byte)1) {
     @Override
     public <K, V> Operation<K, V> decode(ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new PutOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new PutOperation<>(buffer, keySerializer, valueSerializer);
     }
   },
   REMOVE((byte)2) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new RemoveOperation<K, V>(buffer, keySerializer);
+      return new RemoveOperation<>(buffer, keySerializer);
     }
   },
   PUT_IF_ABSENT((byte)3) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new PutIfAbsentOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new PutIfAbsentOperation<>(buffer, keySerializer, valueSerializer);
     }
   },
   REMOVE_CONDITIONAL((byte)4) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new ConditionalRemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new ConditionalRemoveOperation<>(buffer, keySerializer, valueSerializer);
     }
   },
   REPLACE((byte)5) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new ReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new ReplaceOperation<>(buffer, keySerializer, valueSerializer);
     }
   },
   REPLACE_CONDITIONAL((byte)6) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new ConditionalReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new ConditionalReplaceOperation<>(buffer, keySerializer, valueSerializer);
     }
   };
 
-  private byte value;
+  private final byte value;
 
   OperationCode(byte value) {
     this.value = value;

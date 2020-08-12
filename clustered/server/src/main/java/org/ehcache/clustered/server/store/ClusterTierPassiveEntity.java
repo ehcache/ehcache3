@@ -37,6 +37,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
@@ -51,13 +52,16 @@ import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
 import java.util.concurrent.TimeoutException;
 
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CHAIN_REPLICATION_OP;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
 
 /**
  * ClusterTierPassiveEntity
@@ -83,7 +87,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     try {
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
       messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        new MessageTrackerPolicy(type -> type == CHAIN_REPLICATION_OP)));
+        ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -109,7 +113,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration, false);
-    management.init();
+    management.entityCreated();
   }
 
   private boolean isEventual() {
@@ -120,17 +124,18 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   public void invokePassive(InvokeContext context, EhcacheEntityMessage message) throws EntityUserException {
     InvokeContext realContext = context;
     // For ChainReplicationMessage, we need to recreate the real client context from the one stored in the message. Because the current
-    // context comes from the active message. That's not what we want.
+    // context comes from the active message. That's not what we want. So instead we recreate a new context using the original client
+    // id and transaction id stored in the message
     if (message instanceof ChainReplicationMessage) {
       realContext = new InvokeContext() {
         @Override
         public ClientSourceId getClientSource() {
-          return context.makeClientSourceId(message.getClientId().getLeastSignificantBits());
+          return context.makeClientSourceId(((ChainReplicationMessage) message).getClientId());
         }
 
         @Override
         public long getCurrentTransactionId() {
-          return message.getId();
+          return ((ChainReplicationMessage) message).getTransactionId();
         }
 
         @Override
@@ -147,60 +152,51 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         public ClientSourceId makeClientSourceId(long l) {
           return context.makeClientSourceId(l);
         }
+
+        @Override
+        public int getConcurrencyKey() {
+          return context.getConcurrencyKey();
+        }
       };
     }
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
   }
 
+  @SuppressWarnings("try")
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
-    try {
-      if (message instanceof EhcacheOperationMessage) {
-        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+    if (message instanceof EhcacheOperationMessage) {
+      EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+      try (EhcacheStateContext ignored = stateService.beginProcessing(operationMessage, storeIdentifier)) {
         EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isStoreOperationMessage(messageType)) {
-          try {
-            invokeServerStoreOperation((ServerStoreOpMessage)message);
-          } catch (ClusterException e) {
-            // Store operation should not be critical enough to fail a passive
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          invokeServerStoreOperation((ServerStoreOpMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
-          try {
-            stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
-          } catch (ClusterException e) {
-            // State repository operations should not be critical enough to fail a passive
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          return stateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage) message);
         } else if (isPassiveReplicationMessage(messageType)) {
-          try {
-            invokeRetirementMessages((PassiveReplicationMessage)message);
-          } catch (ClusterException e) {
-            LOGGER.error("Unexpected exception raised during operation: " + message, e);
-          }
+          return invokeRetirementMessages((PassiveReplicationMessage) message);
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
-      } else if (message instanceof EhcacheSyncMessage) {
-        invokeSyncOperation(context, (EhcacheSyncMessage) message);
-      } else {
-        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
+      } catch (ClusterException | OversizeMappingException e) {
+        // The above operations are not critical enough to fail a passive, so just log the exception
+        LOGGER.error("Unexpected exception raised during operation: " + message, e);
       }
-    } catch (ClusterException e) {
-      // Reaching here means a lifecycle or sync operation failed
-      throw new IllegalStateException("A lifecycle or sync operation failed", e);
+    } else if (message instanceof EhcacheSyncMessage) {
+      invokeSyncOperation(context, (EhcacheSyncMessage) message);
+    } else {
+      throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
-    return EhcacheEntityResponse.Success.INSTANCE;
+
+    // Default response for messages not returning anything specific
+    return success();
   }
 
-  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) throws ClusterException {
+  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) {
     switch (message.getMessageType()) {
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
         ServerSideServerStore store = stateService.getStore(storeIdentifier);
-        dataSyncMessage.getChainMap().entrySet().forEach(entry -> {
-          store.put(entry.getKey(), entry.getValue());
-
-        });
+        dataSyncMessage.getChainMap().forEach(store::put);
         break;
       case STATE_REPO:
         EhcacheStateRepoSyncMessage stateRepoSyncMessage = (EhcacheStateRepoSyncMessage) message;
@@ -208,20 +204,20 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         break;
       case MESSAGE_TRACKER:
         EhcacheMessageTrackerMessage messageTrackerMessage = (EhcacheMessageTrackerMessage) message;
-        messageTrackerMessage.getTrackedMessages().entrySet().forEach(e ->
-          messageHandler.loadOnSync(context.makeClientSourceId(e.getKey()), e.getValue()));
+        messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+          messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());
     }
   }
 
-  private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
+  private EhcacheEntityResponse invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
 
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
-        LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage) message;
+        LOGGER.debug("Chain Replication message for transactionId {} & clientId {}", retirementMessage.getTransactionId(), retirementMessage.getClientId());
         ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client
@@ -231,7 +227,9 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
           stateService.getInvalidationTracker(storeIdentifier).trackHashInvalidation(retirementMessage.getKey());
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
-        break;
+        // Returns the real original result of the operation. We consider that it's always a GET_AND_APPEND since APPEND
+        // is unused right now. Other types of messages are not tracked so we don't care that they return the right result
+        return getResponse(retirementMessage.getResult());
       case INVALIDATION_COMPLETE:
         if (isEventual()) {
           InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage) message;
@@ -246,6 +244,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
       default:
         throw new AssertionError("Unsupported Retirement Message : " + message);
     }
+    return null;
   }
 
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {

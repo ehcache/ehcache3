@@ -31,13 +31,13 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class ClusterTierManagerClientEntityService implements EntityClientService<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse, Void> {
+public class ClusterTierManagerClientEntityService implements EntityClientService<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse, Void> {
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
   @Override
-  public boolean handlesEntityType(Class<InternalClusterTierManagerClientEntity> cls) {
-    return InternalClusterTierManagerClientEntity.class.isAssignableFrom(cls);
+  public boolean handlesEntityType(Class<ClusterTierManagerClientEntity> cls) {
+    return ClusterTierManagerClientEntity.class.isAssignableFrom(cls);
   }
 
   @Override
@@ -51,7 +51,7 @@ public class ClusterTierManagerClientEntityService implements EntityClientServic
   }
 
   @Override
-  public InternalClusterTierManagerClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint, Void userData) {
+  public ClusterTierManagerClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint, Void userData) {
     return new SimpleClusterTierManagerClientEntity(endpoint);
   }
 

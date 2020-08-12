@@ -24,5 +24,7 @@ import org.ehcache.spi.service.Service;
  */
 public interface StatisticsService extends Service {
 
+  StatisticsServiceConfiguration getConfiguration();
+
   CacheStatistics getCacheStatistics(String cacheName);
 }

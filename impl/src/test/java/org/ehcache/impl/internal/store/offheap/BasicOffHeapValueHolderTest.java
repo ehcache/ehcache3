@@ -33,12 +33,12 @@ public class BasicOffHeapValueHolderTest {
   @Before
   public void setUp() {
     value = "aValue";
-    valueHolder = new BasicOffHeapValueHolder<String>(-1, value, 0, 0);
+    valueHolder = new BasicOffHeapValueHolder<>(-1, value, 0, 0);
   }
 
   @Test
   public void testCanAccessValue() {
-    assertThat(valueHolder.value(), is(value));
+    assertThat(valueHolder.get(), is(value));
   }
 
   @Test(expected = UnsupportedOperationException.class)

@@ -35,8 +35,7 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithOkayObject() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);
@@ -52,8 +51,7 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithIncompatibleObject() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);

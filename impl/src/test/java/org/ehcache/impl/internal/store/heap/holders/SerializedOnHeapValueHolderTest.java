@@ -46,9 +46,9 @@ public class SerializedOnHeapValueHolderTest {
     String o = "foo";
     ValueHolder<?> vh1 = newValueHolder(o);
     ValueHolder<?> vh2 = newValueHolder(o);
-    assertFalse(vh1.value() == vh2.value());
-    assertEquals(vh1.value(), vh2.value());
-    assertNotSame(vh1.value(), vh1.value());
+    assertFalse(vh1.get() == vh2.get());
+    assertEquals(vh1.get(), vh2.get());
+    assertNotSame(vh1.get(), vh1.get());
   }
 
   @Test
@@ -56,10 +56,10 @@ public class SerializedOnHeapValueHolderTest {
     ValueHolder<Integer> vh1 = newValueHolder(10);
     ValueHolder<Integer> vh2 = newValueHolder(10);
     // make sure reading the value multiple times doesn't change the hashcode
-    vh1.value();
-    vh1.value();
-    vh2.value();
-    vh2.value();
+    vh1.get();
+    vh1.get();
+    vh2.get();
+    vh2.get();
     assertThat(vh1.hashCode(), is(vh2.hashCode()));
   }
 
@@ -82,25 +82,20 @@ public class SerializedOnHeapValueHolderTest {
 
   @Test
   public void testSerializerGetsDifferentByteBufferOnRead() {
-    final Exchanger<ByteBuffer> exchanger = new Exchanger<ByteBuffer>();
+    final Exchanger<ByteBuffer> exchanger = new Exchanger<>();
     final ReadExchangeSerializer serializer = new ReadExchangeSerializer(exchanger);
-    final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<String>("test it!", System
-        .currentTimeMillis(), false, serializer);
+    final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<>("test it!", System
+      .currentTimeMillis(), false, serializer);
 
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        valueHolder.value();
-      }
-    }).start();
+    new Thread(valueHolder::get).start();
 
-    valueHolder.value();
+    valueHolder.get();
   }
 
   private static class ReadExchangeSerializer implements Serializer<String> {
 
     private final Exchanger<ByteBuffer> exchanger;
-    private final Serializer<String> delegate = new JavaSerializer<String>(SerializedOnHeapValueHolderTest.class.getClassLoader());
+    private final Serializer<String> delegate = new JavaSerializer<>(SerializedOnHeapValueHolderTest.class.getClassLoader());
 
     private ReadExchangeSerializer(Exchanger<ByteBuffer> exchanger) {
       this.exchanger = exchanger;
@@ -131,7 +126,8 @@ public class SerializedOnHeapValueHolderTest {
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {
-    return new SerializedOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), false, new JavaSerializer<V>(SerializedOnHeapValueHolderTest.class.getClassLoader()));
+    return new SerializedOnHeapValueHolder<>(value, TestTimeSource.INSTANCE.getTimeMillis(), false, new JavaSerializer<>(SerializedOnHeapValueHolderTest.class
+      .getClassLoader()));
   }
 
   private static class TestTimeSource implements TimeSource {

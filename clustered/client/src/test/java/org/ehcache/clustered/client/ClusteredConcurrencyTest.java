@@ -48,7 +48,7 @@ public class ClusteredConcurrencyTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
   private static final String CACHE_NAME = "clustered-cache";
 
-  private AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+  private AtomicReference<Throwable> exception = new AtomicReference<>();
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -70,7 +70,7 @@ public class ClusteredConcurrencyTest {
 
     final CountDownLatch latch = new CountDownLatch(THREAD_NUM + 1);
 
-    List<Thread> threads = new ArrayList<Thread>(THREAD_NUM);
+    List<Thread> threads = new ArrayList<>(THREAD_NUM);
     for (int i = 0; i < THREAD_NUM; i++) {
       Thread t1 = new Thread(content(latch));
       t1.start();
@@ -91,31 +91,28 @@ public class ClusteredConcurrencyTest {
   }
 
   private Runnable content(final CountDownLatch latch) {
-    return new Runnable() {
-      @Override
-      public void run() {
+    return () -> {
+      try {
+        CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
+          .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 8, MemoryUnit.MB)
+            .resourcePool("resource-pool-b", 8, MemoryUnit.MB, "secondary-server-resource"))
+          .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
+            .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+
+        latch.countDown();
         try {
-          CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
-              .defaultServerResource("primary-server-resource")
-              .resourcePool("resource-pool-a", 32, MemoryUnit.MB)
-              .resourcePool("resource-pool-b", 32, MemoryUnit.MB, "secondary-server-resource"))
-            .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-              ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
-              .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
-
-          latch.countDown();
-          try {
-            latch.await();
-          } catch (InterruptedException e) {
-            // continue
-          }
-
-          clusteredCacheManagerBuilder.build(true);
-        } catch (Throwable t) {
-          exception.compareAndSet(null, t); // only keep the first exception
+          latch.await();
+        } catch (InterruptedException e) {
+          // continue
         }
+
+        clusteredCacheManagerBuilder.build(true);
+      } catch (Throwable t) {
+        exception.compareAndSet(null, t); // only keep the first exception
       }
     };
   }

@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
 
-public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<V> {
+public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<K, V> {
 
   private final K key;
   private final LazyValueHolder<V> oldValueHolder;
@@ -38,11 +38,11 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     if(oldValue == null) {
       throw new NullPointerException("Old value can not be null");
     }
-    this.oldValueHolder = new LazyValueHolder<V>(oldValue);
+    this.oldValueHolder = new LazyValueHolder<>(oldValue);
     if(newValue == null) {
       throw new NullPointerException("New value can not be null");
     }
-    this.newValueHolder = new LazyValueHolder<V>(newValue);
+    this.newValueHolder = new LazyValueHolder<>(newValue);
     this.timeStamp = timeStamp;
   }
 
@@ -72,8 +72,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
-    this.oldValueHolder = new LazyValueHolder<V>(oldValueBlob, valueSerializer);
-    this.newValueHolder = new LazyValueHolder<V>(valueBlob, valueSerializer);
+    this.oldValueHolder = new LazyValueHolder<>(oldValueBlob, valueSerializer);
+    this.newValueHolder = new LazyValueHolder<>(valueBlob, valueSerializer);
   }
 
   public K getKey() {
@@ -90,17 +90,22 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   }
 
   @Override
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public OperationCode getOpCode() {
     return REPLACE_CONDITIONAL;
   }
 
   @Override
-  public Result<V> apply(Result<V> previousResult) {
+  public Result<K, V> apply(Result<K, V> previousResult) {
     if(previousResult == null) {
       return null;
     } else {
       if(getOldValue().equals(previousResult.getValue())) {
-        return this;  // TODO: A new PutOperation can be created and returned here to minimize the size of returned operation
+        return new PutOperation<>(getKey(), getValue(), timeStamp());
       } else {
         return previousResult;
       }

@@ -33,7 +33,7 @@ import java.util.Set;
 public class PooledExecutionServiceConfigurationBuilder implements Builder<PooledExecutionServiceConfiguration> {
 
   private Pool defaultPool;
-  private final Set<Pool> pools = new HashSet<Pool>();
+  private final Set<Pool> pools = new HashSet<>();
 
   private PooledExecutionServiceConfigurationBuilder() {
   }
@@ -99,9 +99,9 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
 
 
   private static class Pool {
-    private String alias;
-    private int minSize;
-    private int maxSize;
+    private final String alias;
+    private final int minSize;
+    private final int maxSize;
 
     Pool(String alias, int minSize, int maxSize) {
       this.alias = alias;

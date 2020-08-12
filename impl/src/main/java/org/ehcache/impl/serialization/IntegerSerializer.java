@@ -58,16 +58,15 @@ public class IntegerSerializer implements Serializer<Integer> {
    * {@inheritDoc}
    */
   @Override
-  public Integer read(ByteBuffer binary) throws ClassNotFoundException {
-    int i = binary.getInt();
-    return i;
+  public Integer read(ByteBuffer binary) {
+    return binary.getInt();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(Integer object, ByteBuffer binary) throws ClassNotFoundException {
+  public boolean equals(Integer object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

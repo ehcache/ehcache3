@@ -16,19 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.Timeouts;
-
-import java.util.UUID;
-
 /**
- * InternalClusterTierClientEntity
+ * InternalClusterTierClientEntity : Marker interface for any extensions that is used internally
  */
 public interface InternalClusterTierClientEntity extends ClusterTierClientEntity {
-
-  void setTimeouts(Timeouts timeouts);
-
-  void setClientId(UUID clientId);
-
-  void setStoreIdentifier(String storeIdentifier);
-
 }

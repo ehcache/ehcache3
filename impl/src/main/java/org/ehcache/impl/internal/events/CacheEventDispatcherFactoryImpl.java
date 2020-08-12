@@ -68,10 +68,10 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
       threadPoolAlias = config.getThreadPoolAlias();
     }
 
-    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
-    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
+    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
 
-    return new CacheEventDispatcherImpl<K, V>(unOrderedExecutor, orderedExecutor);
+    return new CacheEventDispatcherImpl<>(unOrderedExecutor, orderedExecutor);
   }
 
   @Override

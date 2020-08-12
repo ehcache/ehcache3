@@ -16,21 +16,22 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import java.util.concurrent.TimeUnit;
-
 import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -48,8 +49,9 @@ public class DefaultTierStatisticsTest {
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        newResourcePoolsBuilder().heap(10))
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
+        newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -71,9 +73,7 @@ public class DefaultTierStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:UpdateCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount",
-      "OnHeap:OccupiedByteSize");
+    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount");
   }
 
   @Test
@@ -102,8 +102,8 @@ public class DefaultTierStatisticsTest {
   public void getUpdates() throws Exception {
     cache.put(1L, "a");
     cache.put(1L, "b");
-    assertThat(onHeap.getUpdates()).isEqualTo(1L);
-    assertStat("OnHeap:UpdateCount").isEqualTo(1L);
+    assertThat(onHeap.getPuts()).isEqualTo(2L);
+    assertStat("OnHeap:PutCount").isEqualTo(2L);
   }
 
   @Test
@@ -140,12 +140,6 @@ public class DefaultTierStatisticsTest {
   }
 
   @Test
-  public void getMaxMappings() throws Exception {
-    cache.put(1L, "a");
-    assertThat(onHeap.getAllocatedByteSize()).isEqualTo(-1L);
-  }
-
-  @Test
   public void getAllocatedByteSize() throws Exception {
     cache.put(1L, "a");
     assertThat(onHeap.getAllocatedByteSize()).isEqualTo(-1L);
@@ -158,6 +152,6 @@ public class DefaultTierStatisticsTest {
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
-    return assertThat(onHeap.getKnownStatistics().get(key).value());
+    return assertThat((Number) onHeap.getKnownStatistics().get(key).value());
   }
 }

@@ -94,9 +94,16 @@ public enum EhcacheMessageType {
 
   /**
    * All not idempotent messages are tracked. One exception is {@link #CLEAR}. It is idempotent but also a pretty costly operation so we prefer to avoid
-   * to do it twice.
+   * to do it twice. The same list if used for passive and active. However, of course, according to the {@code EhcacheExecutionStrategy}, the following will happen
+   * <ul>
+   *   <li>{@link #CHAIN_REPLICATION_OP}: Received by the passive. This message will be transformed to look like the original GET_AND_APPEND and its response</li>
+   *   <li>{@link #PUT_IF_ABSENT}: Received by both</li>
+   *   <li>{@link #GET_AND_APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #CLEAR}: Received by both</li>
+   * </ul>
    */
-  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET, GET_AND_APPEND, APPEND, CLEAR);
+  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(CHAIN_REPLICATION_OP, PUT_IF_ABSENT, GET_AND_APPEND, APPEND, CLEAR);
   public static boolean isTrackedOperationMessage(EhcacheMessageType value) {
     return TRACKED_OPERATION_MESSAGES.contains(value);
   }

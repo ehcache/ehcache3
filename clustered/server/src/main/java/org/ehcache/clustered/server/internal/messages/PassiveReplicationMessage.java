@@ -20,49 +20,69 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * This message is sent by the Active Entity to Passive Entity.
  */
 public abstract class PassiveReplicationMessage extends EhcacheOperationMessage {
 
-  @Override
-  public void setId(long id) {
-    throw new UnsupportedOperationException("This method is not supported on replication message");
-  }
-
   public static class ChainReplicationMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
-    private final UUID clientId;
+    private final long clientId;
     private final long key;
     private final Chain chain;
-    private final long currentTransactionId;
+    private final long transactionId;
     private final long oldestTransactionId;
 
-    public ChainReplicationMessage(long key, Chain chain, long currentTransactionId, long oldestTransactionId, UUID clientId) {
+    public ChainReplicationMessage(long key, Chain chain, long transactionId, long oldestTransactionId, long clientId) {
       this.clientId = clientId;
-      this.currentTransactionId = currentTransactionId;
+      this.transactionId = transactionId;
       this.oldestTransactionId = oldestTransactionId;
       this.key = key;
       this.chain = chain;
     }
 
-    public UUID getClientId() {
+    private Chain dropLastElement(Chain chain) {
+      if (!chain.isEmpty()) {
+        List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
+          .collect(Collectors.toList());
+        elements.remove(elements.size() - 1); // remove last
+        return Util.getChain(elements);
+      } else {
+        return chain;
+      }
+    }
+
+    public long getClientId() {
       return clientId;
+    }
+
+    public long getTransactionId() {
+      return transactionId;
     }
 
     public long getKey() {
       return key;
     }
 
+    /**
+     * @return chain that needs to be save in the store
+     */
     public Chain getChain() {
       return chain;
     }
 
-    public long getId() {
-      return currentTransactionId;
+    /**
+     * @return result that should be returned is the original message is sent again to this server after a failover
+     */
+    public Chain getResult() {
+      return dropLastElement(chain);
     }
 
     public long getOldestTransactionId() {
@@ -83,16 +103,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
   public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage {
 
     public ClearInvalidationCompleteMessage() {
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
     }
 
     @Override
@@ -121,16 +131,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     public long getKey() {
       return key;
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for InvalidationCompleteMessage");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("Not supported for InvalidationCompleteMessage");
     }
   }
 }

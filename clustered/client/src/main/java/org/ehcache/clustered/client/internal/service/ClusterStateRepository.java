@@ -22,6 +22,7 @@ import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
+import java.util.function.Predicate;
 
 /**
  * ClusterStateRepository
@@ -39,7 +40,12 @@ class ClusterStateRepository implements StateRepository {
   }
 
   @Override
-  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
-    return new ClusteredStateHolder<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity, keyClass, valueClass);
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name,
+                                                                                                     Class<K> keyClass,
+                                                                                                     Class<V> valueClass,
+                                                                                                     Predicate<Class<?>> isClassPermitted,
+                                                                                                     ClassLoader classLoader) {
+    return new ClusteredStateHolder<>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity,
+      keyClass, valueClass, isClassPermitted, classLoader);
   }
 }

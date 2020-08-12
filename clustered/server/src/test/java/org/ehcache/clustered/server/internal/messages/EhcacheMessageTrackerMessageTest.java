@@ -15,23 +15,16 @@
  */
 package org.ehcache.clustered.server.internal.messages;
 
-import org.assertj.core.util.Maps;
-import org.assertj.core.util.Sets;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.server.TestClientSourceId;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.client.message.tracker.OOOMessageHandler;
-import org.terracotta.entity.ClientSourceId;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class EhcacheMessageTrackerMessageTest {
 
@@ -53,22 +46,18 @@ public class EhcacheMessageTrackerMessageTest {
 
   @Before
   public void before() {
-    @SuppressWarnings("unchecked")
-    OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler = mock(OOOMessageHandler.class);
-
-    Set<ClientSourceId> clientSourceIds = Sets.newLinkedHashSet(id1, id2);
-    when(messageHandler.getTrackedClients()).thenReturn(clientSourceIds);
-
-    Map<Long, EhcacheEntityResponse> res1 = Maps.newHashMap();
+    Map<Long, EhcacheEntityResponse> res1 = new HashMap<>();
     res1.put(3L, r3);
     res1.put(4L, r4);
-    when(messageHandler.getTrackedResponses(id1)).thenReturn(res1);
 
-    Map<Long, EhcacheEntityResponse> res2 = Maps.newHashMap();
+    Map<Long, EhcacheEntityResponse> res2 = new HashMap<>();
     res2.put(5L, r5);
-    when(messageHandler.getTrackedResponses(id2)).thenReturn(res2);
 
-    message = new EhcacheMessageTrackerMessage(messageHandler);
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackingMap = new HashMap<>();
+    trackingMap.put(id1.toLong(), res1);
+    trackingMap.put(id2.toLong(), res2);
+
+    message = new EhcacheMessageTrackerMessage(2, trackingMap);
   }
 
   @Test

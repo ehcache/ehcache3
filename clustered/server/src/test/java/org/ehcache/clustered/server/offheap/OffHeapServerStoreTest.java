@@ -17,16 +17,15 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -34,6 +33,8 @@ import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -41,12 +42,14 @@ import static org.hamcrest.core.Is.is;
 import org.junit.Assert;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
-import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
@@ -58,6 +61,16 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     return mock(OffHeapChainMap.class);
   }
 
+  @SuppressWarnings("unchecked")
+  private OffHeapChainMap<Long> getOffHeapChainMapLongMock() {
+    return mock(OffHeapChainMap.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  private ChainStorageEngine<Long> getChainStorageEngineLongMock() {
+    return mock(ChainStorageEngine.class);
+  }
+
   @Override
   public ServerStore newStore() {
     return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), DEFAULT_MAPPER);
@@ -65,31 +78,18 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ChainBuilder newChainBuilder() {
-    return new ChainBuilder() {
-      @Override
-      public Chain build(Element... elements) {
-        ByteBuffer[] buffers = new ByteBuffer[elements.length];
-        for (int i = 0; i < buffers.length; i++) {
-          buffers[i] = elements[i].getPayload();
-        }
-        return OffHeapChainMap.chain(buffers);
+    return elements -> {
+      ByteBuffer[] buffers = new ByteBuffer[elements.length];
+      for (int i = 0; i < buffers.length; i++) {
+        buffers[i] = elements[i].getPayload();
       }
+      return OffHeapChainMap.chain(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return new ElementBuilder() {
-      @Override
-      public Element build(final ByteBuffer payLoad) {
-        return new Element() {
-          @Override
-          public ByteBuffer getPayload() {
-            return payLoad;
-          }
-        };
-      }
-    };
+    return payLoad -> () -> payLoad;
   }
 
   @Test
@@ -104,6 +104,77 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
     assertThat(OffHeapServerStore.getMaxSize(GIGABYTES.toBytes(2)), is(8192L));
   }
+
+  @Test
+  public void put_worked_the_first_time_test() throws Exception {
+    OffHeapChainMap<Long> offheapChainMap = getOffHeapChainMapLongMock();
+    ChainStorageEngine<Long> storageEngine = getChainStorageEngineLongMock();
+    when(offheapChainMap.getStorageEngine()).thenReturn(storageEngine);
+
+    doNothing()
+      .when(offheapChainMap).put(anyLong(), any(Chain.class));
+
+    OffHeapServerStore offHeapServerStore = new OffHeapServerStore(singletonList(offheapChainMap), mock(KeySegmentMapper.class));
+    offHeapServerStore.put(43L, mock(Chain.class));
+  }
+
+
+  @Test(expected = OversizeMappingException.class)
+  public void put_should_throw_when_underlying_put_always_throw_test() throws Exception {
+    OffHeapChainMap<Long> offheapChainMap = getOffHeapChainMapLongMock();
+    ChainStorageEngine<Long> storageEngine = getChainStorageEngineLongMock();
+    when(offheapChainMap.getStorageEngine()).thenReturn(storageEngine);
+    when(offheapChainMap.writeLock()).thenReturn(new ReentrantLock());
+
+    doThrow(new OversizeMappingException())
+      .when(offheapChainMap).put(anyLong(), any(Chain.class));
+
+    OffHeapServerStore offHeapServerStore = new OffHeapServerStore(singletonList(offheapChainMap), mock(KeySegmentMapper.class));
+    offHeapServerStore.put(43L, mock(Chain.class));
+  }
+
+  @Test
+  public void put_should_return_when_underlying_put_does_not_throw_test() throws Exception {
+    OffHeapChainMap<Long> offheapChainMap = getOffHeapChainMapLongMock();
+    ChainStorageEngine<Long> storageEngine = getChainStorageEngineLongMock();
+    when(offheapChainMap.getStorageEngine()).thenReturn(storageEngine);
+    when(offheapChainMap.writeLock()).thenReturn(new ReentrantLock());
+
+    // throw once, then ok
+    doThrow(new OversizeMappingException())
+      .doNothing()
+      .when(offheapChainMap).put(anyLong(), any(Chain.class));
+
+    OffHeapServerStore offHeapServerStore = new OffHeapServerStore(singletonList(offheapChainMap), mock(KeySegmentMapper.class));
+    offHeapServerStore.put(43L, mock(Chain.class));
+  }
+
+  @Test
+  public void put_should_return_when_underlying_put_does_not_throw_with_keymapper_test() throws Exception {
+    long theKey = 43L;
+    ChainStorageEngine<Long> storageEngine = getChainStorageEngineLongMock();
+    OffHeapChainMap<Long> offheapChainMap = getOffHeapChainMapLongMock();
+    OffHeapChainMap<Long> otherOffheapChainMap = getOffHeapChainMapLongMock();
+    when(offheapChainMap.shrink()).thenReturn(true);
+    when(offheapChainMap.getStorageEngine()).thenReturn(storageEngine);
+    when(offheapChainMap.writeLock()).thenReturn(new ReentrantLock());
+    when(otherOffheapChainMap.writeLock()).thenReturn(new ReentrantLock());
+
+    // throw twice, then OK
+    doThrow(new OversizeMappingException())
+      .doThrow(new OversizeMappingException())
+      .doNothing()
+      .when(otherOffheapChainMap).put(anyLong(), any(Chain.class));
+
+    KeySegmentMapper keySegmentMapper = mock(KeySegmentMapper.class);
+    when(keySegmentMapper.getSegmentForKey(theKey)).thenReturn(1);
+    OffHeapServerStore offHeapServerStore = new OffHeapServerStore(asList(offheapChainMap, otherOffheapChainMap), keySegmentMapper);
+    offHeapServerStore.put(theKey, mock(Chain.class));
+
+    //getSegmentForKey was called 4 times : segmentFor, handleOversizeMappingException, segmentFor, segmentFor
+    verify(keySegmentMapper, times(4)).getSegmentForKey(theKey);
+  }
+
 
   @Test
   public void test_append_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
@@ -122,7 +193,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
     ByteBuffer payload = createPayload(1L);
 
@@ -147,7 +218,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
 
     ByteBuffer payload = createPayload(1L);
@@ -178,7 +249,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         }
       }
     });
-    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+    when(store.tryShrinkOthers(anyLong())).thenReturn(true);
 
 
     ByteBuffer payload = createPayload(1L);

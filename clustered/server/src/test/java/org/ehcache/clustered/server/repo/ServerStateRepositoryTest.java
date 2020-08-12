@@ -24,7 +24,6 @@ import org.junit.Test;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -33,16 +32,14 @@ import static org.junit.Assert.*;
 
 public class ServerStateRepositoryTest {
 
-  private static final UUID CLIENT_ID = UUID.randomUUID();
-
   @Test
   public void testInvokeOnNonExistentRepositorySucceeds() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
     assertThat(response.getValue(), nullValue());
     response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1", CLIENT_ID));
+        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1"));
     assertThat(response.getValue(), is("value1"));
   }
 
@@ -50,39 +47,39 @@ public class ServerStateRepositoryTest {
   public void testInvokePutIfAbsent() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
     assertThat(response.getValue(), nullValue());
 
     response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value2", CLIENT_ID));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value2"));
     assertThat(response.getValue(), is("value1"));
   }
 
   @Test
   public void testInvokeGet() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
 
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1", CLIENT_ID));
+        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1"));
     assertThat(response.getValue(), is("value1"));
   }
 
   @Test
   public void testInvokeEntrySet() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key2", "value2", CLIENT_ID));
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key3", "value3", CLIENT_ID));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key2", "value2"));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key3", "value3"));
 
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.EntrySetMessage("foo", "bar", CLIENT_ID));
+        new StateRepositoryOpMessage.EntrySetMessage("foo", "bar"));
     @SuppressWarnings("unchecked")
     Set<Map.Entry<String, String>> entrySet = (Set<Map.Entry<String, String>>) response.getValue();
     assertThat(entrySet.size(), is(3));
-    Map.Entry<String, String> entry1 = new AbstractMap.SimpleEntry<String, String>("key1", "value1");
-    Map.Entry<String, String> entry2 = new AbstractMap.SimpleEntry<String, String>("key2", "value2");
-    Map.Entry<String, String> entry3 = new AbstractMap.SimpleEntry<String, String>("key3", "value3");
+    Map.Entry<String, String> entry1 = new AbstractMap.SimpleEntry<>("key1", "value1");
+    Map.Entry<String, String> entry2 = new AbstractMap.SimpleEntry<>("key2", "value2");
+    Map.Entry<String, String> entry3 = new AbstractMap.SimpleEntry<>("key3", "value3");
     @SuppressWarnings("unchecked")
     Matcher<Iterable<? extends Map.Entry<String, String>>> matcher = containsInAnyOrder(entry1, entry2, entry3);
     assertThat(entrySet, matcher);

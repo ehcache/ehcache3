@@ -70,7 +70,7 @@ public abstract class AbstractCalculationTest {
    * @return a set container all integers
    */
   protected static Set<Integer> asSet(Integer... ints) {
-    return new HashSet<Integer>(Arrays.asList(ints));
+    return new HashSet<>(Arrays.asList(ints));
   }
 
   /**

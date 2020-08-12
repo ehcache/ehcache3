@@ -31,6 +31,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+
 /**
  * The stateless {@link Serializer} used to serialize {@link SoftLock}s.
  *
@@ -62,16 +64,12 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
     return ByteBuffer.wrap(bout.toByteArray());
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SoftLock<T> read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
-      OIS ois = new OIS(bin, classLoader);
-      try {
-        return (SoftLock) ois.readObject();
-      } finally {
-        ois.close();
+      try (OIS ois = new OIS(bin, classLoader)) {
+        return uncheckedCast(ois.readObject());
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -99,7 +97,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
     }
 
     @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+    protected Class<?> resolveClass(ObjectStreamClass desc) throws ClassNotFoundException {
       try {
         return Class.forName(desc.getName(), false, classLoader);
       } catch (ClassNotFoundException cnfe) {
@@ -112,8 +110,8 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
     }
 
     @Override
-    protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
-      Class<?>[] interfaceClasses = new Class[interfaces.length];
+    protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
+      Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }
@@ -121,7 +119,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
 
     static {
       primitiveClasses.put("boolean", boolean.class);

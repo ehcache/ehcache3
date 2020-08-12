@@ -46,18 +46,32 @@
 
   <xs:complexType name="cluster-spec">
     <xs:sequence minOccurs="1" maxOccurs="1">
-      <xs:element name="connection" type="tc:connection-spec" minOccurs="1" maxOccurs="1">
-        <xs:annotation>
-          <xs:documentation>
-            Specifies the server endpoint to use for identifying cluster configuration.
-          </xs:documentation>
-        </xs:annotation>
-      </xs:element>
+      <xs:choice>
+        <xs:element name="cluster-connection" type="tc:cluster-connection-spec"/>
+        <xs:element name="connection" type="tc:connection-spec"/>
+      </xs:choice>
+
       <xs:element name="read-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
             Specifies the amount of time a cache read operation will wait for a response from a cluster
-            server before abandoning the cluster operation and returning a null.
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="write-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache write operation will wait for a response from a cluster
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="connection-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache will wait to connect to a cluster
+            server before abandoning the cluster operation.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -78,6 +92,51 @@
   <xs:simpleType name="connectionUrl">
     <xs:restriction base="xs:anyURI">
       <xs:pattern value="\w+://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(,([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?)*(/[^\?#]*)?(\?[^#]*)?(#.*)?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="cluster-connection-spec">
+    <xs:sequence>
+      <xs:element name="server" type="tc:server" maxOccurs="unbounded"/>
+    </xs:sequence>
+
+    <xs:attribute name="cluster-tier-manager" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          Cluster Tier Manager identifier.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="server">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        Data specific to a particular server.
+      </xs:documentation>
+    </xs:annotation>
+
+    <xs:attribute name="host" type="tc:host" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The host that the server is running on.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="port" type="xs:positiveInteger">
+      <xs:annotation>
+        <xs:documentation>
+          The port that the server is listening on.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:simpleType name="host">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="collapse" />
+      <xs:minLength value="1" />
+      <xs:maxLength value="255" />
     </xs:restriction>
   </xs:simpleType>
 

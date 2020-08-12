@@ -16,22 +16,24 @@
 
 package org.ehcache.transactions.xa.internal;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
-import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
-import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
 
 /**
  * The {@link XAStore} {@link Store.ValueHolder} implementation.
  *
  * @author Ludovic Orban
  */
-@FindbugsSuppressWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
+@SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
+@SuppressWarnings("serial") //this class has writeReplace/readResolve methods
 public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 
   static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
@@ -77,11 +79,11 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
 
   protected XAValueHolder<V> copyForSerialization(Serializer<V> valueSerializer) {
     ByteBuffer serializedValue = valueSerializer.serialize(value);
-    return new XAValueHolder<V>(this, serializedValue);
+    return new XAValueHolder<>(this, serializedValue);
   }
 
   protected XAValueHolder<V> copyAfterDeserialization(Serializer<V> valueSerializer) throws ClassNotFoundException {
-    return new XAValueHolder<V>(this, valueSerializer.read(ByteBuffer.wrap(valueSerialized)));
+    return new XAValueHolder<>(this, valueSerializer.read(ByteBuffer.wrap(valueSerialized)));
   }
 
   @Override
@@ -90,7 +92,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 
@@ -107,16 +109,15 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
-    @SuppressWarnings("unchecked")
-    XAValueHolder<V> that = (XAValueHolder<V>) other;
+    XAValueHolder<V> that = uncheckedCast(other);
 
     if (!super.equals(that)) return false;
     return value.equals(that.value);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
-    return new SerializedXAValueHolder<V>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
-        hits(), value(), valueSerialized);
+  private Object writeReplace() {
+    return new SerializedXAValueHolder<>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
+      hits(), get(), valueSerialized);
   }
 
   /**
@@ -125,6 +126,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
    * @param <V> the value type
    */
   private static class SerializedXAValueHolder<V> implements Serializable {
+    private static final long serialVersionUID = -9126450990666297321L;
     private final long id;
     private final long creationTime;
     private final long lastAccessTime;
@@ -143,8 +145,8 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
       this.valueSerialized = valueSerialized;
     }
 
-    private Object readResolve() throws ObjectStreamException {
-      return new XAValueHolder<V>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
+    private Object readResolve() {
+      return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
     }
   }
 

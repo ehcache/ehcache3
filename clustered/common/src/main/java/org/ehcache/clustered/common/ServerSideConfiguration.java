@@ -31,7 +31,7 @@ public class ServerSideConfiguration implements Serializable {
   private final Map<String, Pool> resourcePools;
 
   public ServerSideConfiguration(Map<String, Pool> resourcePools) {
-    Set<String> badPools = new HashSet<String>();
+    Set<String> badPools = new HashSet<>();
     for (Map.Entry<String, Pool> e : resourcePools.entrySet()) {
       if (e.getValue().getServerResource() == null) {
         badPools.add(e.getKey());
@@ -42,7 +42,7 @@ public class ServerSideConfiguration implements Serializable {
     }
 
     this.defaultServerResource = null;
-    this.resourcePools = new HashMap<String, Pool>(resourcePools);
+    this.resourcePools = new HashMap<>(resourcePools);
   }
 
   public ServerSideConfiguration(String defaultServerResource, Map<String, Pool> resourcePools) {
@@ -51,7 +51,7 @@ public class ServerSideConfiguration implements Serializable {
     }
 
     this.defaultServerResource = defaultServerResource;
-    this.resourcePools = new HashMap<String, Pool>(resourcePools);
+    this.resourcePools = new HashMap<>(resourcePools);
   }
 
   /**

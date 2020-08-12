@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -67,7 +67,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
+    verify(this.resilienceStrategy).clearFailure(any(StoreAccessException.class));
   }
 
   /**
@@ -81,7 +81,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -99,12 +99,12 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
+    verify(this.resilienceStrategy).clearFailure(any(StoreAccessException.class));
     // Not testing ResilienceStrategy implementation here
   }
 
   private Map<String, String> getTestStoreEntries() {
-    final Map<String, String> storeEntries = new HashMap<String, String>();
+    final Map<String, String> storeEntries = new HashMap<>();
     storeEntries.put("key1", "value1");
     storeEntries.put("keyA", "valueA");
     storeEntries.put("key2", "value2");
@@ -120,10 +120,9 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
+      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

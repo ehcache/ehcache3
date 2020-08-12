@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -43,19 +43,12 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      @SuppressWarnings("unchecked")
-      Store<K, V> kvStore2 = this.kvStore2;
-      factory.close(kvStore2);
-      this.kvStore2 = null;
     }
   }
 
@@ -77,7 +70,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
+    assertThat(kvStore.get(key).get(), is(equalTo(newValue)));
   }
 
   @SPITest
@@ -99,7 +92,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(not(equalTo(wrongValue))));
+    assertThat(kvStore.get(key).get(), is(not(equalTo(wrongValue))));
   }
 
   @SPITest
@@ -145,16 +138,16 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     V originalValue = factory.createValue(1);
     V newValue = factory.createValue(2);
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore2.replace(1.0f, originalValue);
+        kvStore.replace((K) (Float) 1.0f, originalValue);
       } else {
-        kvStore2.replace("key", originalValue, newValue);
+        kvStore.replace((K) "key", originalValue, newValue);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -168,16 +161,16 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongOriginalValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V newValue = factory.createValue(1);
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore2.replace(key, 1.0f, newValue);
+        kvStore.replace(key, (V) (Float) 1.0f, newValue);
       } else {
-        kvStore2.replace(key, "value", newValue);
+        kvStore.replace(key, (V) "value", newValue);
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
@@ -191,16 +184,16 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongNewValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V originalValue = factory.createValue(1);
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore2.replace(key, originalValue, 1.0f);
+        kvStore.replace(key, originalValue, (V) (Float) 1.0f);
       } else {
-        kvStore2.replace(key, originalValue, "value");
+        kvStore.replace(key, originalValue, (V) "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {

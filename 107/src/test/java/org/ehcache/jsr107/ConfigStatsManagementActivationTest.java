@@ -153,7 +153,7 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(false);
     configuration.setStatisticsEnabled(false);
@@ -175,7 +175,7 @@ public class ConfigStatsManagementActivationTest {
             .toURI(),
         provider.getDefaultClassLoader());
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);
@@ -195,14 +195,14 @@ public class ConfigStatsManagementActivationTest {
   public void basicJsr107StillWorks() throws Exception {
     CacheManager cacheManager = provider.getCacheManager();
 
-    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
     configuration.setManagementEnabled(true);
     configuration.setStatisticsEnabled(true);
 
     Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
     @SuppressWarnings("unchecked")
-    Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));

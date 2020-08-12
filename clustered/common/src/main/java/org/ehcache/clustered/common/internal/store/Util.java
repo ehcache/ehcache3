@@ -18,9 +18,7 @@ package org.ehcache.clustered.common.internal.store;
 
 import org.ehcache.clustered.common.internal.util.ByteBufferInputStream;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -30,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.function.Predicate;
 
 public class Util {
 
@@ -93,16 +92,11 @@ public class Util {
   }
 
   public static Element getElement(final ByteBuffer payload) {
-    return new Element() {
-      @Override
-      public ByteBuffer getPayload() {
-        return payload.duplicate();
-      }
-    };
+    return payload::duplicate;
   }
 
   public static Chain getChain(boolean isSequenced, ByteBuffer... buffers) {
-    List<Element> elements = new ArrayList<Element>();
+    List<Element> elements = new ArrayList<>();
     long counter = 0;
     for (final ByteBuffer buffer : buffers) {
       if (isSequenced) {
@@ -129,6 +123,11 @@ public class Util {
       }
 
       @Override
+      public int length() {
+        return list.size();
+      }
+
+      @Override
       public Iterator<Element> iterator() {
         return list.iterator();
       }
@@ -149,56 +148,22 @@ public class Util {
     };
   }
 
-  public static Object unmarshall(byte[] payload) {
-    ObjectInputStream objectInputStream = null;
-    try {
-      objectInputStream = new ObjectInputStream(new ByteArrayInputStream(payload));
+  public static Object unmarshall(ByteBuffer payload, Predicate<Class<?>> isClassPermitted) {
+    try (ObjectInputStream objectInputStream =
+           new FilteredObjectInputStream(new ByteBufferInputStream(payload), isClassPermitted, null)) {
       return objectInputStream.readObject();
-    } catch (IOException ex) {
+    } catch (IOException | ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
-      throw new IllegalArgumentException(ex);
-    } finally {
-      closeSilently(objectInputStream);
-    }
-  }
-
-  public static Object unmarshall(ByteBuffer payload) {
-    ObjectInputStream objectInputStream = null;
-    try {
-      objectInputStream = new ObjectInputStream(new ByteBufferInputStream(payload));
-      return objectInputStream.readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
-      throw new IllegalArgumentException(ex);
-    } finally {
-      closeSilently(objectInputStream);
     }
   }
 
   public static byte[] marshall(Object message) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    try {
-      ObjectOutputStream oout = new ObjectOutputStream(out);
-      try {
-        oout.writeObject(message);
-      } finally {
-        closeSilently(oout);
-      }
+    try(ObjectOutputStream oout = new ObjectOutputStream(out)) {
+      oout.writeObject(message);
     } catch (IOException e) {
       throw new IllegalArgumentException(e);
     }
     return out.toByteArray();
-  }
-
-  private static void closeSilently(Closeable closeable) {
-    if (closeable != null) {
-      try {
-        closeable.close();
-      } catch (IOException e) {
-        // Ignore
-      }
-    }
   }
 }

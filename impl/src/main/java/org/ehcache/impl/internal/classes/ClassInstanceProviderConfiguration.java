@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public class ClassInstanceProviderConfiguration<K, T> {
 
-  private Map<K, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<K, ClassInstanceConfiguration<T>>();
+  private final Map<K, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<>();
 
   public Map<K, ClassInstanceConfiguration<T>> getDefaults() {
     return defaults;

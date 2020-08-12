@@ -13,24 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.gradle.internal.jvm.Jvm
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 dependencies {
-  compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion", "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile project(':107'), project(':impl'), project(':transactions')
-}
-
-compileTestJava {
-  options.forkOptions.javaHome = Jvm.current().javaHome
+  testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
+  testImplementation project(':107')
+  testImplementation project(':impl')
+  testImplementation project(':transactions')
+  testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testImplementation "org.terracotta:statistics:$parent.statisticVersion"
 }
 
 test {
-  if (!testJava.javaVersion.isJava8Compatible()) {
-    executable = Jvm.current().javaExecutable
-  }
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }

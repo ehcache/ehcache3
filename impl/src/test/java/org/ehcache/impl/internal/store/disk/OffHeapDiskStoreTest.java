@@ -22,13 +22,14 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
@@ -41,15 +42,12 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.util.UnmatchedResourceType;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -76,20 +74,20 @@ import static java.util.Collections.singleton;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.terracotta.context.ContextManager.nodeFor;
 import static org.terracotta.context.query.Matchers.attributes;
@@ -126,9 +124,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Long, String> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       @SuppressWarnings("unchecked")
@@ -176,9 +174,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       @SuppressWarnings("unchecked")
@@ -221,9 +219,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     @SuppressWarnings("unchecked")
     Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
@@ -242,21 +240,21 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
+  protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final ExpiryPolicy<? super String, ? super String> expiry) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining(diskResourceService));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
-          null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, String>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
+        null, classLoader, expiry, null, 0, true, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -265,21 +263,21 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
+  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, ExpiryPolicy<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining(diskResourceService));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, byte[]>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
+        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, true, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -300,7 +298,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
     try {
-      ServiceLocator serviceLocator = dependencySet().with(provider).build();
+      dependencySet().with(provider).build();
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
@@ -334,16 +332,16 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
-        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+      new HashSet<>(Arrays.asList(resources)),
+        Collections.emptyList()),
         is(expectedRank));
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+      CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
       when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
-      PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+      PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
       return diskResourceService.createPersistenceContextWithin(space, "store");
     } catch (CachePersistenceException e) {
       throw new AssertionError(e);
@@ -353,82 +351,81 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void diskStoreShrinkingTest() throws Exception {
 
-    CacheManager manager = newCacheManagerBuilder()
-        .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
-        .build(true);
-    try {
-      final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
-        heap(1000).offheap(20, MB).disk(30, MB))
+    try (CacheManager manager = newCacheManagerBuilder()
+      .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
+      .build(true)) {
+
+      CacheConfigurationBuilder<Long, CacheValue> cacheConfigurationBuilder = newCacheConfigurationBuilder(Long.class, CacheValue.class,
+        heap(1000).offheap(10, MB).disk(20, MB))
         .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
           @Override
-          public CacheValue load(Long key) throws Exception {
+          public CacheValue load(Long key) {
             return null;
           }
 
           @Override
-          public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
+          public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) {
             return Collections.emptyMap();
           }
 
           @Override
-          public void write(Long key, CacheValue value) throws Exception {
+          public void write(Long key, CacheValue value) {
           }
 
           @Override
-          public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) throws BulkCacheWritingException, Exception {
+          public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) {
           }
 
           @Override
-          public void delete(Long key) throws Exception {
+          public void delete(Long key) {
           }
 
           @Override
-          public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
+          public void deleteAll(Iterable<? extends Long> keys) {
           }
-        }));
+        });
+
+      Cache<Long, CacheValue> cache = manager.createCache("test", cacheConfigurationBuilder);
 
       for (long i = 0; i < 100000; i++) {
-        cache.put(i, new CacheValue((int)i));
+        cache.put(i, new CacheValue((int) i));
       }
 
-      Callable<Void> task = new Callable<Void>() {
-        @Override
-        public Void call() {
-          Random rndm = new Random();
+      Callable<Void> task = () -> {
+        Random rndm = new Random();
 
-          long start = System.nanoTime();
-          while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
-            Long k = key(rndm);
-            switch (rndm.nextInt(4)) {
-              case 0: {
-                CacheValue v = value(rndm);
-                cache.putIfAbsent(k, v);
-                break;
-              }
-              case 1: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, nv);
-                break;
-              }
-              case 2: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, ov, nv);
-                break;
-              }
-              case 3: {
-                CacheValue v = value(rndm);
-                cache.put(k, v);
-                cache.remove(k, v);
-                break;
-              }
+        long start = System.nanoTime();
+        while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
+          Long k = key(rndm);
+          switch (rndm.nextInt(4)) {
+            case 0: {
+              CacheValue v = value(rndm);
+              cache.putIfAbsent(k, v);
+              break;
+            }
+            case 1: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, nv);
+              break;
+            }
+            case 2: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, ov, nv);
+              break;
+            }
+            case 3: {
+              CacheValue v = value(rndm);
+              cache.put(k, v);
+              cache.remove(k, v);
+              break;
             }
           }
-          return null;
         }
+        return null;
       };
 
       ExecutorService executor = Executors.newCachedThreadPool();
@@ -451,7 +448,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         .build();
 
       @SuppressWarnings("unchecked")
-      OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>)invalidateAllQuery
+      OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>) invalidateAllQuery
         .execute(singleton(nodeFor(cache)))
         .iterator()
         .next()
@@ -460,8 +457,6 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         .get("this");
 
       assertThat(invalidateAll.sum(), is(0L));
-    } finally {
-      manager.close();
     }
   }
 
@@ -475,12 +470,19 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   public static class CacheValue implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final int value;
     private final byte[] padding;
 
     public CacheValue(int value) {
       this.value = value;
       this.padding = new byte[800];
+    }
+
+    @Override
+    public int hashCode() {
+      return value;
     }
 
     public boolean equals(Object o) {

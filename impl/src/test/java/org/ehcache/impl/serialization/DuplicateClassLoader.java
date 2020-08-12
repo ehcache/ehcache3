@@ -54,8 +54,7 @@ public class DuplicateClassLoader extends ClassLoader {
       throw new ClassNotFoundException(name);
     }
     try {
-      ByteArrayOutputStream bout = new ByteArrayOutputStream();
-      try {
+      try (ByteArrayOutputStream bout = new ByteArrayOutputStream()) {
         while (true) {
           int read = resource.read();
           if (read == -1) {
@@ -64,8 +63,6 @@ public class DuplicateClassLoader extends ClassLoader {
             bout.write(read);
           }
         }
-      } finally {
-        bout.close();
       }
     } catch (IOException ex) {
       throw new ClassNotFoundException(name, ex);

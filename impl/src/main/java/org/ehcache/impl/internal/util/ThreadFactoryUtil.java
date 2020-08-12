@@ -29,7 +29,7 @@ public final class ThreadFactoryUtil {
   private static final boolean DEBUG = false;
 
   /** Stack traces (wrapped in exceptions) of all created threads */
-  private static final Map<Integer, Exception> threads = (DEBUG ? new HashMap<Integer, Exception>() : null);
+  private static final Map<Integer, Exception> threads = (DEBUG ? new HashMap<>() : null);
 
   private ThreadFactoryUtil() {}
 

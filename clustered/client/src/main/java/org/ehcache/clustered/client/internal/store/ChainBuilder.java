@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class ChainBuilder {
 
-  private List<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
+  private List<ByteBuffer> buffers = new ArrayList<>();
 
   public ChainBuilder() {
   }
@@ -38,8 +38,8 @@ public class ChainBuilder {
 
   //TODO: optimize this & make this mutable
   public ChainBuilder add(final ByteBuffer payload) {
-    List<ByteBuffer> newList = new ArrayList<ByteBuffer>();
-    newList.addAll(this.buffers);
+    List<ByteBuffer> newList = new ArrayList<>(buffers.size() + 1);
+    newList.addAll(buffers);
     newList.add(payload);
     return new ChainBuilder(newList);
   }

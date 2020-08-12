@@ -54,9 +54,7 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
     }
     try {
       lookup = config.getTransactionManagerLookup().newInstance();
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException("Could not instantiate lookup class", e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new IllegalArgumentException("Could not instantiate lookup class", e);
     }
   }

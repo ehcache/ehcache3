@@ -16,12 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
@@ -48,10 +46,6 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
@@ -71,37 +65,27 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
     V newValue= factory.createValue(2);
 
     final Store.ValueHolder<V> originalValueHolder = mock(Store.ValueHolder.class);
-    when(originalValueHolder.value()).thenReturn(originalValue);
+    when(originalValueHolder.get()).thenReturn(originalValue);
 
     try {
-      List<K> keys = new ArrayList<K>();
+      List<K> keys = new ArrayList<>();
       for (int i = 0; i < nbMappings; i++) {
         K key = factory.createKey(i);
 
-        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K k) {
-            return originalValueHolder;
-          }
-        });
+        tier.getOrComputeIfAbsent(key, k -> originalValueHolder);
         keys.add(key);
       }
 
       tier.clear();
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
-      when(newValueHolder.value()).thenReturn(newValue);
+      when(newValueHolder.get()).thenReturn(newValue);
 
       for (K key : keys) {
         tier.invalidate(key);
-        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K o) {
-            return newValueHolder;
-          }
-        });
+        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
-        assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
+        assertThat(newReturnedValueHolder.get(), is(equalTo(newValueHolder.get())));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

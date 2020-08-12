@@ -82,10 +82,7 @@ abstract class AbstractClientEntityFactory<E extends Entity, C, U> implements Cl
           //continue;
         }
       }
-    } catch (EntityNotProvidedException e) {
-      LOGGER.error("Unable to create entity {} for id {}", entityType.getName(), entityIdentifier, e);
-      throw new AssertionError(e);
-    } catch (EntityVersionMismatchException e) {
+    } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
       LOGGER.error("Unable to create entity {} for id {}", entityType.getName(), entityIdentifier, e);
       throw new AssertionError(e);
     } catch (EntityConfigurationException e) {

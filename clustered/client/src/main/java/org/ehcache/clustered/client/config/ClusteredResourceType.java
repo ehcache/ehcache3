@@ -29,28 +29,27 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
      * Identifies the {@code clustered-dedicated} {@link ResourceType}.
      */
     public static final ClusteredResourceType<DedicatedClusteredResourcePool> DEDICATED =
-        new BaseClusteredResourceType<DedicatedClusteredResourcePool>("DEDICATED", DedicatedClusteredResourcePool.class);
+      new BaseClusteredResourceType<>("DEDICATED", DedicatedClusteredResourcePool.class);
 
     /**
      * Identifies the {@code cluster-shared} {@link ResourceType}.
      */
     public static final ClusteredResourceType<SharedClusteredResourcePool> SHARED =
-        new BaseClusteredResourceType<SharedClusteredResourcePool>("SHARED", SharedClusteredResourcePool.class);
+      new BaseClusteredResourceType<>("SHARED", SharedClusteredResourcePool.class);
 
     /**
      * Identifies the {@code clustered} {@link ResourceType}.
      */
     public static final ClusteredResourceType<ClusteredResourcePool> UNKNOWN =
-        new BaseClusteredResourceType<ClusteredResourcePool>("UNKNOWN", ClusteredResourcePool.class);
+      new BaseClusteredResourceType<>("UNKNOWN", ClusteredResourcePool.class);
 
     /**
      * Returns an array containing the constants of the {@link ClusteredResourceType}.
      *
      * @return an array containing the constants of {@code ClusteredResourceType} in the order declared
      */
-    @SuppressWarnings("unchecked")
     public static ClusteredResourceType<? extends ClusteredResourcePool>[] values() {
-      return new ClusteredResourceType[] {DEDICATED, SHARED, UNKNOWN};   // unchecked
+      return new ClusteredResourceType<?>[] {DEDICATED, SHARED, UNKNOWN};
     }
 
     /**

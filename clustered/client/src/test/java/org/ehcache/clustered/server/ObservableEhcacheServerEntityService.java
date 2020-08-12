@@ -48,7 +48,7 @@ public class ObservableEhcacheServerEntityService extends ClusterTierManagerServ
    *
    * @return an unmodifiable list of {@code ObservableEhcacheActiveEntity} instances
    */
-  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
+  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() {
     return Collections.unmodifiableList(servedActiveEntities);
   }
 
@@ -112,14 +112,13 @@ public class ObservableEhcacheServerEntityService extends ClusterTierManagerServ
     }
 
     @Override
-    public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
+    public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> invokeContext, EhcacheEntityMessage message) {
       return activeEntity.invokeActive(invokeContext, message);
     }
 
     @Override
-    public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-      connectedClients.add(clientDescriptor);
-      activeEntity.handleReconnect(clientDescriptor, extendedReconnectData);
+    public ReconnectHandler startReconnect() {
+      return activeEntity.startReconnect();
     }
 
     @Override

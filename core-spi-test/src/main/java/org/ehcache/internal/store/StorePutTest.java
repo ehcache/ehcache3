@@ -16,22 +16,21 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
+import java.time.Duration;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-
 
 /**
  * Test the {@link Store#put(Object, Object)} contract of the
@@ -47,19 +46,12 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      @SuppressWarnings("unchecked")
-      Store<K, V> kvStore2 = this.kvStore2;
-      factory.close(kvStore2);
-      this.kvStore2 = null;
     }
   }
 
@@ -118,18 +110,18 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     V value = factory.createValue(1);
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore2.put(1.0f, value);
+        kvStore.put((K) (Float) 1.0f, value);
       } else {
-        kvStore2.put("key", value);
+        kvStore.put((K) "key", value);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -143,15 +135,15 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore2.put(key, 1.0f);
+        kvStore.put(key, (V) (Float) 1.0f);
       } else {
-        kvStore2.put(key, "value");
+        kvStore.put(key, (V) "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
@@ -172,7 +164,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
       Store.PutStatus putStatus = kvStore.put(key, newValue);
-      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(putStatus, is(Store.PutStatus.PUT));
       assertThat(kvStore.get(key), notNullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -183,7 +175,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   public void indicatesValueReplacedWhenUpdateExpires() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
 
-    kvStore = factory.newStoreWithExpiry(Expirations.builder().setUpdate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, null, Duration.ZERO), timeSource);
 
     K key = factory.createKey(42L);
     V value = factory.createValue(42L);
@@ -192,7 +184,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
       Store.PutStatus putStatus = kvStore.put(key, newValue);
-      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(putStatus, is(Store.PutStatus.PUT));
       assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -204,7 +196,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
   public void indicatesOperationNoOp() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
 
-    kvStore = factory.newStoreWithExpiry(Expirations.builder().setCreate(Duration.ZERO).build(), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(Duration.ZERO, null, null), timeSource);
 
     K key = factory.createKey(42L);
     try {

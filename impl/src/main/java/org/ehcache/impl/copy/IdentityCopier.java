@@ -16,11 +16,21 @@
 
 package org.ehcache.impl.copy;
 
+import org.ehcache.spi.copy.Copier;
+
 /**
  * {@link ReadWriteCopier Copier} implementation that simply returns the value passed in, doing in fact no
  * copy at all.
  */
 public final class IdentityCopier<T> extends ReadWriteCopier<T> {
+
+  @SuppressWarnings("rawtypes")
+  private static final Copier COPIER = new IdentityCopier<>();
+
+  @SuppressWarnings("unchecked")
+  public static <T> Copier<T> identityCopier() {
+    return COPIER;
+  }
 
   /**
    * This implementation returns the instance passed in as-is.

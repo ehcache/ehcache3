@@ -18,17 +18,12 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
@@ -40,19 +35,10 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.StateDumpCollector;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 
@@ -60,8 +46,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagerActiveEntity.class);
 
-  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
-  private final EhcacheEntityResponseFactory responseFactory;
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
@@ -72,7 +56,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    * Only used for subclassing when testing
    */
   protected ClusterTierManagerActiveEntity() {
-    responseFactory = null;
     ehcacheStateService = null;
     management = null;
     configuration = null;
@@ -86,7 +69,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       throw new ConfigurationException("ClusterTierManagerConfiguration cannot be null");
     }
     this.configuration = config.getConfiguration();
-    this.responseFactory = new EhcacheEntityResponseFactory();
     this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
@@ -108,17 +90,15 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
     LOGGER.info("Connecting {}", clientDescriptor);
-    management.clientConnected(clientDescriptor);
   }
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
     LOGGER.info("Disconnecting {}", clientDescriptor);
-    management.clientDisconnected(clientDescriptor);
   }
 
   @Override
-  public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> invokeContext, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -129,19 +109,16 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       }
       throw new AssertionError("Unsupported message : " + message.getClass());
     } catch (ClusterException e) {
-      return responseFactory.failure(e);
+      return failure(e);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
-      return responseFactory.failure(new InvalidOperationException(e));
+      return failure(new InvalidOperationException(e));
     }
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    ClusterTierManagerReconnectMessage reconnectMessage = reconnectMessageCodec.decodeReconnectMessage(extendedReconnectData);
-    LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-
-    management.clientReconnected(clientDescriptor);
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
   }
 
   @Override
@@ -151,7 +128,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void createNew() {
-    management.init();
+    management.entityCreated();
     management.sharedPoolsConfigured();
   }
 
@@ -161,7 +138,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);
 
-    management.init();
+    management.entityPromotionCompleted();
     management.sharedPoolsConfigured();
   }
 
@@ -175,12 +152,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
       default:
         throw new AssertionError("Unsupported LifeCycle operation " + message);
     }
-    return responseFactory.success();
+    return success();
   }
 
   private EhcacheEntityResponse prepareForDestroy() {
-    EhcacheEntityResponse.PrepareForDestroy response = new EhcacheEntityResponse.PrepareForDestroy(ehcacheStateService
-      .getStores());
+    EhcacheEntityResponse.PrepareForDestroy response = EhcacheEntityResponse.prepareForDestroy(ehcacheStateService.getStores());
     ehcacheStateService.prepareForDestroy();
     return response;
   }
@@ -209,6 +185,5 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     ehcacheStateService.validate(message.getConfiguration());
-    management.clientValidated(clientDescriptor);
   }
 }

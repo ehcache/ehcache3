@@ -59,16 +59,13 @@ public class CacheEventDispatcherImplTest {
   public void setUp() {
     orderedExecutor = mock(ExecutorService.class);
     unorderedExecutor = mock(ExecutorService.class);
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        EventDispatchTask task = (EventDispatchTask) invocation.getArguments()[0];
-        task.run();
-        return null;
-      }
+    doAnswer(invocation -> {
+      EventDispatchTask task = (EventDispatchTask) invocation.getArguments()[0];
+      task.run();
+      return null;
     }).when(unorderedExecutor).submit(any(Runnable.class));
     storeEventDispatcher = mock(StoreEventSource.class);
-    eventService = new CacheEventDispatcherImpl<Number, String>(unorderedExecutor, orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<>(unorderedExecutor, orderedExecutor);
     eventService.setStoreEventSource(storeEventDispatcher);
     listener = mock(CacheEventListener.class);
   }
@@ -81,21 +78,17 @@ public class CacheEventDispatcherImplTest {
 
   @Test
   public void testAsyncEventFiring() throws Exception {
-    eventService = new CacheEventDispatcherImpl<Number, String>(Executors.newCachedThreadPool(), orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<>(Executors.newCachedThreadPool(), orderedExecutor);
     eventService.setStoreEventSource(storeEventDispatcher);
     final CountDownLatch signal = new CountDownLatch(1);
     final CountDownLatch signal2 = new CountDownLatch(1);
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        if (!signal.await(2, TimeUnit.SECONDS)) {
-          return null;
-        } else {
-          signal2.countDown();
-          return null;
-        }
+    doAnswer(invocation -> {
+      if (!signal.await(2, TimeUnit.SECONDS)) {
+        return null;
+      } else {
+        signal2.countDown();
+        return null;
       }
-
     }).when(listener).onEvent(any(CacheEvent.class));
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.CREATED));
     final CacheEvent<Number, String> create = eventOfType(EventType.CREATED);

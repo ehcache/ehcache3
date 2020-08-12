@@ -24,12 +24,11 @@ import java.util.List;
  */
 public class Result {
   private       long              startTime;
-  private       long              endTime;
   private       long              runTime;
   private       int               runCount;
-  private final List<ResultState> failedTests  = new ArrayList<ResultState>();
-  private final List<ResultState> skippedTests = new ArrayList<ResultState>();
-  private final List<ResultState> testsWithLegalException = new ArrayList<ResultState>();
+  private final List<ResultState> failedTests  = new ArrayList<>();
+  private final List<ResultState> skippedTests = new ArrayList<>();
+  private final List<ResultState> testsWithLegalException = new ArrayList<>();
 
   public Result() {
     //
@@ -48,7 +47,7 @@ public class Result {
   }
 
   public void testRunFinished() {
-    endTime = System.nanoTime();
+    long endTime = System.nanoTime();
     runTime = (endTime - startTime) / 1000L;
   }
 

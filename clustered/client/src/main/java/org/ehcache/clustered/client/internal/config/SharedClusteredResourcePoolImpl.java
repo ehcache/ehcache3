@@ -47,11 +47,6 @@ public class SharedClusteredResourcePoolImpl
   }
 
   @Override
-  public ClusteredResourceType<SharedClusteredResourcePool> getType() {
-    return super.getType();
-  }
-
-  @Override
   public String getSharedResourcePool() {
     return this.sharedResourcePool;
   }
@@ -70,6 +65,6 @@ public class SharedClusteredResourcePoolImpl
   public String toString() {
     return "Pool {"
         + "sharedResourcePool='" + sharedResourcePool + '\''
-        + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+        + " " + getType() + "}";
   }
 }

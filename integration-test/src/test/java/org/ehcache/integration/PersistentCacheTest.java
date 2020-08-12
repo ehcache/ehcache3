@@ -138,18 +138,19 @@ public class PersistentCacheTest {
   }
 
   @Test
+  @SuppressWarnings("try")
   public void testPersistentCachesColliding() throws Exception {
     File folder = temporaryFolder.newFolder(testName.getMethodName());
-    PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new CacheManagerPersistenceConfiguration(folder)).build(true);
-    try {
-      CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder)).build(true).close();
+    try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
+      CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(folder))
+        .build(true)
+        .close();
       Assert.fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by this process"));
       assertThat(e.getCause().getCause(), instanceOf(OverlappingFileLockException.class));
-    } finally {
-      cm.close();
     }
   }
 
@@ -174,19 +175,17 @@ public class PersistentCacheTest {
 
   public static final class Locker {
 
+    @SuppressWarnings("try")
     public static void main(String[] args) throws Exception {
       File folder = new File(args[0]);
       File ping = new File(folder, "ping");
       File pong = new File(folder, "pong");
 
-      PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-              .with(new CacheManagerPersistenceConfiguration(folder)).build(true);
-      try {
+      try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
         ping.createNewFile();
         long bailout = System.nanoTime() + SECONDS.toNanos(30);
         while (System.nanoTime() < bailout && !pong.exists());
-      } finally {
-        cm.close();
       }
     }
   }

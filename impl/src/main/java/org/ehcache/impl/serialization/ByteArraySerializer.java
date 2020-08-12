@@ -60,7 +60,7 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * {@inheritDoc}
    */
   @Override
-  public byte[] read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+  public byte[] read(ByteBuffer binary) {
     byte[] bytes = new byte[binary.remaining()];
     binary.get(bytes);
     return bytes;
@@ -70,7 +70,7 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(byte[] object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+  public boolean equals(byte[] object, ByteBuffer binary) {
     boolean equals = binary.equals(serialize(object));
     binary.position(binary.limit());
     return equals;

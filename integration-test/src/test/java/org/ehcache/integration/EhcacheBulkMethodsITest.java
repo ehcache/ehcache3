@@ -23,8 +23,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -49,12 +48,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -83,7 +82,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -115,7 +114,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -156,7 +155,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -191,7 +190,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    Map<String, String> stringStringHashMap = new HashMap<String, String>();
+    Map<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }

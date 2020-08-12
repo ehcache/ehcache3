@@ -33,7 +33,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 /**
  * JCacheClusteredTest
  */
-public class JCacheClusteredTest {
+public class JCacheClusteredTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
