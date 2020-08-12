@@ -473,7 +473,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   private void invalidateHashForClient(ClientDescriptor originatingClientDescriptor, long key) {
     int invalidationId = invalidationIdGenerator.getAndIncrement();
-    Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getConnectedClients());
+    Set<ClientDescriptor> connectedClients = getConnectedClients();
+    Set<ClientDescriptor> clientsToInvalidate = ConcurrentHashMap.newKeySet(connectedClients.size());
+    clientsToInvalidate.addAll(connectedClients);
     if (originatingClientDescriptor != null) {
       clientsToInvalidate.remove(originatingClientDescriptor);
     }
