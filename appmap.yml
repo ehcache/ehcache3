@@ -17,4 +17,3 @@ packages:
     - org.ehcache.clustered.replication.OversizedCacheOpsPassiveTest
     - org.ehcache.clustered.replication.BasicClusteredCacheOpsReplicationWithMultipleClientsTest
     - org.ehcache.jsr107.EhCachingProviderTest#testCacheUsesCacheManagerClassLoaderForDefaultURI
-    - org.ehcache.clustered.ReconnectDuringDestroyTest#reconnectDuringDestroyTest
