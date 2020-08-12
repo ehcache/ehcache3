@@ -5,4 +5,4 @@ jdk:
 import: land-of-apps/land-of-apps:travis/java-imports.yml
 
 script:
-  - travis_wait ./gradlew test --rerun-tasks
+  - travis_wait ./gradlew test
