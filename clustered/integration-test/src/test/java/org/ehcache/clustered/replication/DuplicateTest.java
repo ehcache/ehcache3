@@ -41,11 +41,14 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class DuplicateTest extends ClusteredTests {
@@ -73,7 +76,7 @@ public class DuplicateTest extends ClusteredTests {
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
+        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(60)))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -86,29 +89,39 @@ public class DuplicateTest extends ClusteredTests {
     Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
 
     int numEntries = 3000;
-    AtomicInteger currentEntry = new AtomicInteger();
 
     //Perform put operations in another thread
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     try {
+      Semaphore failoverAllowed = new Semaphore(0);
+      Semaphore failoverComplete = new Semaphore(0);
       Future<?> puts = executorService.submit(() -> {
-        while (true) {
-          int i = currentEntry.getAndIncrement();
-          if (i >= numEntries) {
-            break;
+        try {
+          for (int i = 0; i < numEntries; i++) {
+            if (i == 100) {
+              failoverAllowed.release();
+            }
+            if (i == (numEntries - 100)) {
+              failoverComplete.acquire();
+            }
+            cache.put(i, "value:" + i);
           }
-          cache.put(i, "value:" + i);
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
         }
       });
 
-      while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
-
       // Failover to mirror when put & replication are in progress
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+      assertThat(failoverAllowed.tryAcquire(1, MINUTES), is(true));
       CLUSTER.getClusterControl().terminateActive();
+      failoverComplete.release();
 
       assertThat(puts::isDone, eventually().is(true));
       puts.get();
+
+      //if failover didn't interrupt puts then the test is 'moot'
+      assumeThat(cache.get(0), is(notNullValue()));
 
       //Verify cache entries on mirror
       for (int i = 0; i < numEntries; i++) {
