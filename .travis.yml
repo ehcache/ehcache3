@@ -5,4 +5,4 @@ jdk:
 import: land-of-apps/land-of-apps:travis/java-imports.yml
 
 script:
-  - travis_wait ./gradlew test
+  - travis_wait ./gradlew test -x clustered:integration-test:test
