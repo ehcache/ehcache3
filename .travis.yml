@@ -5,4 +5,4 @@ jdk:
 import: land-of-apps/land-of-apps:travis/java-imports.yml
 
 script:
-  - ./gradlew test -x clustered:integration-test:test -x clustered:server:service-api:test -x clustered:server:service:test -x clustered:server:entity:test -x clustered:osgi-test:test -x clustered:ops-tool:test -x clustered:common-api:test
+  - ./gradlew demos:01-CacheAside:test --stacktrace
