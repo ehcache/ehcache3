@@ -10,7 +10,6 @@ script:
   - travis_wait ./gradlew spi-tester:test
   - travis_wait ./gradlew core:test
   - travis_wait ./gradlew core-spi-test:test
-  - travis_wait ./gradlew impl:test
   - travis_wait ./gradlew management:test
   - travis_wait ./gradlew transactions:test
   - travis_wait ./gradlew 107:test
