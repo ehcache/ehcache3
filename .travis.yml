@@ -5,4 +5,32 @@ jdk:
 import: land-of-apps/land-of-apps:travis/java-imports.yml
 
 script:
-  - travis_wait ./gradlew test
+  - travis_wait ./gradlew test-utilities:test
+  - travis_wait ./gradlew api:test
+  - travis_wait ./gradlew spi-tester:test
+  - travis_wait ./gradlew core:test
+  - travis_wait ./gradlew core-spi-test:test
+  - travis_wait ./gradlew impl:test
+  - travis_wait ./gradlew management:test
+  - travis_wait ./gradlew transactions:test
+  - travis_wait ./gradlew 107:test
+  - travis_wait ./gradlew xml:test
+  - travis_wait ./gradlew clustered:test
+  - travis_wait ./gradlew clustered:common-api:test
+  - travis_wait ./gradlew clustered:common:test
+  - travis_wait ./gradlew clustered:server:service-api:test
+  - travis_wait ./gradlew clustered:server:service:test
+  - travis_wait ./gradlew clustered:server:entity:test
+  - travis_wait ./gradlew clustered:client:test
+  - travis_wait ./gradlew clustered:clustered-dist:test
+  - travis_wait ./gradlew clustered:ops-tool:test
+  - travis_wait ./gradlew clustered:test-utils:test
+  - travis_wait ./gradlew clustered:integration-test:test
+  - travis_wait ./gradlew integration-test:test
+  - travis_wait ./gradlew dist:test
+  - travis_wait ./gradlew osgi-test:test
+  - travis_wait ./gradlew clustered:osgi-test:test
+  - travis_wait ./gradlew demos:test
+  - travis_wait ./gradlew demos:00-NoCache:test
+  - travis_wait ./gradlew demos:01-CacheAside:test
+  - travis_wait ./gradlew docs:test
