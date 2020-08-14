@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +48,7 @@ public class ConnectionClosedTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://connection.com:9540/timeout");
 
   @Before
-  public void definePassthroughServer() throws Exception {
+  public void definePassthroughServer() {
     UnitTestConnectionService.add(CLUSTER_URI,
             new UnitTestConnectionService.PassthroughServerBuilder()
                     .resource("primary-server-resource", 64, MemoryUnit.MB)
@@ -55,7 +56,7 @@ public class ConnectionClosedTest {
   }
 
   @After
-  public void removePassthroughServer() throws Exception {
+  public void removePassthroughServer() {
     try {
       UnitTestConnectionService.remove(CLUSTER_URI);
     } catch (IllegalStateException e) {
@@ -78,7 +79,7 @@ public class ConnectionClosedTest {
                                     .build())
                             .autoCreate(c -> c))
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
-                            resourcePoolsBuilder));
+                      resourcePoolsBuilder).withResilienceStrategy(new ThrowingResilienceStrategy<>()));
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
       Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
