@@ -82,13 +82,24 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
 
   @Override
   public Map<K, ValueHolder<V>> resolveAll(Chain chain, long now) {
-    Map<K, PutOperation<K, V>> resolved = resolveAll(chain);
+    Map<K, ValueHolder<V>> resolved = resolveAll(chain);
+
+    Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
+    for (Map.Entry<K, ValueHolder<V>> e : resolved.entrySet()) {
+      if (!e.getValue().isExpired(now)) {
+        values.put(e.getKey(), e.getValue());
+      }
+    }
+    return unmodifiableMap(values);
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> resolveAll(Chain chain) {
+    Map<K, PutOperation<K, V>> resolved = resolveToSimplePuts(chain);
 
     Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
     for (Map.Entry<K, PutOperation<K, V>> e : resolved.entrySet()) {
-      if (now < e.getValue().expirationTime()) {
-        values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue(), e.getValue().expirationTime()));
-      }
+      values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue(), e.getValue().expirationTime()));
     }
     return unmodifiableMap(values);
   }
@@ -101,7 +112,6 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
    * @param key cache key
    * @param existing current state
    * @param operation operation to apply
-   * @param now current time
    * @return the equivalent put operation
    */
   @Override

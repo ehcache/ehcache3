@@ -33,6 +33,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
@@ -40,19 +41,33 @@ import org.terracotta.testing.rules.Cluster;
 import java.io.File;
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static java.util.stream.LongStream.range;
 import static org.awaitility.Awaitility.await;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.ehcache.event.EventType.CREATED;
+import static org.ehcache.event.EventType.EVICTED;
+import static org.ehcache.event.EventType.EXPIRED;
+import static org.ehcache.event.EventType.REMOVED;
+import static org.ehcache.event.EventType.UPDATED;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+/*
+ * Eventing behavior is broken across a failover due to actives and passives
+ * evicting independently. Until this behavior is fixed or at least detectable
+ * this test cannot reliably assert anything.
+ */
+@Ignore("Eventing is broken across failover")
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
   private static final int KEYS = 500;
@@ -125,7 +140,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     });
   }
 
-  @Test
+  @Test @SuppressWarnings("unchecked")
   public void testEventsFailover() throws Exception {
     AccountingCacheEventListener<Long, byte[]> accountingCacheEventListener1 = new AccountingCacheEventListener<>();
     Cache<Long, byte[]> cache1 = createCache(cacheManager1, accountingCacheEventListener1, ExpiryPolicyBuilder.noExpiration());
@@ -138,10 +153,16 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+
+    await().atMost(TIMEOUT).untilAsserted(() -> range(0, KEYS).forEach(k -> {
+      if (cache1.containsKey(k)) {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED)));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      } else {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED, EVICTED)));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      }
+    }));
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -149,23 +170,45 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.UPDATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.UPDATED).size(), greaterThan(0));
+    await().atMost(TIMEOUT).untilAsserted(() -> range(0, KEYS).forEach(k -> {
+      if (cache1.containsKey(k)) {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k),
+          either(containsInAnyOrder(CREATED, UPDATED))
+            .or(containsInAnyOrder(CREATED, EVICTED, CREATED))));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      } else {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k),
+          either(containsInAnyOrder(CREATED, UPDATED, EVICTED))
+            .or(containsInAnyOrder(CREATED, EVICTED, CREATED, EVICTED))));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      }
+    }));
 
     range(0, KEYS).forEach(cache1::remove);
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.REMOVED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.REMOVED).size(), greaterThan(0));
+    await().atMost(TIMEOUT).untilAsserted(() -> range(0, KEYS).forEach(k -> {
+      assertThat(accountingCacheEventListener1.events, hasEntry(is(k),
+        either(containsInAnyOrder(CREATED, UPDATED, REMOVED))
+          .or(containsInAnyOrder(CREATED, EVICTED, CREATED, REMOVED))
+          .or(containsInAnyOrder(CREATED, UPDATED, EVICTED))
+          .or(containsInAnyOrder(CREATED, EVICTED, CREATED, EVICTED))));
+      assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+    }));
 
     range(KEYS, KEYS * 2).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+    await().atMost(TIMEOUT).untilAsserted(() -> range(KEYS, KEYS * 2).forEach(k -> {
+      if (cache1.containsKey(k)) {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED)));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      } else {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED, EVICTED)));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      }
+    }));
   }
 
-  @Test
+  @Test @SuppressWarnings("unchecked")
   public void testExpirationFailover() throws Exception {
     AccountingCacheEventListener<Long, byte[]> accountingCacheEventListener1 = new AccountingCacheEventListener<>();
     Cache<Long, byte[]> cache1 = createCache(cacheManager1, accountingCacheEventListener1, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
@@ -175,13 +218,18 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
 
     byte[] value = new byte[10 * 1024];
 
-    range(0, KEYS).forEach(k -> {
-      cache1.put(k, value);
-    });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+    range(0, KEYS).forEach(k -> cache1.put(k, value));
+
+    await().atMost(TIMEOUT).untilAsserted(() -> range(0, KEYS).forEach(k -> {
+      if (cache1.containsKey(k)) {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED)));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      } else {
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+        //assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+      }
+    }));
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -189,30 +237,22 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       assertThat(cache1.get(k), is(nullValue()));
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EXPIRED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EXPIRED).size(), greaterThan(0));
+
+    await().atMost(TIMEOUT).untilAsserted(() -> range(0, KEYS).forEach(k -> {
+      assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+      //assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
+      assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+    }));
   }
 
 
 
   static class AccountingCacheEventListener<K, V> implements CacheEventListener<K, V> {
-    private final Map<EventType, List<CacheEvent<? extends K, ? extends V>>> events;
-
-    AccountingCacheEventListener() {
-      events = new HashMap<>();
-      clear();
-    }
+    private final Map<K, List<EventType>> events = new ConcurrentHashMap<>();
 
     @Override
     public void onEvent(CacheEvent<? extends K, ? extends V> event) {
-      events.get(event.getType()).add(event);
+      events.computeIfAbsent(event.getKey(), key -> new CopyOnWriteArrayList<>()).add(event.getType());
     }
-
-    final void clear() {
-      for (EventType value : EventType.values()) {
-        events.put(value, new CopyOnWriteArrayList<>());
-      }
-    }
-
   }
 }

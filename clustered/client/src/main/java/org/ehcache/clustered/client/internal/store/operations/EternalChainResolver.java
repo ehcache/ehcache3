@@ -51,14 +51,19 @@ public class EternalChainResolver<K, V> extends ChainResolver<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> resolveAll(Chain chain, long now) {
-    Map<K, PutOperation<K, V>> resolved = resolveAll(chain);
+  public Map<K, ValueHolder<V>> resolveAll(Chain chain) {
+    Map<K, PutOperation<K, V>> resolved = resolveToSimplePuts(chain);
 
     Map<K, ValueHolder<V>> values = new HashMap<>(resolved.size());
     for (Map.Entry<K, PutOperation<K, V>> e : resolved.entrySet()) {
       values.put(e.getKey(), new ClusteredValueHolder<>(e.getValue().getValue()));
     }
     return unmodifiableMap(values);
+  }
+
+  @Override
+  public Map<K, ValueHolder<V>> resolveAll(Chain chain, long now) {
+    return resolveAll(chain);
   }
 
   /**
