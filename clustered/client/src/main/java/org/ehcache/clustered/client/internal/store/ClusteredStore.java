@@ -817,11 +817,16 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           }
           if (evictedChain != null) {
             StoreEventSink<K, V> sink = clusteredStore.storeEventDispatcher.eventSink();
-            Map<K, ValueHolder<V>> operationMap = clusteredStore.resolver.resolveAll(evictedChain, clusteredStore.timeSource.getTimeMillis());
+            Map<K, ValueHolder<V>> operationMap = clusteredStore.resolver.resolveAll(evictedChain);
+            long now = clusteredStore.timeSource.getTimeMillis();
             for (Map.Entry<K, ValueHolder<V>> entry : operationMap.entrySet()) {
               K key = entry.getKey();
-              V value = entry.getValue() == null ? null : entry.getValue().get();
-              sink.evicted(key, () -> value);
+              ValueHolder<V> valueHolder = entry.getValue();
+              if (valueHolder.isExpired(now)) {
+                sink.expired(key, valueHolder);
+              } else {
+                sink.evicted(key, valueHolder);
+              }
             }
             clusteredStore.storeEventDispatcher.releaseEventSink(sink);
           }

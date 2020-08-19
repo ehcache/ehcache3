@@ -77,7 +77,7 @@ public abstract class ChainResolver<K, V> {
   }
 
   /**
-   * Resolves all keys within the given chain to their current values.
+   * Resolves all keys within the given chain to their current values while removing expired values.
    *
    * @param chain target chain
    * @param now current time
@@ -86,13 +86,21 @@ public abstract class ChainResolver<K, V> {
   public abstract Map<K, ValueHolder<V>> resolveAll(Chain chain, long now);
 
   /**
+   * Resolves all keys within the given chain to their current values while retaining expired values.
+   *
+   * @param chain target chain
+   * @return a map of current values
+   */
+  public abstract Map<K, ValueHolder<V>> resolveAll(Chain chain);
+
+  /**
    * Compacts the given chain entry by resolving every key within.
    *
    * @param entry an uncompacted heterogenous {@link ServerStoreProxy.ChainEntry}
    */
   public void compact(ServerStoreProxy.ChainEntry entry) {
     ChainBuilder builder = new ChainBuilder();
-    for (PutOperation<K, V> operation : resolveAll(entry).values()) {
+    for (PutOperation<K, V> operation : resolveToSimplePuts(entry).values()) {
       builder = builder.add(codec.encode(operation));
     }
     Chain compacted = builder.build();
@@ -142,7 +150,7 @@ public abstract class ChainResolver<K, V> {
    * @param chain target chain
    * @return a map of equivalent put operations
    */
-  protected Map<K, PutOperation<K, V>> resolveAll(Chain chain) {
+  public Map<K, PutOperation<K, V>> resolveToSimplePuts(Chain chain) {
     //absent hash-collisions this should always be a 1 entry map
     Map<K, PutOperation<K, V>> compacted = new HashMap<>(2);
     for (Element element : chain) {
@@ -161,7 +169,7 @@ public abstract class ChainResolver<K, V> {
    * @return the equivalent put operation
    */
   public PutOperation<K, V> resolve(Chain chain, K key) {
-    return resolveAll(chain).get(key);
+    return resolveToSimplePuts(chain).get(key);
   }
 
   /**
