@@ -19,6 +19,7 @@ import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.dynamic_config.api.model.Node;
+import org.terracotta.dynamic_config.api.model.UID;
 import org.terracotta.dynamic_config.entity.topology.client.DynamicTopologyEntity;
 import org.terracotta.dynamic_config.entity.topology.common.DynamicTopologyEntityConstants;
 import org.terracotta.exception.EntityNotFoundException;
@@ -35,11 +36,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
 
 public abstract class ConnectionSource {
 
@@ -123,13 +124,13 @@ public abstract class ConnectionSource {
         DynamicTopologyEntity dynamicTopologyEntity = ref.fetchEntity(null);
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
-          public void onNodeRemoval(int stripeId, Node removedNode) {
-            servers.remove(removedNode.getAddress());
+          public void onNodeRemoval(UID stripeUID, Node removedNode) {
+            servers.remove(removedNode.getEndpoint(null).getAddress());
           }
 
           @Override
-          public void onNodeAddition(int stripeId, Node addedNode) {
-            servers.add(addedNode.getAddress());
+          public void onNodeAddition(UID stripeUID, Node addedNode) {
+            servers.add(addedNode.getEndpoint(null).getAddress());
           }
         });
         return new LeasedConnection() {
