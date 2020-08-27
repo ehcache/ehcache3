@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
+import org.terracotta.dynamic_config.api.model.Cluster;
 import org.terracotta.dynamic_config.api.model.Node;
 import org.terracotta.dynamic_config.api.model.UID;
 import org.terracotta.dynamic_config.entity.topology.client.DynamicTopologyEntity;
@@ -124,13 +125,18 @@ public abstract class ConnectionSource {
         DynamicTopologyEntity dynamicTopologyEntity = ref.fetchEntity(null);
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
-          public void onNodeRemoval(UID stripeUID, Node removedNode) {
-            servers.remove(removedNode.getEndpoint(null).getAddress());
+          public void onNodeRemoval(Cluster cluster, UID stripeUID, Node removedNode) {
+            servers.remove(removedNode.getInternalAddress());
+            removedNode.getPublicAddress().ifPresent(servers::remove);
           }
 
           @Override
-          public void onNodeAddition(UID stripeUID, Node addedNode) {
-            servers.add(addedNode.getEndpoint(null).getAddress());
+          public void onNodeAddition(Cluster cluster, UID addedNodeUID) {
+            InetSocketAddress anAddress = servers.iterator().next(); // a random address from the user provided URI
+            cluster.getEndpoints(anAddress).stream() // get the cluster node endpoints for this user address
+              .filter(endpoint -> endpoint.getNodeUID().equals(addedNodeUID))
+              .map(Node.Endpoint::getAddress)
+              .forEach(servers::add);
           }
         });
         return new LeasedConnection() {
