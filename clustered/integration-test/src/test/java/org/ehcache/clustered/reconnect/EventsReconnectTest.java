@@ -32,13 +32,12 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
@@ -52,18 +51,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.util.EnumSet.of;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.testing.StandardTimeouts.eventually;
-import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class EventsReconnectTest extends ClusteredTests {
 
@@ -104,11 +102,10 @@ public class EventsReconnectTest extends ClusteredTests {
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
   @ClassRule @Rule
-  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(
-    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
-      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
-    of(OutputIs.CLASS_RULE));
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   @BeforeClass
   public static void initializeCacheManager() throws Exception {

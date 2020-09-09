@@ -29,7 +29,6 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.testing.TestRetryer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -41,6 +40,7 @@ import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.derived.OperationResultFilter;
 import org.terracotta.statistics.derived.latency.LatencyHistogramStatistic;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -49,18 +49,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
-import static org.ehcache.testing.TestRetryer.tryValues;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class StandardEhcacheStatisticsTest {
 
   @ClassRule @Rule
-  public static final TestRetryer<Duration, Duration> TIME_BASE = tryValues(Stream.of(1, 2, 4, 8, 16, 32).map(i -> ofMillis(50).multipliedBy(i)));
+  public static final TestRetryer<Integer, Duration> TIME_BASE = tryValues(1, 2, 4, 8, 16, 32).map(i -> ofMillis(50).multipliedBy(i));
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;

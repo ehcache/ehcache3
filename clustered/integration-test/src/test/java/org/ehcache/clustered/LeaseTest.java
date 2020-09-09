@@ -27,8 +27,6 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -36,34 +34,33 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.testing.StandardTimeouts.eventually;
-import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 @RunWith(Parameterized.class)
 public class LeaseTest extends ClusteredTests {
 
   @ClassRule
   @Rule
-  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(
-    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
-      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
-    of(OutputIs.CLASS_RULE));
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   private final List<TCPProxy> proxies = new ArrayList<>();
 
