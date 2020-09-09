@@ -26,8 +26,6 @@ import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -35,6 +33,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
@@ -43,11 +42,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.clustered.management.AbstractClusteringManagementTest.waitForAllNotifications;
@@ -56,10 +53,11 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.testing.StandardTimeouts.eventually;
-import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class ManagementClusterConnectionTest extends ClusteredTests {
 
@@ -76,12 +74,11 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   }
 
   @ClassRule @Rule
-  public static TestRetryer<Duration, ClusterWithManagement> CLUSTER = tryValues(
-    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> new ClusterWithManagement(
+  public static TestRetryer<Duration, ClusterWithManagement> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> new ClusterWithManagement(
       newCluster().in(clusterPath()).withServiceFragment(
-        offheapResources(resources) + leaseLength(leaseLength)).build()),
-    of(OutputIs.CLASS_RULE));
+        offheapResources(resources) + leaseLength(leaseLength)).build()))
+    .outputIs(CLASS_RULE);
 
   @BeforeClass
   public static void beforeClass() throws Exception {

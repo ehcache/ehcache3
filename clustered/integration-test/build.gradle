@@ -44,7 +44,6 @@ dependencies {
 
   testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
   testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
-  testImplementation project(':test-utilities')
 }
 
 task unzipKit(type: Copy) {
