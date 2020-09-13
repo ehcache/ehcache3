@@ -22,6 +22,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
+import org.ehcache.clustered.server.internal.messages.ReconnectPassiveReplicationMessage;
 import org.terracotta.entity.ExecutionStrategy;
 
 /**
@@ -52,6 +53,8 @@ public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntity
       return Location.PASSIVE;
     } else if (message instanceof EhcacheSyncMessage) {
       throw new AssertionError("Unexpected use of ExecutionStrategy for sync messages");
+    } else if (message instanceof ReconnectPassiveReplicationMessage) {
+      return getExecutionLocation(((ReconnectPassiveReplicationMessage)message).getRequest());
     }
     throw new AssertionError("Unknown message type: " + message.getClass());
   }

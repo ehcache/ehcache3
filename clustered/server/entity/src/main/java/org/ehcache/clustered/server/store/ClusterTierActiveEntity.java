@@ -57,6 +57,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerMessa
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.ReconnectPassiveReplicationMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.offheap.InternalChain;
 import org.ehcache.clustered.server.state.EhcacheStateContext;
@@ -67,6 +68,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.RecordedMessage;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.BasicServiceConfiguration;
@@ -79,6 +81,7 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
@@ -105,6 +108,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toMap;
@@ -123,6 +127,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isReconnectPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
@@ -331,6 +336,8 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
             return invokeLifeCycleOperation(context, (LifecycleMessage) message);
           } else if (isStateRepoOperationMessage(messageType)) {
             return invokeStateRepositoryOperation((StateRepositoryOpMessage) message);
+          } else if (isReconnectPassiveReplicationMessage(messageType)) {
+            return EhcacheEntityResponse.success();
           }
         }
       }
@@ -763,22 +770,42 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public ReconnectHandler startReconnect() {
-    return (clientDescriptor, bytes) -> {
-      if (inflightInvalidations == null) {
-        throw new AssertionError("Load existing was not invoked before handleReconnect");
+    return new ReconnectHandler() {
+      @Override
+      public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) throws ReconnectRejectedException {
+        if (inflightInvalidations == null) {
+          throw new AssertionError("Load existing was not invoked before handleReconnect");
+        }
+
+        ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
+        ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
+        addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
+        lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
+        if (reconnectMessage.isEventsEnabled()) {
+          addEventListener(clientDescriptor, serverStore);
+        }
+
+        LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
+
+        connectedClients.put(clientDescriptor, Boolean.TRUE);
       }
 
-      ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
-      ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
-      addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
-      lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
-      if (reconnectMessage.isEventsEnabled()) {
-        addEventListener(clientDescriptor, serverStore);
+      @Override
+      public void close() {
+        List<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> recordedMessages = messageHandler.getRecordedMessages()
+                                                                                                   .collect(Collectors.toList());
+        recordedMessages.forEach(r -> {
+          try {
+            entityMessenger.messageSelf(new ReconnectPassiveReplicationMessage(
+              r.getSequenceId(),
+              r.getClientSourceId().toLong(),
+              r.getTransactionId(),
+              r.getRequest(),
+              r.getResponse()));
+          } catch (MessageCodecException e) {
+            throw new RuntimeException(e);            }
+        });
       }
-
-      LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-
-      connectedClients.put(clientDescriptor, Boolean.TRUE);
     };
   }
 

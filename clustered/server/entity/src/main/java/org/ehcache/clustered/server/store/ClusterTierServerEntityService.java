@@ -32,6 +32,7 @@ import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessageCodec;
+import org.ehcache.clustered.server.internal.messages.ReconnectPassiveReplicationMessageCodec;
 import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
@@ -86,7 +87,7 @@ public class ClusterTierServerEntityService implements EntityServerService<Ehcac
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
     EhcacheCodec ehcacheCodec = new EhcacheCodec(new ServerStoreOpCodec(),
       new LifeCycleMessageCodec(CONFIG_CODEC), new StateRepositoryOpCodec(), new ResponseCodec());
-    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec());
+    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec(), new ReconnectPassiveReplicationMessageCodec());
   }
 
   @Override

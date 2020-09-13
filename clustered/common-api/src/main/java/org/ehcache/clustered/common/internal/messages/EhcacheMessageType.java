@@ -54,7 +54,8 @@ public enum EhcacheMessageType {
   // Passive replication messages
   CHAIN_REPLICATION_OP,
   CLEAR_INVALIDATION_COMPLETE,
-  INVALIDATION_COMPLETE;
+  INVALIDATION_COMPLETE,
+  RECONNECT_PASSIVE_REPLICATION_MESSAGE;
 
   public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, VALIDATE_SERVER_STORE, PREPARE_FOR_DESTROY);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {
@@ -91,5 +92,9 @@ public enum EhcacheMessageType {
   public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
   public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
     return PASSIVE_REPLICATION_MESSAGES.contains(value);
+  }
+
+  public static boolean isReconnectPassiveReplicationMessage(EhcacheMessageType type) {
+    return RECONNECT_PASSIVE_REPLICATION_MESSAGE.equals(type);
   }
 }

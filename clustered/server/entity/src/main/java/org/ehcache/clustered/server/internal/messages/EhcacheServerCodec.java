@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isReconnectPassiveReplicationMessage;
 
 /**
  * EhcacheServerCodec
@@ -40,10 +41,12 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
 
   private final EhcacheCodec clientCodec;
   private final PassiveReplicationMessageCodec replicationCodec;
+  private final ReconnectPassiveReplicationMessageCodec reconnectPassiveReplicationMessageCodec;
 
-  public EhcacheServerCodec(EhcacheCodec clientCodec, PassiveReplicationMessageCodec replicationCodec) {
+  public EhcacheServerCodec(EhcacheCodec clientCodec, PassiveReplicationMessageCodec replicationCodec, ReconnectPassiveReplicationMessageCodec reconnectPassiveReplicationMessageCodec) {
     this.clientCodec = clientCodec;
     this.replicationCodec = replicationCodec;
+    this.reconnectPassiveReplicationMessageCodec = reconnectPassiveReplicationMessageCodec;
   }
 
   @Override
@@ -51,6 +54,11 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
     if (message instanceof PassiveReplicationMessage) {
       return replicationCodec.encode((PassiveReplicationMessage) message);
     }
+
+    if (message instanceof ReconnectPassiveReplicationMessage) {
+      return this.reconnectPassiveReplicationMessageCodec.encode((ReconnectPassiveReplicationMessage)message, this);
+    }
+
     return clientCodec.encodeMessage(message);
   }
 
@@ -72,6 +80,11 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
     if (isPassiveReplicationMessage(messageType)) {
       return replicationCodec.decode(messageType, byteBuffer);
     }
+
+    if (isReconnectPassiveReplicationMessage(messageType)) {
+      return reconnectPassiveReplicationMessageCodec.decode(byteBuffer, this);
+    }
+
     return clientCodec.decodeMessage(byteBuffer, messageType);
   }
 

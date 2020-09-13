@@ -44,12 +44,15 @@ public class EhcacheServerCodecTest {
   @Mock
   private PassiveReplicationMessageCodec replicationCodec;
 
+  @Mock
+  private ReconnectPassiveReplicationMessageCodec reconnectPassiveReplicationMessageCodec;
+
   private EhcacheServerCodec serverCodec;
 
   @Before
   public void setUp() {
     initMocks(this);
-    serverCodec = new EhcacheServerCodec(clientCodec, replicationCodec);
+    serverCodec = new EhcacheServerCodec(clientCodec, replicationCodec, reconnectPassiveReplicationMessageCodec);
   }
 
   @Test
