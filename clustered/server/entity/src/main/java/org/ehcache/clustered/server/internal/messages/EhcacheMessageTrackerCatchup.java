@@ -16,28 +16,25 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
+import java.util.Collection;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
-import java.util.Map;
+import org.terracotta.client.message.tracker.RecordedMessage;
 
 /**
  * Message sending messages that are tracked for duplication. If a passive becoming active receives
  * a duplicate, it needs to discard it.
  */
-public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
+public class EhcacheMessageTrackerCatchup extends EhcacheEntityMessage {
 
-  private final Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages;
+  private final Collection<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> trackedMessages;
 
-  public EhcacheMessageTrackerMessage(Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages) {
+  public EhcacheMessageTrackerCatchup(Collection<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> trackedMessages) {
     this.trackedMessages = trackedMessages;
   }
 
-  @Override
-  public SyncMessageType getMessageType() {
-    return SyncMessageType.MESSAGE_TRACKER;
-  }
-
-  public Map<Long, Map<Long, EhcacheEntityResponse>> getTrackedMessages() {
+  public Collection<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> getTrackedMessages() {
     return trackedMessages;
   }
 }

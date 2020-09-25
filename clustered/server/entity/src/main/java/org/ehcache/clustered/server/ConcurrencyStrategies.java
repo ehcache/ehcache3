@@ -23,6 +23,7 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerCatchup;
 
 import static java.util.Collections.singleton;
 
@@ -55,6 +56,7 @@ public final class ConcurrencyStrategies {
 
   public static class DefaultConcurrencyStrategy implements ConcurrencyStrategy<EhcacheEntityMessage> {
     public static final int DATA_CONCURRENCY_KEY_OFFSET = DEFAULT_KEY + 1;
+    public static final int TRACKER_SYNC_KEY = Integer.MAX_VALUE - 1;
 
     private final KeySegmentMapper mapper;
 
@@ -69,6 +71,8 @@ public final class ConcurrencyStrategies {
       } else if (entityMessage instanceof ConcurrentEntityMessage) {
         ConcurrentEntityMessage concurrentEntityMessage = (ConcurrentEntityMessage) entityMessage;
         return DATA_CONCURRENCY_KEY_OFFSET + mapper.getSegmentForKey(concurrentEntityMessage.concurrencyKey());
+      } else if (entityMessage instanceof EhcacheMessageTrackerCatchup) {
+        return MANAGEMENT_KEY;
       } else {
         return DEFAULT_KEY;
       }
@@ -80,6 +84,7 @@ public final class ConcurrencyStrategies {
       for (int i = 0; i <= mapper.getSegments(); i++) {
         result.add(DEFAULT_KEY + i);
       }
+      result.add(TRACKER_SYNC_KEY);
       return Collections.unmodifiableSet(result);
     }
   }

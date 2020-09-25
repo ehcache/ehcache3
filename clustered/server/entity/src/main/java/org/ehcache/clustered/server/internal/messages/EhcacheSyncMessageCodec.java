@@ -153,8 +153,8 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
                 responseEncoder.byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD, encodeResponse(response.getValue()));
               });
           }
-        })
-      .int32(MESSAGE_TRACKER_SEGMENT_FIELD, syncMessage.getSegmentId());
+        });
+
     return encoder.encode().array();
   }
 
@@ -237,8 +237,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
         }
       }
     }
-    Integer segmentId = decoder.int32(MESSAGE_TRACKER_SEGMENT_FIELD);
-    return new EhcacheMessageTrackerMessage(segmentId, trackedMessages);
+    return new EhcacheMessageTrackerMessage(trackedMessages);
   }
 
   private EhcacheSyncMessage decodeStateRepoSync(ByteBuffer message) {
