@@ -23,16 +23,14 @@ import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 
-import java.util.concurrent.atomic.AtomicLong;
+final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntityResponse> {
 
-public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntityResponse> {
+  private final ClientDescriptor clientDescriptor;
+  private final long txnId;
 
-  private final AtomicLong currentTransactionId = new AtomicLong();
-
-  private final ClientDescriptor clientDescriptor = new TestClientDescriptor();
-
-  public void incrementCurrentTransactionId() {
-    currentTransactionId.incrementAndGet();
+  TestInvokeContext(ClientDescriptor clientDescriptor, long txnId) {
+    this.clientDescriptor = clientDescriptor;
+    this.txnId = txnId;
   }
 
   @Override
@@ -42,7 +40,7 @@ public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntit
 
   @Override
   public ActiveInvokeChannel<EhcacheEntityResponse> openInvokeChannel() {
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -52,12 +50,12 @@ public final class TestInvokeContext implements ActiveInvokeContext<EhcacheEntit
 
   @Override
   public long getCurrentTransactionId() {
-    return currentTransactionId.get();
+    return txnId;
   }
 
   @Override
   public long getOldestTransactionId() {
-    return 1;
+    return 0;
   }
 
   @Override

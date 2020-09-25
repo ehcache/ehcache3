@@ -25,7 +25,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
-import org.ehcache.clustered.server.TestInvokeContext;
+import org.ehcache.clustered.server.TestClientDescriptor;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.junit.Before;
@@ -130,9 +130,9 @@ public class ClusterTierPassiveEntityTest {
   @Test
   public void testInvalidMessageThrowsError() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    TestInvokeContext context = new TestInvokeContext();
+    TestClientDescriptor client = TestClientDescriptor.newClient();
     try {
-      passiveEntity.invokePassive(context, new InvalidMessage());
+      passiveEntity.invokePassive(client.invokeContext(), new InvalidMessage());
       fail("Invalid message should result in AssertionError");
     } catch (AssertionError e) {
       assertThat(e.getMessage(), containsString("Unsupported"));
@@ -145,25 +145,25 @@ public class ClusterTierPassiveEntityTest {
     passiveEntity.createNew();
 
     Chain chain = sequencedChainOf(createPayload(1L));
-    TestInvokeContext context = new TestInvokeContext();
+    TestClientDescriptor client = TestClientDescriptor.newClient();
 
     long clientId = 3;
 
     PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
-    passiveEntity.invokePassive(context, message1);
+    passiveEntity.invokePassive(client.invokeContext(), message1);
 
     // Should be added
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
     Chain emptyChain = sequencedChainOf();
     PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
-    passiveEntity.invokePassive(context, message2);
+    passiveEntity.invokePassive(client.invokeContext(), message2);
 
     // Should not be cleared, message is a duplicate
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
     PassiveReplicationMessage message3 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 3L, 1L, clientId);
-    passiveEntity.invokePassive(context, message3);
+    passiveEntity.invokePassive(client.invokeContext(), message3);
 
     // Should be added as well, different message id
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
@@ -173,17 +173,17 @@ public class ClusterTierPassiveEntityTest {
   public void testOversizeReplaceAtHeadMessage() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
-    TestInvokeContext context = new TestInvokeContext();
+    TestClientDescriptor client = TestClientDescriptor.newClient();
 
     int key = 2;
 
     Chain chain = sequencedChainOf(createPayload(1L));
     PassiveReplicationMessage message = new PassiveReplicationMessage.ChainReplicationMessage(key, chain, 2L, 1L, 3L);
-    passiveEntity.invokePassive(context, message);
+    passiveEntity.invokePassive(client.invokeContext(), message);
 
     Chain oversizeChain = sequencedChainOf(createPayload(2L, 1024 * 1024));
     ServerStoreOpMessage.ReplaceAtHeadMessage oversizeMsg = new ServerStoreOpMessage.ReplaceAtHeadMessage(key, chain, oversizeChain);
-    passiveEntity.invokePassive(context, oversizeMsg);
+    passiveEntity.invokePassive(client.invokeContext(), oversizeMsg);
     // Should be evicted, the value is oversize.
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
   }
@@ -192,12 +192,12 @@ public class ClusterTierPassiveEntityTest {
   public void testOversizeChainReplicationMessage() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
-    TestInvokeContext context = new TestInvokeContext();
+    TestClientDescriptor client = TestClientDescriptor.newClient();
 
     long key = 2L;
     Chain oversizeChain = sequencedChainOf(createPayload(key, 1024 * 1024));
     PassiveReplicationMessage oversizeMsg = new PassiveReplicationMessage.ChainReplicationMessage(key, oversizeChain, 2L, 1L, (long) 3);
-    passiveEntity.invokePassive(context, oversizeMsg);
+    passiveEntity.invokePassive(client.invokeContext(), oversizeMsg);
     // Should be cleared, the value is oversize.
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(key).isEmpty(), is(true));
   }

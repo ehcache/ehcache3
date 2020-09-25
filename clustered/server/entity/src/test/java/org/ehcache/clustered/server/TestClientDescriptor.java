@@ -16,20 +16,30 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class TestClientDescriptor implements ClientDescriptor {
-  private static final AtomicInteger counter = new AtomicInteger(0);
+  private static final AtomicLong counter = new AtomicLong(1L);
 
-  private final int clientId = counter.incrementAndGet();
+  private final long clientId;
+  private final AtomicLong transactionId = new AtomicLong(1L);
 
-  public static ClientDescriptor create() {
-    return new TestClientDescriptor();
+  public static TestClientDescriptor newClient() {
+    return new TestClientDescriptor(counter.getAndIncrement());
   }
 
+  private TestClientDescriptor(long clientId) {
+    this.clientId = clientId;
+  }
+
+  public ActiveInvokeContext<EhcacheEntityResponse> invokeContext() {
+    return new TestInvokeContext(this, transactionId.getAndIncrement());
+  }
   @Override
   public ClientSourceId getSourceId() {
     return new TestClientSourceId(clientId);
@@ -56,6 +66,6 @@ public final class TestClientDescriptor implements ClientDescriptor {
 
   @Override
   public int hashCode() {
-    return clientId;
+    return Long.hashCode(clientId);
   }
 }
