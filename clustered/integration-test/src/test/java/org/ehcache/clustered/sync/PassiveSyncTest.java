@@ -46,7 +46,7 @@ public class PassiveSyncTest extends ClusteredTests {
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())
     .withServiceFragment(offheapResource("primary-server-resource", 16))
-    .withServerHeap(512)
+    .withSystemProperty("ehcache.client.chain.compaction.threshold", "2")
     .build();
 
   @Before

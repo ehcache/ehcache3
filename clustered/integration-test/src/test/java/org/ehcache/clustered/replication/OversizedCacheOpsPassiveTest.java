@@ -52,7 +52,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
         .withServiceFragment(offheapResource("primary-server-resource", 2))
-        .withSystemProperty("JAVA_OPTS", "-Xms1024m -Xmx8192m")
+        .withSystemProperty("ehcache.client.chain.compaction.threshold", "2")
         .build();
 
   @Test

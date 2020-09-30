@@ -58,7 +58,7 @@ public class DuplicateTest extends ClusteredTests {
   @ClassRule
   public static Cluster CLUSTER =
     newCluster(2).in(clusterPath())
-    .withServerHeap(512)
+    .withSystemProperty("ehcache.client.chain.compaction.threshold", "2")
     .withServiceFragment(offheapResource("primary-server-resource", 512)).build();
 
   @Before

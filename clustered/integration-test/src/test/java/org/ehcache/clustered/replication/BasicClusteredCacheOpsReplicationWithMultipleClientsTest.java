@@ -81,7 +81,8 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
-    .withServerHeap(512)
+    .withSystemProperty("ehcache.client.chain.compaction.threshold", "2")
+    .withServerHeap(256)
     .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
 
   @Rule
