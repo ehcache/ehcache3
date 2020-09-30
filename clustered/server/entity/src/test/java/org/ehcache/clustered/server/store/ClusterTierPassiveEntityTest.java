@@ -362,8 +362,7 @@ public class ClusterTierPassiveEntityTest {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
         OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
-        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
-          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy(), () -> {});
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(), () -> {});
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

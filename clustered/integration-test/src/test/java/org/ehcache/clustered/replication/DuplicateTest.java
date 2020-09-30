@@ -57,7 +57,9 @@ public class DuplicateTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(offheapResource("primary-server-resource", 512)).build();
+    newCluster(2).in(clusterPath())
+    .withServerHeap(512)
+    .withServiceFragment(offheapResource("primary-server-resource", 512)).build();
 
   @Before
   public void startServers() throws Exception {

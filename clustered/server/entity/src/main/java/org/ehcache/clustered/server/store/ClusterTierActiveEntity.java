@@ -26,6 +26,7 @@ import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessag
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerCatchup;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
@@ -105,6 +106,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toMap;
@@ -126,7 +128,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.TRACKER_SYNC_KEY;
 
 /**
  * ClusterTierActiveEntity
@@ -187,7 +189,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(entityConfiguration.getManagerIdentifier(), defaultMapper));
       entityMessenger = registry.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
       messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
+        ClusterTierActiveEntity::isTrackedMessage));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -763,6 +765,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   @Override
   public ReconnectHandler startReconnect() {
+    try {
+      this.entityMessenger.messageSelf(new EhcacheMessageTrackerCatchup(this.messageHandler.getRecordedMessages().filter(m->m.getRequest() != null).collect(Collectors.toList())));
+    } catch (MessageCodecException mce) {
+      throw new AssertionError("Codec error", mce);
+    }
     return (clientDescriptor, bytes) -> {
       if (inflightInvalidations == null) {
         throw new AssertionError("Load existing was not invoked before handleReconnect");
@@ -796,6 +803,8 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
     if (concurrencyKey == DEFAULT_KEY) {
       stateService.getStateRepositoryManager().syncMessageFor(storeIdentifier).forEach(syncChannel::synchronizeToPassive);
+    } else if (concurrencyKey == TRACKER_SYNC_KEY) {
+      sendMessageTrackerReplication(syncChannel);
     } else {
       boolean interrupted = false;
       BlockingQueue<DataSyncMessageHandler> messageQ = new SynchronousQueue<>();
@@ -822,8 +831,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         throw new RuntimeException(e);
       }
     }
-    sendMessageTrackerReplication(syncChannel, concurrencyKey - 1);
-
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }
 
@@ -964,12 +971,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     boolean execute();
   }
 
-  @SuppressWarnings("deprecation")
-  private void sendMessageTrackerReplication(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
+  private void sendMessageTrackerReplication(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel) {
     Map<Long, Map<Long, EhcacheEntityResponse>> clientSourceIdTrackingMap = messageHandler.getTrackedClients()
-      .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(concurrencyKey, clientSourceId)));
+      .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getRecordedMessages().filter(r->r.getClientSourceId().toLong() == clientSourceId.toLong()).collect(Collectors.toMap(rm->rm.getTransactionId(), rm->rm.getResponse()))));
     if (!clientSourceIdTrackingMap.isEmpty()) {
-      syncChannel.synchronizeToPassive(new EhcacheMessageTrackerMessage(concurrencyKey, clientSourceIdTrackingMap));
+      syncChannel.synchronizeToPassive(new EhcacheMessageTrackerMessage(clientSourceIdTrackingMap));
     }
   }
 
