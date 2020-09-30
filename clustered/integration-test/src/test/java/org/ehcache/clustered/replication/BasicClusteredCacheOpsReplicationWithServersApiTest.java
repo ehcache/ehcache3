@@ -52,6 +52,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServerHeap(512)
     .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
 
   @Before

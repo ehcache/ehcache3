@@ -45,7 +45,9 @@ public class PassiveSyncTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())
-    .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
+    .withServiceFragment(offheapResource("primary-server-resource", 16))
+    .withServerHeap(512)
+    .build();
 
   @Before
   public void startServers() throws Exception {

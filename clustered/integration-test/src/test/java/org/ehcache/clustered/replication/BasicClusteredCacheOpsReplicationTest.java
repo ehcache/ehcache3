@@ -72,6 +72,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServerHeap(512)
     .withServiceFragment(offheapResource("primary-server-resource", 32)).build());
 
   @Rule
