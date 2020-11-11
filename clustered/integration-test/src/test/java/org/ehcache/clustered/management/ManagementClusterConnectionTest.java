@@ -17,16 +17,16 @@ package org.ehcache.clustered.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.hamcrest.Matchers;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -37,10 +37,8 @@ import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.time.Duration.ofSeconds;
@@ -48,7 +46,6 @@ import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.clustered.management.AbstractClusteringManagementTest.waitForAllNotifications;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -64,7 +61,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   protected static CacheManager cacheManager;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  private static final List<TCPProxy> proxies = new ArrayList<>();
+  private static TCPProxyManager proxyManager;
   private static final Map<String, Long> resources;
   static {
     HashMap<String, Long> map = new HashMap<>();
@@ -87,7 +84,8 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
 
     CLUSTER.get().getCluster().getClusterControl().waitForActive();
 
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getCluster().getConnectionURI(), proxies);
+    proxyManager = TCPProxyManager.create(CLUSTER.get().getCluster().getConnectionURI());
+    URI connectionURI = proxyManager.getURI();
 
     cacheManager = newCacheManagerBuilder()
             // cluster config
@@ -130,6 +128,13 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
     );
   }
 
+  @AfterClass
+  public static void afterClass() {
+    if (proxyManager != null) {
+      proxyManager.close();
+    }
+  }
+
   @Test
   public void test_reconnection() throws Exception {
     long count = CLUSTER.get().getNmsService().readTopology().clientStream()
@@ -143,11 +148,11 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
     String instanceId = getInstanceId();
 
     long delay = CLUSTER.input().plusSeconds(1L).toMillis();
-    setDelay(delay, proxies);
+    proxyManager.setDelay(delay);
     try {
       Thread.sleep(delay);
     } finally {
-      setDelay(0L, proxies);
+      proxyManager.setDelay(0);
     }
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
