@@ -32,27 +32,27 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.terracotta.connection.Connection;
+import org.terracotta.utilities.test.matchers.ThrowsMatcher;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Properties;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
 
 public class ConnectionStateTest {
 
-  private static URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
           .autoCreate(c -> c)
           .build();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void definePassthroughServer() {
@@ -65,7 +65,6 @@ public class ConnectionStateTest {
 
   @After
   public void removePassthrough() {
-    expectedException.expect(IllegalStateException.class);
     UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
@@ -77,8 +76,8 @@ public class ConnectionStateTest {
 
     closeConnection();
 
-    expectedException.expect(IllegalStateException.class);
-    connectionState.getConnection().close();
+    Connection connection = connectionState.getConnection();
+    assertThat(connection::close, threw(instanceOf(IllegalStateException.class)));
 
     connectionState.initializeState();
 
