@@ -1,9 +1,9 @@
 ---
 ---
 = Configuration Derivation
-ifndef::sourcedir38[]
+ifndef::sourcedir39[]
 include::{includedir}/common.adoc[]
-endif::sourcedir38[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -22,7 +22,7 @@ with the configurations values
 
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=deriveContract]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=deriveContract]
 ----
 <1> Creates a builder seeded with the configuration's state.
 <2> Configurations built using the builder are then functionally identical to the original configuration.
@@ -34,13 +34,13 @@ The configuration builder returned by the derive method provide direct methods f
 .setting a custom classloader:
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=customClassLoader]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=customClassLoader]
 ----
 
 .adding a cache:
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withCache]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withCache]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -65,7 +65,7 @@ include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivati
 .removing a cache:
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withoutCache]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withoutCache]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -93,7 +93,7 @@ builder seeded using the existing cache configuration.
 .updating a cache, by adding a resource:
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateCache]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateCache]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -131,7 +131,7 @@ creation configurations and service configurations:
 .adding a service creation configuration (constraining the default thread pool)
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withServiceCreation]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withServiceCreation]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -155,7 +155,7 @@ include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivati
 .updating a service creation configuration (changing the persistence path)
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateServiceCreation]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateServiceCreation]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -177,7 +177,7 @@ include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivati
 .adding a service configuration (setting a resilience strategy)
 [source,java,indent=0]
 ----
-include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withService]
+include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withService]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -210,7 +210,7 @@ include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivati
 .updating a service configuration (changing a clustered cache's consistency)
 [source,java,indent=0]
 ----
-include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=updateService]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=updateService]
 ----
 [cols=".^~a,^.^~d,.^~a"]
 |===
@@ -258,7 +258,7 @@ instance its configuration are usually strongly coupled:
 .removing a service (making a cache manager non-clustered)
 [source,java,indent=0]
 ----
-include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=removeService]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=removeService]
 ----
 <1> From all cache configurations...
 <2> remove any existing `ClusteredStoreConfiguration` instances.
