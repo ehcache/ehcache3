@@ -32,7 +32,6 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.spi.CachingProvider;
-
 import java.util.ServiceLoader;
 import java.util.Set;
 
@@ -43,7 +42,6 @@ import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
-import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -69,10 +67,10 @@ public class Jsr107OsgiTest {
       gradleBundle("org.terracotta.management:management-model"),
       gradleBundle("org.terracotta.management:sequence-generator"),
 
-      wrappedGradleBundle("org.terracotta:statistics"),
-      wrappedGradleBundle("org.ehcache:sizeof"),
-      wrappedGradleBundle("org.terracotta:offheap-store"),
-      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
+      gradleBundle("org.terracotta:statistics"),
+      gradleBundle("org.ehcache:sizeof"),
+      gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("Jsr107OsgiTest", "individualModules")
     );

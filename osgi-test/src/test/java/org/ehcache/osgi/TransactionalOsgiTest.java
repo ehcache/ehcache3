@@ -43,7 +43,6 @@ import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.jtaConfiguration;
-import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 @RunWith(PaxExam.class)
@@ -62,10 +61,10 @@ public class TransactionalOsgiTest {
       gradleBundle("org.terracotta.management:management-model"),
       gradleBundle("org.terracotta.management:sequence-generator"),
 
-      wrappedGradleBundle("org.terracotta:statistics"),
-      wrappedGradleBundle("org.ehcache:sizeof"),
-      wrappedGradleBundle("org.terracotta:offheap-store"),
-      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
+      gradleBundle("org.terracotta:statistics"),
+      gradleBundle("org.ehcache:sizeof"),
+      gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("TransactionalOsgiTest", "individualModules")
     );

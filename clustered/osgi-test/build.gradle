@@ -16,6 +16,7 @@
 
 configurations {
   osgiModule
+  lowerBoundOsgiModule.extendsFrom osgiModule
   testCompileOnly.extendsFrom osgiModule
 }
 
@@ -38,29 +39,13 @@ dependencies {
   testCompileOnly project(':clustered:client')
   testCompileOnly project(':clustered:common')
 
-  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
-  testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-
+  testImplementation project(':osgi-test')
+  testImplementation 'org.osgi:osgi.core:6.0.0'
 }
 
 configurations.all {
   resolutionStrategy {
     dependencySubstitution {
-      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
-        .because('https://ops4j1.jira.com/browse/PAXURL-341')
-        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
       substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
         .because('https://ops4j1.jira.com/browse/PAXURL-341')
         .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
@@ -83,21 +68,47 @@ sourceSets {
   }
 }
 
-configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
-  test.dependsOn it.dependencyProject.tasks.jar
-}
-
 task unzipKit(type: Copy) {
   dependsOn project(':clustered:clustered-dist').distZip
   from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
-test {
+tasks.withType(Test) {
   dependsOn unzipKit
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-}.doFirst {
-  configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
-    systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
-  })
+}
+
+test {
+  dependsOn configurations.osgiModule
+  doFirst {
+    configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    })
+  }
+}
+
+configurations {
+  lowerBoundOsgiModule {
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime') with module('com.sun.xml.bind:jaxb-osgi:2.2.8-b01')
+    }
+  }
+}
+dependencies {
+  lowerBoundOsgiModule 'javax.xml.bind:jaxb-api:2.2.9'
+}
+
+tasks.register('lowerBoundTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  dependsOn configurations.lowerBoundOsgiModule
+  doFirst {
+    configurations.lowerBoundOsgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    })
+  }
+}
+
+tasks.named('check') {
+  dependsOn tasks.lowerBoundTest
 }
