@@ -25,12 +25,13 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.reconnect.ThrowingResiliencyStrategy;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,18 +44,13 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.lease.connection.LeasedConnectionFactory;
 import org.terracotta.testing.rules.Cluster;
 
-import com.tc.net.proxy.TCPProxy;
 import org.terracotta.utilities.test.rules.TestRetryer;
 
-import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 import static java.time.Duration.ofSeconds;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -67,8 +63,7 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
  */
 public class ReconnectDuringDestroyTest extends ClusteredTests {
 
-  private static URI connectionURI;
-  private static List<TCPProxy> proxies;
+  private static TCPProxyManager proxyManager;
   PersistentCacheManager cacheManager;
 
   @ClassRule @Rule
@@ -79,14 +74,18 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
 
   @BeforeClass
   public static void initializeProxy() throws Exception {
-    proxies = new ArrayList<>();
-    connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
+    proxyManager = TCPProxyManager.create(CLUSTER.get().getConnectionURI());
+  }
+
+  @AfterClass
+  public static void closeProxy() {
+    proxyManager.close();
   }
 
   @Before
   public void initializeCacheManager() {
     ClusteringServiceConfiguration clusteringConfiguration =
-      ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
+      ClusteringServiceConfigurationBuilder.cluster(proxyManager.getURI().resolve("/crud-cm"))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")).build();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
@@ -106,7 +105,7 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
     cacheManager.close();
     Connection client = null;
     try {
-      client = LeasedConnectionFactory.connect(connectionURI, new Properties());
+      client = LeasedConnectionFactory.connect(proxyManager.getURI(), new Properties());
       VoltronReadWriteLock voltronReadWriteLock = new VoltronReadWriteLock(client, "crud-cm");
       try (VoltronReadWriteLock.Hold localMaintenance = voltronReadWriteLock.tryWriteLock()) {
         if (localMaintenance == null) {
@@ -123,13 +122,13 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
       }
       // For reconnection.
       long delay = CLUSTER.input().plusSeconds(1).toMillis();
-      setDelay(delay, proxies);
+      proxyManager.setDelay(delay);
       try {
         Thread.sleep(delay);
       } finally {
-        setDelay(0L, proxies);
+        proxyManager.setDelay(0);
       }
-      client = LeasedConnectionFactory.connect(connectionURI, new Properties());
+      client = LeasedConnectionFactory.connect(proxyManager.getURI(), new Properties());
 
       // For mimicking the cacheManager.destroy() in the reconnect path.
       voltronReadWriteLock = new VoltronReadWriteLock(client, "crud-cm");
@@ -150,7 +149,9 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
         }
       }
     } finally {
-      client.close();
+      if (client != null) {
+        client.close();
+      }
     }
   }
 
@@ -173,11 +174,11 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
 
       // For reconnection.
       long delay = CLUSTER.input().plusSeconds(1L).toMillis();
-      setDelay(delay, proxies);
+      proxyManager.setDelay(delay);
       try {
         Thread.sleep(delay);
       } finally {
-        setDelay(0L, proxies);
+        proxyManager.setDelay(0);
       }
 
       Cache<Long, String> cache2Again = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
