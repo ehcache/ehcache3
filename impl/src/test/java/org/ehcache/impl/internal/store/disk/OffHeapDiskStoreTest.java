@@ -55,11 +55,11 @@ import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceId
 import org.ehcache.test.MockitoUtil;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Query;
 import org.terracotta.context.query.QueryBuilder;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.IOException;

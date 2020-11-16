@@ -23,7 +23,7 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;

@@ -38,9 +38,9 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 import org.mockito.Mockito;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 

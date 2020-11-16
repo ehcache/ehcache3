@@ -37,6 +37,7 @@ import org.ehcache.management.ManagementRegistryService;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
@@ -47,7 +48,6 @@ import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery.Builder;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
