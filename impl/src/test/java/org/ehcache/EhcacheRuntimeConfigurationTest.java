@@ -30,8 +30,8 @@ import org.junit.Test;
 import org.ehcache.config.units.MemoryUnit;
 import org.terracotta.org.junit.rules.TemporaryFolder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**

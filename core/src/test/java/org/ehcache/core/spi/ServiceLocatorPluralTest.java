@@ -27,11 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**

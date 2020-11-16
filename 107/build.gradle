@@ -22,6 +22,16 @@ plugins {
 
 configurations {
   tckTestClasses
+
+  all {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('junit:junit:4.11'))
+          .because('CVE-2020-15250')
+          .with(module('junit:junit:4.13.1'))
+      }
+    }
+  }
 }
 
 sourceSets {

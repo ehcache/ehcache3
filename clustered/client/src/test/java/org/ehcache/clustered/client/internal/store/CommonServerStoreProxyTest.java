@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
@@ -37,11 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -142,7 +141,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
-      MatcherAssert.assertThat(elements1, Matchers.matchesChain(elements2));
+      assertThat(elements1, Matchers.matchesChain(elements2));
       if (!elements1.isEmpty()) {
         entryCount++;
       } else {
@@ -151,14 +150,14 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
 
     // there has to be server-side evictions, otherwise this test is useless
-    MatcherAssert.assertThat(store1InvalidatedHashes.size(), greaterThan(0));
+    assertThat(store1InvalidatedHashes.size(), greaterThan(0));
     // test that each time the server evicted, the originating client got notified
-    MatcherAssert.assertThat(store1InvalidatedHashes.size(), Is.is(ITERATIONS - entryCount));
+    assertThat(store1InvalidatedHashes.size(), Is.is(ITERATIONS - entryCount));
     // test that each time the server evicted, the other client got notified on top of normal invalidations
-    MatcherAssert.assertThat(store2InvalidatedHashes.size(), Is.is(ITERATIONS + evictionCount));
+    assertThat(store2InvalidatedHashes.size(), Is.is(ITERATIONS + evictionCount));
     // test that we got evicted chains
-    MatcherAssert.assertThat(store1InvalidatedChains.size(), greaterThan(0));
-    MatcherAssert.assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
+    assertThat(store1InvalidatedChains.size(), greaterThan(0));
+    assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testInvalidationsContainChains");
     assertThat(store1InvalidatedAll.get(), is(false));
@@ -263,7 +262,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity = observableClusterTierService.getServedActiveEntitiesFor(name).get(0);
     long now = System.currentTimeMillis();
     while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
-    MatcherAssert.assertThat(activeEntity.getClientsWaitingForInvalidation().size(), Is.is(0));
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), Is.is(0));
   }
 
   @Test

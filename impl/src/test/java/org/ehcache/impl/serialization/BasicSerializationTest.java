@@ -32,6 +32,8 @@ import org.hamcrest.core.IsSame;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  *
  * @author cdennis
@@ -79,8 +81,8 @@ public class BasicSerializationTest {
 
     Class<?>[] out = (Class<?>[]) s.read(s.serialize(PRIMITIVE_CLASSES));
 
-    Assert.assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
-    Assert.assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
+    assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
+    assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
   }
 
   @Test
@@ -94,8 +96,8 @@ public class BasicSerializationTest {
 
     Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class<?>[]{Foo.class, Bar.class}, new Handler(foo, bar))));
 
-    Assert.assertThat(((Foo) proxy).foo(), Is.is(foo));
-    Assert.assertThat(((Bar) proxy).bar(), Is.is(bar));
+    assertThat(((Foo) proxy).foo(), Is.is(foo));
+    assertThat(((Bar) proxy).bar(), Is.is(bar));
   }
 
   interface Foo {

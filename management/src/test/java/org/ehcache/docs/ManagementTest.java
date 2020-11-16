@@ -29,7 +29,6 @@ import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.capabilities.Capability;
@@ -44,6 +43,8 @@ import org.terracotta.management.registry.StatisticQuery;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ManagementTest {
 
@@ -94,7 +95,7 @@ public class ManagementTest {
 
       ContextualStatistics statisticsContext = counters.getResult(context);
 
-      Assert.assertThat(counters.size(), Matchers.is(1));
+      assertThat(counters.size(), Matchers.is(1));
     }
     finally {
       if(cacheManager != null) cacheManager.close();
@@ -118,30 +119,30 @@ public class ManagementTest {
 
 
       Collection<? extends Capability> capabilities = managementRegistry.getCapabilities(); // <1>
-      Assert.assertThat(capabilities.isEmpty(), Matchers.is(false));
+      assertThat(capabilities.isEmpty(), Matchers.is(false));
       Capability capability = capabilities.iterator().next();
       String capabilityName = capability.getName(); // <2>
       Collection<? extends Descriptor> capabilityDescriptions = capability.getDescriptors(); // <3>
-      Assert.assertThat(capabilityDescriptions.isEmpty(), Matchers.is(false));
+      assertThat(capabilityDescriptions.isEmpty(), Matchers.is(false));
       CapabilityContext capabilityContext = capability.getCapabilityContext();
       Collection<CapabilityContext.Attribute> attributes = capabilityContext.getAttributes(); // <4>
-      Assert.assertThat(attributes.size(), Matchers.is(2));
+      assertThat(attributes.size(), Matchers.is(2));
       Iterator<CapabilityContext.Attribute> iterator = attributes.iterator();
       CapabilityContext.Attribute attribute1 = iterator.next();
-      Assert.assertThat(attribute1.getName(), Matchers.equalTo("cacheManagerName"));  // <5>
-      Assert.assertThat(attribute1.isRequired(), Matchers.is(true));
+      assertThat(attribute1.getName(), Matchers.equalTo("cacheManagerName"));  // <5>
+      assertThat(attribute1.isRequired(), Matchers.is(true));
       CapabilityContext.Attribute attribute2 = iterator.next();
-      Assert.assertThat(attribute2.getName(), Matchers.equalTo("cacheName")); // <6>
-      Assert.assertThat(attribute2.isRequired(), Matchers.is(true));
+      assertThat(attribute2.getName(), Matchers.equalTo("cacheName")); // <6>
+      assertThat(attribute2.isRequired(), Matchers.is(true));
 
       ContextContainer contextContainer = managementRegistry.getContextContainer();  // <7>
-      Assert.assertThat(contextContainer.getName(), Matchers.equalTo("cacheManagerName"));  // <8>
-      Assert.assertThat(contextContainer.getValue(), Matchers.startsWith("cache-manager-"));
+      assertThat(contextContainer.getName(), Matchers.equalTo("cacheManagerName"));  // <8>
+      assertThat(contextContainer.getValue(), Matchers.startsWith("cache-manager-"));
       Collection<ContextContainer> subContexts = contextContainer.getSubContexts();
-      Assert.assertThat(subContexts.size(), Matchers.is(1));
+      assertThat(subContexts.size(), Matchers.is(1));
       ContextContainer subContextContainer = subContexts.iterator().next();
-      Assert.assertThat(subContextContainer.getName(), Matchers.equalTo("cacheName"));  // <9>
-      Assert.assertThat(subContextContainer.getValue(), Matchers.equalTo("aCache"));
+      assertThat(subContextContainer.getName(), Matchers.equalTo("cacheName"));  // <9>
+      assertThat(subContextContainer.getValue(), Matchers.equalTo("aCache"));
     }
     finally {
       if(cacheManager != null) cacheManager.close();
@@ -175,7 +176,7 @@ public class ManagementTest {
           .build()
           .execute();
 
-      Assert.assertThat(aCache.get(0L), Matchers.is(Matchers.nullValue())); // <4>
+      assertThat(aCache.get(0L), Matchers.is(Matchers.nullValue())); // <4>
     }
     finally {
       if(cacheManager != null) cacheManager.close();

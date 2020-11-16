@@ -36,12 +36,13 @@ import org.hamcrest.core.Is;
 import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsInstanceOf;
 import org.hamcrest.core.IsNot;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ConfigurationDerivation {
 
@@ -71,7 +72,7 @@ public class ConfigurationDerivation {
       .build();
     //end::removeService[]
 
-    Assert.assertThat(withoutClustering.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
+    assertThat(withoutClustering.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
       IsInstanceOf.instanceOf(ClusteringServiceConfiguration.class))));
   }
 
@@ -91,10 +92,10 @@ public class ConfigurationDerivation {
       .build();
     //end::updateService[]
 
-    Assert.assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
+    assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
       configuration.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.STRONG));
 
-    Assert.assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
+    assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
       changedConsistency.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.EVENTUAL));
   }
 

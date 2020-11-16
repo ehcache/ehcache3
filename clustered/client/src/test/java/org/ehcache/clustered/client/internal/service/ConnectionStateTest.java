@@ -28,21 +28,18 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.terracotta.connection.Connection;
-import org.terracotta.utilities.test.matchers.ThrowsMatcher;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Properties;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
 
 public class ConnectionStateTest {

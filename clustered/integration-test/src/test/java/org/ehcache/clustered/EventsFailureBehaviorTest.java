@@ -60,13 +60,13 @@ import static org.ehcache.event.EventType.EVICTED;
 import static org.ehcache.event.EventType.EXPIRED;
 import static org.ehcache.event.EventType.REMOVED;
 import static org.ehcache.event.EventType.UPDATED;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /*

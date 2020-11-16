@@ -22,21 +22,21 @@ import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 
 public class DefaultSerializationProviderConfigurationTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void testAddSerializerFor() throws Exception {
@@ -50,17 +50,15 @@ public class DefaultSerializationProviderConfigurationTest {
   public void testAddSerializerForDuplicateThrows() throws Exception {
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
     config.addSerializerFor(Long.class, MinimalSerializer.class);
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Duplicate serializer for class");
-    config.addSerializerFor(Long.class, MinimalSerializer.class);
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> config.addSerializerFor(Long.class, MinimalSerializer.class));
+    assertThat(thrown, hasProperty("message", startsWith("Duplicate serializer for class")));
   }
 
   @Test
   public void testAddSerializerForConstructorless() throws Exception {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, UnusableSerializer.class);
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> config.addSerializerFor(Long.class, UnusableSerializer.class));
+    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
   }
 
   @Test
@@ -72,18 +70,16 @@ public class DefaultSerializationProviderConfigurationTest {
 
   @Test
   public void testAddSerializerForStatefulConstructorless() throws Exception {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, UnusableStatefulSerializer.class);
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> config.addSerializerFor(Long.class, UnusableStatefulSerializer.class));
+    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
   }
 
   @Test
   public void testAddSerializerForLegacySerializer() throws Exception {
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
-    config.addSerializerFor(Long.class, LegacySerializer.class);
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> config.addSerializerFor(Long.class, LegacySerializer.class));
+    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
   }
 
   @Test @SuppressWarnings("unchecked")

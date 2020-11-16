@@ -22,7 +22,6 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -32,15 +31,14 @@ import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCache
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 public class DefaultLocalPersistenceServiceTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -139,7 +137,7 @@ public class DefaultLocalPersistenceServiceTest {
 
     // We should not be able to lock the same directory twice
     // And we should receive a meaningful exception about it
-    expectedException.expectMessage("Persistence directory already locked by this process: " + testFolder.getAbsolutePath());
-    service2.start(null);
+    RuntimeException thrown = assertThrows(RuntimeException.class, () -> service2.start(null));
+    assertThat(thrown, hasProperty("message", is("Persistence directory already locked by this process: " + testFolder.getAbsolutePath())));
   }
 }

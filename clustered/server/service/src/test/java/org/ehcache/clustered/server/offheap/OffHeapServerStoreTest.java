@@ -28,7 +28,6 @@ import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -310,14 +309,14 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       store.getAndAppend(i, smallValue.duplicate());
     }
 
-    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+    assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
 
     //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
-    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
 
-    Assert.assertThat(store.getSize(), is(smallLoopCount));
+    assertThat(store.getSize(), is(smallLoopCount));
 
     int multiplier = 100;
     long largeLoopCount = 5 + smallLoopCount;
@@ -326,14 +325,14 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       store.getAndAppend(i, largeValue.duplicate());
     }
 
-    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo( (smallLoopCount * oneKb) + ( (largeLoopCount - smallLoopCount) * oneKb * multiplier) ));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+    assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo( (smallLoopCount * oneKb) + ( (largeLoopCount - smallLoopCount) * oneKb * multiplier) ));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
 
     //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
-    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
 
-    Assert.assertThat(store.getSize(), is(smallLoopCount + (largeLoopCount - smallLoopCount)));
+    assertThat(store.getSize(), is(smallLoopCount + (largeLoopCount - smallLoopCount)));
 
   }
 

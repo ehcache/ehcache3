@@ -18,7 +18,6 @@ package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.Externalizable;
@@ -32,6 +31,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  *
@@ -51,7 +51,7 @@ public class AddedFieldTest {
     pushTccl(createClassNameRewritingLoader(A_read.class, IncompatibleSerializable_read.class));
     try {
       Serializable out = serializer.read(encodedA);
-      Assert.assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
+      assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
     } finally {
       popTccl();
     }
@@ -69,7 +69,7 @@ public class AddedFieldTest {
     pushTccl(createClassNameRewritingLoader(B_read.class));
     try {
       Serializable out = serializer.read(encodedA);
-      Assert.assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
+      assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
     } finally {
       popTccl();
     }

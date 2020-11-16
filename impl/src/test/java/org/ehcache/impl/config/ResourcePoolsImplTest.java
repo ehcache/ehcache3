@@ -37,8 +37,8 @@ import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.KB;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**

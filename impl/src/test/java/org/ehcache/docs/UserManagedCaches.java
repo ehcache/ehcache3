@@ -37,8 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * UserManagedCaches
