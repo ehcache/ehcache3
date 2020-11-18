@@ -28,8 +28,8 @@ import org.junit.Test;
 
 import java.net.URL;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Ludovic Orban

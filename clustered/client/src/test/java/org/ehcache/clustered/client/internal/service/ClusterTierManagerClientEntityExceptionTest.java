@@ -39,9 +39,10 @@ import org.junit.Test;
 
 import java.net.URI;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to

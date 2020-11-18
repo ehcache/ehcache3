@@ -24,4 +24,10 @@
     <packageUrl regex="true">^pkg:maven/org\.terracotta/tc\-tripwire\-plugin@.*$</packageUrl>
     <cpe>cpe:/a:tripwire:tripwire</cpe>
   </suppress>
+
+  <suppress>
+    <notes>Ehcache 3 builds require with Java 8+ : 4.13.1 is safe</notes>
+    <packageUrl>pkg:maven/junit/junit@4.13.1</packageUrl>
+    <vulnerabilityName>CVE-2020-15250</vulnerabilityName>
+  </suppress>
 </suppressions>

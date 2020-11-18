@@ -20,7 +20,6 @@ import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
-import static org.junit.Assert.assertThat;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**

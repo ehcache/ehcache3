@@ -27,10 +27,10 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static org.ehcache.test.MockitoUtil.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 public class DefaultResilienceStrategyProviderTest {

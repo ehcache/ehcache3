@@ -25,9 +25,7 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,9 +34,6 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.mockito.Mockito.mock;
 
 public class CacheManagerBuilderTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void testIsExtensible() {

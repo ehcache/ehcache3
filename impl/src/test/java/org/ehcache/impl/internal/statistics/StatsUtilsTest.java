@@ -27,9 +27,7 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matchers;
@@ -46,6 +44,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.statistics.StatsUtils.*;
+import static org.junit.Assert.assertThrows;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -54,9 +53,6 @@ import static org.terracotta.statistics.StatisticsManager.properties;
 import static org.terracotta.statistics.StatisticsManager.tags;
 
 public class StatsUtilsTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   CacheManager cacheManager;
   Cache<Long, String> cache;
@@ -176,8 +172,7 @@ public class StatsUtilsTest {
 
   @Test
   public void testFindCacheStatistic_notExisting() {
-    expectedException.expect(RuntimeException.class);
-    findOperationStatisticOnChildren(cache, CacheOperationOutcomes.GetOutcome.class, "xxx");
+    assertThrows(RuntimeException.class, () -> findOperationStatisticOnChildren(cache, CacheOperationOutcomes.GetOutcome.class, "xxx"));
   }
 
   @Test
@@ -206,8 +201,7 @@ public class StatsUtilsTest {
 
   @Test
   public void testFindLowerTier_none() {
-    expectedException.expect(RuntimeException.class);
-    findLowestTier(new String[0]);
+    assertThrows(RuntimeException.class, () -> findLowestTier(new String[0]));
   }
 
   @Test

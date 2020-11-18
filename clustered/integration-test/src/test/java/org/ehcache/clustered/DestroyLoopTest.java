@@ -41,7 +41,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class DestroyLoopTest extends ClusteredTests {

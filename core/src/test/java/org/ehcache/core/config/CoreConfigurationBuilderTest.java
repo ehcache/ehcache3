@@ -19,8 +19,8 @@ import org.ehcache.config.Configuration;
 import org.ehcache.core.util.ClassLoading;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class CoreConfigurationBuilderTest {

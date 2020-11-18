@@ -48,9 +48,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -68,12 +66,14 @@ import java.util.concurrent.Executors;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -89,9 +89,6 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheManagerTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   private static Map<String, CacheConfiguration<?, ?>> newCacheMap() {
     return new HashMap<>();
@@ -834,10 +831,8 @@ public class EhcacheManagerTest {
     thread.start();
     thread.join(1000);
 
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("State is MAINTENANCE, yet you don't own it!");
-
-    manager.destroyCache("test");
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> manager.destroyCache("test"));
+    assertThat(thrown, hasProperty("message", is("State is MAINTENANCE, yet you don't own it!")));
   }
 
   @Test
@@ -852,10 +847,8 @@ public class EhcacheManagerTest {
 
     EhcacheManager manager = new EhcacheManager(config, services);
 
-    expectedException.expect(StateTransitionException.class);
-    expectedException.expectMessage("failed");
-
-    manager.destroyCache("test");
+    StateTransitionException thrown = assertThrows(StateTransitionException.class, () -> manager.destroyCache("test"));
+    assertThat(thrown, hasProperty("message", is("failed")));
 
     assertThat(manager.getStatus(), equalTo(Status.UNINITIALIZED));
   }

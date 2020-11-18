@@ -31,14 +31,14 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * UserManagedCaches

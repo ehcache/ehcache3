@@ -29,12 +29,12 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.File;
@@ -45,9 +45,9 @@ import java.util.Set;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;

@@ -27,7 +27,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -51,7 +50,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
@@ -143,7 +142,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
                     .containsAll(Arrays.asList("webapp-1", "server-node-1")))
             .count();
 
-    Assert.assertThat(count, Matchers.equalTo(1L));
+    assertThat(count, Matchers.equalTo(1L));
 
     String instanceId = getInstanceId();
 

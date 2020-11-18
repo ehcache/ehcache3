@@ -45,9 +45,9 @@ import java.util.concurrent.Semaphore;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 

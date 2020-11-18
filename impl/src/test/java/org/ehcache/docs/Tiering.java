@@ -36,10 +36,10 @@ import org.ehcache.event.EventType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tiering

@@ -33,10 +33,10 @@ import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.ChainUtils.readPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static java.util.stream.LongStream.range;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 

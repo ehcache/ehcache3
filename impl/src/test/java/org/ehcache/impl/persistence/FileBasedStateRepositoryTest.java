@@ -20,7 +20,7 @@ import org.ehcache.impl.serialization.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,8 +28,8 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * FileBasedStateRepositoryTest

@@ -23,7 +23,6 @@ import org.hamcrest.collection.IsIterableContainingInAnyOrder;
 import org.hamcrest.collection.IsMapContaining;
 import org.hamcrest.core.AllOf;
 import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
@@ -31,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MultiGettingStarted {
 
@@ -44,7 +45,7 @@ public class MultiGettingStarted {
     Configuration fooConfiguration = multipleConfiguration.configuration("foo-manager"); // <3>
     //end::multipleManagers[]
 
-    Assert.assertThat(resourceMap(multipleConfiguration.identities().stream().collect(
+    assertThat(resourceMap(multipleConfiguration.identities().stream().collect(
       Collectors.toMap(Function.identity(), multipleConfiguration::configuration)
     )), AllOf.allOf(
       IsMapContaining.hasEntry(Is.is("foo-manager"), IsMapContaining.hasEntry(Is.is("foo"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP))),
@@ -62,14 +63,14 @@ public class MultiGettingStarted {
     Configuration fooConfiguration = variantConfiguration.configuration("foo-manager", "offheap"); // <1>
     //end::multipleVariants[]
 
-    Assert.assertThat(resourceMap(variantConfiguration.identities().stream().collect(
+    assertThat(resourceMap(variantConfiguration.identities().stream().collect(
       Collectors.toMap(Function.identity(), i -> variantConfiguration.configuration(i, "offheap"))
     )), AllOf.allOf(
       IsMapContaining.hasEntry(Is.is("foo-manager"), IsMapContaining.hasEntry(Is.is("foo"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP))),
       IsMapContaining.hasEntry(Is.is("bar-manager"), IsMapContaining.hasEntry(Is.is("bar"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP)))
     ));
 
-    Assert.assertThat(resourceMap(variantConfiguration.identities().stream().collect(
+    assertThat(resourceMap(variantConfiguration.identities().stream().collect(
       Collectors.toMap(Function.identity(), i -> variantConfiguration.configuration(i, "heap"))
     )), AllOf.allOf(
       IsMapContaining.hasEntry(Is.is("foo-manager"), IsMapContaining.hasEntry(Is.is("foo"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP))),
@@ -93,12 +94,12 @@ public class MultiGettingStarted {
       .collect(Collectors.toMap(i -> i, i -> variantConfiguration.configuration(i, "offheap"))); // <3>
     //end::multipleRetrieval[]
 
-    Assert.assertThat(resourceMap(allConfigurations), AllOf.allOf(
+    assertThat(resourceMap(allConfigurations), AllOf.allOf(
       IsMapContaining.hasEntry(Is.is("foo-manager"), IsMapContaining.hasEntry(Is.is("foo"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP))),
       IsMapContaining.hasEntry(Is.is("bar-manager"), IsMapContaining.hasEntry(Is.is("bar"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)))
     ));
 
-    Assert.assertThat(resourceMap(offheapConfigurations), AllOf.allOf(
+    assertThat(resourceMap(offheapConfigurations), AllOf.allOf(
       IsMapContaining.hasEntry(Is.is("foo-manager"), IsMapContaining.hasEntry(Is.is("foo"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP))),
       IsMapContaining.hasEntry(Is.is("bar-manager"), IsMapContaining.hasEntry(Is.is("bar"), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP)))
     ));

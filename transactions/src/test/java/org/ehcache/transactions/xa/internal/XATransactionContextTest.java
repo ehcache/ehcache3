@@ -26,7 +26,6 @@ import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -235,7 +234,7 @@ public class XATransactionContextTest {
 
     assertThat(xaTransactionContext.prepare(), is(3));
 
-    Assert.assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
+    assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
 
     verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
@@ -376,7 +375,7 @@ public class XATransactionContextTest {
 
     xaTransactionContext.commitInOnePhase();
 
-    Assert.assertThat(savedInDoubtCollectionRef.get(), containsInAnyOrder(1L, 2L, 3L));
+    assertThat(savedInDoubtCollectionRef.get(), containsInAnyOrder(1L, 2L, 3L));
 
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());

@@ -67,6 +67,10 @@ configurations.all {
       substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
         .because('https://ops4j1.jira.com/browse/PAXURL-341')
         .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+
+      substitute(module('junit:junit:4.12'))
+        .because('CVE-2020-15250')
+        .with(module('junit:junit:4.13.1'))
     }
   }
 }

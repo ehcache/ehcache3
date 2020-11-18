@@ -29,8 +29,7 @@ import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 
 import java.nio.ByteBuffer;
 
@@ -38,15 +37,13 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class SerializersTest {
 
   @Rule
   public TemporaryFolder temporaryFolder = new TemporaryFolder();
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void testStatefulSerializer() throws Exception {

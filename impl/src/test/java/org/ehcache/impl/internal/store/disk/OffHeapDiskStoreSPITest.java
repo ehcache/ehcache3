@@ -47,7 +47,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.terracotta.org.junit.rules.TemporaryFolder;
+import org.junit.rules.TemporaryFolder;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.io.IOException;

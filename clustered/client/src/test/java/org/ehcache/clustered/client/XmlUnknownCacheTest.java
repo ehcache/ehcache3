@@ -16,16 +16,14 @@
 
 package org.ehcache.clustered.client;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.fail;
 
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Assert;
 import org.junit.Test;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.fail;
 
 /**
  *
@@ -36,7 +34,7 @@ public class XmlUnknownCacheTest {
   @Test
   public void testGetUnknownCache() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache.xml"));
-    Assert.assertThat(xmlConfiguration.getCacheConfigurations().keySet(),contains("unknownCache"));
+    assertThat(xmlConfiguration.getCacheConfigurations().keySet(),contains("unknownCache"));
   }
 
   @Test
@@ -45,7 +43,7 @@ public class XmlUnknownCacheTest {
       new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-attribute.xml"));
       fail("Expected XmlConfigurationException");
     } catch(XmlConfigurationException xce) {
-      Assert.assertThat(xce.getCause().getMessage(), endsWith("Attribute 'unit' is not allowed to appear in element 'tc:clustered'."));
+      assertThat(xce.getCause().getMessage(), endsWith("Attribute 'unit' is not allowed to appear in element 'tc:clustered'."));
     }
   }
 
@@ -55,7 +53,7 @@ public class XmlUnknownCacheTest {
       new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-element.xml"));
       fail("Expected XmlConfigurationException");
     } catch(XmlConfigurationException xce) {
-      Assert.assertThat(xce.getCause().getMessage(), endsWith("Element 'tc:clustered' must have no character or element information item [children], because the type's content type is empty."));
+      assertThat(xce.getCause().getMessage(), endsWith("Element 'tc:clustered' must have no character or element information item [children], because the type's content type is empty."));
     }
   }
 
