@@ -60,8 +60,9 @@ configurations.all {
   resolutionStrategy {
     dependencySubstitution {
       substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
-              .because('https://ops4j1.jira.com/browse/PAXURL-341')
-              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+        .because('https://github.com/codehaus-plexus/plexus-utils/issues/3' +
+          ' and https://github.com/codehaus-plexus/plexus-utils/issues/4')
+        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.3'))
       substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
               .because('https://ops4j1.jira.com/browse/PAXURL-341')
               .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
