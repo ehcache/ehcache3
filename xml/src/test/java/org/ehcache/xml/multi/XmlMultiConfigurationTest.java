@@ -18,15 +18,16 @@ package org.ehcache.xml.multi;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfigurationMatchers;
 import org.ehcache.xml.XmlConfigurationTest;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
-import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -36,10 +37,10 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.fail;
+import static org.xmlunit.builder.Input.fromURI;
 import static org.xmlunit.diff.ElementSelectors.and;
 import static org.xmlunit.diff.ElementSelectors.byNameAndAllAttributes;
 import static org.xmlunit.diff.ElementSelectors.byNameAndText;
-import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class XmlMultiConfigurationTest {
 
@@ -54,7 +55,7 @@ public class XmlMultiConfigurationTest {
     assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
 
     assertThat(xmlMultiConfiguration.toString(),
-      isSimilarTo("<configurations xmlns='http://www.ehcache.org/v3/multi'/>").ignoreWhitespace().ignoreComments());
+      isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'/>"));
   }
 
   @Test
@@ -70,10 +71,9 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
 
     assertThat(xmlMultiConfiguration.toString(),
-      isSimilarTo(
-        "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+      isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
           "<configuration identity='foo'><config xmlns='http://www.ehcache.org/v3'/></configuration>" +
-        "</configurations>").ignoreWhitespace().ignoreComments());
+        "</configurations>"));
   }
 
   @Test
@@ -91,13 +91,12 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), containsInAnyOrder("foo"));
     assertThat(xmlMultiConfiguration.variants("foo"), containsInAnyOrder("bar", "baz"));
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'>" +
           "<variant type='bar'><config xmlns='http://www.ehcache.org/v3'/></variant>" +
           "<variant type='baz'><config xmlns='http://www.ehcache.org/v3'/></variant>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -124,8 +123,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("fum"), containsInAnyOrder("bar"));
     assertThat(xmlMultiConfiguration.variants("fii"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'>" +
           "<variant type='bar'><config xmlns='http://www.ehcache.org/v3'/></variant>" +
           "<variant type='baz'><config xmlns='http://www.ehcache.org/v3'/></variant>" +
@@ -136,7 +134,7 @@ public class XmlMultiConfigurationTest {
         "<configuration identity='fii'>" +
           "<config xmlns='http://www.ehcache.org/v3'/>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -151,7 +149,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), empty());
     assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(Input.fromURI(resource.toURI())).ignoreWhitespace().ignoreComments());
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs(fromURI(resource.toURI())));
   }
 
   @Test
@@ -169,7 +167,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
     assertThat(xmlMultiConfiguration.variants("bar"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(Input.fromURI(resource.toURI())).ignoreWhitespace().ignoreComments());
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs(fromURI(resource.toURI())));
   }
 
   @Test
@@ -189,7 +187,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("foo"), containsInAnyOrder("development", "production"));
     assertThat(xmlMultiConfiguration.variants("bar"), containsInAnyOrder("development", "production"));
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(Input.fromURI(resource.toURI())).ignoreWhitespace().ignoreComments());
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs(fromURI(resource.toURI())));
   }
 
   @Test
@@ -206,14 +204,13 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), containsInAnyOrder("foo"));
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'>" +
           "<ehcache:config xmlns:ehcache='http://www.ehcache.org/v3' xmlns:multi='http://www.ehcache.org/v3/multi' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>" +
             "<ehcache:cache alias='foo'><ehcache:heap unit='entries'>100</ehcache:heap></ehcache:cache>" +
           "</ehcache:config>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -231,8 +228,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
     assertThat(xmlMultiConfiguration.variants("bar"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='bar'>" +
           "<config xmlns='http://www.ehcache.org/v3'/>" +
         "</configuration>" +
@@ -241,7 +237,7 @@ public class XmlMultiConfigurationTest {
             "<ehcache:cache alias='foo'><ehcache:heap unit='entries'>100</ehcache:heap></ehcache:cache>" +
           "</ehcache:config>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -262,8 +258,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("bar"), empty());
     assertThat(xmlMultiConfiguration.variants("baz"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='bar'>" +
           "<ehcache:config xmlns:ehcache='http://www.ehcache.org/v3' xmlns:multi='http://www.ehcache.org/v3/multi' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>" +
             "<ehcache:cache alias='bar'><ehcache:heap unit='entries'>100</ehcache:heap></ehcache:cache>" +
@@ -277,7 +272,7 @@ public class XmlMultiConfigurationTest {
             "<ehcache:cache alias='foo'><ehcache:heap unit='entries'>100</ehcache:heap></ehcache:cache>" +
           "</ehcache:config>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -293,7 +288,7 @@ public class XmlMultiConfigurationTest {
     assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
 
     assertThat(xmlMultiConfiguration.toString(),
-      isSimilarTo("<configurations xmlns='http://www.ehcache.org/v3/multi'></configurations>").ignoreWhitespace().ignoreComments());
+      isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'></configurations>"));
   }
 
   @Test
@@ -308,10 +303,9 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), containsInAnyOrder("foo"));
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'><config xmlns='http://www.ehcache.org/v3'/></configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -329,12 +323,10 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
     assertThat(xmlMultiConfiguration.variants("baz"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'><config xmlns='http://www.ehcache.org/v3'/></configuration>" +
         "<configuration identity='baz'><config xmlns='http://www.ehcache.org/v3'/></configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments().withNodeMatcher(
-      new DefaultNodeMatcher(and(byNameAndText, byNameAndAllAttributes))));
+      "</configurations>"));
   }
 
   @Test
@@ -348,8 +340,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), containsInAnyOrder("foo"));
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'>" +
           "<config xmlns='http://www.ehcache.org/v3' xmlns:bar='http://www.example.com/bar' xmlns:baz='http://www.example.com/baz' xmlns:foo='http://www.example.com/foo' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.example.com/baz baz.xsd http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd'>" +
             "<service><bar:bar/></service>" +
@@ -364,7 +355,7 @@ public class XmlMultiConfigurationTest {
             "</cache>" +
           "</config>" +
         "</configuration>" +
-      "</configurations>").ignoreWhitespace().ignoreComments());
+      "</configurations>"));
   }
 
   @Test
@@ -376,8 +367,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.identities(), containsInAnyOrder("foo"));
     assertThat(xmlMultiConfiguration.variants("foo"), empty());
 
-    assertThat(xmlMultiConfiguration.toString(), isSimilarTo(
-      "<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
+    assertThat(xmlMultiConfiguration.toString(), isSameConfigurationAs("<configurations xmlns='http://www.ehcache.org/v3/multi'>" +
         "<configuration identity='foo'>" +
         "<config xmlns='http://www.ehcache.org/v3' xmlns:bar='http://www.example.com/bar' xmlns:baz='http://www.example.com/baz' xmlns:foo='http://www.example.com/foo' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.example.com/baz baz.xsd http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd'>" +
         "<service><bar:bar/></service>" +
@@ -392,7 +382,7 @@ public class XmlMultiConfigurationTest {
         "</cache>" +
         "</config>" +
         "</configuration>" +
-        "</configurations>").ignoreWhitespace().ignoreComments());
+        "</configurations>"));
   }
 
   @Test(expected = XmlConfigurationException.class)

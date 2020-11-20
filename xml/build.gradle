@@ -18,6 +18,7 @@ plugins {
   id 'org.unbroken-dome.xjc'
   id 'org.ehcache.build.deploy'
   id 'biz.aQute.bnd.builder'
+  id 'java-test-fixtures'
 }
 
 dependencies {
@@ -26,7 +27,7 @@ dependencies {
   implementation project(':impl')
   implementation "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
 
-  testImplementation 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
+  testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
 }
