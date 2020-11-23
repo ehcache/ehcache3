@@ -18,13 +18,14 @@ package org.ehcache.management;
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
-import org.xmlunit.diff.DefaultNodeMatcher;
-import org.xmlunit.diff.ElementSelectors;
 
+import javax.xml.namespace.QName;
 import java.net.URL;
 
+import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
+import static org.xmlunit.diff.ElementSelectors.byNameAndText;
+import static org.xmlunit.diff.ElementSelectors.selectorForElementNamed;
 
 /**
  * ManagementRegistryServiceConfigurationParserIT
@@ -36,7 +37,6 @@ public class ManagementRegistryServiceConfigurationParserIT {
     URL resource = ManagementRegistryServiceConfigurationParserIT.class.getResource("/ehcache-management.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace()
-      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(xmlConfig.toString(), isSameConfigurationAs(resource, selectorForElementNamed(new QName("http://www.ehcache.org/v3/management", "tag"), byNameAndText)));
   }
 }

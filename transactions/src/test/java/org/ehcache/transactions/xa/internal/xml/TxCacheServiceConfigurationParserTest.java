@@ -18,11 +18,9 @@ package org.ehcache.transactions.xa.internal.xml;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.Test;
 import org.w3c.dom.Node;
-import org.xmlunit.diff.DefaultNodeMatcher;
-import org.xmlunit.diff.ElementSelectors;
 
+import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * TxCacheServiceConfigurationParserTest
@@ -37,8 +35,7 @@ public class TxCacheServiceConfigurationParserTest {
     Node retElement = configTranslator.unparseServiceConfiguration(storeConfiguration);
     String inputString = "<tx:xa-store unique-XAResource-id = \"my-unique-resource\" " +
                          "xmlns:tx = \"http://www.ehcache.org/v3/tx\"/>";
-    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
-      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndAllAttributes)));
+    assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
 }

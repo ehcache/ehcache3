@@ -17,11 +17,9 @@ package org.ehcache.management.registry;
 
 import org.junit.Test;
 import org.w3c.dom.Node;
-import org.xmlunit.diff.DefaultNodeMatcher;
-import org.xmlunit.diff.ElementSelectors;
 
+import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * ManagementRegistryServiceConfigurationParserTest
@@ -40,8 +38,7 @@ public class ManagementRegistryServiceConfigurationParserTest {
     String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
                          "xmlns:mgm = \"http://www.ehcache.org/v3/management\" >" +
                          "<mgm:tags><mgm:tag>tag1</mgm:tag><mgm:tag>tag2</mgm:tag></mgm:tags></mgm:management>";
-    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
-      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
   @Test
@@ -55,8 +52,7 @@ public class ManagementRegistryServiceConfigurationParserTest {
     Node retElement = configTranslator.unparseServiceCreationConfiguration(defaultManagementRegistryConfiguration);
     String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
                          "xmlns:mgm = \"http://www.ehcache.org/v3/management\"></mgm:management>";
-    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
-      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
 }
