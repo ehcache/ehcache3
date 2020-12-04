@@ -724,30 +724,6 @@ public class XmlConfigurationTest {
   }
 
   @Test
-  public void testSysPropReplace() {
-    System.getProperties().setProperty("ehcache.match", Number.class.getName());
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/systemprops.xml"));
-
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
-
-    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(persistenceConfiguration.getRootDirectory(), is(new File(System.getProperty("user.home") + "/ehcache")));
-  }
-
-  @Test
-  public void testSysPropReplaceRegExp() {
-    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}"), equalTo("foo" + File.separator));
-    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}"), equalTo(File.separator + "foo" + File.separator));
-    try {
-      ConfigurationParser.replaceProperties("${bar}foo");
-      fail("Should have thrown!");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage().contains("${bar}"), is(true));
-    }
-    assertThat(ConfigurationParser.replaceProperties("foo"), nullValue());
-  }
-
-  @Test
   public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
     Callable<Configuration> parserTask = () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 

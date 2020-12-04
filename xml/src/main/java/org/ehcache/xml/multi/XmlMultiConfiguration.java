@@ -31,6 +31,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchema;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -87,6 +88,7 @@ public class XmlMultiConfiguration {
 
       JAXBContext jaxbContext = JAXBContext.newInstance(Configurations.class);
       Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+      unmarshaller.setEventHandler(new DefaultValidationEventHandler());
       Configurations value = unmarshaller.unmarshal(rootElement, Configurations.class).getValue();
 
       this.configurations = value.getConfiguration().stream().collect(toMap(Configurations.Configuration::getIdentity, c -> {

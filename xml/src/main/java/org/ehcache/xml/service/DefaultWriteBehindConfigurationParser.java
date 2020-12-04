@@ -23,7 +23,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplate;
-import org.ehcache.xml.model.TimeType;
+import org.ehcache.xml.model.TimeTypeWithPropSubst;
 
 import java.math.BigInteger;
 
@@ -62,7 +62,7 @@ public class DefaultWriteBehindConfigurationParser
           writeBehind.withBatching(new CacheLoaderWriterType.WriteBehind.Batching()
             .withBatchSize(BigInteger.valueOf(batchingConfiguration.getBatchSize()))
             .withCoalesce(batchingConfiguration.isCoalescing())
-            .withMaxWriteDelay(new TimeType()
+            .withMaxWriteDelay(new TimeTypeWithPropSubst()
               .withValue(BigInteger.valueOf(batchingConfiguration.getMaxDelay()))
               .withUnit(convertToXmlTimeUnit(batchingConfiguration.getMaxDelayUnit()))
             )

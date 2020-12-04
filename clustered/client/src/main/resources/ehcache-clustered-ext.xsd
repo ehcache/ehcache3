@@ -51,7 +51,7 @@
         <xs:element name="connection" type="tc:connection-spec"/>
       </xs:choice>
 
-      <xs:element name="read-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="read-timeout" type="eh:time-type-with-prop-subst" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
             Specifies the amount of time a cache read operation will wait for a response from a cluster
@@ -59,7 +59,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="write-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="write-timeout" type="eh:time-type-with-prop-subst" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
             Specifies the amount of time a cache write operation will wait for a response from a cluster
@@ -67,7 +67,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="connection-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="connection-timeout" type="eh:time-type-with-prop-subst" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
             Specifies the amount of time a cache will wait to connect to a cluster
@@ -90,9 +90,13 @@
   </xs:complexType>
 
   <xs:simpleType name="connectionUrl">
-    <xs:restriction base="xs:anyURI">
-      <xs:pattern value="\w+://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(,([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?)*(/[^\?#]*)?(\?[^#]*)?(#.*)?"/>
-    </xs:restriction>
+    <xs:union memberTypes="eh:stringWithProperties">
+      <xs:simpleType>
+        <xs:restriction base="xs:anyURI">
+          <xs:pattern value="\w+://([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?(,([^\]\[/?#@]+@)?[^:?#/]+(:[1-9][0-9]{0,4})?)*(/[^?#]*)?(\?[^#]*)?(#.*)?"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
   </xs:simpleType>
 
   <xs:complexType name="cluster-connection-spec">
@@ -100,7 +104,7 @@
       <xs:element name="server" type="tc:server" maxOccurs="unbounded"/>
     </xs:sequence>
 
-    <xs:attribute name="cluster-tier-manager" type="xs:string" use="required">
+    <xs:attribute name="cluster-tier-manager" type="eh:propertyOrString" use="required">
       <xs:annotation>
         <xs:documentation xml:lang="en">
           Cluster Tier Manager identifier.
@@ -116,14 +120,14 @@
       </xs:documentation>
     </xs:annotation>
 
-    <xs:attribute name="host" type="tc:host" use="required">
+    <xs:attribute name="host" type="eh:propertyOrString" use="required">
       <xs:annotation>
         <xs:documentation>
           The host that the server is running on.
         </xs:documentation>
       </xs:annotation>
     </xs:attribute>
-    <xs:attribute name="port" type="xs:positiveInteger">
+    <xs:attribute name="port" type="eh:propertyOrPositiveInteger">
       <xs:annotation>
         <xs:documentation>
           The port that the server is listening on.
@@ -131,14 +135,6 @@
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
-
-  <xs:simpleType name="host">
-    <xs:restriction base="xs:string">
-      <xs:whiteSpace value="collapse" />
-      <xs:minLength value="1" />
-      <xs:maxLength value="255" />
-    </xs:restriction>
-  </xs:simpleType>
 
   <xs:complexType name="server-side-config-spec">
     <xs:sequence>
@@ -187,7 +183,7 @@
 
   <xs:complexType name="shared-pool-spec">
     <xs:complexContent>
-      <xs:extension base="eh:memory-type">
+      <xs:extension base="eh:memory-type-with-prop-subst">
         <xs:attribute name="name" type="xs:string" use="required">
           <xs:annotation>
             <xs:documentation>
@@ -201,11 +197,15 @@
   </xs:complexType>
 
   <xs:simpleType name="client-mode-spec">
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="expecting"/>
-      <xs:enumeration value="auto-create"/>
-      <xs:enumeration value="auto-create-on-reconnect"/>
-    </xs:restriction>
+    <xs:union memberTypes="eh:propertyReference">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="expecting"/>
+          <xs:enumeration value="auto-create"/>
+          <xs:enumeration value="auto-create-on-reconnect"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
   </xs:simpleType>
 
   <xs:element name="clustered-dedicated" type="tc:clustered-dedicated-resource-type" substitutionGroup="eh:resource">
@@ -218,7 +218,7 @@
 
   <xs:complexType name="clustered-dedicated-resource-type">
     <xs:complexContent>
-      <xs:extension base="eh:memory-type">
+      <xs:extension base="eh:memory-type-with-prop-subst">
         <xs:attributeGroup ref="tc:from-optional"/>
       </xs:extension>
     </xs:complexContent>
@@ -233,7 +233,7 @@
   </xs:element>
 
   <xs:complexType name="clustered-shared-resource-type">
-    <xs:attribute name="sharing" type="xs:string" use="required">
+    <xs:attribute name="sharing" type="eh:propertyOrString" use="required">
       <xs:annotation>
         <xs:documentation>
           Name of the shared pool this resource uses.
@@ -252,7 +252,7 @@
   </xs:element>
 
   <xs:attributeGroup name="from-optional">
-    <xs:attribute name="from" type="xs:string" use="optional">
+    <xs:attribute name="from" type="eh:propertyOrString" use="optional">
       <xs:annotation>
         <xs:documentation>
           Optional reference to a server-side storage resource.
@@ -262,7 +262,7 @@
   </xs:attributeGroup>
 
   <xs:attributeGroup name="from-required">
-    <xs:attribute name="from" type="xs:string" use="required">
+    <xs:attribute name="from" type="eh:propertyOrString" use="required">
       <xs:annotation>
         <xs:documentation>
           Required reference to a server-side storage resource.

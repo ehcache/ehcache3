@@ -15,8 +15,18 @@
  */
 package org.ehcache.management.registry;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import java.io.IOException;
+import java.io.StringReader;
 
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,6 +35,31 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * ManagementRegistryServiceConfigurationParserTest
  */
 public class ManagementRegistryServiceConfigurationParserTest {
+
+  @Test
+  public void testParseTagInsideProperty() throws ParserConfigurationException, IOException, SAXException {
+    String property = ManagementRegistryServiceConfigurationParserTest.class.getName() + ":tag";
+    String inputString = "<mgm:management cache-manager-alias='my-cache-alias' collector-executor-alias='my-executor' " +
+      "xmlns:mgm='http://www.ehcache.org/v3/management'>" +
+      "<mgm:tags><mgm:tag>tag1</mgm:tag><mgm:tag>${" + property + "}</mgm:tag></mgm:tags></mgm:management>";
+
+    ManagementRegistryServiceConfigurationParser configParser = new ManagementRegistryServiceConfigurationParser();
+
+    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+    documentBuilderFactory.setNamespaceAware(true);
+    Element node =  documentBuilderFactory.newDocumentBuilder()
+      .parse(new InputSource(new StringReader(inputString))).getDocumentElement();
+
+    System.setProperty(property, "tag2");
+    try {
+      DefaultManagementRegistryConfiguration configuration =
+        (DefaultManagementRegistryConfiguration) configParser.parseServiceCreationConfiguration(node, null);
+
+      assertThat(configuration.getTags(), Matchers.hasItems("tag1", "tag2"));
+    } finally {
+      System.clearProperty(property);
+    }
+  }
 
   @Test
   public void testTranslateServiceCreationConfiguration() {

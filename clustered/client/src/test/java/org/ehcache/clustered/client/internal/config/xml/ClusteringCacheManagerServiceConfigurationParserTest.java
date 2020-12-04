@@ -20,6 +20,7 @@ import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.util.ClassLoading;
@@ -27,7 +28,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.TimeType;
+import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -50,7 +51,9 @@ import java.time.Duration;
 import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -64,6 +67,7 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -80,6 +84,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
   @Rule
   public final TestName testName = new TestName();
+
+  private static final String PROPERTY_PREFIX = ClusteringCacheManagerServiceConfigurationParserTest.class.getName() + ":";
 
   /**
    * Ensures the {@link ClusteringCacheManagerServiceConfigurationParser} is locatable as a
@@ -209,7 +215,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
+    TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeTypeWithPropSubst().getUnit());
     assertThat(clusteringServiceConfiguration.getTimeouts().getReadOperationTimeout(),
       is(equalTo(Duration.of(5, defaultUnit))));
   }
@@ -295,7 +301,90 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       fail("Expecting XmlConfigurationException");
     } catch (XmlConfigurationException e) {
       assertThat(e.getMessage(), containsString("Error parsing XML configuration "));
-      assertThat(e.getCause().getMessage(), containsString("'' is not a valid value for 'integer'"));
+      assertThat(e.getCause().getMessage(), containsString("'' is not a valid value of union type 'propertyOrPositiveInteger"));
+    }
+  }
+
+  @Test
+  public void testGetTimeoutAsProperty() throws Exception {
+    String readTimeoutProperty = PROPERTY_PREFIX + testName.getMethodName() + ":read";
+    String writeTimeoutProperty = PROPERTY_PREFIX + testName.getMethodName() + ":write";
+    String connectTimeoutProperty = PROPERTY_PREFIX + testName.getMethodName() + ":connect";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(readTimeoutProperty, "5");
+    properties.put(writeTimeoutProperty, "10");
+    properties.put(connectTimeoutProperty, "15");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
+        "      <tc:read-timeout unit=\"minutes\">${" + readTimeoutProperty + "}</tc:read-timeout>",
+        "      <tc:write-timeout unit=\"minutes\">${" + writeTimeoutProperty + "}</tc:write-timeout>",
+        "      <tc:connection-timeout unit=\"minutes\">${" + connectTimeoutProperty + "}</tc:connection-timeout>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      final Configuration configuration = new XmlConfiguration(makeConfig(config));
+
+      Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
+        configuration.getServiceCreationConfigurations();
+      assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
+
+      ClusteringServiceConfiguration clusteringServiceConfiguration =
+        findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      assertThat(clusteringServiceConfiguration, is(notNullValue()));
+
+      Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
+      assertThat(timeouts.getReadOperationTimeout(), is(Duration.of(5, MINUTES)));
+      assertThat(timeouts.getWriteOperationTimeout(), is(Duration.of(10, MINUTES)));
+      assertThat(timeouts.getConnectionTimeout(), is(Duration.of(15, MINUTES)));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
+    }
+  }
+
+  @Test
+  public void testUrlWithProperty() throws Exception {
+    String serverProperty = PROPERTY_PREFIX + testName.getMethodName() + ":server";
+    String portProperty = PROPERTY_PREFIX + testName.getMethodName() + ":port";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(serverProperty, "example.com");
+    properties.put(portProperty, "9540");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://${" + serverProperty + "}:${" + portProperty + "}/cachemanager\" />",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+      ClusteringServiceConfiguration clusteringConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+      ConnectionSource.ClusterUri connectionSource = (ConnectionSource.ClusterUri) clusteringConfig.getConnectionSource();
+      assertThat(connectionSource.getClusterUri(), is(URI.create("terracotta://example.com:9540/cachemanager")));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
     }
   }
 
@@ -418,6 +507,49 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     assertThat(servers, is(expectedServers));
   }
 
+  @Test
+  public void testServersWithClusterTierManagerAndOptionalPortsUsingProperties() throws Exception {
+    String hostProperty = PROPERTY_PREFIX + testName.getMethodName() + ":host";
+    String portProperty = PROPERTY_PREFIX + testName.getMethodName() + ":port";
+    String tierManagerProperty = PROPERTY_PREFIX + testName.getMethodName() + ":tierManager";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(hostProperty, "100.100.100.100");
+    properties.put(portProperty, "9510");
+    properties.put(tierManagerProperty, "george");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:cluster-connection cluster-tier-manager='${" + tierManagerProperty + "}'>",
+        "        <tc:server host='${" + hostProperty + "}' port='${" + portProperty + "}'/>",
+        "      </tc:cluster-connection>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      final Configuration configuration = new XmlConfiguration(makeConfig(config));
+      Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+      ClusteringServiceConfiguration clusteringServiceConfiguration =
+        findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
+      Iterable<InetSocketAddress> servers = connectionSource.getServers();
+
+      assertThat(connectionSource.getClusterTierManager(), is("george"));
+      assertThat(servers, contains(InetSocketAddress.createUnresolved("100.100.100.100", 9510)));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
+    }
+  }
+
   @Test @SuppressWarnings("deprecation")
   public void testAutoCreateFalseMapsToExpecting() throws IOException {
     final String[] config = new String[]
@@ -484,6 +616,106 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       new XmlConfiguration(makeConfig(config));
     } catch (XmlConfigurationException e) {
       assertThat(e.getMessage(), is("Cannot define both 'auto-create' and 'client-mode' attributes"));
+    }
+  }
+
+  @Test
+  public void testClientModeAsAProperty() throws IOException {
+    String clientModeProperty = PROPERTY_PREFIX + testName.getMethodName() + ":client-mode";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(clientModeProperty, "auto-create");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\" />",
+        "      <tc:server-side-config client-mode='${" + clientModeProperty + "}'/>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+      ClusteringServiceConfiguration clusterConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+      assertThat(clusterConfig.getClientMode(), is(ClusteringServiceConfiguration.ClientMode.AUTO_CREATE));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
+    }
+  }
+
+  @Test
+  public void testSharedPoolUsingProperties() throws IOException {
+    String poolSizeProperty = PROPERTY_PREFIX + testName.getMethodName() + ":pool-size";
+    String fromProperty = PROPERTY_PREFIX + testName.getMethodName() + ":from";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(poolSizeProperty, "1024");
+    properties.put(fromProperty, "source");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url='terracotta://example.com:9540/cachemanager'/>",
+        "      <tc:server-side-config client-mode='auto-create'>",
+        "        <tc:shared-pool name='pool' from='${" + fromProperty + "}'>",
+        "          ${" + poolSizeProperty + "}",
+        "        </tc:shared-pool>",
+        "      </tc:server-side-config>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+      ClusteringServiceConfiguration clusterConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+      ServerSideConfiguration.Pool pool = clusterConfig.getServerConfiguration().getResourcePools().get("pool");
+      assertThat(pool.getSize(), is(1024L));
+      assertThat(pool.getServerResource(), is("source"));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
+    }
+  }
+
+  @Test
+  public void testDefaultResourceAsAProperty() throws IOException {
+    String fromProperty = PROPERTY_PREFIX + testName.getMethodName() + ":from";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(fromProperty, "source");
+
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url='terracotta://example.com:9540/cachemanager'/>",
+        "      <tc:server-side-config client-mode='auto-create'>",
+        "        <tc:default-resource from='${" + fromProperty + "}'/>",
+        "      </tc:server-side-config>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    properties.forEach(System::setProperty);
+    try {
+      XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+      ClusteringServiceConfiguration clusterConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+      assertThat(clusterConfig.getServerConfiguration().getDefaultServerResource(), is("source"));
+    } finally {
+      properties.keySet().forEach(System::clearProperty);
     }
   }
 

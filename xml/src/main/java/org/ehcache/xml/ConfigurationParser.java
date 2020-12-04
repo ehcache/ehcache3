@@ -33,9 +33,6 @@ import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ObjectFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -46,6 +43,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -70,7 +68,6 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.PrivilegedAction;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,14 +76,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.lang.String.format;
-import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Spliterators.spliterator;
 import static java.util.function.Function.identity;
@@ -107,7 +101,6 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
  */
 public class ConfigurationParser {
 
-  private static final Pattern SYSPROP = Pattern.compile("\\$\\{([^}]+)\\}");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
   private static Schema newSchema(Source... schemas) throws SAXException {
     synchronized (XSD_SCHEMA_FACTORY) {
@@ -131,23 +124,6 @@ public class ConfigurationParser {
   private final ServiceCreationConfigurationParser serviceCreationConfigurationParser;
   private final ServiceConfigurationParser serviceConfigurationParser;
   private final ResourceConfigurationParser resourceConfigurationParser;
-
-  static String replaceProperties(String originalValue) {
-    Matcher matcher = SYSPROP.matcher(originalValue);
-
-    StringBuffer sb = new StringBuffer();
-    while (matcher.find()) {
-      final String property = matcher.group(1);
-      final String value = doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
-      if (value == null) {
-        throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
-      }
-      matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
-    }
-    matcher.appendTail(sb);
-    final String resolvedValue = sb.toString();
-    return resolvedValue.equals(originalValue) ? null : resolvedValue;
-  }
 
   @SuppressWarnings("unchecked")
   private static <T> Stream<T> stream(Iterable<? super T> iterable) {
@@ -179,36 +155,6 @@ public class ConfigurationParser {
     throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     cacheBuilder = CORE_CACHE_CONFIGURATION_PARSER.parseConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
     return serviceConfigurationParser.parseConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
-  }
-
-  private static void substituteSystemProperties(Node node) {
-    Stack<NodeList> nodeLists = new Stack<>();
-    nodeLists.push(node.getChildNodes());
-    while (!nodeLists.isEmpty()) {
-      NodeList nodeList = nodeLists.pop();
-      for (int i = 0; i < nodeList.getLength(); ++i) {
-        Node currentNode = nodeList.item(i);
-        if (currentNode.hasChildNodes()) {
-          nodeLists.push(currentNode.getChildNodes());
-        }
-        final NamedNodeMap attributes = currentNode.getAttributes();
-        if (attributes != null) {
-          for (int j = 0; j < attributes.getLength(); ++j) {
-            final Node attributeNode = attributes.item(j);
-            final String newValue = replaceProperties(attributeNode.getNodeValue());
-            if (newValue != null) {
-              attributeNode.setNodeValue(newValue);
-            }
-          }
-        }
-        if (currentNode.getNodeType() == Node.TEXT_NODE) {
-          final String newValue = replaceProperties(currentNode.getNodeValue());
-          if (newValue != null) {
-            currentNode.setNodeValue(newValue);
-          }
-        }
-      }
-    }
   }
 
   private static Iterable<CacheDefinition> getCacheElements(ConfigType configType) {
@@ -285,8 +231,6 @@ public class ConfigurationParser {
   }
 
   public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ClassNotFoundException, InstantiationException, IllegalAccessException {
-    substituteSystemProperties(document);
-
     Element root = document.getDocumentElement();
 
     QName rootName = new QName(root.getNamespaceURI(), root.getLocalName());
@@ -296,6 +240,7 @@ public class ConfigurationParser {
 
     Class<ConfigType> configTypeClass = ConfigType.class;
     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+    unmarshaller.setEventHandler(new DefaultValidationEventHandler());
     ConfigType jaxbModel = unmarshaller.unmarshal(document, configTypeClass).getValue();
 
     FluentConfigurationBuilder<?> managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
