@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.store.Element;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 public class LockingServerStoreProxyImpl implements LockingServerStoreProxy {
@@ -110,7 +111,7 @@ public class LockingServerStoreProxyImpl implements LockingServerStoreProxy {
   }
 
   @Override
-  public Iterator<Chain> iterator() throws TimeoutException {
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
     return storeProxy.iterator();
   }
 }

@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class ServerStoreImpl implements ServerSideServerStore, MapInternals {
@@ -205,7 +206,7 @@ public class ServerStoreImpl implements ServerSideServerStore, MapInternals {
   }
 
   @Override
-  public Iterator<Chain> iterator() {
+  public Iterator<Map.Entry<Long, Chain>> iterator() {
     return store.iterator();
   }
 }

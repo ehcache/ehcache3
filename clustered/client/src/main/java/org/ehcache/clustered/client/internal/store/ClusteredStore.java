@@ -407,7 +407,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     try {
-      java.util.Iterator<Chain> chainIterator = storeProxy.iterator();
+        java.util.Iterator<Map.Entry<Long, Chain>> chainIterator = storeProxy.iterator();
 
       return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
 
@@ -429,7 +429,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
         private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
           while (chainIterator.hasNext()) {
-            Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
+            Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next().getValue(), timeSource.getTimeMillis());
             if (!chainContents.isEmpty()) {
               return chainContents.entrySet().stream().map(entry -> {
                 K key = entry.getKey();

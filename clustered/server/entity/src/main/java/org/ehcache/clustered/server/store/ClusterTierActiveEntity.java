@@ -85,6 +85,7 @@ import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -168,7 +169,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private volatile List<InvalidationTuple> inflightInvalidations;
   private final Set<ClientDescriptor> eventListeners = new HashSet<>(); // accesses are synchronized on eventListeners itself
   private final Map<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
-  private final Map<ClientDescriptor, Map<UUID, Iterator<Chain>>> liveIterators = new ConcurrentHashMap<>();
+  private final Map<ClientDescriptor, Map<UUID, Iterator<Map.Entry<Long, Chain>>>> liveIterators = new ConcurrentHashMap<>();
   private final int chainCompactionLimit;
   private final ServerLockManager lockManager;
 
@@ -516,11 +517,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       case ITERATOR_OPEN: {
         IteratorOpenMessage iteratorOpenMessage = (IteratorOpenMessage) message;
         try {
-          Iterator<Chain> iterator = cacheStore.iterator();
-          List<Chain> batch = iteratorBatch(iterator, iteratorOpenMessage.getBatchSize());
+          Iterator<Map.Entry<Long, Chain>> iterator = cacheStore.iterator();
+          List<Map.Entry<Long, Chain>> batch = iteratorBatch(iterator, iteratorOpenMessage.getBatchSize());
 
           if (iterator.hasNext()) {
-            Map<UUID, Iterator<Chain>> liveIterators = this.liveIterators.computeIfAbsent(clientDescriptor, client -> new ConcurrentHashMap<>());
+            Map<UUID, Iterator<Map.Entry<Long, Chain>>> liveIterators = this.liveIterators.computeIfAbsent(clientDescriptor, client -> new ConcurrentHashMap<>());
             UUID id;
             do {
               id = UUID.randomUUID();
@@ -549,11 +550,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         IteratorAdvanceMessage iteratorAdvanceMessage = (IteratorAdvanceMessage) message;
         UUID id = iteratorAdvanceMessage.getIdentity();
 
-        Iterator<Chain> iterator = liveIterators.getOrDefault(clientDescriptor, emptyMap()).get(id);
+        Iterator<Map.Entry<Long, Chain>> iterator = liveIterators.getOrDefault(clientDescriptor, emptyMap()).get(id);
         if (iterator == null) {
           return failure(new InvalidOperationException("Referenced iterator is already closed (or never existed)"));
         } else {
-          List<Chain> batch = iteratorBatch(iterator, iteratorAdvanceMessage.getBatchSize());
+          List<Map.Entry<Long, Chain>> batch = iteratorBatch(iterator, iteratorAdvanceMessage.getBatchSize());
           if (iterator.hasNext()) {
             return iteratorBatchResponse(id, batch, false);
           } else {
@@ -612,13 +613,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
   }
 
-  private List<Chain> iteratorBatch(Iterator<Chain> iterator, int batchSize) {
-    List<Chain> chains = new ArrayList<>();
+  private List<Map.Entry<Long, Chain>> iteratorBatch(Iterator<Map.Entry<Long, Chain>> iterator, int batchSize) {
+    List<Map.Entry<Long, Chain>> chains = new ArrayList<>();
     int size = 0;
     while (iterator.hasNext() && size < batchSize && size >= 0) {
-      Chain nextChain = iterator.next();
-      chains.add(nextChain);
-      for (Element e: nextChain) {
+      Map.Entry<Long, Chain> nextChain = iterator.next();
+      chains.add(new AbstractMap.SimpleImmutableEntry<>(nextChain.getKey(), nextChain.getValue()));
+      for (Element e: nextChain.getValue()) {
         size += e.getPayload().remaining();
       }
     }
