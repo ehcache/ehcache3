@@ -62,19 +62,12 @@ public class DefaultStatisticsServiceTest {
   public void startStopStart() throws Exception {
     cacheManager.init();
 
-    assertThat(service.isStarted()).isTrue();
-
     Cache<Long, String> cache = cacheManager.getCache(CACHE, Long.class, String.class);
     cache.get(2L);
     assertThat(service.getCacheStatistics(CACHE).getCacheMisses()).isEqualTo(1);
 
     cacheManager.close();
-
-    assertThat(service.isStarted()).isFalse();
-
     cacheManager.init();
-
-    assertThat(service.isStarted()).isTrue();
 
     // We expect the stats to be reinitialized after a stop start
     assertThat(service.getCacheStatistics(CACHE).getCacheMisses()).isEqualTo(0);

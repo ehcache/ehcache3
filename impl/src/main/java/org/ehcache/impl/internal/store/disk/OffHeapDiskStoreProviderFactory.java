@@ -39,7 +39,7 @@ public class OffHeapDiskStoreProviderFactory implements ServiceFactory<OffHeapDi
   }
 
   @Override
-  public Class<OffHeapDiskStore.Provider> getServiceType() {
+  public Class<? extends OffHeapDiskStore.Provider> getServiceType() {
     return OffHeapDiskStore.Provider.class;
   }
 }

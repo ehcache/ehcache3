@@ -32,7 +32,7 @@ public class DefaultJournalProviderFactory implements ServiceFactory<JournalProv
   }
 
   @Override
-  public Class<JournalProvider> getServiceType() {
-    return JournalProvider.class;
+  public Class<? extends JournalProvider> getServiceType() {
+    return DefaultJournalProvider.class;
   }
 }

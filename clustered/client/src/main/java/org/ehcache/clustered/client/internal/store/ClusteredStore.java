@@ -69,6 +69,7 @@ import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -598,6 +599,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
    * Provider of {@link ClusteredStore} instances.
    */
   @ServiceDependencies({TimeSourceService.class, ClusteringService.class})
+  @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
   public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
@@ -698,7 +700,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
-        getServiceProvider().getService(StatisticsService.class).cleanForNode(clusteredStore);
+        getStatisticsService().ifPresent(s -> s.cleanForNode(clusteredStore));
         tierOperationStatistics.remove(clusteredStore);
       } finally {
         connectLock.unlock();

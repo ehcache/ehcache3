@@ -32,7 +32,7 @@ public class TimeSourceServiceFactory implements ServiceFactory<TimeSourceServic
   }
 
   @Override
-  public Class<TimeSourceService> getServiceType() {
-    return TimeSourceService.class;
+  public Class<? extends TimeSourceService> getServiceType() {
+    return DefaultTimeSourceService.class;
   }
 }

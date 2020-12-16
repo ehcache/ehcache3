@@ -44,7 +44,7 @@ public class DefaultTransactionManagerProviderFactory implements ServiceFactory<
    * {@inheritDoc}
    */
   @Override
-  public Class<TransactionManagerProvider> getServiceType() {
-    return TransactionManagerProvider.class;
+  public Class<? extends TransactionManagerProvider> getServiceType() {
+    return LookupTransactionManagerProvider.class;
   }
 }

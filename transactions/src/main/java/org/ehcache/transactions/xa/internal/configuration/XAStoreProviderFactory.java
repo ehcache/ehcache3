@@ -32,7 +32,7 @@ public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> 
   }
 
   @Override
-  public Class<XAStore.Provider> getServiceType() {
+  public Class<? extends XAStore.Provider> getServiceType() {
     return XAStore.Provider.class;
   }
 }

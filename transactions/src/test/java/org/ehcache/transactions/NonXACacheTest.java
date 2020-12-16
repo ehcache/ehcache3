@@ -26,7 +26,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.transactions.xa.internal.XAStore;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
 import org.junit.Test;
 
 import static java.util.Spliterators.spliterator;
@@ -48,7 +48,7 @@ public class NonXACacheTest {
      * Ensure the XA provider classes are loadable through the ServiceLoader mechanism.
      */
     assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(s -> s.getServiceType()).collect(toList()),
-      hasItems(XAStore.Provider.class, TransactionManagerProvider.class));
+      hasItems(XAStore.Provider.class, LookupTransactionManagerProvider.class));
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class,

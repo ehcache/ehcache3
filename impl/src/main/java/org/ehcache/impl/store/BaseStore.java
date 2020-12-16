@@ -24,15 +24,18 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.core.statistics.ZeroOperationStatistic;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import static java.util.Optional.ofNullable;
 
 /**
  * Base class to most stores. It provides functionality common to stores in general. A given store implementation is not required to extend
@@ -81,27 +84,31 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
    * @return the created observer
    */
   protected <T extends Enum<T>> OperationObserver<T> createObserver(String name, Class<T> outcome, boolean canBeDisabled) {
-    if(!operationStatisticsEnabled && canBeDisabled) {
+    if (statisticsService == null || !operationStatisticsEnabled && canBeDisabled) {
       return ZeroOperationStatistic.get();
+    } else {
+      return statisticsService.createOperationStatistics(name, outcome, getStatisticsTag(), this);
     }
-    return statisticsService.createOperationStatistics(name, outcome, getStatisticsTag(), this);
   }
 
   protected <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
-    statisticsService.registerStatistic(this, name, type, tags, valueSupplier);
+    if (statisticsService != null) {
+      statisticsService.registerStatistic(this, name, type, tags, valueSupplier);
+    }
   }
 
   protected abstract String getStatisticsTag();
 
 
-  @ServiceDependencies({StatisticsService.class})
+  @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
   protected static abstract class BaseStoreProvider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
 
     protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
-      return statisticsService.registerStoreStatistics(store, targetName, getResourceType().getTierHeight(), store.getStatisticsTag(), translation, statisticName);
+      return getStatisticsService()
+        .map(s -> s.registerStoreStatistics(store, targetName, getResourceType().getTierHeight(), store.getStatisticsTag(), translation, statisticName))
+        .orElse(ZeroOperationStatistic.get());
     }
 
     @Override
@@ -119,5 +126,9 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     }
 
     protected abstract ResourceType<?> getResourceType();
+
+    protected Optional<StatisticsService> getStatisticsService() {
+      return ofNullable(serviceProvider.getService(StatisticsService.class));
+    }
   }
 }

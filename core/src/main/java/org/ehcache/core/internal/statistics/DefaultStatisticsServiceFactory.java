@@ -30,7 +30,7 @@ public class DefaultStatisticsServiceFactory implements ServiceFactory<Statistic
   }
 
   @Override
-  public Class<StatisticsService> getServiceType() {
-    return StatisticsService.class;
+  public Class<? extends StatisticsService> getServiceType() {
+    return DefaultStatisticsService.class;
   }
 }

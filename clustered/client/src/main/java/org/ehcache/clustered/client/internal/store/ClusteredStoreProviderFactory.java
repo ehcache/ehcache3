@@ -31,7 +31,7 @@ public class ClusteredStoreProviderFactory implements ServiceFactory<ClusteredSt
   }
 
   @Override
-  public Class<ClusteredStore.Provider> getServiceType() {
+  public Class<? extends ClusteredStore.Provider> getServiceType() {
     return ClusteredStore.Provider.class;
   }
 }

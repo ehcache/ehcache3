@@ -32,7 +32,7 @@ public class TieredStoreProviderFactory implements ServiceFactory<TieredStore.Pr
   }
 
   @Override
-  public Class<TieredStore.Provider> getServiceType() {
+  public Class<? extends TieredStore.Provider> getServiceType() {
     return TieredStore.Provider.class;
   }
 }

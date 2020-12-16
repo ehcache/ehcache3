@@ -60,7 +60,7 @@ import java.util.stream.Stream;
 /**
  * Provides support for accessing server-based cluster services.
  */
-class DefaultClusteringService implements ClusteringService, EntityService {
+public class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 

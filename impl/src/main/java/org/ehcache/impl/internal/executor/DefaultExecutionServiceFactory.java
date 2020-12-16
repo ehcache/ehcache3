@@ -42,7 +42,12 @@ public class DefaultExecutionServiceFactory implements ServiceFactory<ExecutionS
   }
 
   @Override
-  public Class<ExecutionService> getServiceType() {
+  public Class<? extends ExecutionService> getServiceType() {
+    /*
+     * XXX : There isn't a unique concrete type returned by this factory
+     * Currently this isn't a problem since neither of the concrete types
+     * returned have service depencies.
+     */
     return ExecutionService.class;
   }
 

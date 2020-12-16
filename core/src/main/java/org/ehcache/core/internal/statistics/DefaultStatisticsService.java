@@ -27,10 +27,11 @@ import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.statistics.ZeroOperationStatistic;
-import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@OptionalServiceDependencies({"org.ehcache.core.spi.service.CacheManagerProviderService"})
+@ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
@@ -57,8 +58,8 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   private final ConcurrentMap<String, DefaultCacheStatistics> cacheStatistics = new ConcurrentHashMap<>();
 
   private volatile InternalCacheManager cacheManager;
-  private volatile boolean started = false;
 
+  @Override
   public CacheStatistics getCacheStatistics(String cacheName) {
     CacheStatistics stats = cacheStatistics.get(cacheName);
     if (stats == null) {
@@ -73,7 +74,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   }
 
   @Override
-  public <K, V, S extends Enum<S>, T extends Enum<T>> org.ehcache.core.statistics.OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
+  public <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
 
     Class<S> outcomeType = getOutcomeType(translation);
 
@@ -82,10 +83,10 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
 
       MappedOperationStatistic<S, T> operationStatistic = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, tag);
       StatisticsManager.associate(operationStatistic).withParent(store);
-      org.ehcache.core.statistics.OperationStatistic<T> stat = new DelegatedMappedOperationStatistics<>(operationStatistic);
-      return stat;
+      return new DelegatedMappedOperationStatistics<>(operationStatistic);
+    } else {
+      return ZeroOperationStatistic.get();
     }
-    return ZeroOperationStatistic.get();
   }
 
   /**
@@ -98,13 +99,12 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
    */
   private static <S extends Enum<S>, T extends Enum<T>> Class<S> getOutcomeType(Map<T, Set<S>> translation) {
     Map.Entry<T, Set<S>> first = translation.entrySet().iterator().next();
-    Class<S> outcomeType = first.getValue().iterator().next().getDeclaringClass();
-    return outcomeType;
+    return first.getValue().iterator().next().getDeclaringClass();
   }
 
   @Override
-  public void deRegisterFromParent(Object toDeassociate, Object parent) {
-    StatisticsManager.dissociate(toDeassociate).fromParent(parent);
+  public void deRegisterFromParent(Object toDisassociate, Object parent) {
+    StatisticsManager.dissociate(toDisassociate).fromParent(parent);
   }
 
   @Override
@@ -122,21 +122,13 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     return new DelegatingOperationObserver<>(operation(outcome).named(name).of(context).tag(tag).build());
   }
 
-  public boolean isStarted() {
-    return started;
-  }
-
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     LOGGER.debug("Starting service");
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
-    if (cacheManagerProviderService != null) {
-      cacheManager = cacheManagerProviderService.getCacheManager();
-      cacheManager.registerListener(this);
-    }
-
-    started = true;
+    cacheManager = cacheManagerProviderService.getCacheManager();
+    cacheManager.registerListener(this);
   }
 
   @Override
@@ -144,7 +136,6 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     LOGGER.debug("Stopping service");
     cacheManager.deregisterListener(this);
     cacheStatistics.clear();
-    started = false;
   }
 
   @Override

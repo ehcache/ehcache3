@@ -40,6 +40,7 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -385,7 +386,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
         close(offHeapDiskStore);
-        getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapDiskStore);
+        getStatisticsService().ifPresent(s -> s.cleanForNode(offHeapDiskStore));
         tierOperationStatistics.remove(offHeapDiskStore);
       } catch (IOException e) {
         throw new RuntimeException(e);

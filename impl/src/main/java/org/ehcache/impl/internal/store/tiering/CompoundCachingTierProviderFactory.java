@@ -30,7 +30,7 @@ public class CompoundCachingTierProviderFactory implements ServiceFactory<Compou
   }
 
   @Override
-  public Class<CompoundCachingTier.Provider> getServiceType() {
+  public Class<? extends CompoundCachingTier.Provider> getServiceType() {
     return CompoundCachingTier.Provider.class;
   }
 }

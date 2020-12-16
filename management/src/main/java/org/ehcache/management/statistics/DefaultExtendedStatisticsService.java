@@ -30,8 +30,8 @@ import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.ZeroOperationStatistic;
 import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.registry.LatencyHistogramConfiguration;
-import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +60,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@OptionalServiceDependencies({"org.ehcache.core.spi.service.CacheManagerProviderService"})
+@ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultExtendedStatisticsService implements ExtendedStatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultExtendedStatisticsService.class);
@@ -94,8 +94,7 @@ public class DefaultExtendedStatisticsService implements ExtendedStatisticsServi
 
       MappedOperationStatistic<S, T> operationStatistic = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, tag);
       StatisticsManager.associate(operationStatistic).withParent(store);
-      org.ehcache.core.statistics.OperationStatistic<T> stat = new DelegatedMappedOperationStatistics<>(operationStatistic);
-      return stat;
+      return new DelegatedMappedOperationStatistics<>(operationStatistic);
     }
     return ZeroOperationStatistic.get();
   }
@@ -110,13 +109,12 @@ public class DefaultExtendedStatisticsService implements ExtendedStatisticsServi
    */
   private static <S extends Enum<S>, T extends Enum<T>> Class<S> getOutcomeType(Map<T, Set<S>> translation) {
     Map.Entry<T, Set<S>> first = translation.entrySet().iterator().next();
-    Class<S> outcomeType = first.getValue().iterator().next().getDeclaringClass();
-    return outcomeType;
+    return first.getValue().iterator().next().getDeclaringClass();
   }
 
   @Override
-  public void deRegisterFromParent(Object toDeassociate, Object parent) {
-    StatisticsManager.dissociate(toDeassociate).fromParent(parent);
+  public void deRegisterFromParent(Object toDisassociate, Object parent) {
+    StatisticsManager.dissociate(toDisassociate).fromParent(parent);
   }
 
   @Override
@@ -178,11 +176,8 @@ public class DefaultExtendedStatisticsService implements ExtendedStatisticsServi
     LOGGER.debug("Starting service");
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
-    if (cacheManagerProviderService != null) {
-      cacheManager = cacheManagerProviderService.getCacheManager();
-      cacheManager.registerListener(this);
-    }
-
+    cacheManager = cacheManagerProviderService.getCacheManager();
+    cacheManager.registerListener(this);
     started = true;
   }
 

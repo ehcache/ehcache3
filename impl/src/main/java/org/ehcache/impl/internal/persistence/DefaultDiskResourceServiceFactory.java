@@ -30,7 +30,7 @@ public class DefaultDiskResourceServiceFactory implements ServiceFactory<Default
   }
 
   @Override
-  public Class<DefaultDiskResourceService> getServiceType() {
+  public Class<? extends DefaultDiskResourceService> getServiceType() {
     return DefaultDiskResourceService.class;
   }
 }

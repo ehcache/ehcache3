@@ -17,6 +17,7 @@
 package org.ehcache.spi.service;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * A repository of {@link Service} instances that can be used to look them up by type.

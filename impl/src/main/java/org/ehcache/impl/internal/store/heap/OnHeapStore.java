@@ -61,6 +61,7 @@ import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
@@ -1616,6 +1617,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
+  @OptionalServiceDependencies("org.ehcache.core.spi.service.Statis" +
+    "ticsService")
   public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
 
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -1672,7 +1675,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       }
       OnHeapStore<?, ?> onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
-      getServiceProvider().getService(StatisticsService.class).cleanForNode(onHeapStore);
+      getStatisticsService().ifPresent(s -> s.cleanForNode(onHeapStore));
       tierOperationStatistics.remove(onHeapStore);
 
       CopyProvider copyProvider = getServiceProvider().getService(CopyProvider.class);
