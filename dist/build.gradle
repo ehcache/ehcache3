@@ -42,7 +42,7 @@ jar {
     'Bundle-Description': 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.',
 
     'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
-    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*, org.terracotta.statistics.*, org.terracotta.context',
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*',
     'Import-Package': "javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version=\"${parent.jaxbVersion}\", *"
   )
 }

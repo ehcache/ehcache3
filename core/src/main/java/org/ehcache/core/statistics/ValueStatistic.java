@@ -16,8 +16,6 @@
 
 package org.ehcache.core.statistics;
 
-import org.terracotta.management.model.stats.StatisticType;
-
 import java.io.Serializable;
 
 public interface ValueStatistic<T extends Serializable> {

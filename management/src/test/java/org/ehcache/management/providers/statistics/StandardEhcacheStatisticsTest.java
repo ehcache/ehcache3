@@ -24,7 +24,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.statistics.LatencyHistogramConfiguration;
+import org.ehcache.management.registry.LatencyHistogramConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
@@ -53,7 +53,7 @@ import java.util.function.Consumer;
 import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
+import static org.ehcache.core.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class StandardEhcacheStatisticsTest {

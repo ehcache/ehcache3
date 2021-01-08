@@ -87,8 +87,8 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
   }
 
   @Override
-  public Class<WriteBehindProvider> getServiceType() {
-    return WriteBehindProvider.class;
+  public Class<? extends WriteBehindProvider> getServiceType() {
+    return Provider.class;
   }
 
 }

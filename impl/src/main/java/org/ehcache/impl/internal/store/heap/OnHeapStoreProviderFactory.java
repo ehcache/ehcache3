@@ -32,7 +32,7 @@ public class OnHeapStoreProviderFactory implements ServiceFactory<OnHeapStore.Pr
   }
 
   @Override
-  public Class<OnHeapStore.Provider> getServiceType() {
+  public Class<? extends OnHeapStore.Provider> getServiceType() {
     return OnHeapStore.Provider.class;
   }
 }

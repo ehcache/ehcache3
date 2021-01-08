@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.statistics;
+package org.ehcache.core.internal.statistics;
 
 import org.ehcache.Cache;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.statistics.TierOperationOutcomes;
+import org.ehcache.core.statistics.TierStatistics;
+import org.ehcache.core.statistics.ValueStatistic;
 import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.ValueStatistic;
+import org.terracotta.statistics.ValueStatistics;
 import org.terracotta.statistics.ZeroOperationStatistic;
 
 import java.util.Collections;
@@ -28,9 +32,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static org.ehcache.core.statistics.StatsUtils.findStatisticOnDescendants;
-import static org.terracotta.statistics.ValueStatistics.counter;
-import static org.terracotta.statistics.ValueStatistics.gauge;
+import static org.ehcache.core.internal.statistics.StatsUtils.findStatisticOnDescendants;
+import static org.ehcache.core.statistics.SuppliedValueStatistic.counter;
+import static org.ehcache.core.statistics.SuppliedValueStatistic.gauge;
 
 /**
  * Contains usage statistics relative to a given tier.
@@ -39,7 +43,7 @@ public class DefaultTierStatistics implements TierStatistics {
 
   private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 
-  private final Map<String, ValueStatistic<?>> knownStatistics;
+  private final Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics;
 
   private final OperationStatistic<TierOperationOutcomes.GetOutcome> get;
   private final OperationStatistic<StoreOperationOutcomes.PutOutcome> put;
@@ -55,9 +59,9 @@ public class DefaultTierStatistics implements TierStatistics {
 
   //Ehcache default to -1 if unavailable, but the management layer needs optional or null
   // (since -1 can be a normal value for a stat).
-  private final Optional<ValueStatistic<Long>> mapping;
-  private final Optional<ValueStatistic<Long>> allocatedMemory;
-  private final Optional<ValueStatistic<Long>> occupiedMemory;
+  private final Optional<org.terracotta.statistics.ValueStatistic<Long>> mapping;
+  private final Optional<org.terracotta.statistics.ValueStatistic<Long>> allocatedMemory;
+  private final Optional<org.terracotta.statistics.ValueStatistic<Long>> occupiedMemory;
 
   public DefaultTierStatistics(Cache<?, ?> cache, String tierName) {
 
@@ -77,24 +81,24 @@ public class DefaultTierStatistics implements TierStatistics {
     allocatedMemory = findValueStatistics(cache, tierName, "allocatedMemory");
     occupiedMemory = findValueStatistics(cache, tierName, "occupiedMemory");
 
-    Map<String, ValueStatistic<?>> knownStatistics = createKnownStatistics(tierName);
+    Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics = createKnownStatistics(tierName);
     this.knownStatistics = Collections.unmodifiableMap(knownStatistics);
   }
 
-  private Map<String, ValueStatistic<?>> createKnownStatistics(String tierName) {
-    Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(7);
+  private Map<String, org.terracotta.statistics.ValueStatistic<?>> createKnownStatistics(String tierName) {
+    Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics = new HashMap<>(7);
     addIfPresent(knownStatistics, tierName + ":HitCount", get, this::getHits);
     addIfPresent(knownStatistics, tierName + ":MissCount", get, this::getMisses);
     addIfPresent(knownStatistics, tierName + ":PutCount", put, this::getPuts);
     addIfPresent(knownStatistics, tierName + ":RemovalCount", remove, this::getRemovals);
 
     // These two a special because they are used by the cache so they should always be there
-    knownStatistics.put(tierName + ":EvictionCount", counter(this::getEvictions));
-    knownStatistics.put(tierName + ":ExpirationCount", counter(this::getExpirations));
+    knownStatistics.put(tierName + ":EvictionCount", ValueStatistics.counter(this::getEvictions));
+    knownStatistics.put(tierName + ":ExpirationCount", ValueStatistics.counter(this::getExpirations));
 
-    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", gauge(this::getMappings)));
-    allocatedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":AllocatedByteSize", gauge(this::getAllocatedByteSize)));
-    occupiedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":OccupiedByteSize", gauge(this::getOccupiedByteSize)));
+    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", ValueStatistics.gauge(this::getMappings)));
+    allocatedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":AllocatedByteSize", ValueStatistics.gauge(this::getAllocatedByteSize)));
+    occupiedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":OccupiedByteSize", ValueStatistics.gauge(this::getOccupiedByteSize)));
     return knownStatistics;
   }
 
@@ -108,14 +112,13 @@ public class DefaultTierStatistics implements TierStatistics {
    * @param valueSupplier the supplier that will provide the current value for the statistic
    * @param <T> type of the supplied value
    */
-  private static <T extends Number> void addIfPresent(Map<String, ValueStatistic<?>> knownStatistics, String name, OperationStatistic<?> reference, Supplier<T> valueSupplier) {
+  private static <T extends Number> void addIfPresent(Map<String, org.terracotta.statistics.ValueStatistic<?>> knownStatistics, String name, OperationStatistic<?> reference, Supplier<T> valueSupplier) {
     if(!(reference instanceof ZeroOperationStatistic)) {
-      knownStatistics.put(name, counter(valueSupplier));
+      knownStatistics.put(name, ValueStatistics.counter(valueSupplier));
     }
   }
 
-  @Override
-  public Map<String, ValueStatistic<?>> getKnownStatistics() {
+  public Map<String, org.terracotta.statistics.ValueStatistic<?>> getKnownStatistics() {
     return knownStatistics;
   }
 
@@ -127,7 +130,7 @@ public class DefaultTierStatistics implements TierStatistics {
     return StatsUtils.<OperationStatistic<T>>findStatisticOnDescendants(cache, tierName, stat).orElse(ZeroOperationStatistic.get());
   }
 
-  private Optional<ValueStatistic<Long>> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
+  private Optional<org.terracotta.statistics.ValueStatistic<Long>> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
     return findStatisticOnDescendants(cache, tierName, statName);
   }
 
@@ -195,17 +198,17 @@ public class DefaultTierStatistics implements TierStatistics {
 
   @Override
   public long getMappings() {
-    return mapping.map(ValueStatistic::value).orElse(-1L);
+    return mapping.map(org.terracotta.statistics.ValueStatistic::value).orElse(-1L);
   }
 
   @Override
   public long getAllocatedByteSize() {
-    return allocatedMemory.map(ValueStatistic::value).orElse(-1L);
+    return allocatedMemory.map(org.terracotta.statistics.ValueStatistic::value).orElse(-1L);
   }
 
   @Override
   public long getOccupiedByteSize() {
-    return occupiedMemory.map(ValueStatistic::value).orElse(-1L);
+    return occupiedMemory.map(org.terracotta.statistics.ValueStatistic::value).orElse(-1L);
   }
 
   private static class CompensatingCounters {

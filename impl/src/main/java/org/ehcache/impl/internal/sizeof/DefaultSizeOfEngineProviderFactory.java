@@ -43,8 +43,8 @@ public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOf
   }
 
   @Override
-  public Class<SizeOfEngineProvider> getServiceType() {
-    return SizeOfEngineProvider.class;
+  public Class<? extends SizeOfEngineProvider> getServiceType() {
+    return DefaultSizeOfEngineProvider.class;
   }
 
 }

@@ -28,8 +28,8 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
+import org.ehcache.management.statistics.DefaultExtendedStatisticsService;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -85,7 +85,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
           .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
         )
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-      ).using(new DefaultStatisticsService()
+      ).using(new DefaultExtendedStatisticsService()
       ).using(new DefaultClusteringManagementService()
       ).build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
@@ -107,7 +107,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
         .autoCreate(server -> server.defaultServerResource(offheap))
         // manually adding the following two services should work
-      ).using(new DefaultStatisticsService()
+      ).using(new DefaultExtendedStatisticsService()
       ).using(new DefaultClusteringManagementService()
       ).build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);

@@ -33,6 +33,7 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -760,6 +761,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   }
 
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
+  @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
   public static class Provider implements WrapperStore.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
@@ -936,11 +938,14 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
       Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?, ?>[0]));
 
       // create the XA store
+      StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
       Store<K, V> store = new XAStore<>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
-        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, serviceProvider.getService(StatisticsService.class));
+        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, statisticsService);
 
-      serviceProvider.getService(StatisticsService.class).registerWithParent(underlyingStore, store);
+      if (statisticsService != null) {
+        statisticsService.registerWithParent(underlyingStore, store);
+      }
 
       // create the softLockSerializer lifecycle helper
       SoftLockValueCombinedSerializerLifecycleHelper<V> helper =

@@ -30,8 +30,8 @@ public class DefaultManagementRegistryFactory implements ServiceFactory<Manageme
   }
 
   @Override
-  public Class<ManagementRegistryService> getServiceType() {
-    return ManagementRegistryService.class;
+  public Class<? extends ManagementRegistryService> getServiceType() {
+    return DefaultManagementRegistryService.class;
   }
 
 }

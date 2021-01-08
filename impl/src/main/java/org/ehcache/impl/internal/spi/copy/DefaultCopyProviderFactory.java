@@ -39,7 +39,7 @@ public class DefaultCopyProviderFactory implements ServiceFactory<CopyProvider> 
   }
 
   @Override
-  public Class<CopyProvider> getServiceType() {
-    return CopyProvider.class;
+  public Class<? extends CopyProvider> getServiceType() {
+    return DefaultCopyProvider.class;
   }
 }

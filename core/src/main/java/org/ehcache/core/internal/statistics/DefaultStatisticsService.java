@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.statistics;
+package org.ehcache.core.internal.statistics;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
@@ -25,48 +25,41 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.OptionalServiceDependencies;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
+import org.ehcache.core.statistics.StatisticType;
+import org.ehcache.core.statistics.ZeroOperationStatistic;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.model.stats.Statistic;
-import org.terracotta.management.model.stats.StatisticRegistry;
-import org.terracotta.management.model.stats.StatisticType;
 import org.terracotta.statistics.MappedOperationStatistic;
-import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.derived.OperationResultFilter;
-import org.terracotta.statistics.derived.latency.DefaultLatencyHistogramStatistic;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
  */
-@OptionalServiceDependencies({"org.ehcache.core.spi.service.CacheManagerProviderService"})
+@ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
 
   private final ConcurrentMap<String, DefaultCacheStatistics> cacheStatistics = new ConcurrentHashMap<>();
-  private final ConcurrentMap<String, StatisticRegistry> statisticRegistries = new ConcurrentHashMap<>();
 
   private volatile InternalCacheManager cacheManager;
-  private volatile boolean started = false;
 
+  @Override
   public CacheStatistics getCacheStatistics(String cacheName) {
     CacheStatistics stats = cacheStatistics.get(cacheName);
     if (stats == null) {
@@ -81,7 +74,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   }
 
   @Override
-  public <K, V, S extends Enum<S>, T extends Enum<T>> org.ehcache.core.statistics.OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
+  public <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> registerStoreStatistics(Store<K, V> store, String targetName, int tierHeight, String tag, Map<T, Set<S>> translation, String statisticName) {
 
     Class<S> outcomeType = getOutcomeType(translation);
 
@@ -90,10 +83,10 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
 
       MappedOperationStatistic<S, T> operationStatistic = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, tag);
       StatisticsManager.associate(operationStatistic).withParent(store);
-      org.ehcache.core.statistics.OperationStatistic<T> stat = new DelegatedMappedOperationStatistics<>(operationStatistic);
-      return stat;
+      return new DelegatedMappedOperationStatistics<>(operationStatistic);
+    } else {
+      return ZeroOperationStatistic.get();
     }
-    return ZeroOperationStatistic.get();
   }
 
   /**
@@ -106,13 +99,12 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
    */
   private static <S extends Enum<S>, T extends Enum<T>> Class<S> getOutcomeType(Map<T, Set<S>> translation) {
     Map.Entry<T, Set<S>> first = translation.entrySet().iterator().next();
-    Class<S> outcomeType = first.getValue().iterator().next().getDeclaringClass();
-    return outcomeType;
+    return first.getValue().iterator().next().getDeclaringClass();
   }
 
   @Override
-  public void deRegisterFromParent(Object toDeassociate, Object parent) {
-    StatisticsManager.dissociate(toDeassociate).fromParent(parent);
+  public void deRegisterFromParent(Object toDisassociate, Object parent) {
+    StatisticsManager.dissociate(toDisassociate).fromParent(parent);
   }
 
   @Override
@@ -121,43 +113,8 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   }
 
   @Override
-  public <K, V> void createCacheRegistry(String cacheName, Cache<K, V> cache, LongSupplier timeSource) {
-    statisticRegistries.put(cacheName, new StatisticRegistry(cache, timeSource));
-  }
-
-  @Override
-  public void registerCacheStatistics(String cacheName) {
-    cacheStatistics.get(cacheName).getKnownStatistics().forEach(statisticRegistries.get(cacheName)::registerStatistic);
-  }
-
-  @Override
-  public Collection<StatisticDescriptor> getCacheDescriptors(String cacheName) {
-    return statisticRegistries.get(cacheName).getDescriptors();
-  }
-
-  @Override
-  public <T extends Enum<T>, K, V> void registerDerivedStatistics(String cacheName, Cache<K, V> cache, String statName, T outcome, String derivedName, LatencyHistogramConfiguration configuration) {
-    DefaultLatencyHistogramStatistic histogram = new DefaultLatencyHistogramStatistic(configuration.getPhi(), configuration.getBucketCount(), configuration.getWindow());
-
-    @SuppressWarnings("unchecked")
-    Class<T> outcomeClass = (Class<T>) outcome.getClass();
-    OperationStatistic<T> stat = findOperationStatisticOnChildren(cache, outcomeClass, statName);
-    stat.addDerivedStatistic(new OperationResultFilter<>(EnumSet.of(outcome), histogram));
-
-    statisticRegistries.get(cacheName).registerStatistic(derivedName + "#50", histogram.medianStatistic());
-    statisticRegistries.get(cacheName).registerStatistic(derivedName + "#95", histogram.percentileStatistic(0.95));
-    statisticRegistries.get(cacheName).registerStatistic(derivedName + "#99", histogram.percentileStatistic(0.99));
-    statisticRegistries.get(cacheName).registerStatistic(derivedName + "#100", histogram.maximumStatistic());
-  }
-
-  @Override
-  public Map<String, Statistic<? extends Serializable>> collectStatistics(String cacheName, Collection<String> statisticNames, long since) {
-    return StatisticRegistry.collect(statisticRegistries.get(cacheName), statisticNames, since);
-  }
-
-  @Override
   public <T extends Serializable> void registerStatistic(Object context, String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
-    StatisticsManager.createPassThroughStatistic(context, name, tags, StatisticType.convert(type), valueSupplier);
+    StatisticsManager.createPassThroughStatistic(context, name, tags, convert(type), valueSupplier);
   }
 
   @Override
@@ -165,21 +122,13 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     return new DelegatingOperationObserver<>(operation(outcome).named(name).of(context).tag(tag).build());
   }
 
-  public boolean isStarted() {
-    return started;
-  }
-
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     LOGGER.debug("Starting service");
 
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
-    if (cacheManagerProviderService != null) {
-      cacheManager = cacheManagerProviderService.getCacheManager();
-      cacheManager.registerListener(this);
-    }
-
-    started = true;
+    cacheManager = cacheManagerProviderService.getCacheManager();
+    cacheManager.registerListener(this);
   }
 
   @Override
@@ -187,7 +136,6 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     LOGGER.debug("Stopping service");
     cacheManager.deregisterListener(this);
     cacheStatistics.clear();
-    started = false;
   }
 
   @Override
@@ -229,4 +177,14 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     cacheStatistics.remove(alias);
   }
 
+  private static org.terracotta.statistics.StatisticType convert(StatisticType type) {
+    switch (type) {
+      case COUNTER:
+        return org.terracotta.statistics.StatisticType.COUNTER;
+      case GAUGE:
+        return org.terracotta.statistics.StatisticType.GAUGE;
+      default:
+        throw new IllegalArgumentException("Untranslatable statistic type : " + type);
+    }
+  }
 }

@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.core.internal.statistics;
 
-package org.ehcache.core.statistics;
+import org.ehcache.core.statistics.OperationObserver;
 
-import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.osgi.service.component.annotations.Component;
+public class DelegatingOperationObserver<T extends Enum<T>> implements OperationObserver<T> {
 
-@Component
-public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
+  private final org.terracotta.statistics.observer.OperationObserver<T> observer;
 
-  @Override
-  public StatisticsService create(ServiceCreationConfiguration<StatisticsService, ?> serviceConfiguration) {
-    return new DefaultStatisticsService();
+  public DelegatingOperationObserver(org.terracotta.statistics.observer.OperationObserver<T> operationObserver) {
+    this.observer = operationObserver;
   }
 
   @Override
-  public Class<StatisticsService> getServiceType() {
-    return StatisticsService.class;
+  public void begin() {
+    this.observer.begin();
+  }
+
+  @Override
+  public void end(T result) {
+    this.observer.end(result);
   }
 }
