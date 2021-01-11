@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -367,10 +368,10 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   @Override
-  public Iterator<Chain> iterator() {
-    return new AggregateIterator<Chain>() {
+  public Iterator<Map.Entry<Long, Chain>> iterator() {
+    return new AggregateIterator<Map.Entry<Long, Chain>>() {
       @Override
-      protected Iterator<Chain> getNextIterator() {
+      protected Iterator<Map.Entry<Long, Chain>> getNextIterator() {
         return listIterator.next().iterator();
       }
     };

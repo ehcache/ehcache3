@@ -18,6 +18,7 @@ package org.ehcache.clustered.common.internal.store;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -135,5 +136,5 @@ public interface ServerStore {
    *
    * @return an chain iterator.
    */
-  Iterator<Chain> iterator() throws TimeoutException;
+  Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException;
 }

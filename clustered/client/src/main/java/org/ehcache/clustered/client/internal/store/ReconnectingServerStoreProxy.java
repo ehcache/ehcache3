@@ -25,6 +25,7 @@ import org.terracotta.exception.ConnectionShutdownException;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -105,7 +106,7 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
   }
 
   @Override
-  public Iterator<Chain> iterator() throws TimeoutException {
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
     return onStoreProxy(LockingServerStoreProxy::iterator);
   }
 
@@ -192,7 +193,7 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
     }
 
     @Override
-    public Iterator<Chain> iterator() {
+    public Iterator<Map.Entry<Long, Chain>> iterator() {
       throw new ReconnectInProgressException();
     }
 
@@ -210,12 +211,12 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
   private LockingServerStoreProxy unsupportedLocking(ServerStoreProxy serverStoreProxy) {
     return new LockingServerStoreProxy() {
       @Override
-      public ChainEntry lock(long hash) throws TimeoutException {
+      public ChainEntry lock(long hash) {
         throw new UnsupportedOperationException("Lock ops are not supported");
       }
 
       @Override
-      public void unlock(long hash, boolean localonly) throws TimeoutException {
+      public void unlock(long hash, boolean localonly) {
         throw new UnsupportedOperationException("Lock ops are not supported");
       }
 
@@ -260,7 +261,7 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
       }
 
       @Override
-      public Iterator<Chain> iterator() throws TimeoutException {
+      public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
         return serverStoreProxy.iterator();
       }
     };

@@ -17,6 +17,7 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +36,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
-public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
+public class OffHeapChainMap<K> implements MapInternals, Iterable<Map.Entry<K, Chain>> {
 
   interface ChainMapEvictionListener<K> {
     void onEviction(K key, InternalChain evictedChain);
@@ -239,26 +240,27 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
   }
 
   @Override
-  public Iterator<Chain> iterator() {
+  public Iterator<Map.Entry<K, Chain>> iterator() {
     Iterator<Map.Entry<K, InternalChain>> headsIterator = heads.detachedEntryIterator();
 
-    return new Iterator<Chain>() {
+    return new Iterator<Map.Entry<K, Chain>>() {
       @Override
       public boolean hasNext() {
         return headsIterator.hasNext();
       }
 
       @Override
-      public Chain next() {
+      public Map.Entry<K, Chain> next() {
         final Lock lock = heads.readLock();
         lock.lock();
         try {
-          InternalChain chain = headsIterator.next().getValue();
+          Map.Entry<K, InternalChain> entry = headsIterator.next();
+          InternalChain chain = entry.getValue();
           if (chain == null) {
-            return EMPTY_CHAIN;
+            return new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), EMPTY_CHAIN);
           } else {
             try {
-              return chain.detach();
+              return new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), chain.detach());
             } finally {
               chain.close();
             }

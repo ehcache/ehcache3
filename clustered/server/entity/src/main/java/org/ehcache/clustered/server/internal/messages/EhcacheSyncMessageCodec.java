@@ -180,7 +180,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
       syncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
         entryEncoder.int64(KEY_FIELD, entry.getKey());
-        entryEncoder.struct(CHAIN_FIELD, entry.getValue(), ChainCodec::encode);
+        entryEncoder.struct(CHAIN_FIELD, entry.getValue(), ChainCodec::encodeChain);
       });
     return encoder.encode().array();
   }
@@ -273,7 +273,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
         StructDecoder<?> entryDecoder = entriesDecoder.next();
         Long key = entryDecoder.int64(KEY_FIELD);
         StructDecoder<?> chainDecoder = entryDecoder.struct(CHAIN_FIELD);
-        Chain chain = ChainCodec.decode(chainDecoder);
+        Chain chain = ChainCodec.decodeChain(chainDecoder);
         chainMap.put(key, chain);
         entryDecoder.end();
       }

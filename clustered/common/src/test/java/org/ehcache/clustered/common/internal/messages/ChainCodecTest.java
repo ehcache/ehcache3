@@ -19,8 +19,12 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.junit.Test;
+import org.terracotta.runnel.encoding.StructEncoder;
 
+import java.nio.ByteBuffer;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
+import java.util.Map;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
@@ -42,7 +46,7 @@ public class ChainCodecTest {
     assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = ChainCodec.decodeChain(ChainCodec.encodeChain(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
@@ -59,7 +63,7 @@ public class ChainCodecTest {
     assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = ChainCodec.decodeChain(ChainCodec.encodeChain(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
@@ -76,7 +80,7 @@ public class ChainCodecTest {
     assertThat(chain.isEmpty(), is(false));
     assertThat(chain, hasPayloads(1L, 2L, 3L));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = ChainCodec.decodeChain(ChainCodec.encodeChain(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     assertThat(decoded, hasPayloads(1L, 2L, 3L));
@@ -89,7 +93,7 @@ public class ChainCodecTest {
     assertThat(chain.isEmpty(), is(false));
     assertThat(chain, hasPayloads(1L, 2L, 3L));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = ChainCodec.decodeChain(ChainCodec.encodeChain(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     assertThat(decoded, hasPayloads(1L, 2L, 3L));
@@ -99,8 +103,85 @@ public class ChainCodecTest {
 
   @Test
   public void testEmptyChain() {
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chainOf()));
+    Chain decoded = ChainCodec.decodeChain(ChainCodec.encodeChain(chainOf()));
 
     assertThat(decoded.isEmpty(), is(true));
+  }
+
+  @Test
+  public void testChainEntryWithSingleElement() {
+    SimpleImmutableEntry<Long, Chain> entry = new SimpleImmutableEntry<>(42L, chainOf(createPayload(1L)));
+    StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
+    ChainCodec.encodeChainEntry(encoder, entry);
+
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+
+
+    assertThat(decoded.getKey(), is(42L));
+    assertThat(decoded.getValue().isEmpty(), is(false));
+    Iterator<Element> chainIterator = decoded.getValue().iterator();
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
+    assertThat(chainIterator.hasNext(), is(false));
+  }
+
+  @Test
+  public void testChainEntryWithSingleSequencedElement() {
+    Chain chain = sequencedChainOf(createPayload(1L));
+    SimpleImmutableEntry<Long, Chain> entry = new SimpleImmutableEntry<>(43L, chain);
+    StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
+    ChainCodec.encodeChainEntry(encoder, entry);
+
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+
+    assertThat(decoded.getKey(), is(43L));
+    assertThat(decoded.getValue().isEmpty(), is(false));
+    Iterator<Element> chainIterator = decoded.getValue().iterator();
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
+    assertThat(chainIterator.hasNext(), is(false));
+
+    assertThat(decoded.getValue(), sameSequenceAs(chain));
+  }
+
+  @Test
+  public void testChainEntryWithMultipleElements() {
+    Chain chain = chainOf(createPayload(1L), createPayload(2L), createPayload(3L));
+    SimpleImmutableEntry<Long, Chain> entry = new SimpleImmutableEntry<>(44L, chain);
+    StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
+    ChainCodec.encodeChainEntry(encoder, entry);
+
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+
+    assertThat(decoded.getKey(), is(44L));
+    assertThat(decoded.getValue().isEmpty(), is(false));
+    assertThat(decoded.getValue(), hasPayloads(1L, 2L, 3L));
+  }
+
+  @Test
+  public void testChainEntryWithMultipleSequencedElements() {
+    Chain chain = sequencedChainOf(createPayload(1L), createPayload(2L), createPayload(3L));
+    SimpleImmutableEntry<Long, Chain> entry = new SimpleImmutableEntry<>(45L, chain);
+    StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
+    ChainCodec.encodeChainEntry(encoder, entry);
+
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+
+    assertThat(decoded.getKey(), is(45L));
+    assertThat(decoded.getValue().isEmpty(), is(false));
+    assertThat(decoded.getValue(), hasPayloads(1L, 2L, 3L));
+
+    assertThat(decoded.getValue(), sameSequenceAs(chain));
+  }
+
+  @Test
+  public void testEmptyChainEntry() {
+    Chain chain = chainOf();
+    SimpleImmutableEntry<Long, Chain> entry = new SimpleImmutableEntry<>(46L, chain);
+    StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
+    ChainCodec.encodeChainEntry(encoder, entry);
+
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+
+    assertThat(decoded.getKey(), is(46L));
+    assertThat(decoded.getValue().isEmpty(), is(true));
   }
 }

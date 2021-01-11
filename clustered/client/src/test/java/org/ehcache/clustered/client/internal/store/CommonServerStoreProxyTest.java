@@ -29,6 +29,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -398,7 +399,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     ClusterTierClientEntity clientEntity = createClientEntity("testEmptyStoreIteratorIsEmpty", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testEmptyStoreIteratorIsEmpty", clientEntity, mock(ServerCallback.class));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(false));
     try {
@@ -416,10 +417,12 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     serverStoreProxy.append(1L, createPayload(42L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(true));
-    assertThat(iterator.next(), hasPayloads(42L));
+    Map.Entry<Long, Chain> next = iterator.next();
+    assertThat(next.getKey(), is(1L));
+    assertThat(next.getValue(), hasPayloads(42L));
     assertThat(iterator.hasNext(), is(false));
     try {
       iterator.next();
@@ -437,10 +440,12 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(1L, createPayload(42L));
     serverStoreProxy.append(1L, createPayload(43L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(true));
-    assertThat(iterator.next(), hasPayloads(42L, 43L));
+    Map.Entry<Long, Chain> next = iterator.next();
+    assertThat(next.getKey(), is(1L));
+    assertThat(next.getValue(), hasPayloads(42L, 43L));
     assertThat(iterator.hasNext(), CoreMatchers.is(false));
     try {
       iterator.next();
@@ -458,23 +463,23 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(1L, createPayload(42L));
     serverStoreProxy.append(2L, createPayload(43L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     Matcher<Chain> chainOne = hasPayloads(42L);
     Matcher<Chain> chainTwo = hasPayloads(43L);
 
     assertThat(iterator.hasNext(), CoreMatchers.is(true));
 
-    Chain next = iterator.next();
+    Chain next = iterator.next().getValue();
     assertThat(next, either(chainOne).or(chainTwo));
 
     if (chainOne.matches(next)) {
       assertThat(iterator.hasNext(), is(true));
-      assertThat(iterator.next(), is(chainTwo));
+      assertThat(iterator.next().getValue(), is(chainTwo));
       assertThat(iterator.hasNext(), is(false));
     } else {
       assertThat(iterator.hasNext(), is(true));
-      assertThat(iterator.next(), is(chainOne));
+      assertThat(iterator.next().getValue(), is(chainOne));
       assertThat(iterator.hasNext(), is(false));
     }
 

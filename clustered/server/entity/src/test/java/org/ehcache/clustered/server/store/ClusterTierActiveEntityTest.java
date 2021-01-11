@@ -84,6 +84,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.entry;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -1018,7 +1019,10 @@ public class ClusterTierActiveEntityTest {
     EhcacheEntityResponse.IteratorBatch iteratorBatch = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.IteratorOpenMessage(Integer.MAX_VALUE));
 
     assertThat(iteratorBatch.isLast(), is(true));
-    assertThat(iteratorBatch.getChains(), containsInAnyOrder(hasPayloads(1L, 2L), hasPayloads(3L, 4L)));
+    assertThat(iteratorBatch.getChains(), containsInAnyOrder(
+      entry(is(1L), hasPayloads(1L, 2L)),
+      entry(is(2L), hasPayloads(3L, 4L))
+    ));
 
     assertThat(activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.IteratorAdvanceMessage(iteratorBatch.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
   }
@@ -1041,8 +1045,8 @@ public class ClusterTierActiveEntityTest {
 
     EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.IteratorOpenMessage(1));
 
-    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
-    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+    Matcher<Map.Entry<Long, Chain>> chainOne = entry(is(1L), hasPayloads(1L, 2L));
+    Matcher<Map.Entry<Long, Chain>> chainTwo = entry(is(2L), hasPayloads(3L, 4L));
 
     assertThat(batchOne.isLast(), is(false));
     assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
@@ -1076,8 +1080,8 @@ public class ClusterTierActiveEntityTest {
 
     EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.IteratorOpenMessage(1));
 
-    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
-    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+    Matcher<Map.Entry<Long, Chain>> chainOne = entry(is(1L), hasPayloads(1L, 2L));
+    Matcher<Map.Entry<Long, Chain>> chainTwo = entry(is(2L), hasPayloads(3L, 4L));
 
     assertThat(batchOne.isLast(), is(false));
     assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
