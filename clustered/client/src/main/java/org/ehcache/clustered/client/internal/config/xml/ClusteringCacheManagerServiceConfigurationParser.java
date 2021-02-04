@@ -151,7 +151,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
               final NodeList serverNodes = item.getChildNodes();
               for (int j = 0; j < serverNodes.getLength(); j++) {
                 final Node serverNode = serverNodes.item(j);
-                final String host = JaxbParsers.parsePropertyOrString(((Element)serverNode).getAttributeNode(HOST_ATTRIBUTE_NAME).getValue());
+                final String host = JaxbParsers.parsePropertyOrString(((Element)serverNode).getAttributeNode(HOST_ATTRIBUTE_NAME).getValue().trim());
                 final Attr port = ((Element)serverNode).getAttributeNode(PORT_ATTRIBUTE_NAME);
                 InetSocketAddress address;
                 if (port == null) {

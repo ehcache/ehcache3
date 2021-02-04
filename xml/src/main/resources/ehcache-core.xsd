@@ -676,7 +676,7 @@
 
   <xs:simpleType name="propertyReference">
     <xs:restriction base="xs:string">
-      <xs:pattern value="\s*\$\{[^{}]+\}\s*"/>
+      <xs:pattern value="\s*$\{[^{}]+\}\s*"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>

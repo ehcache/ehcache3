@@ -47,16 +47,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.helpers.DefaultValidationEventHandler;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 
+import static org.ehcache.xml.ConfigurationParser.newSchema;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 
 public class ResourceConfigurationParser {
@@ -64,9 +64,8 @@ public class ResourceConfigurationParser {
   private static final ObjectFactory OBJECT_FACTORY = new ObjectFactory();
   private static final Schema CORE_SCHEMA;
   static {
-    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
     try {
-      CORE_SCHEMA = schemaFactory.newSchema(CORE_SCHEMA_URL);
+      CORE_SCHEMA = newSchema(new StreamSource(CORE_SCHEMA_URL.toExternalForm()));
     } catch (Exception e) {
       throw new AssertionError(e);
     }

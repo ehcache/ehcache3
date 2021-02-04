@@ -92,6 +92,7 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
+import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -255,10 +256,11 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
       fail();
-    } catch (XmlConfigurationException xce) {
-      SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(5));
-      assertThat(e.getColumnNumber(), is(29));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getCause().getMessage(),
+        either(containsString("'ehcache:cach'"))
+          .or(containsString("'{\"http://www.ehcache.org/v3\":cach}'"))
+          .or(containsString("<Q{.../v3}cach>")));
     }
   }
 
@@ -267,10 +269,11 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
       fail();
-    } catch (XmlConfigurationException xce) {
-      SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(6));
-      assertThat(e.getColumnNumber(), is(15));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getCause().getMessage(),
+        either(containsString("'foo:bar'"))
+          .or(containsString("'{\"http://www.example.com/foo\":bar}'"))
+          .or(containsString("<Q{.../foo}bar>")));
     }
   }
 

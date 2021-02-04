@@ -37,15 +37,20 @@ import org.osgi.framework.wiring.BundleWiring;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 
@@ -61,6 +66,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.osgi.ClusterSupport.startServer;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.xml.ConfigurationParser.discoverSchema;
+import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -142,9 +149,18 @@ public class ClusteredOsgiTest {
     public static void testXmlClusteredCache(ClusterSupport.Cluster cluster) throws Exception {
       File config = cluster.getWorkingArea().resolve("ehcache.xml").toFile();
 
-      Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(TestMethods.class.getResourceAsStream("ehcache-clustered-osgi.xml"));
+      DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+      documentBuilderFactory.setNamespaceAware(true);
+      documentBuilderFactory.setSchema(discoverSchema(new StreamSource(CORE_SCHEMA_URL.openStream())));
+
+      Document doc = documentBuilderFactory.newDocumentBuilder().parse(TestMethods.class.getResourceAsStream("ehcache-clustered-osgi.xml"));
+
       XPath xpath = XPathFactory.newInstance().newXPath();
-      Node clusterUriAttribute = (Node) xpath.evaluate("//config/service/cluster/connection/@url", doc, XPathConstants.NODE);
+      xpath.setNamespaceContext(new SimpleNamespaceContext()
+        .with("eh", "http://www.ehcache.org/v3")
+        .with("tc", "http://www.ehcache.org/v3/clustered"));
+
+      Node clusterUriAttribute = (Node) xpath.evaluate("//eh:config/eh:service/tc:cluster/tc:connection/@url", doc, XPathConstants.NODE);
       clusterUriAttribute.setTextContent(cluster.getConnectionUri().toString() + "/cache-manager");
       Transformer xformer = TransformerFactory.newInstance().newTransformer();
       xformer.transform(new DOMSource(doc), new StreamResult(config));
@@ -178,4 +194,30 @@ public class ClusteredOsgiTest {
       assertThat(osgiAvailableClasses, hasItems(jdkAvailableClasses.toArray(new String[0])));
     }
   }
+
+  static class SimpleNamespaceContext implements NamespaceContext {
+
+    public final Map<String, String> prefixes = new HashMap<>();
+
+    public SimpleNamespaceContext with(String prefix, String namespaceUri) {
+      prefixes.put(prefix, namespaceUri);
+      return this;
+    }
+
+    @Override
+    public String getNamespaceURI(String prefix) {
+      return prefixes.get(prefix);
+    }
+
+    @Override
+    public String getPrefix(String namespaceURI) {
+      return prefixes.entrySet().stream().filter(e -> namespaceURI.equals(e.getValue()))
+        .map(Map.Entry::getKey).findFirst().orElse(null);
+    }
+
+    @Override
+    public Iterator<String> getPrefixes(String namespaceURI) {
+      return prefixes.keySet().iterator();
+    }
+  };
 }
