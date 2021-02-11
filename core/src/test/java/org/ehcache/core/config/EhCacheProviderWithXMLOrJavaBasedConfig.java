@@ -1,4 +1,4 @@
-package com.adazes.contribution.ehcache.issue;
+package org.ehcache.core.config;
 
 import java.io.File;
 import java.net.URL;

@@ -1,4 +1,4 @@
-package com.adazes.contribution.ehcache.issue;
+package org.ehcache.core.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
