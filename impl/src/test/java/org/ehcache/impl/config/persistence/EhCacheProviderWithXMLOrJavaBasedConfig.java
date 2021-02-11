@@ -1,4 +1,4 @@
-package org.ehcache.core.config;
+package org.ehcache.impl.config.persistence;
 
 import java.io.File;
 import java.net.URL;
@@ -18,17 +18,21 @@ import org.ehcache.xml.XmlConfiguration;
 public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	private static final String PERSISTENCE_DIRECTORY = "/temp/ehcache";
 	private static final String CACHE_ALIAS = "bugReportCache";
-	private static final String XML_CONFIG_PATH = "/ehcache-dir-persistence-test.xml";
+	private static final String XML_CONFIG_PATH
+		= "/org/ehcache/impl/config/persistence/ehcache-dir-persistence-test.xml";
 
 	/**
-	 * For restoration of cache after process termination this has to be false so that Java API config is used.
-	 * Then, the following file is persisted when manager is closed, which allows to restart a cache with previous
+	 * For restoration of cache after process termination this has to be false so that Java API
+	 * config is used.
+	 * Then, the following file is persisted when manager is closed, which allows to restart a
+	 * cache with previous
 	 * mappings:
 	 * -rw-rw-r-- 1 resat resat	697 Fev 10 20:29 ehcache-disk-store.index
 	 * If the data is recovered, the following is logged:
-	 * Feb 10, 2021 8:41:15 PM org.ehcache.impl.internal.store.disk.OffHeapDiskStore recoverBackingMap
-		INFO: The index for data file ehcache-disk-store.data is more recent than the data file itself by 345ms :
-			this is harmless.
+	 * Feb 10, 2021 8:41:15 PM org.ehcache.impl.internal.store.disk.OffHeapDiskStore
+	 *  recoverBackingMap
+			INFO: The index for data file ehcache-disk-store.data is more recent than the data file
+				itself by 345ms : this is harmless.
 	 */
 	protected static final boolean USE_XML_BASED_CONFIG = false;
 
