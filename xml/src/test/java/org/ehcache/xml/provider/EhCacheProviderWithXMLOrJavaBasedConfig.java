@@ -25,8 +25,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	 * For restoration of cache after process termination this has to be false so that Java API
 	 * config is used.
 	 * Then, the following file is persisted when manager is closed, which allows to restart a
-	 * cache with previous
-	 * mappings:
+	 * cache with previous mappings:
 	 * -rw-rw-r-- 1 resat resat	697 Fev 10 20:29 ehcache-disk-store.index
 	 * If the data is recovered, the following is logged:
 	 * Feb 10, 2021 8:41:15 PM org.ehcache.impl.internal.store.disk.OffHeapDiskStore
