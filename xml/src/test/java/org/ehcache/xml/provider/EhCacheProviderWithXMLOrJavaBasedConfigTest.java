@@ -31,9 +31,13 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
 	private static final String SPACE = " ";
+	private static boolean AVOID_REPORTING_2_ERRORS_PER_TEST = true;
 
-	private boolean useXmlBaseConfig;
+	private boolean useXmlBasedConfig;
+	private boolean assertRecoveryFromDisk;
+
 	private EhCacheProviderWithXMLOrJavaBasedConfig ehCacheProvider;
+	private boolean ok;
 
 	static Stream<Path> getPersistenceDirectoryListing(String subfolder) throws IOException {
 		String path = EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath();
@@ -42,46 +46,56 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 		return Files.list(Paths.get(path));
 	}
 
-
-	@Parameters(name = "{index}: useXmlBasedConfig = {0}")
-	public static Collection<Boolean> data() {
+	@Parameters(name = "{index}: xmlBasedConfig = {0}, recoveryFromDisk = {1}")
+	public static Collection<Boolean[]> data() {
 		return Arrays.asList(
-			Boolean.TRUE, /* comment out this line & run (twice) to check 
-						  /*	OffHeapDiskStore recoverBackingMap functionality */
-			Boolean.FALSE);
+			new Boolean[][] {
+				{Boolean.TRUE, Boolean.FALSE},	{Boolean.TRUE, Boolean.TRUE},
+				{Boolean.FALSE, Boolean.FALSE},	{Boolean.FALSE, Boolean.TRUE}
+			}
+		);
 	}
 
 	@After
-	public void afterEach() throws IOException, InterruptedException {
+	public void afterEach() throws IOException {
 		PersistentCacheManager cm = ehCacheProvider.getEhCacheManager();
 		cm.close();
-		assertTrue(getPersistenceDirectoryListing(null).count() > 0);
-		long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
-		if (logger.isLoggable(Level.INFO))
-			logger.info("fileDirListingSize: " +fileDirListingSize);
-		assertTrue(fileDirListingSize > 0);
+		if (ok || !AVOID_REPORTING_2_ERRORS_PER_TEST) {
+			assertTrue(getPersistenceDirectoryListing(null).count() > 0);
+			long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
+			if (logger.isLoggable(Level.INFO))
+				logger.info("fileDirListingSize: " +fileDirListingSize);
+			assertTrue("disk persistence directory shouldn't have been empty (fix for issue #2876 needed)",
+					fileDirListingSize > 0);
+		}
 	}
 
 	/**
-	 * @param useXmlBaseConfig
+	 * @param useXmlBasedConfig	true to use XML-based config, false to use Java-based one
+	 * @param recoveryFromDisk	true to assert successful recovery from disk, false otherwise
 	 */
-	public EhCacheProviderWithXMLOrJavaBasedConfigTest(Boolean useXmlBaseConfig) {
-		this.useXmlBaseConfig = useXmlBaseConfig;
+	public EhCacheProviderWithXMLOrJavaBasedConfigTest(Boolean xmlBasedConfig, Boolean recoveryFromDisk) {
+		this.useXmlBasedConfig = xmlBasedConfig;
+		this.assertRecoveryFromDisk = recoveryFromDisk;
 	}
 
 	@Test
-	public final void testEhCachePutAndGet() {
-		doEhCachePutAndGet();
+	public final void testPutAndGet() {
+		doPutAndGet();
 	}
 
-	private final void doEhCachePutAndGet() {
-		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBaseConfig);
+	private final void doPutAndGet() {
+		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBasedConfig);
 		Cache<String, String> cache = ehCacheProvider.getEhCache();
+
 		if (logger.isLoggable(Level.WARNING))
 			logger.warning("On 2nd execution using the same config type,"
 				" true with Java-based config, false with XML-based one: "
 					+cache.containsKey(KEY_VALUE_PAIRS[1][0])
 					+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
+		if (assertRecoveryFromDisk)
+			assertEquals("cache data should've been recovered from disk (fix for issue #2876 needed)",
+					KEY_VALUE_PAIRS[1][1], cache.get(KEY_VALUE_PAIRS[1][0]));
 
 		// put:
 		cache.put(KEY_VALUE_PAIRS[0][0], KEY_VALUE_PAIRS[0][1]);
@@ -105,5 +119,6 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 			logger.info("Got 2 entries: " +cache.containsKey(KEY_VALUE_PAIRS[1][0]));
 
 		assertEquals(KEY_VALUE_PAIRS[0][1], cache.get(KEY_VALUE_PAIRS[0][0]));
+		ok = true;
 	}
 }

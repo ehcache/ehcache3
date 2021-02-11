@@ -33,7 +33,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 			INFO: The index for data file ehcache-disk-store.data is more recent than the data file
 				itself by 345ms : this is harmless.
 	 */
-	protected static final boolean USE_XML_BASED_CONFIG = false;
+	private static final boolean USE_XML_BASED_CONFIG = false;
 
 	private PersistentCacheManager ehCacheManager;
 	private Cache<String, String> cache;
