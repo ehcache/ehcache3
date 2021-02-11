@@ -11,7 +11,7 @@
 		<ehcache:value-type>java.lang.String</ehcache:value-type>
 		<ehcache:resources>
 			<ehcache:heap unit="entries">1</ehcache:heap>
-			<ehcache:disk unit="MB">10</ehcache:disk>
+			<ehcache:disk unit="MB" persistent="true">10</ehcache:disk>
 		</ehcache:resources>
 	</ehcache:cache>
 </ehcache:config>

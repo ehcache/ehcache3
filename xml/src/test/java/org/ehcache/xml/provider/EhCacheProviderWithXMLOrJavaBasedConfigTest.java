@@ -31,13 +31,12 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
 	private static final String SPACE = " ";
-	private static boolean AVOID_REPORTING_2_ERRORS_PER_TEST = true;
 
 	private boolean useXmlBasedConfig;
 	private boolean assertRecoveryFromDisk;
 
 	private EhCacheProviderWithXMLOrJavaBasedConfig ehCacheProvider;
-	private boolean ok;
+
 
 	static Stream<Path> getPersistenceDirectoryListing(String subfolder) throws IOException {
 		String path = EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath();
@@ -60,14 +59,11 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	public void afterEach() throws IOException {
 		PersistentCacheManager cm = ehCacheProvider.getEhCacheManager();
 		cm.close();
-		if (ok || !AVOID_REPORTING_2_ERRORS_PER_TEST) {
-			assertTrue(getPersistenceDirectoryListing(null).count() > 0);
-			long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
-			if (logger.isLoggable(Level.INFO))
-				logger.info("fileDirListingSize: " +fileDirListingSize);
-			assertTrue("disk persistence directory shouldn't have been empty (fix for issue #2876 needed)",
-					fileDirListingSize > 0);
-		}
+		assertTrue(getPersistenceDirectoryListing(null).count() > 0);
+		long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
+		if (logger.isLoggable(Level.INFO))
+			logger.info("fileDirListingSize: " +fileDirListingSize);
+		assertTrue("disk persistence directory shouldn't have been empty", fileDirListingSize > 0);
 	}
 
 	/**
@@ -90,11 +86,11 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 
 		if (logger.isLoggable(Level.WARNING))
 			logger.warning("On 2nd execution using the same config type,"
-				" true with Java-based config, false with XML-based one: "
+				+ " true with Java-based config, false with XML-based one: "
 					+cache.containsKey(KEY_VALUE_PAIRS[1][0])
 					+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
 		if (assertRecoveryFromDisk)
-			assertEquals("cache data should've been recovered from disk (fix for issue #2876 needed)",
+			assertEquals("cache data should've been recovered from disk",
 					KEY_VALUE_PAIRS[1][1], cache.get(KEY_VALUE_PAIRS[1][0]));
 
 		// put:
@@ -119,6 +115,5 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 			logger.info("Got 2 entries: " +cache.containsKey(KEY_VALUE_PAIRS[1][0]));
 
 		assertEquals(KEY_VALUE_PAIRS[0][1], cache.get(KEY_VALUE_PAIRS[0][0]));
-		ok = true;
 	}
 }
