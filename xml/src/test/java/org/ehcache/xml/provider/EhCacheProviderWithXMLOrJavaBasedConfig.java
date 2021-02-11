@@ -1,4 +1,4 @@
-package org.ehcache.impl.config.persistence;
+package org.ehcache.xml.provider;
 
 import java.io.File;
 import java.net.URL;
@@ -19,7 +19,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	private static final String PERSISTENCE_DIRECTORY = "/temp/ehcache";
 	private static final String CACHE_ALIAS = "bugReportCache";
 	private static final String XML_CONFIG_PATH
-		= "/org/ehcache/impl/config/persistence/ehcache-dir-persistence-test.xml";
+		= "/configs/disk-persistent-cache-with-heap-of-1-entry.xml";
 
 	/**
 	 * For restoration of cache after process termination this has to be false so that Java API

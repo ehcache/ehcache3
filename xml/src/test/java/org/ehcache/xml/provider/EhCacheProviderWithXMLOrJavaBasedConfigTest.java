@@ -1,4 +1,4 @@
-package org.ehcache.impl.config.persistence;
+package org.ehcache.xml.provider;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -14,7 +14,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.StringUtils;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.junit.After;
@@ -31,6 +30,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private static final Logger logger = Logger.getLogger(EhCacheProviderWithXMLOrJavaBasedConfigTest.class.getName());
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
+	private static final String SPACE = " ";
 
 	private boolean useXmlBaseConfig;
 	private EhCacheProviderWithXMLOrJavaBasedConfig ehCacheProvider;
@@ -39,7 +39,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	public void afterEach() throws IOException, InterruptedException {
 		PersistentCacheManager cm = ehCacheProvider.getEhCacheManager();
 		cm.close();
-		assertTrue(getPersistenceDirectoryListing(StringUtils.EMPTY).count() > 0);
+		assertTrue(getPersistenceDirectoryListing(null).count() > 0);
 		long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
 		if (logger.isLoggable(Level.INFO))
 			logger.info("fileDirListingSize: " +fileDirListingSize);
@@ -48,7 +48,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 
 	static Stream<Path> getPersistenceDirectoryListing(String subfolder) throws IOException {
 		String path = EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath();
-		if (StringUtils.isNotBlank(subfolder))
+		if (subfolder != null)
 			path += subfolder;
 		return Files.list(Paths.get(path));
 	}
@@ -85,8 +85,8 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 
 		String filesList = null;
 		try {
-			filesList = getPersistenceDirectoryListing(StringUtils.EMPTY).map(p -> p.getFileName())
-				.map(Object::toString).collect(Collectors.joining(StringUtils.SPACE));
+			filesList = getPersistenceDirectoryListing(null).map(p -> p.getFileName())
+				.map(Object::toString).collect(Collectors.joining(SPACE));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
