@@ -74,7 +74,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private final void doEhCachePutAndGet() {
 		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBaseConfig);
 		Cache<String, String> cache = ehCacheProvider.getEhCache();
-		if (logger.isLoggable(Level.INFO))
+		if (logger.isLoggable(Level.WARNING))
 			logger.warning("On 2nd execution using the same config type, true with Java-based config,"
 					+" false with XML-based one: "
 						+cache.containsKey(KEY_VALUE_PAIRS[1][0])+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
