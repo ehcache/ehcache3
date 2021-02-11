@@ -21,20 +21,6 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	private static final String XML_CONFIG_PATH
 		= "/configs/disk-persistent-cache-with-heap-of-1-entry.xml";
 
-	/**
-	 * For restoration of cache after process termination this has to be false so that Java API
-	 * config is used.
-	 * Then, the following file is persisted when manager is closed, which allows to restart a
-	 * cache with previous mappings:
-	 * -rw-rw-r-- 1 resat resat	697 Fev 10 20:29 ehcache-disk-store.index
-	 * If the data is recovered, the following is logged:
-	 * Feb 10, 2021 8:41:15 PM org.ehcache.impl.internal.store.disk.OffHeapDiskStore
-	 *  recoverBackingMap
-			INFO: The index for data file ehcache-disk-store.data is more recent than the data file
-				itself by 345ms : this is harmless.
-	 */
-	private static final boolean USE_XML_BASED_CONFIG = false;
-
 	private PersistentCacheManager ehCacheManager;
 	private Cache<String, String> cache;
 
@@ -62,10 +48,16 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 		return persistentCacheManager;
 	}
 
+	/*
+	 * Construct using Java-API-based config
+	 */
 	EhCacheProviderWithXMLOrJavaBasedConfig() {
-		this(USE_XML_BASED_CONFIG);
+		this(false);
 	}
 
+	/**
+	 * @param	useXmlBasedConfig	true to use XML-based config, false to use Java-API-based one
+	 */
 	EhCacheProviderWithXMLOrJavaBasedConfig(boolean useXmlBasedConfig) {
 		if (useXmlBasedConfig) {
 			ehCacheManager = initCacheManagerFromXMLConfig();
