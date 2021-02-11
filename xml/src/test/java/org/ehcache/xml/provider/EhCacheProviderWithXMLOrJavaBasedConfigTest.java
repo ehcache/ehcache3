@@ -35,17 +35,6 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private boolean useXmlBaseConfig;
 	private EhCacheProviderWithXMLOrJavaBasedConfig ehCacheProvider;
 
-	@After
-	public void afterEach() throws IOException, InterruptedException {
-		PersistentCacheManager cm = ehCacheProvider.getEhCacheManager();
-		cm.close();
-		assertTrue(getPersistenceDirectoryListing(null).count() > 0);
-		long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
-		if (logger.isLoggable(Level.INFO))
-			logger.info("fileDirListingSize: " +fileDirListingSize);
-		assertTrue(fileDirListingSize > 0);
-	}
-
 	static Stream<Path> getPersistenceDirectoryListing(String subfolder) throws IOException {
 		String path = EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath();
 		if (subfolder != null)
@@ -56,7 +45,21 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 
 	@Parameters(name = "{index}: useXmlBasedConfig = {0}")
 	public static Collection<Boolean> data() {
-		return Arrays.asList(Boolean.TRUE, Boolean.FALSE);
+		return Arrays.asList(
+			Boolean.TRUE, /* comment out this line & run (twice) to check 
+						  /*	OffHeapDiskStore recoverBackingMap functionality */
+			Boolean.FALSE);
+	}
+
+	@After
+	public void afterEach() throws IOException, InterruptedException {
+		PersistentCacheManager cm = ehCacheProvider.getEhCacheManager();
+		cm.close();
+		assertTrue(getPersistenceDirectoryListing(null).count() > 0);
+		long fileDirListingSize = getPersistenceDirectoryListing("/file").count();
+		if (logger.isLoggable(Level.INFO))
+			logger.info("fileDirListingSize: " +fileDirListingSize);
+		assertTrue(fileDirListingSize > 0);
 	}
 
 	/**
@@ -75,9 +78,10 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBaseConfig);
 		Cache<String, String> cache = ehCacheProvider.getEhCache();
 		if (logger.isLoggable(Level.WARNING))
-			logger.warning("On 2nd execution using the same config type, true with Java-based config,"
-					+" false with XML-based one: "
-						+cache.containsKey(KEY_VALUE_PAIRS[1][0])+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
+			logger.warning("On 2nd execution using the same config type,"
+				" true with Java-based config, false with XML-based one: "
+					+cache.containsKey(KEY_VALUE_PAIRS[1][0])
+					+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
 
 		// put:
 		cache.put(KEY_VALUE_PAIRS[0][0], KEY_VALUE_PAIRS[0][1]);
