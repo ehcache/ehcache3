@@ -28,7 +28,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
-	private static final String SPACE = " ";
 
 	private boolean useXmlBasedConfig;
 	private boolean assertRecoveryFromDisk;
