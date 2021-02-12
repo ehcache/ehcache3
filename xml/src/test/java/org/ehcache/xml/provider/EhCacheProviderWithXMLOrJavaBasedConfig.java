@@ -29,8 +29,8 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	}
 
 	static PersistentCacheManager initCacheManagerFromXMLConfig() {
-		URL myUrl = EhCacheProviderWithXMLOrJavaBasedConfig.class.getResource(XML_CONFIG_PATH);
-		XmlConfiguration xmlConfig = new XmlConfiguration(myUrl); 
+		URL url = EhCacheProviderWithXMLOrJavaBasedConfig.class.getResource(XML_CONFIG_PATH);
+		XmlConfiguration xmlConfig = new XmlConfiguration(url); 
 		return (PersistentCacheManager)CacheManagerBuilder.newCacheManager(xmlConfig);
 	}
 
