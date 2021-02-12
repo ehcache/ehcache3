@@ -84,11 +84,6 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBasedConfig);
 		Cache<String, String> cache = ehCacheProvider.getEhCache();
 
-		if (logger.isLoggable(Level.WARNING))
-			logger.warning("On 2nd execution using the same config type,"
-				+ " true with Java-based config, false with XML-based one: "
-					+cache.containsKey(KEY_VALUE_PAIRS[1][0])
-					+ " (" +cache.get(KEY_VALUE_PAIRS[1][0])+ ')');
 		if (assertRecoveryFromDisk)
 			assertEquals("cache data should've been recovered from disk",
 					KEY_VALUE_PAIRS[1][1], cache.get(KEY_VALUE_PAIRS[1][0]));
