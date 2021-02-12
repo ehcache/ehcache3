@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +30,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
+	private static final Logger logger = Logger.getLogger(EhCacheProviderWithXMLOrJavaBasedConfigTest.class.getName());
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
 	private static final boolean DELETE_PERSISTENCE_DIR_AFTER_CLASS = true;
@@ -50,8 +52,9 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 				.sorted(Comparator.reverseOrder())
 				.map(Path::toFile)
 				.forEach(File::delete);
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Throwable e) {
+			if (logger.isLoggable(Level.WARNING))
+				logger.log(Level.WARNING, e.getMessage(), e);
 		}
 	}
 
