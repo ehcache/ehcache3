@@ -17,7 +17,7 @@ import org.ehcache.xml.XmlConfiguration;
  */
 public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	private static final String PERSISTENCE_DIRECTORY = "/temp/ehcache";
-	private static final String CACHE_ALIAS = "bugReportCache";
+	private static final String CACHE_ALIAS = "testCache";
 	private static final String XML_CONFIG_PATH
 		= "/configs/disk-persistent-cache-with-heap-of-1-entry.xml";
 

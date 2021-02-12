@@ -6,7 +6,7 @@
 	<!-- For some reason with XML-based config the cache cannot be restarted with previous mappings:
 	-->
 	<ehcache:persistence directory="${user.home}/temp/ehcache" />
-	<ehcache:cache alias="bugReportCache">
+	<ehcache:cache alias="testCache">
 		<ehcache:key-type>java.lang.String</ehcache:key-type>
 		<ehcache:value-type>java.lang.String</ehcache:value-type>
 		<ehcache:resources>
