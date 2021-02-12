@@ -89,9 +89,9 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 		cache.put(KEY_VALUE_PAIRS[1][0], KEY_VALUE_PAIRS[1][1]);
 
 		// and get:
-		cache.get(KEY_VALUE_PAIRS[0][0]);
+		String actualValue0 = cache.get(KEY_VALUE_PAIRS[0][0]);
 		cache.get(KEY_VALUE_PAIRS[1][0]);
 
-		assertEquals(KEY_VALUE_PAIRS[0][1], cache.get(KEY_VALUE_PAIRS[0][0]));
+		assertEquals(KEY_VALUE_PAIRS[0][1], actualValue0);
 	}
 }
