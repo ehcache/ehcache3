@@ -74,9 +74,4 @@ public class EhCacheProviderWithXMLOrJavaBasedConfig {
 	public PersistentCacheManager getEhCacheManager() {
 		return ehCacheManager;
 	}
-
-	@Override
-	protected void finalize() throws Throwable {
-		ehCacheManager.close();
-	}
 }
