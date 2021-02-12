@@ -95,10 +95,6 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 
 	@Test
 	public final void testPutAndGet() {
-		doPutAndGet();
-	}
-
-	private final void doPutAndGet() {
 		ehCacheProvider = new EhCacheProviderWithXMLOrJavaBasedConfig(useXmlBasedConfig);
 		Cache<String, String> cache = ehCacheProvider.getEhCache();
 
