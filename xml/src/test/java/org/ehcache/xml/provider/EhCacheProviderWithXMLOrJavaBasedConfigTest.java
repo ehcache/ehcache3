@@ -3,12 +3,14 @@ package org.ehcache.xml.provider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +18,7 @@ import java.util.stream.Stream;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,12 +31,29 @@ import org.junit.runners.Parameterized.Parameters;
 public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	private static final String[][] KEY_VALUE_PAIRS = new String[][]
 			{{"Astronaut", "Fezacı"}, {"Cosmonaut", "Fezagir"}};
+	private static final boolean DELETE_PERSISTENCE_DIR_AFTER_CLASS = true;
 
 	private boolean useXmlBasedConfig;
 	private boolean assertRecoveryFromDisk;
 
 	private EhCacheProviderWithXMLOrJavaBasedConfig ehCacheProvider;
 
+	@AfterClass
+	public static void afterClass() {
+		if (DELETE_PERSISTENCE_DIR_AFTER_CLASS)
+			deletePersistenceDirectory();
+	}
+
+	public static void deletePersistenceDirectory() {
+		try {
+			Files.walk(Paths.get(EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath()))
+				.sorted(Comparator.reverseOrder())
+				.map(Path::toFile)
+				.forEach(File::delete);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 	static Stream<Path> getPersistenceDirectoryListing(String subfolder) throws IOException {
 		String path = EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath();
@@ -68,6 +88,9 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 	public EhCacheProviderWithXMLOrJavaBasedConfigTest(Boolean xmlBasedConfig, Boolean recoveryFromDisk) {
 		this.useXmlBasedConfig = xmlBasedConfig;
 		this.assertRecoveryFromDisk = recoveryFromDisk;
+		if (!assertRecoveryFromDisk
+				&& Files.exists(Paths.get(EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath())))
+			deletePersistenceDirectory();
 	}
 
 	@Test
