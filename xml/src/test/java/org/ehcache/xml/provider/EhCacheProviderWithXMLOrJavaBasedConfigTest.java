@@ -46,7 +46,7 @@ public class EhCacheProviderWithXMLOrJavaBasedConfigTest {
 			deletePersistenceDirectory();
 	}
 
-	public static void deletePersistenceDirectory() {
+	private static void deletePersistenceDirectory() {
 		try {
 			Files.walk(Paths.get(EhCacheProviderWithXMLOrJavaBasedConfig.getStoragePath()))
 				.sorted(Comparator.reverseOrder())
