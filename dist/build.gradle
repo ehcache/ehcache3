@@ -31,7 +31,7 @@ dependencies {
 
 dependencies {
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  shadowCompile "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  shadowProvided "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   shadowProvided "javax.cache:cache-api:$parent.jcacheVersion"
 }
 

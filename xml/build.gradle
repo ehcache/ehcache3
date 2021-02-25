@@ -25,7 +25,7 @@ dependencies {
   api project(':api')
   implementation project(':core')
   implementation project(':impl')
-  implementation "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  providedImplementation "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
 
   testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
