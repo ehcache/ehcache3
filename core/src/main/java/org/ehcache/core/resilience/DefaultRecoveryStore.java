@@ -15,15 +15,14 @@
  */
 package org.ehcache.core.resilience;
 
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 
 /**
- * Default implementation of the {@link RecoveryStore} as used by the {@link RobustResilienceStrategy} and
- * {@link RobustLoaderWriterResilienceStrategy}. It simply remove the required keys from the store.
+ * Default implementation of the {@link RecoveryStore}.
+ *
+ * It maps each obliterate operation to the equivalent remove operation.
  */
 public class DefaultRecoveryStore<K> implements RecoveryStore<K> {
 

@@ -20,8 +20,8 @@ import bitronix.tm.TransactionManagerServices;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -83,7 +83,7 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
@@ -111,7 +111,7 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
@@ -143,8 +143,8 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-                .add(new XAStoreConfiguration("xaCache")) // <5>
-                .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <5>
+                .withService(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
                 .build()
         )
         .build(true);
@@ -178,7 +178,7 @@ public class XAGettingStarted {
                         .offheap(10, MemoryUnit.MB)
                         .disk(20, MemoryUnit.MB, true)
                 )
-                .add(new XAStoreConfiguration("xaCache")) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <6>
                 .build()
         )
         .build(true);

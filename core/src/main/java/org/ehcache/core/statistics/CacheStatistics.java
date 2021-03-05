@@ -16,22 +16,12 @@
 
 package org.ehcache.core.statistics;
 
-import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.observer.ChainedOperationObserver;
-
 import java.util.Map;
 
 /**
  * All statistics relative to a cache and its underlying tiers.
  */
 public interface CacheStatistics {
-
-  /**
-   * List of statistics tracked on this cache
-   *
-   * @return a map of statistics per name
-   */
-  Map<String, ValueStatistic<?>> getKnownStatistics();
 
   /**
    * Map of tier statistics on this cache. Per tier name

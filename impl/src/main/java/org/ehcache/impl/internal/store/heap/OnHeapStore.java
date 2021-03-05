@@ -29,8 +29,11 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
-import org.ehcache.impl.internal.store.basic.BaseStore;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -38,7 +41,7 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
@@ -50,7 +53,6 @@ import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -58,7 +60,6 @@ import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
@@ -70,9 +71,7 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.observer.OperationObserver;
+import org.terracotta.management.model.stats.StatisticType;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -85,10 +84,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -99,8 +98,6 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.statistics.StatisticType.COUNTER;
-import static org.terracotta.statistics.StatisticType.GAUGE;
 
 /**
  * {@link Store} and {@link HigherCachingTier} implementation for on heap.
@@ -201,13 +198,13 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
-  public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher) {
-    this(config, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new);
+  public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, StatisticsService statisticsService) {
+    this(config, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new, statisticsService);
   }
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
-                     SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier) {
-    super(config);
+                     SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier, StatisticsService statisticsService) {
+    super(config, statisticsService);
 
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 
@@ -261,9 +258,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     silentInvalidateAllWithHashObserver = createObserver("silentInvalidateAllWithHash", HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class, true);
 
     Set<String> tags = new HashSet<>(Arrays.asList(getStatisticsTag(), "tier"));
-    registerStatistic("mappings", COUNTER, tags, () -> map.mappingCount());
+    registerStatistic("mappings", StatisticType.COUNTER, tags, () -> map.mappingCount());
     if (byteSized) {
-      registerStatistic("occupiedMemory", GAUGE, tags, () -> map.byteSize());
+      registerStatistic("occupiedMemory", StatisticType.GAUGE, tags, () -> map.byteSize());
     }
   }
 
@@ -647,29 +644,47 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
+    java.util.Iterator<Entry<K, OnHeapValueHolder<V>>> iterator = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
-      private final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
+      private Cache.Entry<K, ValueHolder<V>> prefetched = advance();
 
       @Override
       public boolean hasNext() {
-        return it.hasNext();
+        return prefetched != null;
       }
 
       @Override
-      public Cache.Entry<K, ValueHolder<V>> next() {
-        Entry<K, OnHeapValueHolder<V>> next = it.next();
-        K key = next.getKey();
-        OnHeapValueHolder<V> value = next.getValue();
-        return new Cache.Entry<K, ValueHolder<V>>() {
-          @Override
-          public K getKey() {
-            return key;
+      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+        if (prefetched == null) {
+          throw new NoSuchElementException();
+        } else {
+          Cache.Entry<K, ValueHolder<V>> next = prefetched;
+          prefetched = advance();
+          return next;
+        }
+      }
+
+      private Cache.Entry<K, ValueHolder<V>> advance() {
+        while (iterator.hasNext()) {
+          Entry<K, OnHeapValueHolder<V>> next = iterator.next();
+
+          if (strategy.isExpired(next.getValue())) {
+            expireMappingUnderLock(next.getKey(), next.getValue());
+          } else {
+            return new Cache.Entry<K, ValueHolder<V>>() {
+              @Override
+              public K getKey() {
+                return next.getKey();
+              }
+
+              @Override
+              public ValueHolder<V> getValue() {
+                return next.getValue();
+              }
+            };
           }
-          @Override
-          public ValueHolder<V> getValue() {
-            return value;
-          }
-        };
+        }
+        return null;
       }
     };
   }
@@ -716,6 +731,33 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
+    } catch (RuntimeException re) {
+      throw handleException(re);
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getOrDefault(K key, Function<K, ValueHolder<V>> source) throws StoreAccessException {
+    try {
+      Backend<K, V> backEnd = map;
+
+      // First try to find the value from heap
+      OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+
+      if (cachedValue == null) {
+        return source.apply(key);
+      } else {
+        // If we have a real value (not a fault), we make sure it is not expired
+        if (!(cachedValue instanceof Fault)) {
+          if (cachedValue.isExpired(timeSource.getTimeMillis())) {
+            expireMappingUnderLock(key, cachedValue);
+            return null;
+          }
+        }
+
+        // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
+        return getValue(cachedValue);
+      }
     } catch (RuntimeException re) {
       throw handleException(re);
     }
@@ -1576,7 +1618,6 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
   public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final Map<OnHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
@@ -1586,18 +1627,18 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return rank(resourceTypes, serviceConfigs);
     }
 
     @Override
-    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+    public <K, V> OnHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+      OnHeapStore<K, V> store = createStoreInternal(storeConfig, new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
         createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
@@ -1607,18 +1648,18 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     public <K, V> OnHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher,
-                                                        ServiceConfiguration<?>... serviceConfigs) {
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+                                                        ServiceConfiguration<?, ?>... serviceConfigs) {
+      TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
+      CopyProvider copyProvider = getServiceProvider().getService(CopyProvider.class);
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
       List<Copier<?>> copiers = Arrays.asList(keyCopier, valueCopier);
 
-      SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
+      SizeOfEngineProvider sizeOfEngineProvider = getServiceProvider().getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new);
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new, getServiceProvider().getService(StatisticsService.class));
       createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }
@@ -1631,10 +1672,10 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       }
       OnHeapStore<?, ?> onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
-      StatisticsManager.nodeFor(onHeapStore).clean();
+      getServiceProvider().getService(StatisticsService.class).cleanForNode(onHeapStore);
       tierOperationStatistics.remove(onHeapStore);
 
-      CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+      CopyProvider copyProvider = getServiceProvider().getService(CopyProvider.class);
       for (Copier<?> copier: copiers) {
         try {
           copyProvider.releaseCopier(copier);
@@ -1670,18 +1711,16 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
-      this.serviceProvider = serviceProvider;
-    }
-
-    @Override
     public void stop() {
-      this.serviceProvider = null;
-      createdStores.clear();
+      try {
+        createdStores.clear();
+      } finally {
+        super.stop();
+      }
     }
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
       this.tierOperationStatistics.put(cachingTier, new OperationStatistic<?>[] {
@@ -1709,8 +1748,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
 
     @Override
-    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<>(storeConfig
+    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+      OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new DefaultStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
       this.tierOperationStatistics.put(higherCachingTier, new OperationStatistic<?>[] {

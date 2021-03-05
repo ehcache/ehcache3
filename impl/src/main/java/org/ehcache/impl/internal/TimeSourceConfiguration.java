@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  *
  * This configuration has to be applied at the {@link org.ehcache.CacheManager} level.
  */
-public class TimeSourceConfiguration implements ServiceCreationConfiguration<TimeSourceService> {
+public class TimeSourceConfiguration implements ServiceCreationConfiguration<TimeSourceService, TimeSource> {
 
   private final TimeSource timeSource;
 
@@ -51,4 +51,13 @@ public class TimeSourceConfiguration implements ServiceCreationConfiguration<Tim
     return this.timeSource;
   }
 
+  @Override
+  public TimeSource derive() {
+    return getTimeSource();
+  }
+
+  @Override
+  public TimeSourceConfiguration build(TimeSource timeSource) {
+    return new TimeSourceConfiguration(timeSource);
+  }
 }

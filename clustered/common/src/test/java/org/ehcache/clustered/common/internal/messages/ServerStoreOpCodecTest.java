@@ -18,10 +18,14 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -39,7 +43,7 @@ public class ServerStoreOpCodecTest {
     ServerStoreOpMessage.AppendMessage decodedAppendMessage = (ServerStoreOpMessage.AppendMessage) decodedMsg;
 
     assertThat(decodedAppendMessage.getKey(), is(1L));
-    assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
+    assertThat(readPayload(decodedAppendMessage.getPayload()), is(1L));
     assertThat(decodedAppendMessage.getMessageType(), is(EhcacheMessageType.APPEND));
   }
 
@@ -64,23 +68,23 @@ public class ServerStoreOpCodecTest {
     ServerStoreOpMessage.GetAndAppendMessage decodedGetAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage) decodedMsg;
 
     assertThat(decodedGetAndAppendMessage.getKey(), is(10L));
-    assertThat(readPayLoad(decodedGetAndAppendMessage.getPayload()), is(10L));
+    assertThat(readPayload(decodedGetAndAppendMessage.getPayload()), is(10L));
     assertThat(decodedGetAndAppendMessage.getMessageType(), is(EhcacheMessageType.GET_AND_APPEND));
   }
 
   @Test
   public void testReplaceAtHeadMessageCodec() {
     ServerStoreOpMessage replaceAtHeadMessage = new ServerStoreOpMessage.ReplaceAtHeadMessage(10L,
-        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
-        getChain(false, createPayload(2000L)));
+        sequencedChainOf(createPayload(10L), createPayload(100L), createPayload(1000L)),
+        chainOf(createPayload(2000L)));
 
     byte[] encoded = STORE_OP_CODEC.encode(replaceAtHeadMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(replaceAtHeadMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ReplaceAtHeadMessage decodedReplaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) decodedMsg;
 
     assertThat(decodedReplaceAtHeadMessage.getKey(), is(10L));
-    Util.assertChainHas(decodedReplaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
-    Util.assertChainHas(decodedReplaceAtHeadMessage.getUpdate(), 2000L);
+    assertThat(decodedReplaceAtHeadMessage.getExpect(), hasPayloads(10L, 100L, 1000L));
+    assertThat(decodedReplaceAtHeadMessage.getUpdate(), hasPayloads(2000L));
     assertThat(decodedReplaceAtHeadMessage.getMessageType(), is(EhcacheMessageType.REPLACE));
   }
 
@@ -133,4 +137,50 @@ public class ServerStoreOpCodecTest {
     assertThat(decodedLockMessage.getMessageType(), is(EhcacheMessageType.UNLOCK));
   }
 
+  @Test
+  public void testIteratorOpenMessage() {
+    ServerStoreOpMessage iteratorOpenMessage = new ServerStoreOpMessage.IteratorOpenMessage(42);
+
+    byte[] encoded = STORE_OP_CODEC.encode(iteratorOpenMessage);
+    ServerStoreOpMessage.IteratorOpenMessage decoded = (ServerStoreOpMessage.IteratorOpenMessage) STORE_OP_CODEC.decode(iteratorOpenMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decoded.getMessageType(), is(EhcacheMessageType.ITERATOR_OPEN));
+    assertThat(decoded.getBatchSize(), is(42));
+  }
+
+  @Test
+  public void testIteratorCloseMessage() {
+    UUID uuid = UUID.randomUUID();
+    ServerStoreOpMessage iteratorCloseMessage = new ServerStoreOpMessage.IteratorCloseMessage(uuid);
+
+    byte[] encoded = STORE_OP_CODEC.encode(iteratorCloseMessage);
+    ServerStoreOpMessage.IteratorCloseMessage decoded = (ServerStoreOpMessage.IteratorCloseMessage) STORE_OP_CODEC.decode(iteratorCloseMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decoded.getMessageType(), is(EhcacheMessageType.ITERATOR_CLOSE));
+    assertThat(decoded.getIdentity(), is(uuid));
+  }
+
+  @Test
+  public void testIteratorAdvanceMessage() {
+    UUID uuid = UUID.randomUUID();
+    ServerStoreOpMessage iteratorAdvanceMessage = new ServerStoreOpMessage.IteratorAdvanceMessage(uuid, 42);
+
+    byte[] encoded = STORE_OP_CODEC.encode(iteratorAdvanceMessage);
+    ServerStoreOpMessage.IteratorAdvanceMessage decoded = (ServerStoreOpMessage.IteratorAdvanceMessage) STORE_OP_CODEC.decode(iteratorAdvanceMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decoded.getMessageType(), is(EhcacheMessageType.ITERATOR_ADVANCE));
+    assertThat(decoded.getIdentity(), is(uuid));
+    assertThat(decoded.getBatchSize(), is(42));
+  }
+
+  @Test
+  public void testEnableEventListenerMessage() {
+    ServerStoreOpMessage enableEventListenerMessage = new ServerStoreOpMessage.EnableEventListenerMessage(true);
+
+    byte[] encoded = STORE_OP_CODEC.encode(enableEventListenerMessage);
+    ServerStoreOpMessage.EnableEventListenerMessage decoded = (ServerStoreOpMessage.EnableEventListenerMessage) STORE_OP_CODEC.decode(enableEventListenerMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decoded.getMessageType(), is(EhcacheMessageType.ENABLE_EVENT_LISTENER));
+    assertThat(decoded.isEnable(), is(true));
+  }
 }

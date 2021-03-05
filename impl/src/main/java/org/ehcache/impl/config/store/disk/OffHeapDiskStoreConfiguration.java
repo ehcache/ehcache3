@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * {@link ServiceConfiguration} for the default {@link org.ehcache.core.spi.store.Store off heap disk store}.
  */
-public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider> {
+public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHeapDiskStore.Provider, OffHeapDiskStoreConfiguration> {
 
   public static final int DEFAULT_WRITER_CONCURRENCY = 1;
   public static final int DEFAULT_DISK_SEGMENTS = 16;
@@ -105,5 +105,15 @@ public class OffHeapDiskStoreConfiguration implements ServiceConfiguration<OffHe
   @Override
   public Class<OffHeapDiskStore.Provider> getServiceType() {
     return OffHeapDiskStore.Provider.class;
+  }
+
+  @Override
+  public OffHeapDiskStoreConfiguration derive() {
+    return new OffHeapDiskStoreConfiguration(threadPoolAlias, writerConcurrency, diskSegments);
+  }
+
+  @Override
+  public OffHeapDiskStoreConfiguration build(OffHeapDiskStoreConfiguration config) {
+    return config;
   }
 }

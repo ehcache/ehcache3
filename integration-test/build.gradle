@@ -24,9 +24,3 @@ dependencies {
   }
   testImplementation "org.terracotta:statistics:$parent.statisticVersion"
 }
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
-}

@@ -32,13 +32,11 @@ class EhDistribute implements Plugin<Project> {
     project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
+    project.plugins.apply 'biz.aQute.bnd.builder'
     project.plugins.apply 'com.github.johnrengelman.shadow'
-    project.plugins.apply EhOsgi
     project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
     project.plugins.apply EhPomGenerate
-
-    def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
     project.configurations {
         shadowCompile
@@ -52,6 +50,10 @@ class EhDistribute implements Plugin<Project> {
       dependencies {
         exclude({ rdep -> !['org.ehcache', 'org.terracotta'].any({ prefix -> rdep.moduleGroup.startsWith(prefix) })})
       }
+      relocate ('org.terracotta.statistics.', 'org.ehcache.shadow.org.terracotta.statistics.')
+      relocate ('org.terracotta.offheapstore.', 'org.ehcache.shadow.org.terracotta.offheapstore.')
+      relocate ('org.terracotta.context.', 'org.ehcache.shadow.org.terracotta.context.')
+
       mergeServiceFiles()
     }
 
@@ -63,6 +65,10 @@ class EhDistribute implements Plugin<Project> {
       // LICENSE is included in root gradle build
       from "$project.rootDir/NOTICE"
       duplicatesStrategy = 'exclude'
+
+      classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
+
+      utils.fillManifest(manifest, project.archivesBaseName)
     }
 
 
@@ -71,7 +77,6 @@ class EhDistribute implements Plugin<Project> {
         it.sourceSets.main.allSource
       }
     }
-
 
     project.signing {
       required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }

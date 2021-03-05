@@ -41,7 +41,6 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class ConnectionClosedTest {
@@ -78,7 +77,7 @@ public class ConnectionClosedTest {
                                     .timeouts()
                                     .connection(Duration.ofSeconds(20))
                                     .build())
-                            .autoCreate())
+                            .autoCreate(c -> c))
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                             resourcePoolsBuilder));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);

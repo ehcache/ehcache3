@@ -18,8 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.StateTransitionException;
@@ -44,8 +42,7 @@ public class UserManagedCacheTest {
   @Test
   public void testUserManagedCacheDelegatesLifecycleCallsToStore() throws Exception {
     final Store store = mock(Store.class);
-    CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<>(Object.class, Object.class, null, null,
-      null, ResourcePoolsHelper.createHeapOnlyPools());
+    CacheConfiguration<Object, Object> config = mock(CacheConfiguration.class);
     Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"));
     assertCacheDelegatesLifecycleCallsToStore(ehcache);
 
@@ -67,8 +64,7 @@ public class UserManagedCacheTest {
   @Test
   public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() throws Exception {
     final Store store = mock(Store.class);
-    CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper
-      .createHeapOnlyPools());
+    CacheConfiguration<Object, Object> config = mock(CacheConfiguration.class);
     Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
     assertFailingTransitionGoesToLowestStatus(ehcache);
     Ehcache ehcacheWithLoaderWriter = new Ehcache(config, store, mock(ResilienceStrategy.class),

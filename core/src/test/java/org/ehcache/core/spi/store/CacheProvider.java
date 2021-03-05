@@ -27,7 +27,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 @PluralService
 public interface CacheProvider extends Service {
 
-  <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
+  <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?, ?>... config);
 
   void releaseCache(Ehcache<?, ?> resource);
 }

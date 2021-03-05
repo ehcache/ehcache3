@@ -23,7 +23,7 @@ import org.ehcache.xml.model.ThreadPoolReferenceType;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-class ThreadPoolServiceCreationConfigurationParser<T extends ServiceCreationConfiguration<?>> extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolReferenceType, T> {
+class ThreadPoolServiceCreationConfigurationParser<T extends ServiceCreationConfiguration<?, ?>> extends SimpleCoreServiceCreationConfigurationParser<ThreadPoolReferenceType, T> {
 
   ThreadPoolServiceCreationConfigurationParser(Class<T> configType,
                                                Function<ConfigType, ThreadPoolReferenceType> getter, BiConsumer<ConfigType, ThreadPoolReferenceType> setter,

@@ -15,7 +15,6 @@
  */
 
 /**
- * Package holding some core implementations related to configuration such as
- * {@link org.ehcache.core.config.ResourcePoolsImpl} and {@link org.ehcache.core.config.DefaultConfiguration}.
+ * Package holding core configuration implementations and utilities.
  */
 package org.ehcache.core.config;

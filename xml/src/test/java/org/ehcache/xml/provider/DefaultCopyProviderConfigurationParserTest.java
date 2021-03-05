@@ -18,9 +18,8 @@ package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
@@ -50,12 +49,12 @@ public class DefaultCopyProviderConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(DefaultCopyProviderConfiguration.class);
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
-    Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = factoryConfiguration.getDefaults();
+    Map<Class<?>, DefaultCopierConfiguration<?>> defaults = factoryConfiguration.getDefaults();
     assertThat(defaults).hasSize(2);
     assertThat(defaults.get(Description.class).getClazz()).isEqualTo(DescriptionCopier.class);
     assertThat(defaults.get(Person.class).getClazz()).isEqualTo((PersonCopier.class));
@@ -67,7 +66,7 @@ public class DefaultCopyProviderConfigurationParserTest {
     providerConfig.addCopierFor(Description.class, DescriptionCopier.class);
     providerConfig.addCopierFor(Person.class, PersonCopier.class);
 
-    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().withService(providerConfig).build();
     ConfigType configType = new DefaultCopyProviderConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     List<CopierType.Copier> copiers = configType.getDefaultCopiers().getCopier();

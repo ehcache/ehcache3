@@ -30,7 +30,7 @@ public class FancyCacheProvider implements CacheProvider {
   public int startStopCounter = 0;
 
   @Override
-  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?, ?>... config) {
     return null;
   }
 

@@ -22,9 +22,8 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.spi.service.Service;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -38,6 +37,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,19 +48,22 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.StreamSupport.stream;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -67,8 +71,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class ClusteringCacheManagerServiceConfigurationParserTest {
 
@@ -84,17 +90,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    */
   @Test
   public void testServiceLocator() throws Exception {
-    String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    ServiceLoader<CacheManagerServiceConfigurationParser<? extends Service>> parsers = (ServiceLoader)
-      ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
-
-    for (CacheManagerServiceConfigurationParser<?> parser : parsers) {
-      if (parser.getClass().getName().equals(expectedParser)) {
-        return;
-      }
-    }
-    fail("Expected parser not found");
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(CacheManagerServiceConfigurationParser.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
+      hasItem(ClusteringCacheManagerServiceConfigurationParser.class));
   }
 
   /**
@@ -141,12 +138,12 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
@@ -175,12 +172,12 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.timeouts().build()));
@@ -207,12 +204,12 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
@@ -371,9 +368,9 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
     Iterable<InetSocketAddress> servers = connectionSource.getServers();
 
@@ -408,9 +405,9 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-      ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+      findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
     Iterable<InetSocketAddress> servers = connectionSource.getServers();
 
@@ -424,15 +421,84 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     assertThat(servers, is(expectedServers));
   }
 
+  @Test @SuppressWarnings("deprecation")
+  public void testAutoCreateFalseMapsToExpecting() throws IOException {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\" />",
+        "      <tc:server-side-config auto-create=\"false\"/>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+    ClusteringServiceConfiguration clusterConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+
+    assertThat(clusterConfig.isAutoCreate(), is(false));
+    assertThat(clusterConfig.getClientMode(), is(ClusteringServiceConfiguration.ClientMode.EXPECTING));
+  }
+
+  @Test @SuppressWarnings("deprecation")
+  public void testAutoCreateTrueMapsToAutoCreate() throws IOException {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\" />",
+        "      <tc:server-side-config auto-create=\"true\"/>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    XmlConfiguration configuration = new XmlConfiguration(makeConfig(config));
+    ClusteringServiceConfiguration clusterConfig = findSingletonAmongst(ClusteringServiceConfiguration.class, configuration.getServiceCreationConfigurations());
+
+    assertThat(clusterConfig.isAutoCreate(), is(true));
+    assertThat(clusterConfig.getClientMode(), is(ClusteringServiceConfiguration.ClientMode.AUTO_CREATE));
+  }
+
+  @Test
+  public void testBothAutoCreateAndClientModeIsDisallowed() throws IOException {
+    final String[] config = new String[]
+      {
+        "<ehcache:config",
+        "    xmlns:ehcache=\"http://www.ehcache.org/v3\"",
+        "    xmlns:tc=\"http://www.ehcache.org/v3/clustered\">",
+        "  <ehcache:service>",
+        "    <tc:cluster>",
+        "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\" />",
+        "      <tc:server-side-config auto-create=\"true\" client-mode=\"auto-create\"/>",
+        "    </tc:cluster>",
+        "  </ehcache:service>",
+        "</ehcache:config>"
+      };
+
+    try {
+      new XmlConfiguration(makeConfig(config));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Cannot define both 'auto-create' and 'client-mode' attributes"));
+    }
+  }
+
   @Test
   public void testTranslateServiceCreationConfiguration() throws Exception {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .autoCreate()
-      .defaultServerResource("main")
-      .resourcePool("primaryresource", 5, MemoryUnit.GB)
-      .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional")
+      .autoCreate(server -> server
+        .defaultServerResource("main")
+        .resourcePool("primaryresource", 5, MemoryUnit.GB)
+        .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional"))
       .build();
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
@@ -443,13 +509,13 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config auto-create = \"true\">" +
+                         "<tc:server-side-config client-mode = \"auto-create\">" +
                          "<tc:default-resource from = \"main\"/>" +
                          "<tc:shared-pool name = \"primaryresource\" unit = \"B\">5368709120</tc:shared-pool>" +
                          "<tc:shared-pool from = \"optional\" name = \"secondaryresource\" unit = \"B\">10737418240</tc:shared-pool>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
-
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -457,8 +523,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .expecting()
-      .defaultServerResource("main")
+      .expecting(server -> server.defaultServerResource("main"))
       .build();
 
 
@@ -470,10 +535,11 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config auto-create = \"false\">" +
+                         "<tc:server-side-config client-mode = \"expecting\">" +
                          "<tc:default-resource from = \"main\"/>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -491,9 +557,9 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config auto-create = \"false\">" +
-                         "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+                         "</tc:cluster>";
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -522,8 +588,9 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config auto-create = \"false\"/></tc:cluster>";
-    assertElement(inputString, returnElement);
+                         "</tc:cluster>";
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   /**
@@ -533,23 +600,12 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    * @return a {@code URL} pointing to the XML configuration file
    * @throws IOException if an error is raised while creating or writing the XML configuration file
    */
-  @SuppressWarnings("ThrowFromFinallyBlock")
   private URL makeConfig(final String[] lines) throws IOException {
     final File configFile = folder.newFile(testName.getMethodName() + "_config.xml");
 
-    OutputStreamWriter out = null;
-    try {
-      out = new OutputStreamWriter(new FileOutputStream(configFile), "UTF-8");
+    try (FileOutputStream fout = new FileOutputStream(configFile); OutputStreamWriter out = new OutputStreamWriter(fout, StandardCharsets.UTF_8)) {
       for (final String line : lines) {
         out.write(line);
-      }
-    } finally {
-      if (out != null) {
-        try {
-          out.close();
-        } catch (IOException e) {
-          throw new AssertionError(e);
-        }
       }
     }
 

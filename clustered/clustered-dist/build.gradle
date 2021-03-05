@@ -21,6 +21,10 @@
  * https://discuss.gradle.org/t/dependency-substitution-wrong-with-more-than-one-sub-project-with-same-name/7253/6
  */
 
+plugins {
+  id 'distribution'
+  id 'org.ehcache.build.distribute'
+}
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
 
@@ -31,13 +35,11 @@ ext {
 dependencies {
   compileOnly(project(':clustered:client')) {
     exclude group: 'org.ehcache.modules', module: 'api'
+    exclude group: 'org.terracotta', module: 'statistics'
   }
   // Needed because declared as provided in the different projects
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
-
-apply plugin: 'distribution'
-apply plugin: EhDistribute
 
 configurations {
   kit
@@ -70,6 +72,15 @@ task copyDocs(type: Copy) {
   dependsOn asciidocZip
   from zipTree(asciidocZip.archivePath)
   into docsFolder
+}
+
+jar {
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.clustered',
+    'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
+      'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, *'
+  )
 }
 
 distributions {
@@ -117,12 +128,12 @@ distributions {
 }
 
 distTar {
-  classifier = 'kit'
+  archiveClassifier = 'kit'
   compression = Compression.GZIP
 }
 
 distZip {
-  classifier = 'kit'
+  archiveClassifier = 'kit'
 }
 
 [distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar

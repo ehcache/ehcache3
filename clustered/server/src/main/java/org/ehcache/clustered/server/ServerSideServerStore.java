@@ -27,7 +27,8 @@ import java.util.Set;
 
 @CommonComponent
 public interface ServerSideServerStore extends ServerStore, MapInternals {
-  void setEvictionListener(ServerStoreEvictionListener listener);
+  void setEventListener(ServerStoreEventListener listener);
+  void enableEvents(boolean enable);
   ServerStoreConfiguration getStoreConfiguration();
   List<Set<Long>> getSegmentKeySets();
   void put(long key, Chain chain);

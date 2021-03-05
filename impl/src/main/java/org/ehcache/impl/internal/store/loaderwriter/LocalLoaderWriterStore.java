@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -30,7 +30,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -65,7 +64,6 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.expiry = expiry;
-    ContextManager.associate(delegate).withParent(this);
   }
 
   @Override

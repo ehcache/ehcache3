@@ -49,12 +49,12 @@ public class BasicClusteredCacheExpiryTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
   private static final CacheManagerBuilder<PersistentCacheManager> commonClusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI).autoCreate())
+          .with(cluster(CLUSTER_URI).autoCreate(c -> c))
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
               .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)))
-              .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+              .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
   public void definePassthroughServer() throws Exception {

@@ -16,15 +16,19 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.KeySegmentMapper;
+import org.ehcache.clustered.server.ServerStoreEventListener;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -35,11 +39,14 @@ import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import org.junit.Assert;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
@@ -50,6 +57,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
@@ -83,13 +91,13 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       for (int i = 0; i < buffers.length; i++) {
         buffers[i] = elements[i].getPayload();
       }
-      return OffHeapChainMap.chain(buffers);
+      return chainOf(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return payLoad -> () -> payLoad;
+    return payLoad -> () -> payLoad.asReadOnlyBuffer();
   }
 
   @Test
@@ -329,4 +337,117 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   }
 
+  @Test
+  public void testEvictionFiresEventsWithChainWhenEvictionIsEnabled() {
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), (long) MEGABYTES.toBytes(1), MEGABYTES.toBytes(1)), new KeySegmentMapper(16), false);
+    AuditingServerStoreEventListener audit = new AuditingServerStoreEventListener();
+    store.setEventListener(audit);
+    store.enableEvents(true);
+
+    ByteBuffer buffer = ByteBuffer.allocate(KILOBYTES.toBytes(500));
+
+    store.append(1L, buffer.duplicate());
+    store.append(2L, buffer.duplicate());
+    store.append(3L, buffer.duplicate());
+
+    assertThat(store.getSize(), is(1L));
+    assertThat(audit.onEviction.size(), is(2));
+    assertThat(audit.onEviction.get(0).key, is(1L));
+    assertThat(audit.onEviction.get(0).evictedChain, is(notNullValue()));
+    assertThat(audit.onEviction.get(1).key, is(2L));
+    assertThat(audit.onEviction.get(1).evictedChain, is(notNullValue()));
+  }
+
+  @Test
+  public void testNoEventFiredWhenDisabled() {
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), (long) MEGABYTES.toBytes(1), MEGABYTES.toBytes(1)), new KeySegmentMapper(16), false);
+    AuditingServerStoreEventListener audit = new AuditingServerStoreEventListener();
+    store.setEventListener(audit);
+
+    store.append(1L, toBuffer(1));
+    store.getAndAppend(1L, toBuffer(2));
+
+    store.enableEvents(true);
+    store.append(1L, toBuffer(3));
+    store.getAndAppend(1L, toBuffer(4));
+
+    store.enableEvents(false);
+    store.append(1L, toBuffer(5));
+    store.getAndAppend(1L, toBuffer(6));
+
+    assertThat(audit.onAppend.size(), is(2));
+    assertThat(audit.onAppend.get(0).appended.asIntBuffer().get(), is(3));
+    assertThat(audit.onAppend.get(1).appended.asIntBuffer().get(), is(4));
+  }
+
+  @Test
+  public void testAppendFiresEvents() {
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), (long) MEGABYTES.toBytes(1), MEGABYTES.toBytes(1)), new KeySegmentMapper(16), false);
+    AuditingServerStoreEventListener audit = new AuditingServerStoreEventListener();
+    store.setEventListener(audit);
+    store.enableEvents(true);
+
+    store.append(1L, toBuffer(1));
+    store.append(1L, toBuffer(2));
+    store.append(1L, toBuffer(3));
+
+    assertThat(audit.onAppend.size(), is(3));
+    assertThat(audit.onAppend.get(0).appended.asIntBuffer().get(), is(1));
+    assertThat(audit.onAppend.get(1).appended.asIntBuffer().get(), is(2));
+    assertThat(audit.onAppend.get(2).appended.asIntBuffer().get(), is(3));
+  }
+
+  @Test
+  public void testGetAndAppendFiresEvents() {
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), (long) MEGABYTES.toBytes(1), MEGABYTES.toBytes(1)), new KeySegmentMapper(16), false);
+    AuditingServerStoreEventListener audit = new AuditingServerStoreEventListener();
+    store.setEventListener(audit);
+    store.enableEvents(true);
+
+    store.getAndAppend(1L, toBuffer(1));
+    store.getAndAppend(1L, toBuffer(2));
+    store.getAndAppend(1L, toBuffer(3));
+
+    assertThat(audit.onAppend.size(), is(3));
+    assertThat(audit.onAppend.get(0).appended.asIntBuffer().get(), is(1));
+    assertThat(audit.onAppend.get(1).appended.asIntBuffer().get(), is(2));
+    assertThat(audit.onAppend.get(2).appended.asIntBuffer().get(), is(3));
+  }
+
+  private static class AuditingServerStoreEventListener implements ServerStoreEventListener {
+    private final List<OnAppendArgs> onAppend = new ArrayList<>();
+    private final List<OnEvictionArgs> onEviction = new ArrayList<>();
+    @Override
+    public void onEviction(long key, InternalChain evictedChain) {
+      onEviction.add(new OnEvictionArgs(key, evictedChain));
+    }
+    @Override
+    public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+      onAppend.add(new OnAppendArgs(appended, beforeAppend));
+    }
+
+    static class OnEvictionArgs {
+      OnEvictionArgs(long key, InternalChain evictedChain) {
+        this.key = key;
+        this.evictedChain = evictedChain;
+      }
+      long key;
+      InternalChain evictedChain;
+    }
+
+    static class OnAppendArgs {
+      OnAppendArgs(ByteBuffer appended, Chain beforeAppend) {
+        this.appended = appended;
+        this.beforeAppend = beforeAppend;
+      }
+      ByteBuffer appended;
+      Chain beforeAppend;
+    }
+  }
+
+  private static ByteBuffer toBuffer(int i) {
+    ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+    buffer.asIntBuffer().put(i);
+    return buffer;
+  }
 }

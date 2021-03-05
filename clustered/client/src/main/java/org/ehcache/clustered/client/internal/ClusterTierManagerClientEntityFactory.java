@@ -17,6 +17,8 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
@@ -272,7 +274,7 @@ public class ClusterTierManagerClientEntityFactory {
 
   public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
-                                                                   boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
+                                                                   ClientMode clientMode, boolean isReconnect) throws EntityNotFoundException, CachePersistenceException {
     EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
@@ -280,14 +282,14 @@ public class ClusterTierManagerClientEntityFactory {
       throw new AssertionError(e);
     }
 
-    if (autoCreate) {
+    if ((ClientMode.AUTO_CREATE.equals(clientMode) && !isReconnect) || ClientMode.AUTO_CREATE_ON_RECONNECT.equals(clientMode)) {
       while (true) {
         try {
           entityRef.create(new ClusterTierEntityConfiguration(clusterTierManagerIdentifier, storeIdentifier, clientStoreConfiguration));
         } catch (EntityAlreadyExistsException e) {
           // Ignore - entity exists
         } catch (EntityConfigurationException e) {
-          throw new CachePersistenceException("Unable to create cluster tier", e);
+          throw new PerpetualCachePersistenceException("Unable to create cluster tier", e);
         } catch (EntityException e) {
           throw new AssertionError(e);
         }
@@ -302,17 +304,6 @@ public class ClusterTierManagerClientEntityFactory {
     } else {
       return fetchClusterTierClientEntity(storeIdentifier, entityRef);
     }
-  }
-
-  public ClusterTierClientEntity getClusterTierClientEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
-    try {
-      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    }
-
-    return fetchClusterTierClientEntity(storeIdentifier, entityRef);
   }
 
   private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,

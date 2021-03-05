@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
@@ -28,7 +29,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
@@ -38,12 +39,13 @@ import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceId
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Answers;
+import org.mockito.Mockito;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -168,6 +170,7 @@ public class TieredStoreFlushWhileShutdownTest {
     dependencySet.with(diskResourceService);
     dependencySet.with(new OnHeapStore.Provider());
     dependencySet.with(new OffHeapDiskStore.Provider());
+    dependencySet.with(Mockito.mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
     return dependencySet.build();
   }
 }

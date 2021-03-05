@@ -80,7 +80,7 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     return key;
   }
 
-  V getOldValue() {
+  public V getOldValue() {
     return this.oldValueHolder.getValue();
   }
 

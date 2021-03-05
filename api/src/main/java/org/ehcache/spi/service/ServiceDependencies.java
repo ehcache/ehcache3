@@ -30,6 +30,8 @@ public @interface ServiceDependencies {
 
   /**
    * Array of {@link Service} dependency classes
+   *
+   * @return the dependency class names
    */
   Class<? extends Service>[] value();
 }

@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi;
 
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -26,8 +26,9 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
+import org.mockito.Answers;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -49,6 +50,7 @@ public class ServiceProviderTest {
     dependencySet.with(authoritativeTierProvider);
     dependencySet.with(diskStoreProvider);
     dependencySet.with(mock(DiskResourceService.class));
+    dependencySet.with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
 
     ServiceLocator serviceLocator = dependencySet.build();
     serviceLocator.startAllServices();

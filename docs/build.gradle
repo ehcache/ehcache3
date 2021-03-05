@@ -14,57 +14,48 @@
  * limitations under the License.
  */
 
+import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
+import org.asciidoctor.gradle.jvm.AsciidoctorTask
+
 plugins {
-  // Use 1.5.9.1 for now and wait for 1.5.9.3. The 1.5.9.2 prints annoying false warnings
-  id 'org.asciidoctor.convert' version '1.5.9.1'
-  id 'org.kordamp.gradle.livereload' version '0.2.1'
-  id 'com.github.jruby-gradle.base' version '1.6.0'
+  id 'org.asciidoctor.jvm.base'
 }
-
-dependencies {
-  gems 'rubygems:asciidoctor-diagram:1.5.11'
-}
-
-configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
-  exclude group:'org.asciidoctor', module:'asciidoctorj'
-}
-
-task copyCSS(type: Copy) {
-  from ('css') {
-    include '**'
-  }
-  into("${buildDir}/asciidoc/user/css")
-}
-
-task copyImages(type: Copy) {
-  from('src/docs/asciidoc/user/images') {
-    include '**'
-  }
-  into("${buildDir}/asciidoc/user/images")
-}
-
-asciidoctor.dependsOn copyCSS, copyImages
 
 asciidoctorj {
-  version = '1.5.8.1'
+  safeMode 'UNSAFE'
+  attributes 'skip-front-matter': 'true'
+  fatalWarnings ~/.*/
+  modules {
+    diagram.version '1.5.18'
+  }
 }
 
-asciidoctor {
-  dependsOn jrubyPrepare
-  gemPath = jrubyPrepare.outputDir
-  requires = ['asciidoctor-diagram']
-  separateOutputDirs = false
-  attributes 'skip-front-matter': 'true'
+def createCopyCssTask(def asciidocTask) {
+  return tasks.register("copy${asciidocTask.name}CSS", Copy) {
+    from ('css') {
+      include '**'
+    } into("${asciidocTask.outputDir}/css")
+  }
+}
 
+tasks.withType(AsciidoctorTask) {
+  group = AsciidoctorJBasePlugin.TASK_GROUP
   resources {
     from('fonts') {
       include '*'
-      into('./user/fonts')
-    }
+    } into('./fonts')
   }
+  dependsOn createCopyCssTask(it)
 }
 
-liveReload {
-  docRoot asciidoctor.outputDir.canonicalPath
+tasks.register('userDoc', AsciidoctorTask) {
+  description = 'Generate the user documentation'
+  sourceDir file('src/docs/asciidoc/user')
+  outputDir file("$buildDir/asciidoc/user")
 }
 
+tasks.register('developerDoc', AsciidoctorTask) {
+  description = 'Generate the developer documentation'
+  sourceDir file('src/docs/asciidoc/developer')
+  outputDir file("$buildDir/asciidoc/developer")
+}

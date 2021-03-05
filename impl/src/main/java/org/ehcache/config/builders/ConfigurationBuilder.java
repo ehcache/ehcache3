@@ -16,110 +16,154 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.core.config.DefaultConfiguration;
+import org.ehcache.core.config.CoreConfigurationBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableList;
-import static java.util.Collections.unmodifiableMap;
+import java.util.function.Predicate;
 
 /**
- * Companion type to the {@link CacheManagerBuilder} that handles the {@link Configuration} building.
+ * The {@code ConfigurationBuilder} enables building {@link Configuration}s using a fluent style.
  *
  * @author Alex Snaps
  */
-public class ConfigurationBuilder implements Builder<Configuration> {
+public final class ConfigurationBuilder extends CoreConfigurationBuilder<ConfigurationBuilder> {
 
-  private final Map<String, CacheConfiguration<?, ?>> caches;
-  private final List<ServiceCreationConfiguration<?>> serviceConfigurations;
-  private final ClassLoader classLoader;
-
+  /**
+   * Create a new 'empty' configuration builder.
+   *
+   * @return a new empty configuration builder
+   */
   public static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();
   }
 
-  private ConfigurationBuilder() {
-    this.caches = emptyMap();
-    this.serviceConfigurations = emptyList();
-    this.classLoader = null;
+  /**
+   * Create a configuration builder seeded from the given configuration.
+   * <p>
+   * Calling {@link #build()} on the returned builder will produce a functionally equivalent configuration to
+   * {@code seed}.
+   *
+   * @param seed configuration to duplicate
+   * @return a new configuration builder
+   */
+  public static ConfigurationBuilder newConfigurationBuilder(Configuration seed) {
+    return new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(),
+      seed.getCacheConfigurations()), seed.getServiceCreationConfigurations()), seed.getClassLoader());
   }
 
-  private ConfigurationBuilder(ConfigurationBuilder builder, Map<String, CacheConfiguration<?, ?>> caches) {
-    this.caches = unmodifiableMap(caches);
-    this.serviceConfigurations = builder.serviceConfigurations;
-    this.classLoader = builder.classLoader;
+  protected ConfigurationBuilder() {
+    super();
   }
 
-  private ConfigurationBuilder(ConfigurationBuilder builder, List<ServiceCreationConfiguration<?>> serviceConfigurations) {
-    this.caches = builder.caches;
-    this.serviceConfigurations = unmodifiableList(serviceConfigurations);
-    this.classLoader = builder.classLoader;
+  protected ConfigurationBuilder(ConfigurationBuilder builder, Map<String, CacheConfiguration<?, ?>> caches) {
+    super(builder, caches);
   }
 
-  private ConfigurationBuilder(ConfigurationBuilder builder, ClassLoader classLoader) {
-    this.caches = builder.caches;
-    this.serviceConfigurations = builder.serviceConfigurations;
-    this.classLoader = classLoader;
+  protected ConfigurationBuilder(ConfigurationBuilder builder, Collection<ServiceCreationConfiguration<?, ?>> serviceConfigurations) {
+    super(builder, serviceConfigurations);
   }
 
-  @Override
-  public Configuration build() {
-    return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
+  protected ConfigurationBuilder(ConfigurationBuilder builder, ClassLoader classLoader) {
+    super(builder, classLoader);
   }
 
-  public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
-    if(newCaches.put(alias, config) != null) {
-      throw new IllegalArgumentException("Cache alias '" + alias + "' already exists");
+  /**
+   * Add a cache configuration with the given alias.
+   * <p>
+   * If a cache with the given alias already exists then an {@code IllegalArgumentException} will be thrown.
+   *
+   * @param alias cache alias to be added
+   * @param config cache configuration
+   * @return an updated builder
+   * @deprecated in favor of {@link #withCache(String, CacheConfiguration)}
+   */
+  @Deprecated
+  public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) throws IllegalArgumentException {
+    CacheConfiguration<?, ?> existing = getCache(alias);
+    if (existing == null) {
+      return withCache(alias, config);
+    } else {
+      throw new IllegalArgumentException("Cache '" + alias + "' already exists: " + existing);
     }
-    return new ConfigurationBuilder(this, newCaches);
   }
 
+  /**
+   * Removes the cache with the given alias.
+   *
+   * @param alias cache alias to be removed
+   * @return an updated builder
+   * @deprecated in favor of {@link #withoutCache(String)}
+   */
+  @Deprecated
   public ConfigurationBuilder removeCache(String alias) {
-    Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
-    newCaches.remove(alias);
-    return new ConfigurationBuilder(this, newCaches);
+    return withoutCache(alias);
   }
 
-  public ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
-    if (findServiceByClass(serviceConfiguration.getClass()) != null) {
-      throw new IllegalArgumentException("There is already a ServiceCreationConfiguration registered for service " + serviceConfiguration
-          .getServiceType() + " of type " + serviceConfiguration.getClass());
+  /**
+   * Adds the given service to this configuration.
+   * <p>
+   * If a a service creation configuration of the same concrete type is already present then an {@code IllegalArgumentException}
+   * will be thrown.
+   *
+   * @param serviceConfiguration service creation configuration
+   * @return an updated builder
+   * @deprecated in favor of {@link #withService(ServiceCreationConfiguration)}
+   */
+  @Deprecated
+  public ConfigurationBuilder addService(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
+    ServiceCreationConfiguration<?, ?> existing = getService(serviceConfiguration.getClass());
+    if (existing == null) {
+      return withService(serviceConfiguration);
+    } else {
+      throw new IllegalArgumentException("There is already an instance of " + serviceConfiguration.getClass() + " registered: " + existing.getClass());
     }
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
-    newServiceConfigurations.add(serviceConfiguration);
-    return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  <T> T findServiceByClass(Class<T> type) {
-    for (ServiceCreationConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration.getClass().equals(type)) {
-        return type.cast(serviceConfiguration);
-      }
-    }
-    return null;
-  }
-
-  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
-    List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<>(serviceConfigurations);
+  /**
+   * Removes the given service configuration.
+   *
+   * @param serviceConfiguration service creation configuration
+   * @return an updated builder
+   * @deprecated in favor of {@link #withoutServices(Class)} or {@link #withoutServices(Class, Predicate)}
+   */
+  @Deprecated
+  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
+    @SuppressWarnings("unchecked")
+    List<ServiceCreationConfiguration<?, ?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?, ?>>(getServices((Class) ServiceCreationConfiguration.class));
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
-    return new ConfigurationBuilder(this, classLoader);
+  /**
+   * Returns {@code true} if a cache configuration is associated with the given alias.
+   *
+   * @param alias cache configuration alias
+   * @return {@code true} if the given alias is present
+   * @deprecated in favor of {@link #getCache(String)}
+   */
+  @Deprecated
+  public boolean containsCache(String alias) {
+    return getCache(alias) != null;
   }
 
-  public boolean containsCache(String alias) {
-    return caches.containsKey(alias);
+  @Override
+  protected ConfigurationBuilder newBuilderWith(Map<String, CacheConfiguration<?, ?>> caches) {
+    return new ConfigurationBuilder(this, caches);
+  }
+
+  @Override
+  protected ConfigurationBuilder newBuilderWith(Collection<ServiceCreationConfiguration<?, ?>> serviceConfigurations) {
+    return new ConfigurationBuilder(this, serviceConfigurations);
+  }
+
+  @Override
+  protected ConfigurationBuilder newBuilderWith(ClassLoader classLoader) {
+    return new ConfigurationBuilder(this, classLoader);
   }
 }

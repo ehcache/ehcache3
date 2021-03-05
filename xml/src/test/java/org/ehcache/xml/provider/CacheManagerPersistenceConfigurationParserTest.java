@@ -53,7 +53,7 @@ public class CacheManagerPersistenceConfigurationParserTest {
   @Test
   public void unparseServiceCreationConfiguration() {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new CacheManagerPersistenceConfiguration(new File("foo"))).build();
+      .withService(new CacheManagerPersistenceConfiguration(new File("foo"))).build();
     ConfigType configType = new CacheManagerPersistenceConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     assertThat(configType.getPersistence().getDirectory()).isEqualTo("foo");

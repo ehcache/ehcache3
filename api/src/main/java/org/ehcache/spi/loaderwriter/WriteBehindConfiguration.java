@@ -24,8 +24,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * <p>
  * The {@code WriteBehindProvider} provides write-behind services to a
  * {@link org.ehcache.Cache Cache}.
+ *
+ * @param <R> representation type
  */
-public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
+public interface WriteBehindConfiguration<R> extends ServiceConfiguration<WriteBehindProvider, R> {
 
   /**
    * The concurrency of the write behind engines queues.

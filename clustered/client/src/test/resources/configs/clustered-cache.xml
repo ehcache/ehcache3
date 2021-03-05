@@ -23,7 +23,7 @@
       <tc:read-timeout unit="seconds">5</tc:read-timeout>
       <tc:write-timeout unit="seconds">5</tc:write-timeout>
       <tc:connection-timeout unit="seconds">150</tc:connection-timeout>
-      <tc:server-side-config auto-create="true">
+      <tc:server-side-config client-mode="auto-create">
         <tc:default-resource from="primary-server-resource1"/>
         <tc:shared-pool name="shared-pool12" unit="B">8388608</tc:shared-pool>
       </tc:server-side-config>

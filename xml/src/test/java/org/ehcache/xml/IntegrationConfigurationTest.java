@@ -189,7 +189,7 @@ public class IntegrationConfigurationTest {
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/ehcache-cacheEventListener.xml"));
     CacheConfiguration<?, ?> template1 = configuration.getCacheConfigurations().get("template1");
     DefaultCacheEventDispatcherConfiguration eventDispatcherConfig = null;
-    for (ServiceConfiguration<?> serviceConfiguration : template1.getServiceConfigurations()) {
+    for (ServiceConfiguration<?, ?> serviceConfiguration : template1.getServiceConfigurations()) {
       if (serviceConfiguration instanceof DefaultCacheEventDispatcherConfiguration) {
         eventDispatcherConfig = (DefaultCacheEventDispatcherConfiguration) serviceConfiguration;
       }
@@ -225,8 +225,8 @@ public class IntegrationConfigurationTest {
     cacheManager.init();
     try {
       Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class, heap(10))
-              .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
-              .add(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
+              .withService(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
+              .withService(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
               .build());
 
       cache.put("foo", "bar");
@@ -246,8 +246,8 @@ public class IntegrationConfigurationTest {
     cacheManager.init();
     try {
       Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class, heap(10))
-              .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
-              .add(newUnBatchedWriteBehindConfiguration())
+              .withService(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
+              .withService(newUnBatchedWriteBehindConfiguration())
               .build());
 
       cache.put("foo", "bar");

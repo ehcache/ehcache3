@@ -23,7 +23,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * {@link ServiceConfiguration} for the default {@link SizeOfEngineProvider}.
  */
-public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<SizeOfEngineProvider> {
+public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<SizeOfEngineProvider, DefaultSizeOfEngineConfiguration> {
 
   /**
    * Default maximum object graph count after which sizing stops
@@ -105,4 +105,14 @@ public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<Si
     return this.unit;
   }
 
+
+  @Override
+  public DefaultSizeOfEngineConfiguration derive() {
+    return new DefaultSizeOfEngineConfiguration(maxObjectSize, unit, objectGraphSize);
+  }
+
+  @Override
+  public DefaultSizeOfEngineConfiguration build(DefaultSizeOfEngineConfiguration config) {
+    return config;
+  }
 }

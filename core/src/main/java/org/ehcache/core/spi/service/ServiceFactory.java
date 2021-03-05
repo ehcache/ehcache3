@@ -58,7 +58,7 @@ public interface ServiceFactory<T extends Service> {
    * @param configuration the creation configuration, can be {@code null} for some services
    * @return the new service, not {@link Service#start(ServiceProvider) started}
    */
-  T create(ServiceCreationConfiguration<T> configuration);
+  T create(ServiceCreationConfiguration<T, ?> configuration);
 
   /**
    * Queries a {@code ServiceFactory} to know which {@link Service} type it produces.

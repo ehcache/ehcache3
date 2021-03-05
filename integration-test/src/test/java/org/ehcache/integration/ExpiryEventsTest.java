@@ -60,7 +60,7 @@ public class ExpiryEventsTest {
           .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
-      byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<>(
+      byRefCacheConfigBuilder.withService(new DefaultCopierConfiguration<>(
         SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();

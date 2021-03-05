@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link SerializationProvider}.
  */
-public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
+public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider, DefaultSerializationProviderConfiguration> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSerializationProviderConfiguration.class);
 
@@ -129,5 +129,15 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
    */
   public Map<Class<?>, Class<? extends Serializer<?>>> getDefaultSerializers() {
     return unmodifiableMap(defaultSerializers);
+  }
+
+  @Override
+  public DefaultSerializationProviderConfiguration derive() {
+    return new DefaultSerializationProviderConfiguration(this);
+  }
+
+  @Override
+  public DefaultSerializationProviderConfiguration build(DefaultSerializationProviderConfiguration configuration) {
+    return configuration;
   }
 }

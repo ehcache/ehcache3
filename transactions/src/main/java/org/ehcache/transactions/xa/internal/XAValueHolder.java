@@ -24,7 +24,7 @@ import org.ehcache.spi.serialization.Serializer;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * The {@link XAStore} {@link Store.ValueHolder} implementation.

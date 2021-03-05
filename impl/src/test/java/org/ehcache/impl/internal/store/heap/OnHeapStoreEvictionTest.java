@@ -19,8 +19,9 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -115,7 +116,7 @@ public class OnHeapStoreEvictionTest {
       }
     });
     OnHeapStore<String, String> store = new OnHeapStore<>(configuration, timeSource,
-      new IdentityCopier<>(), new IdentityCopier<>(), new NoopSizeOfEngine(), eventDispatcher);
+      new IdentityCopier<>(), new IdentityCopier<>(), new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     timeSource.advanceTime(10000L);
     store.put(firstKey, "daValue");
     timeSource.advanceTime(10000L);
@@ -182,11 +183,13 @@ public class OnHeapStoreEvictionTest {
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),  new NoopSizeOfEngine(),
+        NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine,
+        NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }
 
     private boolean enforceCapacityWasCalled = false;

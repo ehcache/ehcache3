@@ -19,8 +19,11 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.common.Consistency;
 import org.junit.Test;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
+import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class ClusteringCacheServiceConfigurationParserTest {
 
@@ -33,6 +36,7 @@ public class ClusteringCacheServiceConfigurationParserTest {
 
     String inputString = "<tc:clustered-store consistency = \"strong\" " +
                          "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-store>";
-    assertElement(inputString, retNode);
+    assertThat(retNode, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 }

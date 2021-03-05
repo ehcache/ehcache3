@@ -17,12 +17,14 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.ConnectionSource;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -101,16 +103,12 @@ class ConnectionState {
     ClusterTierClientEntity storeClientEntity;
     while (true) {
       try {
-        if (isReconnect) {
-          storeClientEntity = entityFactory.getClusterTierClientEntity(entityIdentifier, cacheId);
-        } else {
-          storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
-                  clientStoreConfiguration, serviceConfiguration.isAutoCreate());
-        }
+        storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+                clientStoreConfiguration, serviceConfiguration.getClientMode(), isReconnect);
         clusterTierEntities.put(cacheId, storeClientEntity);
         break;
       } catch (EntityNotFoundException e) {
-        throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
+        throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
         handleConnectionClosedException(true);
@@ -138,7 +136,11 @@ class ConnectionState {
       try {
         connect();
         if (retrieve) {
-          retrieveEntity();
+          if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+            autoCreateEntity();
+          } else {
+            retrieveEntity();
+          }
         }
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
@@ -202,10 +204,17 @@ class ConnectionState {
 
   public void initializeState() {
     try {
-      if (serviceConfiguration.isAutoCreate()) {
-        autoCreateEntity();
-      } else {
-        retrieveEntity();
+      switch (serviceConfiguration.getClientMode()) {
+        case CONNECT:
+        case EXPECTING:
+          retrieveEntity();
+          break;
+        case AUTO_CREATE:
+        case AUTO_CREATE_ON_RECONNECT:
+          autoCreateEntity();
+          break;
+        default:
+          throw new AssertionError(serviceConfiguration.getClientMode());
       }
     } catch (RuntimeException e) {
       entityFactory = null;

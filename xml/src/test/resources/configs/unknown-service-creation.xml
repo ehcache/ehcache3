@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ehcache:config
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:mystery='http://example.com/mystery'
+  xmlns:ehcache='http://www.ehcache.org/v3'>
+
+  <ehcache:service>
+    <mystery:machine/>
+  </ehcache:service>
+</ehcache:config>

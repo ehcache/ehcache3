@@ -21,8 +21,11 @@ import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolI
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
+import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * ClusteredResourceConfigurationParserTest
@@ -35,7 +38,8 @@ public class ClusteredResourceConfigurationParserTest {
     ClusteredResourcePoolImpl clusteredResourcePool = new ClusteredResourcePoolImpl();
     Node retElement = configTranslator.unparseResourcePool(clusteredResourcePool);
     String inputString = "<tc:clustered xmlns:tc = \"http://www.ehcache.org/v3/clustered\" />";
-    assertElement(inputString, retElement);
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -45,7 +49,8 @@ public class ClusteredResourceConfigurationParserTest {
     Node retElement = configTranslator.unparseResourcePool(dedicatedClusteredResourcePool);
     String inputString = "<tc:clustered-dedicated from = \"my-from\" unit = \"GB\" " +
                          "xmlns:tc = \"http://www.ehcache.org/v3/clustered\">12</tc:clustered-dedicated>";
-    assertElement(inputString, retElement);
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -55,7 +60,8 @@ public class ClusteredResourceConfigurationParserTest {
     Node retElement = configTranslator.unparseResourcePool(sharedResourcePool);
     String inputString = "<tc:clustered-shared sharing = \"shared-pool\" " +
                          "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-shared>";
-    assertElement(inputString, retElement);
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
 }

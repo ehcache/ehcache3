@@ -35,7 +35,7 @@ public interface CacheEventListenerProvider extends Service {
    *
    * @return the CacheEventListener to be registered with the given {@link org.ehcache.Cache}
    */
-  <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider> serviceConfiguration);
+  <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider, ?> serviceConfiguration);
 
   /**
    * Releases a given {@link org.ehcache.event.CacheEventListener}

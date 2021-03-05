@@ -24,6 +24,6 @@ resources:
       name: terracotta/terracotta
 
 jobs:
-- template: build-templates/maven-common.yml@templates  
+- template: build-templates/gradle-common.yml@templates
   parameters:
     gradleTasks: 'check'

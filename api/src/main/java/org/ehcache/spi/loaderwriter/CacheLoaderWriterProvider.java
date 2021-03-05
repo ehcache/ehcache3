@@ -65,7 +65,7 @@ public interface CacheLoaderWriterProvider extends Service {
    *
    * @return {@code CacheLoaderWriterConfiguration} configured for the {@code Cache}, otherwise null
    */
-  CacheLoaderWriterConfiguration getPreConfiguredCacheLoaderWriterConfig(String alias);
+  CacheLoaderWriterConfiguration<?> getPreConfiguredCacheLoaderWriterConfig(String alias);
 
   /**
    * Checks whether  {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter} was provided using jsr api

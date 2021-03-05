@@ -306,6 +306,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
       throw new AssertionError(e);
     }
     management.close();
+    messageHandler.destroy();
   }
 
   @Override

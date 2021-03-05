@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.Operation;
@@ -24,12 +24,10 @@ import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
@@ -40,11 +38,9 @@ class ClusteredWriteBehind<K, V> {
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
-  private final TimeSource timeSource;
 
   ClusteredWriteBehind(ClusteredWriteBehindStore<K, V> clusteredWriteBehindStore,
                        ExecutorService executorService,
-                       TimeSource timeSource,
                        ChainResolver<K, V> resolver,
                        CacheLoaderWriter<? super K, V> cacheLoaderWriter,
                        OperationsCodec<K, V> codec) {
@@ -53,7 +49,6 @@ class ClusteredWriteBehind<K, V> {
     this.resolver = resolver;
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.codec = codec;
-    this.timeSource = timeSource;
   }
 
   void flushWriteBehindQueue(Chain ignored, long hash) {
@@ -69,8 +64,7 @@ class ClusteredWriteBehind<K, V> {
               K key = operation.getKey();
               PutOperation<K, V> result = resolver.applyOperation(key,
                                                                   currentState.get(key),
-                                                                  operation,
-                                                                  timeSource.getTimeMillis());
+                                                                  operation);
               try {
                 if (result != null) {
                   if (result != currentState.get(key) && !(operation instanceof PutOperation)) {
@@ -97,7 +91,7 @@ class ClusteredWriteBehind<K, V> {
             clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
           }
         } finally {
-          clusteredWriteBehindStore.unlock(hash);
+          clusteredWriteBehindStore.unlock(hash, false);
         }
       } catch (TimeoutException e) {
         throw new RuntimeException(e);

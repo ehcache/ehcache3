@@ -16,6 +16,7 @@
 package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
@@ -27,6 +28,7 @@ import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -63,6 +66,7 @@ import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
  *
  * @see ClusteredCacheConstants#XSD
  */
+@Component
 public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfigParser<ClusteringServiceConfiguration> implements CacheManagerServiceConfigurationParser<ClusteringService> {
 
   public static final String CLUSTER_ELEMENT_NAME = "cluster";
@@ -80,6 +84,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   public static final String SHARED_POOL_ELEMENT_NAME = "shared-pool";
   public static final String SERVER_SIDE_CONFIG = "server-side-config";
   public static final String AUTO_CREATE_ATTRIBUTE_NAME = "auto-create";
+  public static final String CLIENT_MODE_ATTRIBUTE_NAME = "client-mode";
   public static final String UNIT_ATTRIBUTE_NAME = "unit";
   public static final String NAME_ATTRIBUTE_NAME = "name";
   public static final String FROM_ATTRIBUTE_NAME = "from";
@@ -106,10 +111,11 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * This method presumes the element presented is valid according to the XSD.
    *
    * @param fragment the XML fragment to process
+   * @param classLoader
    * @return a {@link org.ehcache.clustered.client.config.ClusteringServiceConfiguration ClusteringServiceConfiguration}
    */
   @Override
-  public ServiceCreationConfiguration<ClusteringService> parseServiceCreationConfiguration(final Element fragment) {
+  public ServiceCreationConfiguration<ClusteringService, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
 
     if ("cluster".equals(fragment.getLocalName())) {
 
@@ -181,7 +187,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
               /*
                * <server-side-config> is an optional element
                */
-              serverConfig = processServerSideConfig(item);
+              serverConfig = processServerSideConfig((Element) item);
               break;
             default:
               throw new XmlConfigurationException(
@@ -192,26 +198,25 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
       }
 
       try {
-        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, connectionTimeout);
-        if (serverConfig == null) {
-          if (connectionUri != null) {
-            return new ClusteringServiceConfiguration(connectionUri, timeouts);
-          } else {
-            return new ClusteringServiceConfiguration(serverAddresses, clusterTierManager, timeouts);
-          }
-        }
-
-        ServerSideConfiguration serverSideConfiguration;
-        if (serverConfig.defaultServerResource == null) {
-          serverSideConfiguration = new ServerSideConfiguration(serverConfig.pools);
-        } else {
-          serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
-        }
-
+        ConnectionSource connectionSource;
         if (connectionUri != null) {
-          return new ClusteringServiceConfiguration(connectionUri, timeouts, serverConfig.autoCreate, serverSideConfiguration);
+          connectionSource = new ConnectionSource.ClusterUri(connectionUri);
         } else {
-          return new ClusteringServiceConfiguration(serverAddresses, clusterTierManager, timeouts, serverConfig.autoCreate, serverSideConfiguration);
+          connectionSource = new ConnectionSource.ServerList(serverAddresses, clusterTierManager);
+        }
+
+        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, connectionTimeout);
+
+        if (serverConfig == null) {
+          return new ClusteringServiceConfiguration(connectionSource, timeouts, ClientMode.CONNECT, null, new Properties());
+        } else {
+          ServerSideConfiguration serverSideConfiguration;
+          if (serverConfig.defaultServerResource == null) {
+            serverSideConfiguration = new ServerSideConfiguration(serverConfig.pools);
+          } else {
+            serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
+          }
+          return new ClusteringServiceConfiguration(connectionSource, timeouts, serverConfig.clientMode, serverSideConfiguration, new Properties());
         }
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
@@ -232,7 +237,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * @param serviceCreationConfiguration
    */
   @Override
-  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService, ?> serviceCreationConfiguration) {
     Element rootElement = unparseConfig(serviceCreationConfiguration);
     return rootElement;
   }
@@ -290,7 +295,9 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
 
     processTimeUnits(doc, rootElement, clusteringServiceConfiguration);
     Element serverSideConfigurationElem = processServerSideElements(doc, clusteringServiceConfiguration);
-    rootElement.appendChild(serverSideConfigurationElem);
+    if (serverSideConfigurationElem != null) {
+      rootElement.appendChild(serverSideConfigurationElem);
+    }
     return rootElement;
   }
 
@@ -325,32 +332,37 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   protected Element processServerSideElements(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element serverSideConfigurationElem = createServerSideConfigurationElement(doc, clusteringServiceConfiguration);
-
-    if (clusteringServiceConfiguration.getServerConfiguration() != null) {
-      ServerSideConfiguration serverSideConfiguration = clusteringServiceConfiguration.getServerConfiguration();
-      String defaultServerResource = serverSideConfiguration.getDefaultServerResource();
-      if (!(defaultServerResource == null || defaultServerResource.trim().length() == 0)) {
-        Element defaultResourceElement = createDefaultServerResourceElement(doc, defaultServerResource);
-        serverSideConfigurationElem.appendChild(defaultResourceElement);
-      }
-      Map<String, ServerSideConfiguration.Pool> resourcePools = serverSideConfiguration.getResourcePools();
-      if (resourcePools != null) {
-        resourcePools.forEach(
-          (key, value) -> {
-            Element poolElement = createSharedPoolElement(doc, key, value);
-            serverSideConfigurationElem.appendChild(poolElement);
-          }
-        );
-      }
+    switch (clusteringServiceConfiguration.getClientMode()) {
+      case CONNECT:
+        return null;
+      case EXPECTING:
+      case AUTO_CREATE:
+      case AUTO_CREATE_ON_RECONNECT:
+        Element serverSideConfigurationElem = createServerSideConfigurationElement(doc, clusteringServiceConfiguration);
+        ServerSideConfiguration serverSideConfiguration = clusteringServiceConfiguration.getServerConfiguration();
+        String defaultServerResource = serverSideConfiguration.getDefaultServerResource();
+        if (!(defaultServerResource == null || defaultServerResource.trim().length() == 0)) {
+          Element defaultResourceElement = createDefaultServerResourceElement(doc, defaultServerResource);
+          serverSideConfigurationElem.appendChild(defaultResourceElement);
+        }
+        Map<String, ServerSideConfiguration.Pool> resourcePools = serverSideConfiguration.getResourcePools();
+        if (resourcePools != null) {
+          resourcePools.forEach(
+            (key, value) -> {
+              Element poolElement = createSharedPoolElement(doc, key, value);
+              serverSideConfigurationElem.appendChild(poolElement);
+            }
+          );
+        }
+        return serverSideConfigurationElem;
     }
-    return serverSideConfigurationElem;
+    throw new AssertionError();
   }
 
   private Element createServerSideConfigurationElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
     Element serverSideConfigurationElem = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_SIDE_CONFIG);
-    serverSideConfigurationElem.setAttribute(AUTO_CREATE_ATTRIBUTE_NAME, Boolean.toString(clusteringServiceConfiguration
-      .isAutoCreate()));
+    serverSideConfigurationElem.setAttribute(CLIENT_MODE_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClientMode()
+      .name().toLowerCase(Locale.ROOT).replace('_', '-'));
     return serverSideConfigurationElem;
   }
 
@@ -377,9 +389,21 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
     return defaultResourceElement;
   }
 
-  private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
+  private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Element serverSideConfigElement) {
     ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverSideConfig = new ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig();
-    serverSideConfig.autoCreate = Boolean.parseBoolean(((Element)serverSideConfigElement).getAttribute("auto-create"));
+
+    String autoCreateAttr = serverSideConfigElement.getAttribute(AUTO_CREATE_ATTRIBUTE_NAME);
+    String clientModeAttr = serverSideConfigElement.getAttribute(CLIENT_MODE_ATTRIBUTE_NAME);
+    if (clientModeAttr.isEmpty()) {
+      if (!autoCreateAttr.isEmpty()) {
+        serverSideConfig.clientMode = Boolean.parseBoolean(autoCreateAttr) ? ClientMode.AUTO_CREATE : ClientMode.EXPECTING;
+      }
+    } else if (autoCreateAttr.isEmpty()) {
+      serverSideConfig.clientMode = ClientMode.valueOf(clientModeAttr.toUpperCase(Locale.ROOT).replace('-', '_'));
+    } else {
+      throw new XmlConfigurationException("Cannot define both '" + AUTO_CREATE_ATTRIBUTE_NAME + "' and '" + CLIENT_MODE_ATTRIBUTE_NAME + "' attributes");
+    }
+
     final NodeList serverSideNodes = serverSideConfigElement.getChildNodes();
     for (int i = 0; i < serverSideNodes.getLength(); i++) {
       final Node item = serverSideNodes.item(i);
@@ -458,7 +482,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private static final class ServerSideConfig {
-    private boolean autoCreate = false;
+    private ClientMode clientMode = ClientMode.CONNECT;
     private String defaultServerResource = null;
     private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
   }

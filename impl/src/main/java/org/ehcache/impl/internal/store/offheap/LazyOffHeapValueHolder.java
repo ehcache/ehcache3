@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
 /**
 * OffHeapValueHolder variant that supports lazy deserialization and also serving the binary value if detached.
 */
-public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
+public class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
 
   private final Serializer<V> valueSerializer;
   private final WriteContext writeContext;
@@ -90,14 +90,18 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
   @Override
   void forceDeserialization() {
     if (value == null) {
-      try {
-        value = valueSerializer.read(binaryValue.duplicate());
-      } catch (ClassNotFoundException e) {
-        throw new SerializerException(e);
-      } catch (SerializerException e) {
-        throw new SerializerException("Seeing this exception and having no other " +
-                                      "serialization related issues is a red flag!", e);
-      }
+      value = deserialize();
+    }
+  }
+
+  V deserialize() {
+    try {
+      return valueSerializer.read(binaryValue.duplicate());
+    } catch (ClassNotFoundException e) {
+      throw new SerializerException(e);
+    } catch (SerializerException e) {
+      throw new SerializerException("Seeing this exception and having no other " +
+        "serialization related issues is a red flag!", e);
     }
   }
 
@@ -123,5 +127,4 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
   private void writeObject(java.io.ObjectOutputStream out) {
     throw new UnsupportedOperationException("This subclass of AbstractValueHolder is NOT serializable");
   }
-
 }

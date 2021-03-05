@@ -4,7 +4,7 @@ caches:
         valueType: java.lang.String
         serviceConfigurations: None
         evictionAdvisor: None
-        expiry: NoExpiryPolicy
+        expiry: No Expiry
         resourcePools:
             pools:
                 heap:
@@ -18,7 +18,7 @@ caches:
         valueType: java.lang.String
         serviceConfigurations: None
         evictionAdvisor: None
-        expiry: NoExpiryPolicy
+        expiry: No Expiry
         resourcePools:
             pools:
                 heap:
@@ -34,7 +34,7 @@ services:
     - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:
         clusterUri: terracotta://server-1/my-server-entity-2
         timeouts: Timeouts{readOperation=PT5S,writeOperation=PT5S,connection=PT2M30S}
-        autoCreate: true
+        clientMode: AUTO_CREATE
         defaultServerResource: primary-server-resource
             resourcePools:
                 resource-pool-a: [10485760 bytes from '<default>']
