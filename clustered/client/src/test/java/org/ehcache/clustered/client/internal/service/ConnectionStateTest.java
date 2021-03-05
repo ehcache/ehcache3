@@ -84,6 +84,7 @@ public class ConnectionStateTest {
 
     assertThat(connectionState.getConnection(), notNullValue());
     assertThat(connectionState.getEntityFactory(), notNullValue());
+    assertThat(connectionState.getEntity(), notNullValue());
 
     connectionState.getConnection().close();
 
@@ -105,7 +106,7 @@ public class ConnectionStateTest {
     ClusterTierClientEntity clientEntity = connectionState.createClusterTierClientEntity("cache1", serverStoreConfiguration, false);
 
     assertThat(clientEntity, notNullValue());
-
+    assertThat(connectionState.getEntity(), notNullValue());
   }
 
   //For test to simulate connection close as result of lease expiry
