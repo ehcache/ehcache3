@@ -97,6 +97,10 @@ class ConnectionState {
     return entityFactory;
   }
 
+  public ClusterTierManagerClientEntity getEntity() {
+    return entity;
+  }
+
   public ClusterTierClientEntity createClusterTierClientEntity(String cacheId,
                                                                ServerStoreConfiguration clientStoreConfiguration, boolean isReconnect)
           throws CachePersistenceException {
@@ -111,7 +115,7 @@ class ConnectionState {
         throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        handleConnectionClosedException();
+        handleConnectionClosedException(true);
       }
     }
 
@@ -132,12 +136,16 @@ class ConnectionState {
     }
   }
 
-  private void reconnect() {
+  private void reconnect(boolean retrieve) {
     while (true) {
       try {
         connect();
-        if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
-          autoCreateEntity();
+        if (retrieve) {
+          if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+            autoCreateEntity();
+          } else {
+            retrieveEntity();
+          }
         }
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
@@ -170,7 +178,7 @@ class ConnectionState {
       return true;
     } catch (ConnectionClosedException | ConnectionShutdownException e) {
       LOGGER.info("Disconnected from the server", e);
-      reconnect();
+      reconnect(false);
       return false;
     }
   }
@@ -253,7 +261,7 @@ class ConnectionState {
       } catch (EntityBusyException e) {
         throw new CachePersistenceException("Cannot delete cluster tiers on " + connectionSource, e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        handleConnectionClosedException();
+        handleConnectionClosedException(false);
       }
     }
   }
@@ -276,7 +284,7 @@ class ConnectionState {
             break;
           }
         } catch (ConnectionClosedException | ConnectionShutdownException e) {
-          reconnect();
+          reconnect(false);
         }
       }
 
@@ -290,7 +298,7 @@ class ConnectionState {
         LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        handleConnectionClosedException();
+        handleConnectionClosedException(false);
       }
     }
   }
@@ -305,7 +313,7 @@ class ConnectionState {
         //ignore - entity already exists - try to retrieve
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        reconnect();
+        reconnect(false);
         continue;
       }
 
@@ -321,17 +329,17 @@ class ConnectionState {
                 + "'; retrieve operation timed out", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        reconnect();
+        reconnect(false);
       }
     }
 
   }
 
-  private void handleConnectionClosedException() {
+  private void handleConnectionClosedException(boolean retrieve) {
     while (true) {
       try {
         destroyState(false);
-        reconnect();
+        reconnect(retrieve);
         connectionRecoveryListener.run();
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
