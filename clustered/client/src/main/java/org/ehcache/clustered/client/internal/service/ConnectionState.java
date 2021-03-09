@@ -136,17 +136,10 @@ class ConnectionState {
     }
   }
 
-  private void reconnect(boolean retrieve) {
+  private void reconnect() {
     while (true) {
       try {
         connect();
-        if (retrieve) {
-          if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
-            autoCreateEntity();
-          } else {
-            retrieveEntity();
-          }
-        }
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
       } catch (ConnectionException e) {
@@ -178,7 +171,7 @@ class ConnectionState {
       return true;
     } catch (ConnectionClosedException | ConnectionShutdownException e) {
       LOGGER.info("Disconnected from the server", e);
-      reconnect(false);
+      reconnect();
       return false;
     }
   }
@@ -207,7 +200,7 @@ class ConnectionState {
     }
   }
 
-  public void initializeState() {
+  public void initializeState() throws ClusterTierManagerValidationException {
     try {
       switch (serviceConfiguration.getClientMode()) {
         case CONNECT:
@@ -221,14 +214,14 @@ class ConnectionState {
         default:
           throw new AssertionError(serviceConfiguration.getClientMode());
       }
-    } catch (RuntimeException e) {
+    } catch (Throwable t) {
       entityFactory = null;
       closeConnection();
-      throw e;
+      throw t;
     }
   }
 
-  private void retrieveEntity() {
+  private void retrieveEntity() throws ClusterTierManagerValidationException {
     try {
       entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
     } catch (DestroyInProgressException | EntityNotFoundException e) {
@@ -284,7 +277,7 @@ class ConnectionState {
             break;
           }
         } catch (ConnectionClosedException | ConnectionShutdownException e) {
-          reconnect(false);
+          reconnect();
         }
       }
 
@@ -313,7 +306,7 @@ class ConnectionState {
         //ignore - entity already exists - try to retrieve
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        reconnect(false);
+        reconnect();
         continue;
       }
 
@@ -329,17 +322,24 @@ class ConnectionState {
                 + "'; retrieve operation timed out", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        reconnect(false);
+        reconnect();
       }
     }
 
   }
 
-  private void handleConnectionClosedException(boolean retrieve) {
+  private void handleConnectionClosedException(boolean retrieve) throws ClusterTierManagerValidationException {
     while (true) {
       try {
         destroyState(false);
-        reconnect(retrieve);
+        reconnect();
+        if (retrieve) {
+          if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+            autoCreateEntity();
+          } else {
+            retrieveEntity();
+          }
+        }
         connectionRecoveryListener.run();
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
