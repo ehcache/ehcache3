@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * PoolAllocation
@@ -86,8 +87,7 @@ public interface PoolAllocation extends Serializable {
 
       final Dedicated dedicated = (Dedicated)other;
 
-      if (size != dedicated.size) return false;
-      return resourceName != null ? resourceName.equals(dedicated.resourceName) : dedicated.resourceName == null;
+      return Objects.equals(resourceName, dedicated.resourceName);
     }
 
     @Override

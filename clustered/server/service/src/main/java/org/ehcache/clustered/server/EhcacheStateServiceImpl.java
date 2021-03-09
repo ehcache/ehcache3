@@ -211,20 +211,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
                                                         + "Client: " + incomingConfig.getResourcePools().keySet() + " "
                                                         + "Server: " + sharedResourcePools.keySet().toString());
     }
-
-    try {
-      for (Map.Entry<String, ServerSideConfiguration.Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
-        ServerSideConfiguration.Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
-
-        if (!serverPool.equals(pool.getValue())) {
-          throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
-                                                            + "Client: " + pool.getValue() + " "
-                                                            + "Server: " + serverPool);
-        }
-      }
-    } catch (ConfigurationException e) {
-      throw new InvalidServerSideConfigurationException(e.getMessage());
-    }
   }
 
   private static Map<String, ServerSideConfiguration.Pool> resolveResourcePools(ServerSideConfiguration configuration) throws ConfigurationException {
