@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
@@ -118,9 +119,13 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    asyncExecutor = createAsyncWorker();
-    connectionState.initClusterConnection(asyncExecutor);
-    connectionState.initializeState();
+    try {
+      asyncExecutor = createAsyncWorker();
+      connectionState.initClusterConnection(asyncExecutor);
+      connectionState.initializeState();
+    } catch (ClusterTierManagerValidationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

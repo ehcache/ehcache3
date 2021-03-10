@@ -19,7 +19,7 @@ package org.ehcache.clustered.client.internal;
 /**
  * Thrown to indicate a failure in validating an {@code Entity} supporting clustered operations.
  */
-public class ClusterTierManagerValidationException extends RuntimeException {
+public class ClusterTierManagerValidationException extends PerpetualCachePersistenceException {
 
   private static final long serialVersionUID = -428725072152588216L;
 
@@ -29,9 +29,5 @@ public class ClusterTierManagerValidationException extends RuntimeException {
 
   public ClusterTierManagerValidationException(String message, Throwable cause) {
     super(message, cause);
-  }
-
-  public ClusterTierManagerValidationException(Throwable cause) {
-    super(cause);
   }
 }

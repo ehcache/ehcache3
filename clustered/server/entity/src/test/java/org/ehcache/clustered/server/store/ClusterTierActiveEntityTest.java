@@ -618,7 +618,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(activeEntity.invokeActive(client.invokeContext(),
         new LifecycleMessage.ValidateServerStore(defaultStoreName,
             new ServerStoreConfigBuilder()
-                .dedicated(defaultResource, 8, MemoryUnit.MEGABYTES)
+                .dedicated("banana", 1024, MemoryUnit.KILOBYTES)
                 .build())),
       failsWith(instanceOf(InvalidServerStoreConfigurationException.class)));
   }
@@ -713,7 +713,7 @@ public class ClusterTierActiveEntityTest {
                                     storeConfiguration.getPoolAllocation();
 
     assertThat(activeEntity.invokeActive(client.invokeContext(), new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
-      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
+      succeeds());
   }
 
   @Test

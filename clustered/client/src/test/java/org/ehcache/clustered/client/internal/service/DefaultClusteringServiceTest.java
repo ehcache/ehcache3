@@ -20,8 +20,6 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
-import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
@@ -38,8 +36,6 @@ import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
@@ -1941,7 +1937,7 @@ public class DefaultClusteringServiceTest {
     // Initial setup end
 
     service.start(null);
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource2", 1L, MemoryUnit.MB));
     try {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));
       fail("Server store proxy creation should have failed");
@@ -1980,7 +1976,7 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier otherCacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-other-cache", null);
     service.getServerStoreProxy(otherCacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));  // Creates one more store
 
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource2", 1L, MemoryUnit.MB));
     try {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));
       fail("Server store proxy creation should have failed");
