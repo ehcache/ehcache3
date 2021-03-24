@@ -24,7 +24,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBase {
 

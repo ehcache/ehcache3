@@ -221,7 +221,7 @@ subprojects {
   tasks.withType(Test) {
     executable = testJava.javaExecutable
     maxHeapSize = "256m"
-    maxParallelForks 64
+    maxParallelForks 16
     systemProperty 'java.awt.headless', 'true'
   }
   tasks.withType(Javadoc) {

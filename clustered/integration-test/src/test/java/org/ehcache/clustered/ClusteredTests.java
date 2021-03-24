@@ -28,6 +28,8 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import org.terracotta.testing.config.ConfigRepoStartupBuilder;
+import org.terracotta.testing.rules.BasicExternalClusterBuilder;
 
 /**
  * Base class for all clustered tests. It makes sure the environment is correctly configured to launch the servers. Especially
@@ -116,6 +118,14 @@ public abstract class ClusteredTests {
     }
     sb.append("</ohr:offheap-resources>");
     return sb.append("</config>\n").toString();
+  }
+
+  protected static BasicExternalClusterBuilder newCluster() {
+    return BasicExternalClusterBuilder.newCluster().startupBuilder(ConfigRepoStartupBuilder::new);
+  }
+
+  protected static BasicExternalClusterBuilder newCluster(int size) {
+    return BasicExternalClusterBuilder.newCluster(size).startupBuilder(ConfigRepoStartupBuilder::new);
   }
 
   protected static String leaseLength(Duration leaseLength) {

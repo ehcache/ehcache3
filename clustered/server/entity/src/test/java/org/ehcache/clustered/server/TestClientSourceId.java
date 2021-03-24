@@ -33,6 +33,11 @@ public class TestClientSourceId implements ClientSourceId {
   }
 
   @Override
+  public boolean isValidClient() {
+    return true;
+  }
+
+  @Override
   public boolean matches(ClientDescriptor clientDescriptor) {
     return clientDescriptor.getSourceId().toLong() == id;
   }

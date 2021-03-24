@@ -26,7 +26,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
@@ -34,12 +33,14 @@ import org.terracotta.testing.rules.Cluster;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import org.junit.Ignore;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /**
  * Test the effect of cache eviction during passive sync.
  */
+@Ignore("OOME on build slaves due to high memory requirements")
 public class OversizedCacheOpsPassiveTest extends ClusteredTests {
   private static final int MAX_PUTS = 3000;
   private static final int MAX_SWITCH_OVER = 3;
@@ -52,7 +53,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
         .withServiceFragment(offheapResource("primary-server-resource", 2))
-        .withSystemProperty("JAVA_OPTS", "-Xms1024m -Xmx8192m")
+        .withServerHeap(2048)
         .build();
 
   @Test

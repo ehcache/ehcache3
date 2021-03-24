@@ -38,7 +38,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class CMClosedEventSentTest extends ClusteredTests {
 

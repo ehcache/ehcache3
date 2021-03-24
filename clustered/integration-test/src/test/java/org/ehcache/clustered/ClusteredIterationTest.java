@@ -45,7 +45,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.any;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class ClusteredIterationTest extends ClusteredTests {
 

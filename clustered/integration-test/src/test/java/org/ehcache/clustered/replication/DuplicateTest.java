@@ -49,7 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assume.assumeThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class DuplicateTest extends ClusteredTests {
 

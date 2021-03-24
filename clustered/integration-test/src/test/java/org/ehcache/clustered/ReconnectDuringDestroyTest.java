@@ -54,7 +54,7 @@ import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 

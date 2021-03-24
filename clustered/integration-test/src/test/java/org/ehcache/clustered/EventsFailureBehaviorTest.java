@@ -67,7 +67,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.nullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /*
  * Eventing behavior is broken across a failover due to actives and passives

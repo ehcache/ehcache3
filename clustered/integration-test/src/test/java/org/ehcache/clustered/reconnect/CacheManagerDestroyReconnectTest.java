@@ -32,7 +32,7 @@ import java.net.URI;
 import java.time.Duration;
 
 import static java.time.Duration.ofSeconds;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 

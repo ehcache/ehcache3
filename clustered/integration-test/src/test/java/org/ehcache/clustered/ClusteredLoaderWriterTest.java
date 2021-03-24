@@ -53,7 +53,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @RunWith(Parameterized.class)
 public class ClusteredLoaderWriterTest extends ClusteredTests {

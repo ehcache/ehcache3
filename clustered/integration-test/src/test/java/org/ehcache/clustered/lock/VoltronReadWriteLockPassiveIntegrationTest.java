@@ -34,7 +34,7 @@ import org.terracotta.connection.Connection;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @RunWith(Parallel.class)
 public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {

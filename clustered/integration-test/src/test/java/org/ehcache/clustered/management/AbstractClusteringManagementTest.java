@@ -64,7 +64,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @SuppressWarnings("rawtypes") // Need to suppress because of a Javac bug giving a rawtype on AbstractManageableNode::isManageable.
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {

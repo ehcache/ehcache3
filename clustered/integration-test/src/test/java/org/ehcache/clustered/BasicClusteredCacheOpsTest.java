@@ -48,7 +48,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class BasicClusteredCacheOpsTest extends ClusteredTests {
 

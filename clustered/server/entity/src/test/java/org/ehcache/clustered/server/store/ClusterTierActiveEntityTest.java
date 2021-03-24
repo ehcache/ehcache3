@@ -81,6 +81,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
@@ -113,6 +117,9 @@ import static org.mockito.Mockito.when;
 public class ClusterTierActiveEntityTest {
 
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
+  private static final int MAX_SYNC_CONCURRENCY = 1;
+  private static final ExecutorService SYNC_GETS_EXECUTOR = new ThreadPoolExecutor(0, MAX_SYNC_CONCURRENCY,
+    20, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
   private String defaultStoreName = "store";
   private String defaultResource = "default";
@@ -133,12 +140,12 @@ public class ClusterTierActiveEntityTest {
 
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
-    new ClusterTierActiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
+    new ClusterTierActiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
   }
 
   @Test
   public void testConnected() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client = TestClientDescriptor.newClient();
     activeEntity.connected(client);
@@ -150,7 +157,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testConnectedAgain() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client = TestClientDescriptor.newClient();
     activeEntity.connected(client);
@@ -163,7 +170,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testConnectedSecond() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client1 = TestClientDescriptor.newClient();
     activeEntity.connected(client1);
@@ -178,7 +185,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testDisconnectedNotConnected() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client1 = TestClientDescriptor.newClient();
     activeEntity.disconnected(client1);
@@ -190,7 +197,7 @@ public class ClusterTierActiveEntityTest {
    */
   @Test
   public void testDisconnected() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client1 = TestClientDescriptor.newClient();
     activeEntity.connected(client1);
@@ -201,7 +208,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testEventListenerEnabledTracking() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -237,7 +244,7 @@ public class ClusterTierActiveEntityTest {
    */
   @Test
   public void testDisconnectedSecond() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     ClientDescriptor client1 = TestClientDescriptor.newClient();
     activeEntity.connected(client1);
@@ -263,7 +270,7 @@ public class ClusterTierActiveEntityTest {
 
     IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.loadExisting();
     verify(store).setEventListener(any(ServerStoreEventListener.class));
   }
@@ -279,7 +286,7 @@ public class ClusterTierActiveEntityTest {
 
     IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -297,7 +304,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testAppendInvalidationAcksTakenIntoAccount() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -342,7 +349,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testClearInvalidationAcksTakenIntoAccount() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -386,7 +393,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testAppendInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -423,7 +430,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testClearInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -465,7 +472,7 @@ public class ClusterTierActiveEntityTest {
         .consistency(Consistency.STRONG)
         .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -497,7 +504,7 @@ public class ClusterTierActiveEntityTest {
         .consistency(Consistency.STRONG)
         .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, serverStoreConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -524,7 +531,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testWithAttachmentSucceedsInvokingServerStoreOperation() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -543,7 +550,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testCreateDedicatedServerStore() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
@@ -573,10 +580,10 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testCreateDedicatedServerStoreExisting() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
-    ClusterTierActiveEntity otherEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity otherEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     try {
       otherEntity.createNew();
       fail("Duplicate creation should fail with an exception");
@@ -587,7 +594,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testValidateDedicatedServerStore() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client1 = TestClientDescriptor.newClient();
@@ -609,7 +616,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testValidateDedicatedServerStoreBad() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -625,7 +632,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testValidateUnknown() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -642,7 +649,7 @@ public class ClusterTierActiveEntityTest {
       .shared(defaultSharedPool)
       .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
 
@@ -662,11 +669,11 @@ public class ClusterTierActiveEntityTest {
       .shared(defaultSharedPool)
       .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     ClusterTierActiveEntity otherEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     try {
       otherEntity.createNew();
       fail("Duplicate creation should fail with an exception");
@@ -682,7 +689,7 @@ public class ClusterTierActiveEntityTest {
       .shared(defaultSharedPool)
       .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -695,7 +702,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testValidateServerStore_DedicatedStoresDifferentSizes() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -718,7 +725,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testValidateServerStore_DedicatedStoreResourceNamesDifferent() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -746,7 +753,7 @@ public class ClusterTierActiveEntityTest {
       .shared(defaultSharedPool)
       .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -769,7 +776,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testDestroyServerStore() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     activeEntity.destroy();
@@ -789,7 +796,7 @@ public class ClusterTierActiveEntityTest {
   public void testSharedPoolCacheNameCollision() throws Exception {
     defaultRegistry.addSharedPool(defaultStoreName, MemoryUnit.MEGABYTES.toBytes(2), defaultResource);
 
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     assertThat(defaultRegistry.getStoreManagerService().getSharedResourcePoolIds(), contains(defaultStoreName));
@@ -804,7 +811,7 @@ public class ClusterTierActiveEntityTest {
       .build();
 
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     try {
       activeEntity.createNew();
       fail("Creation with non-existent shared pool should have failed");
@@ -819,7 +826,7 @@ public class ClusterTierActiveEntityTest {
       .dedicated("unknown", 2, MemoryUnit.MEGABYTES)
       .build();
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry,
-      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER);
+      new ClusterTierEntityConfiguration(identifier, defaultStoreName, storeConfiguration), DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     try {
       activeEntity.createNew();
       fail("Creation with non-existent shared pool should have failed");
@@ -830,7 +837,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testSyncToPassiveNoData() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -848,7 +855,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testSyncToPassiveBatchedByDefault() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
@@ -922,7 +929,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testLoadExistingRecoversInflightInvalidationsForEventualCache() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
 
@@ -940,7 +947,7 @@ public class ClusterTierActiveEntityTest {
   @SuppressWarnings("unchecked")
   public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws Exception {
 
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = defaultRegistry.getEntityMessenger();
@@ -963,7 +970,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testInvalidMessageThrowsError() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
 
     TestClientDescriptor client = TestClientDescriptor.newClient();
     activeEntity.connected(client);
@@ -978,7 +985,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testActiveMessageTracking() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
@@ -1002,7 +1009,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test @SuppressWarnings("unchecked")
   public void testShortIterationIsNotTracked() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
@@ -1029,7 +1036,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testLongIteration() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
@@ -1064,7 +1071,7 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testExplicitIteratorClose() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
 
@@ -1092,7 +1099,7 @@ public class ClusterTierActiveEntityTest {
   }
 
   private void prepareAndRunActiveEntityForPassiveSync(BiConsumer<ClusterTierActiveEntity, Integer> testConsumer) throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
     activeEntity.createNew();
 
     TestClientDescriptor client = TestClientDescriptor.newClient();

@@ -63,7 +63,7 @@ import java.util.concurrent.TimeoutException;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;

@@ -150,6 +150,11 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
             }
 
             @Override
+            public boolean isValidClient() {
+              return true;
+            }
+
+            @Override
             public boolean matches(ClientDescriptor cd) {
               return cd.getSourceId().toLong() == cid;
             }

@@ -48,7 +48,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 

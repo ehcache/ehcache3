@@ -38,7 +38,7 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @RunWith(Parallel.class)
 public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {

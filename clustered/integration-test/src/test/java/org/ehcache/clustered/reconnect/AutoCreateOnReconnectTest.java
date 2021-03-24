@@ -32,7 +32,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class AutoCreateOnReconnectTest extends ClusteredTests {
 

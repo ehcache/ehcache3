@@ -46,6 +46,11 @@ public final class TestClientDescriptor implements ClientDescriptor {
   }
 
   @Override
+  public boolean isValidClient() {
+    return true;
+  }
+
+  @Override
   public String toString() {
     return "TestClientDescriptor[" + clientId + "]";
   }
