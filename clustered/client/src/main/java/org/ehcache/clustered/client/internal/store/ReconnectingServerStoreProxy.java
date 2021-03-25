@@ -148,12 +148,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
     V apply(U u) throws TimeoutException;
   }
 
-  private static class ReconnectInProgressProxy extends LockingServerStoreProxyImpl {
+  private static class ReconnectInProgressProxy implements LockingServerStoreProxy {
 
     private final String cacheId;
 
     ReconnectInProgressProxy(String cacheId) {
-      super(null, null);
       this.cacheId = cacheId;
     }
 
@@ -204,6 +203,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
 
     @Override
     public void unlock(long key, boolean localonly) {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public void enableEvents(boolean enable) {
       throw new ReconnectInProgressException();
     }
   }

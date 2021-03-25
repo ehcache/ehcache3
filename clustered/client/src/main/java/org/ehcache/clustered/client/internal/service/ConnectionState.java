@@ -139,6 +139,12 @@ class ConnectionState {
   private void reconnect() {
     while (true) {
       try {
+        try {
+          //Ensure full closure of existing connection
+          clusterConnection.close();
+        } catch (IOException | ConnectionClosedException | IllegalStateException e) {
+          LOGGER.debug("Exception closing previous cluster connection", e);
+        }
         connect();
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
