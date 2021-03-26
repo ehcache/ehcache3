@@ -366,8 +366,19 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   }
 
   private static ExecutorService createAsyncWorker() {
+    SecurityManager s = System.getSecurityManager();
+    ThreadGroup initialGroup = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
     return Executors.newSingleThreadExecutor(r -> {
-      Thread t = new Thread(r, "Async DefaultClusteringService Worker");
+      ThreadGroup group = initialGroup;
+      while (group != null && group.isDestroyed()) {
+        ThreadGroup parent = group.getParent();
+        if (parent == null) {
+          break;
+        } else {
+          group = parent;
+        }
+      }
+      Thread t = new Thread(group, r, "Async DefaultClusteringService Worker");
       t.setDaemon(true);
       return t;
     });
