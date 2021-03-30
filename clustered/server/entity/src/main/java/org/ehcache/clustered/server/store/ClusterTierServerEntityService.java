@@ -16,6 +16,12 @@
 
 package org.ehcache.clustered.server.store;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
@@ -46,12 +52,15 @@ import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConc
 /**
  * ClusterTierServerEntityService
  */
-public class ClusterTierServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class ClusterTierServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse>, Closeable {
 
   private static final long ENTITY_VERSION = 10L;
   private static final int DEFAULT_CONCURRENCY = 16;
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
+  private static final int MAX_SYNC_CONCURRENCY = 1;
+  private final ExecutorService syncGets = new ThreadPoolExecutor(0, MAX_SYNC_CONCURRENCY,
+    20, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
   private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(CONFIG_CODEC);
 
@@ -66,9 +75,14 @@ public class ClusterTierServerEntityService implements EntityServerService<Ehcac
   }
 
   @Override
+  public void close() throws IOException {
+    syncGets.shutdownNow();
+  }
+
+  @Override
   public ClusterTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     ClusterTierEntityConfiguration clusterTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
-    return new ClusterTierActiveEntity(registry, clusterTierEntityConfiguration, DEFAULT_MAPPER);
+    return new ClusterTierActiveEntity(registry, clusterTierEntityConfiguration, DEFAULT_MAPPER, syncGets);
   }
 
   @Override

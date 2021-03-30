@@ -159,6 +159,13 @@ public abstract class ConnectionSource {
               connection.close();
             }
           }
+
+          @Override
+          public boolean isValid() {
+            return connection.isValid();
+          }
+
+
         };
       } catch (EntityNotProvidedException | EntityVersionMismatchException | EntityNotFoundException e) {
         throw new AssertionError(e);

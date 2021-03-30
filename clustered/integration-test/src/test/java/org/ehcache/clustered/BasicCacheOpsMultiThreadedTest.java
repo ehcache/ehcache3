@@ -48,7 +48,7 @@ import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just

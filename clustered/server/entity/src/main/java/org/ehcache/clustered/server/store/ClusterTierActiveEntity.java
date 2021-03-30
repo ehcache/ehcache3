@@ -148,9 +148,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.server.chain.compaction.threshold";
   private static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 8;
 
-  private static final int MAX_SYNC_CONCURRENCY = 1;
-  private static final Executor SYNC_GETS_EXECUTOR = new ThreadPoolExecutor(0, MAX_SYNC_CONCURRENCY,
-    20, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+  private final Executor syncGetsExecutor;
 
   private final String storeIdentifier;
   private final ServerStoreConfiguration configuration;
@@ -178,7 +176,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private volatile Integer dataMapInitialCapacity = null;
 
   @SuppressWarnings("unchecked")
-  public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
+  public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper, Executor getSyncExecutor) throws ConfigurationException {
     if (entityConfiguration == null) {
       throw new ConfigurationException("ClusteredStoreEntityConfiguration cannot be null");
     }
@@ -204,6 +202,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } else {
       lockManager = new NoopLockManager();
     }
+    syncGetsExecutor = getSyncExecutor;
   }
 
   static boolean isTrackedMessage(EhcacheEntityMessage msg) {
@@ -812,7 +811,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       int segmentId = concurrencyKey - DEFAULT_KEY - 1;
       Thread thisThread = Thread.currentThread();
       CompletableFuture<Void> asyncGet = CompletableFuture.runAsync(
-        () -> doGetsForSync(segmentId, messageQ, syncChannel, thisThread), SYNC_GETS_EXECUTOR);
+        () -> doGetsForSync(segmentId, messageQ, syncChannel, thisThread), syncGetsExecutor);
       try {
         try {
           while (messageQ.take().execute()) ;

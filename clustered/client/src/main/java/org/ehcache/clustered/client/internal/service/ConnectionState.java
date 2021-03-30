@@ -130,7 +130,7 @@ class ConnectionState {
     this.asyncWorker = requireNonNull(asyncWorker);
     try {
       connect();
-    } catch (ConnectionException ex) {
+    } catch (ConnectionClosedException | ConnectionException ex) {
       LOGGER.error("Initial connection failed due to", ex);
       throw new RuntimeException(ex);
     }
@@ -142,7 +142,7 @@ class ConnectionState {
         connect();
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
-      } catch (ConnectionException e) {
+      } catch (ConnectionClosedException | ConnectionException e) {
         LOGGER.error("Re-connection to server failed, trying again", e);
       }
     }

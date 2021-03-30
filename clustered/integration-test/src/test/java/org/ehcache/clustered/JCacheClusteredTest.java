@@ -31,7 +31,7 @@ import java.net.URL;
 import java.util.Properties;
 
 import static org.ehcache.clustered.CacheManagerLifecycleEhcacheIntegrationTest.substitute;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /**
  * JCacheClusteredTest - runs the TCK test suite using clustered caches

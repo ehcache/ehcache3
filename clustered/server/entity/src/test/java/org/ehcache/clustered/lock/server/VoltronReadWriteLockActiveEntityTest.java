@@ -133,7 +133,7 @@ public class VoltronReadWriteLockActiveEntityTest {
     ActiveInvokeContext<LockTransition> locker = newContext();
     ActiveInvokeContext<LockTransition> waiter = newContext();
 
-    ClientDescriptor waiterDescriptor = () -> null;
+    ClientDescriptor waiterDescriptor = mock(ClientDescriptor.class);
     when(waiter.getClientDescriptor()).thenReturn(waiterDescriptor);
 
     entity.invokeActive(locker, LockMessaging.lock(WRITE));
@@ -149,7 +149,7 @@ public class VoltronReadWriteLockActiveEntityTest {
     ActiveInvokeContext<LockTransition> locker = newContext();
     ActiveInvokeContext<LockTransition> waiter = newContext();
 
-    ClientDescriptor waiterDescriptor = () -> null;
+    ClientDescriptor waiterDescriptor = mock(ClientDescriptor.class);
     when(waiter.getClientDescriptor()).thenReturn(waiterDescriptor);
 
     entity.invokeActive(locker, LockMessaging.lock(READ));
