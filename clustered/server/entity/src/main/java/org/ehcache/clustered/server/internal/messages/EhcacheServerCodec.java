@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.MessageCodecException;
 import org.terracotta.runnel.decoding.Enm;
 
 import java.nio.ByteBuffer;
@@ -96,7 +95,10 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
 
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) {
-    ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
+    return decodeMessage(ByteBuffer.wrap(payload));
+  }
+
+  private EhcacheEntityMessage decodeMessage(ByteBuffer byteBuffer) {
     Enm<EhcacheMessageType> opCodeEnm = EhcacheCodec.OP_CODE_DECODER.decoder(byteBuffer).enm(MESSAGE_TYPE_FIELD_NAME);
     if (!opCodeEnm.isFound()) {
       throw new AssertionError("Got a message without an opCode");
@@ -110,7 +112,7 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
 
     EhcacheMessageType messageType = opCodeEnm.get();
     if (messageType == EhcacheMessageType.MESSAGE_CATCHUP) {
-      return decodeCatchup(payload);
+      return decodeCatchup(byteBuffer);
     } else if (isPassiveReplicationMessage(messageType)) {
       return replicationCodec.decode(messageType, byteBuffer);
     }
@@ -118,17 +120,17 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
   }
 
   @Override
-  public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
+  public byte[] encodeResponse(EhcacheEntityResponse response) {
     return clientCodec.encodeResponse(response);
   }
 
   @Override
-  public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityResponse decodeResponse(byte[] payload) {
     return clientCodec.decodeResponse(payload);
   }
 
-  private EhcacheMessageTrackerCatchup decodeCatchup(byte[] payload) {
-    StructArrayDecoder<StructDecoder<Void>> array = MESSAGE_HISTORY.decoder(ByteBuffer.wrap(payload)).structs(MESSAGE_SEQUENCE);
+  private EhcacheMessageTrackerCatchup decodeCatchup(ByteBuffer payload) {
+    StructArrayDecoder<StructDecoder<Void>> array = MESSAGE_HISTORY.decoder(payload).structs(MESSAGE_SEQUENCE);
     if (array == null) {
       return new EhcacheMessageTrackerCatchup(Collections.emptyList());
     }
@@ -138,7 +140,7 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
       long cid = decoder.int64(CLIENT_ID);
       long transaction = decoder.int64(TRANSACTION_ID);
       ByteBuffer buff = decoder.byteBuffer(MESSAGE);
-      EhcacheEntityMessage msg = decodeMessage(buff.array());
+      EhcacheEntityMessage msg = decodeMessage(buff);
 
       list.add(new RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>() {
         @Override
@@ -147,11 +149,6 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
             @Override
             public long toLong() {
               return cid;
-            }
-
-            @Override
-            public boolean isValidClient() {
-              return true;
             }
 
             @Override
