@@ -27,12 +27,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -50,7 +50,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Parameterized.class)
 public class StandardEhCacheStatisticsQueryTest {
@@ -94,24 +94,21 @@ public class StandardEhCacheStatisticsQueryTest {
   }
 
   @Test
-  public void test() throws InterruptedException, IOException {
+  public void test() throws IOException {
 
-    CacheManager cacheManager = null;
+    DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
-    try {
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
+      .withEvictionAdvisor((key, value) -> key.equals(2L))
+      .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics to make sure they are there even when using only one tier
+      .build();
 
-      DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
-
-      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
-        .withEvictionAdvisor((key, value) -> key.equals(2L))
-        .build();
-
-      cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .withCache("myCache", cacheConfiguration)
-          .using(managementRegistry)
-          .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
-          .build(true);
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache("myCache", cacheConfiguration)
+      .using(managementRegistry)
+      .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .build(true)) {
 
       Context context = StatsUtil.createContext(managementRegistry);
 
@@ -134,13 +131,8 @@ public class StandardEhCacheStatisticsQueryTest {
       }
 
       long cacheHitCount = getAndAssertExpectedValueFromCounter("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
-      Assert.assertThat(tierHitCountSum, is(cacheHitCount));
+      assertThat(tierHitCountSum, is(cacheHitCount));
 
-    }
-    finally {
-      if(cacheManager != null) {
-        cacheManager.close();
-      }
     }
   }
 
@@ -149,7 +141,7 @@ public class StandardEhCacheStatisticsQueryTest {
          This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
          change, the stats value isn't accessible or if you enter the wrong expectedResult.
   */
-  public static long getAndAssertExpectedValueFromCounter(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
+  public long getAndAssertExpectedValueFromCounter(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
 
     StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
       .queryStatistics(singletonList(statName))
@@ -160,11 +152,11 @@ public class StandardEhCacheStatisticsQueryTest {
 
     ContextualStatistics statisticsContext = counters.getResult(context);
 
-    assertThat(counters.size(), Matchers.is(1));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counters.size(), Matchers.is(1));
 
     Long counter = statisticsContext.<Long>getLatestSampleValue(statName).get();
 
-    assertThat(counter, Matchers.is(expectedResult));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counter, Matchers.is(expectedResult));
 
     return counter;
   }

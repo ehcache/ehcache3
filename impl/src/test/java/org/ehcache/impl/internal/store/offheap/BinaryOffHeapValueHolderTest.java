@@ -22,8 +22,8 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * BinaryOffHeapValueHolderTest
@@ -38,7 +38,7 @@ public class BinaryOffHeapValueHolderTest {
   public void setUp() {
     serializer = new StringSerializer();
     value = "aValue";
-    valueHolder = new BinaryOffHeapValueHolder<>(-1, value, serializer.serialize(value), 0, 0, 0, 0);
+    valueHolder = new BinaryOffHeapValueHolder<>(-1, value, serializer.serialize(value), 0, 0, 0);
   }
 
   @Test

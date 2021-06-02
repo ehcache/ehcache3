@@ -15,6 +15,8 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxyImpl;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,18 +24,24 @@ import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.exception.ConnectionShutdownException;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ReconnectingServerStoreProxy implements ServerStoreProxy {
+public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReconnectingServerStoreProxy.class);
 
-  private final AtomicReference<ServerStoreProxy> delegateRef;
+  private final AtomicReference<LockingServerStoreProxy> delegateRef;
   private final Runnable onReconnect;
 
   public ReconnectingServerStoreProxy(ServerStoreProxy serverStoreProxy, Runnable onReconnect) {
-    this.delegateRef = new AtomicReference<>(serverStoreProxy);
+    if (serverStoreProxy instanceof LockingServerStoreProxy) {
+      this.delegateRef = new AtomicReference<>((LockingServerStoreProxy) serverStoreProxy);
+    } else {
+      this.delegateRef = new AtomicReference<>(unsupportedLocking(serverStoreProxy));
+    }
     this.onReconnect = onReconnect;
   }
 
@@ -52,27 +60,35 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return onStoreProxy(serverStoreProxy -> serverStoreProxy.get(key));
   }
 
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
-    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+    onStoreProxy(serverStoreProxy -> {
       serverStoreProxy.append(key, payLoad);
       return null;
     });
   }
 
   @Override
-  public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     return onStoreProxy(serverStoreProxy -> serverStoreProxy.getAndAppend(key, payLoad));
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    onStoreProxy(serverStoreProxy -> {
+      serverStoreProxy.enableEvents(enable);
+      return null;
+    });
   }
 
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     try {
-      onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>)serverStoreProxy -> {
+      onStoreProxy(serverStoreProxy -> {
         serverStoreProxy.replaceAtHead(key, expect, update);
         return null;
       });
@@ -83,18 +99,23 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void clear() throws TimeoutException {
-    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+    onStoreProxy(serverStoreProxy -> {
       serverStoreProxy.clear();
       return null;
     });
   }
 
-  private ServerStoreProxy proxy() {
+  @Override
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
+    return onStoreProxy(LockingServerStoreProxy::iterator);
+  }
+
+  private LockingServerStoreProxy proxy() {
     return delegateRef.get();
   }
 
-  private <T> T onStoreProxy(TimeoutExceptionFunction<ServerStoreProxy, T> function) throws TimeoutException {
-    ServerStoreProxy storeProxy = proxy();
+  private <T> T onStoreProxy(TimeoutExceptionFunction<LockingServerStoreProxy, T> function) throws TimeoutException {
+    LockingServerStoreProxy storeProxy = proxy();
     try {
       return function.apply(storeProxy);
     } catch (ServerStoreProxyException sspe) {
@@ -109,12 +130,25 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     }
   }
 
+  @Override
+  public ChainEntry lock(long key) throws TimeoutException {
+    return onStoreProxy(lockingServerStoreProxy -> lockingServerStoreProxy.lock(key));
+  }
+
+  @Override
+  public void unlock(long key, boolean localonly) throws TimeoutException {
+    onStoreProxy(lockingServerStoreProxy -> {
+      lockingServerStoreProxy.unlock(key, localonly);
+      return null;
+    });
+  }
+
   @FunctionalInterface
   private interface TimeoutExceptionFunction<U, V> {
     V apply(U u) throws TimeoutException;
   }
 
-  private static class ReconnectInProgressProxy implements ServerStoreProxy {
+  private static class ReconnectInProgressProxy implements LockingServerStoreProxy {
 
     private final String cacheId;
 
@@ -133,7 +167,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     }
 
     @Override
-    public Chain get(long key) {
+    public ChainEntry get(long key) {
       throw new ReconnectInProgressException();
     }
 
@@ -143,7 +177,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     }
 
     @Override
-    public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    public ChainEntry getAndAppend(long key, ByteBuffer payLoad) {
       throw new ReconnectInProgressException();
     }
 
@@ -156,5 +190,84 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     public void clear() {
       throw new ReconnectInProgressException();
     }
+
+    @Override
+    public Iterator<Map.Entry<Long, Chain>> iterator() {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public ChainEntry lock(long key) {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public void unlock(long key, boolean localonly) {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public void enableEvents(boolean enable) {
+      throw new ReconnectInProgressException();
+    }
+  }
+
+  private LockingServerStoreProxy unsupportedLocking(ServerStoreProxy serverStoreProxy) {
+    return new LockingServerStoreProxy() {
+      @Override
+      public ChainEntry lock(long hash) {
+        throw new UnsupportedOperationException("Lock ops are not supported");
+      }
+
+      @Override
+      public void unlock(long hash, boolean localonly) {
+        throw new UnsupportedOperationException("Lock ops are not supported");
+      }
+
+      @Override
+      public ChainEntry get(long key) throws TimeoutException {
+        return serverStoreProxy.get(key);
+      }
+
+      @Override
+      public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
+        return serverStoreProxy.getAndAppend(key, payLoad);
+      }
+
+      @Override
+      public void enableEvents(boolean enable) throws TimeoutException {
+        serverStoreProxy.enableEvents(enable);
+      }
+
+      @Override
+      public String getCacheId() {
+        return serverStoreProxy.getCacheId();
+      }
+
+      @Override
+      public void close() {
+        serverStoreProxy.close();
+      }
+
+      @Override
+      public void append(long key, ByteBuffer payLoad) throws TimeoutException {
+        serverStoreProxy.append(key, payLoad);
+      }
+
+      @Override
+      public void replaceAtHead(long key, Chain expect, Chain update) {
+        serverStoreProxy.replaceAtHead(key, expect, update);
+      }
+
+      @Override
+      public void clear() throws TimeoutException {
+        serverStoreProxy.clear();
+      }
+
+      @Override
+      public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
+        return serverStoreProxy.iterator();
+      }
+    };
   }
 }

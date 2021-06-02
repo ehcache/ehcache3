@@ -25,10 +25,10 @@ import java.util.Random;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Alex Snaps

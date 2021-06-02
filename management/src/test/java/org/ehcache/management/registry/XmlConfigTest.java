@@ -30,7 +30,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Parameterized.class)
 public class XmlConfigTest {
@@ -85,7 +85,7 @@ public class XmlConfigTest {
     try {
       DefaultManagementRegistryConfiguration registryConfiguration = null;
 
-      for (ServiceCreationConfiguration<?> configuration : myCacheManager.getRuntimeConfiguration().getServiceCreationConfigurations()) {
+      for (ServiceCreationConfiguration<?, ?> configuration : myCacheManager.getRuntimeConfiguration().getServiceCreationConfigurations()) {
         if (configuration instanceof DefaultManagementRegistryConfiguration) {
           registryConfiguration = (DefaultManagementRegistryConfiguration) configuration;
           break;
@@ -99,7 +99,10 @@ public class XmlConfigTest {
         expectedConfiguration.setCacheManagerAlias(registryConfiguration.getContext().get("cacheManagerName"));
       }
 
-      assertThat(registryConfiguration, equalTo(expectedConfiguration));
+      assertThat(registryConfiguration.getCacheManagerAlias(), equalTo(expectedConfiguration.getCacheManagerAlias()));
+      assertThat(registryConfiguration.getCollectorExecutorAlias(), equalTo(expectedConfiguration.getCollectorExecutorAlias()));
+      assertThat(registryConfiguration.getContext(), equalTo(expectedConfiguration.getContext()));
+      assertThat(registryConfiguration.getTags(), equalTo(expectedConfiguration.getTags()));
 
     } finally {
       myCacheManager.close();

@@ -17,8 +17,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
-import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -31,6 +29,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,16 +42,18 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 
@@ -62,7 +63,11 @@ import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 public class SimpleClusterTierClientEntity implements InternalClusterTierClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierClientEntity.class);
-  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
+  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(
+    EhcacheMessageType.GET_STORE,
+    EhcacheMessageType.ITERATOR_ADVANCE,
+    EhcacheMessageType.ITERATOR_OPEN,
+    EhcacheMessageType.ITERATOR_CLOSE);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
@@ -71,17 +76,22 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
 
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
 
-  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
-  private String storeIdentifier;
   private volatile boolean connected = true;
+  private volatile boolean eventsEnabled;
 
-  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  private final Executor asyncWorker;
+
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
+                                       Timeouts timeouts, String storeIdentifier, Executor asyncWorker) {
     this.endpoint = endpoint;
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
+    this.asyncWorker = requireNonNull(asyncWorker);
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -93,8 +103,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(eventsEnabled);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
@@ -105,11 +115,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
         fireDisconnectionEvent();
       }
     });
-  }
-
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
   }
 
   void fireDisconnectionEvent() {
@@ -126,14 +131,29 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
     LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
     for (ResponseListener<T> responseListener : responseListeners) {
-      responseListener.onResponse(response);
+      Runnable responseProcessing = () -> {
+        try {
+          responseListener.onResponse(response);
+        } catch (TimeoutException e) {
+          LOGGER.debug("Timeout exception processing: {} - resubmitting", response, e);
+          fireResponseEvent(response);
+        } catch (Exception e) {
+          LOGGER.warn("Unhandled failure processing: {}", response, e);
+        }
+      };
+      try {
+        asyncWorker.execute(responseProcessing);
+      } catch (RejectedExecutionException f) {
+        LOGGER.warn("Response task execution rejected using inline execution: {}", response, f);
+        responseProcessing.run();
+      }
     }
   }
 
   @Override
   public void close() {
     endpoint.close();
-    reconnectListener = null;
+    reconnectListeners.clear();
     disconnectionListeners.clear();
   }
 
@@ -143,8 +163,18 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws ClusterException, TimeoutException {
+    if (enable == this.eventsEnabled) {
+      return;
+    }
+    // make sure the server received and processed the message before returning
+    this.invokeAndWaitForComplete(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
+    this.eventsEnabled = enable;
   }
 
   @Override
@@ -168,17 +198,12 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
+  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierValidationException, TimeoutException {
     try {
       invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
-  }
-
-  @Override
-  public void setStoreIdentifier(String storeIdentifier) {
-    this.storeIdentifier = storeIdentifier;
   }
 
   @Override

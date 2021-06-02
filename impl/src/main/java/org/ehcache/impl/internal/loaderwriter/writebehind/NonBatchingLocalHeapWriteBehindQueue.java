@@ -44,7 +44,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
 
-  public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.executorQueue = new LinkedBlockingQueue<>(config.getMaxQueueSize());
@@ -57,6 +57,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
 
   @Override
   protected SingleOperation<K, V> getOperation(K key) {
+
     return latest.get(key);
   }
 

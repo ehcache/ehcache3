@@ -123,7 +123,7 @@ public final class Expirations {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
 
-      final BaseExpiry that = (BaseExpiry)o;
+      BaseExpiry<?, ?> that = (BaseExpiry<?, ?>)o;
 
       if (!Objects.equals(access, that.access)) return false;
       if (!Objects.equals(create, that.create)) return false;

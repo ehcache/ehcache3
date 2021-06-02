@@ -18,6 +18,7 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.MatcherAssert;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -43,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -51,7 +54,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"),
-    new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:MappingCount" , "GAUGE"),
     new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER")
@@ -60,7 +63,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OffHeap:MissCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"),
     new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"),
-    new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:MappingCount", "GAUGE"),
     new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:HitCount", "COUNTER"),
@@ -74,7 +77,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Disk:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("Disk:MissCount", "COUNTER"),
-    new StatisticDescriptor("Disk:MappingCount", "COUNTER"),
+    new StatisticDescriptor("Disk:MappingCount", "GAUGE"),
     new StatisticDescriptor("Disk:PutCount", "COUNTER"),
     new StatisticDescriptor("Disk:RemovalCount", "COUNTER")
   );
@@ -93,7 +96,22 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Cache:RemovalCount", "COUNTER"),
     new StatisticDescriptor("Cache:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"),
-    new StatisticDescriptor("Cache:GetLatency", "GAUGE")
+    new StatisticDescriptor("Cache:GetHitLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#99", "GAUGE")
   );
   private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = Arrays.asList(
     new StatisticDescriptor("Pool:AllocatedSize", "GAUGE")
@@ -118,15 +136,20 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = nmsService.readTopology();
+    Cluster cluster = CLUSTER.getNmsService().readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     //System.out.println(json);
   }
 
   @Test
   public void test_A_client_tags_exposed() throws Exception {
-    String[] tags = readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
-    assertThat(tags).containsOnly("server-node-1", "webapp-1");
+    MatcherAssert.assertThat(() -> {
+      try {
+        return readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
+    }, eventually().matches(arrayContainingInAnyOrder("server-node-1", "webapp-1")));
   }
 
   @Test
@@ -208,14 +231,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("alias")).isEqualTo("resource-pool-b");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("primary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(16 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(8 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     settings = (Settings) descriptors.get(1);
     assertThat(settings.get("alias")).isEqualTo("resource-pool-a");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("secondary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(10 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     // Dedicated PoolSettings
@@ -247,7 +270,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // tms entity
 
-    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(CLUSTER.getTmsServerEntityIdentifier())).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(managerCapabilities.length).isEqualTo(3);
 
     assertThat(managerCapabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
@@ -279,10 +302,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     if (cluster.serverStream().count() == 2) {
       waitForAllNotifications(
         "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED",
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED"); // passive server
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "CLIENT_REGISTRY_AVAILABLE"); // passive server
     } else {
       waitForAllNotifications(
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED", "CLIENT_REGISTRY_AVAILABLE");
     }
   }
 
@@ -290,7 +313,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
-    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED");
+    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED", "CLIENT_REGISTRY_AVAILABLE");
   }
 
   @Test
@@ -358,7 +381,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .map(ContextualStatistics::getCapability)
       .collect(Collectors.toCollection(TreeSet::new));
 
-    assertThat(capabilities).containsOnly("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
+    assertThat(capabilities).contains("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
 
     // ensure we collect stats from all registered objects (pools and stores)
 

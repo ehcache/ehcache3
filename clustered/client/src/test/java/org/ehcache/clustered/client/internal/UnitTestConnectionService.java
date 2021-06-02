@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
@@ -41,6 +43,7 @@ import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -67,6 +70,8 @@ import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
 
+import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toList;
 import static org.mockito.Mockito.mock;
 
 
@@ -126,8 +131,8 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
-  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<>();
-  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<>();
+  private static final Map<String, StripeDescriptor> STRIPES = new ConcurrentHashMap<>();
+  private static final Map<URI, ServerDescriptor> SERVERS = new ConcurrentHashMap<>();
 
   private static final String PASSTHROUGH = "passthrough";
 
@@ -140,27 +145,20 @@ public class UnitTestConnectionService implements ConnectionService {
    * @param server the {@code PassthroughServer} instance to use for connections to {@code uri}
    */
   public static void add(URI uri, PassthroughServer server) {
-    URI keyURI = createKey(uri);
-    if (SERVERS.containsKey(keyURI)) {
-      throw new AssertionError("Server at " + uri + " already provided; use remove() to remove");
-    }
-
-    SERVERS.put(keyURI, new ServerDescriptor(server));
-    // TODO rework that better
-    server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
-    server.start(true, false);
-    server.addPermanentEntities();
-    LOGGER.info("Started PassthroughServer at {}", keyURI);
+    SERVERS.compute(createKey(uri), (u, existing) -> {
+      if (existing == null) {
+        server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
+        server.start(true, false);
+        LOGGER.info("Started PassthroughServer at {}", u);
+        return new ServerDescriptor(server);
+      } else {
+        throw new AssertionError("Server at " + u + " already provided; use remove() to remove");
+      }
+    });
   }
 
   public static void addServerToStripe(String stripeName, PassthroughServer server) {
-
-    if (STRIPES.get(stripeName) == null) {
-      StripeDescriptor stripeDescriptor = new StripeDescriptor();
-      STRIPES.put(stripeName, stripeDescriptor);
-    }
-
-    STRIPES.get(stripeName).addServer(server);
+    STRIPES.computeIfAbsent(stripeName, k -> new StripeDescriptor()).addServer(server);
   }
 
   public static void removeStripe(String stripeName) {
@@ -221,35 +219,34 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError | IOException e) {
-          // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
+        } catch (IOException e) {
+          throw new AssertionError(e);
         }
       }
 
       //open destroy connection.  You need to make sure connection doesn't have any entities associated with it.
-      PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
+      try (PassthroughConnection connection = serverDescriptor.server.connectNewClient("destroy-connection")) {
+        // destroy in reverse order of the creation to keep coherence
+        List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
+        Collections.reverse(keys);
+        for (Class<? extends Entity> type : keys) {
+          Object[] args = serverDescriptor.knownEntities.get(type);
 
-      // destroy in reverse order of the creation to keep coherence
-      List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
-      Collections.reverse(keys);
-      for(Class<? extends Entity> type : keys) {
-        Object[] args = serverDescriptor.knownEntities.get(type);
+          Long version = (Long) args[0];
+          String stringArg = (String) args[1];
 
-        Long version = (Long) args[0];
-        String stringArg = (String) args[1];
-
-        try {
-          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
-          entityRef.destroy();
-        } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed (not provided???): ", ex);
-        } catch (EntityNotFoundException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
-        } catch (PermanentEntityException ex) {
-          LOGGER.error("Entity destroy failed (permanent???): ", ex);
+          try {
+            EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
+            entityRef.destroy();
+          } catch (EntityNotProvidedException ex) {
+            LOGGER.error("Entity destroy failed (not provided???): ", ex);
+          } catch (EntityNotFoundException ex) {
+            LOGGER.error("Entity destroy failed: ", ex);
+          } catch (PermanentEntityException ex) {
+            LOGGER.error("Entity destroy failed (permanent???): ", ex);
+          }
         }
       }
-
       serverDescriptor.server.stop();
       LOGGER.info("Stopped PassthroughServer at {}", keyURI);
       return serverDescriptor.server;
@@ -284,7 +281,7 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?>> clientEntityServices =
       new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
       new IdentityHashMap<>();
@@ -337,7 +334,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -361,13 +358,11 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 
-      if (!this.resources.getResource().isEmpty()) {
-        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
-      }
+      newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {
         newServer.registerServiceProvider(entry.getKey(), entry.getValue());
@@ -379,32 +374,40 @@ public class UnitTestConnectionService implements ConnectionService {
 
   public static Collection<Properties> getConnectionProperties(URI uri) {
     ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
-    if (serverDescriptor != null) {
-      return serverDescriptor.getConnections().values();
-    } else {
+    if (serverDescriptor == null) {
       return Collections.emptyList();
+    } else {
+      return serverDescriptor.getConnections().values();
     }
   }
 
   public static Collection<Connection> getConnections(URI uri) {
     ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
-    return serverDescriptor.getConnections().keySet();
+    return serverDescriptor.getConnections().keySet().stream().map(c -> proxyConnection(serverDescriptor, c)).collect(toList());
   }
 
   @Override
   public boolean handlesURI(URI uri) {
     if (PASSTHROUGH.equals(uri.getScheme())) {
       return STRIPES.containsKey(uri.getAuthority());
+    } else {
+      return SERVERS.containsKey(checkURI(uri));
     }
-    checkURI(uri);
-    return SERVERS.containsKey(uri);
+  }
+
+  @Override
+  public boolean handlesConnectionType(String s) {
+    throw new UnsupportedOperationException("Operation not supported. Use handlesURI(URI) instead.");
   }
 
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
 
     if (PASSTHROUGH.equals(uri.getScheme())) {
-      if(STRIPES.containsKey(uri.getAuthority())) {
+      StripeDescriptor stripeDescriptor = STRIPES.get(uri.getAuthority());
+      if (stripeDescriptor == null) {
+        throw new IllegalArgumentException("UnitTestConnectionService failed to find stripe" + uri.getAuthority());
+      } else {
         String serverName = uri.getHost();
         PassthroughServer server = PassthroughServerRegistry.getSharedInstance().getServerForName(serverName);
         if(null != server) {
@@ -417,8 +420,6 @@ public class UnitTestConnectionService implements ConnectionService {
           STRIPES.get(uri.getAuthority()).add(connection);
           return connection;
         }
-      } else {
-        throw new IllegalArgumentException("UnitTestConnectionService failed to find stripe" + uri.getAuthority());
       }
     }
 
@@ -441,9 +442,18 @@ public class UnitTestConnectionService implements ConnectionService {
     /*
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
+    return proxyConnection(serverDescriptor, connection);
+  }
+
+  private static Connection proxyConnection(ServerDescriptor serverDescriptor, Connection connection) {
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class[] { Connection.class },
+        new Class<?>[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
+  }
+
+  @Override
+  public Connection connect(Iterable<InetSocketAddress> iterable, Properties properties) {
+    throw new UnsupportedOperationException("Operation not supported. Use connect(URI, Properties) instead");
   }
 
   /**
@@ -456,8 +466,10 @@ public class UnitTestConnectionService implements ConnectionService {
    *
    * @see #checkURI(URI)
    */
-  private static void checkURI(URI requestURI) throws IllegalArgumentException {
-    if (!requestURI.equals(createKey(requestURI))) {
+  private static URI checkURI(URI requestURI) throws IllegalArgumentException {
+    if (requestURI.equals(createKey(requestURI))) {
+      return requestURI;
+    } else {
       throw new IllegalArgumentException("Connection URI contains user-info, path, query, and/or fragment");
     }
   }

@@ -29,8 +29,8 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.impl.config.BaseCacheConfiguration;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -50,9 +50,9 @@ import static org.ehcache.clustered.client.internal.UnitTestConnectionService.ge
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -84,7 +84,7 @@ public class StateRepositoryWhitelistingTest {
 
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-        .autoCreate()
+        .autoCreate(c -> c)
         .build();
 
     service = new ClusteringServiceFactory().create(configuration);
@@ -169,6 +169,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final int val;
 
     private Parent(int val) {
@@ -192,6 +195,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Child extends Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final long longValue;
 
     private Child(int val, long longValue) {

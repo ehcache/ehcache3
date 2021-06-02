@@ -51,6 +51,7 @@ import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.spi.CachingProvider;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -58,7 +59,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -259,7 +259,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<>();
     mutableConfiguration.setTypes(Long.class, Client.class).setStoreByValue(false);
 
-    Cache<Long, Client> myCache = null;
+    Cache<Long, Client> myCache;
     Client client1 = new Client("client1", 1);
 
     myCache = cacheManager.createCache("anotherCache", mutableConfiguration);

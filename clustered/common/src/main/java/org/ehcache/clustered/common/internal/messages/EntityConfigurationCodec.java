@@ -25,6 +25,8 @@ import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
+import java.nio.ByteBuffer;
+
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
@@ -60,7 +62,7 @@ public class EntityConfigurationCodec {
   }
 
   public byte[] encode(ClusterTierEntityConfiguration configuration) {
-    StructEncoder encoder = clusteredStoreConfigurationStruct.encoder();
+    StructEncoder<Void> encoder = clusteredStoreConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getManagerIdentifier())
       .string(SERVER_STORE_NAME_FIELD, configuration.getStoreIdentifier());
     configCodec.encodeServerStoreConfiguration(encoder, configuration.getConfiguration());
@@ -68,7 +70,11 @@ public class EntityConfigurationCodec {
   }
 
   public ClusterTierEntityConfiguration decodeClusteredStoreConfiguration(byte[] configuration) {
-    StructDecoder decoder = clusteredStoreConfigurationStruct.decoder(wrap(configuration));
+    return decodeClusteredStoreConfiguration(wrap(configuration));
+  }
+
+  public ClusterTierEntityConfiguration decodeClusteredStoreConfiguration(ByteBuffer buffer) {
+    StructDecoder<Void> decoder = clusteredStoreConfigurationStruct.decoder(buffer);
     String managerIdentifier = decoder.string(IDENTIFIER);
     if (managerIdentifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");
@@ -78,14 +84,14 @@ public class EntityConfigurationCodec {
     return new ClusterTierEntityConfiguration(managerIdentifier, storeIdentifier, serverStoreConfiguration);
   }
   public byte[] encode(ClusterTierManagerConfiguration configuration) {
-    StructEncoder encoder = tierManagerConfigurationStruct.encoder();
+    StructEncoder<Void> encoder = tierManagerConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getIdentifier());
     configCodec.encodeServerSideConfiguration(encoder, configuration.getConfiguration());
     return encoder.encode().array();
   }
 
   public ClusterTierManagerConfiguration decodeClusterTierManagerConfiguration(byte[] payload) {
-    StructDecoder decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
+    StructDecoder<Void> decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
     String identifier = decoder.string(IDENTIFIER);
     if (identifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");

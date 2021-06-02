@@ -21,6 +21,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -68,8 +69,10 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    *
    * @throws java.lang.IllegalStateException if the listener is already registered
    */
-  void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
-                                  EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes);
+  default void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
+                                  EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes) {
+    registerCacheEventListener(listener, ordering, firing, EnumSet.of(eventType, eventTypes));
+  }
 
   /**
    * Deregisters a previously registered {@link org.ehcache.event.CacheEventListener CacheEventListener} instance.

@@ -15,12 +15,12 @@
  */
 
 dependencies {
-  compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion", "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile project(':107'), project(':impl'), project(':transactions')
-}
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
+  testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
+  testImplementation project(':107')
+  testImplementation project(':impl')
+  testImplementation project(':transactions')
+  testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
   }
+  testImplementation "org.terracotta:statistics:$parent.statisticVersion"
 }

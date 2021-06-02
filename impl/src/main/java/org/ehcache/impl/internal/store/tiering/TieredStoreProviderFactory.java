@@ -16,21 +16,23 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class TieredStoreProviderFactory implements ServiceFactory<TieredStore.Provider> {
 
   @Override
-  public TieredStore.Provider create(ServiceCreationConfiguration<TieredStore.Provider> configuration) {
+  public TieredStore.Provider create(ServiceCreationConfiguration<TieredStore.Provider, ?> configuration) {
     return new TieredStore.Provider();
   }
 
   @Override
-  public Class<TieredStore.Provider> getServiceType() {
+  public Class<? extends TieredStore.Provider> getServiceType() {
     return TieredStore.Provider.class;
   }
 }

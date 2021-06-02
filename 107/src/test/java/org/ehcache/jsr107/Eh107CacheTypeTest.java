@@ -42,25 +42,23 @@ public class Eh107CacheTypeTest {
     cache.put(1l, "one");
     cache.put(2l, "two");
 
-    Configuration cache1CompleteConf = cache.getConfiguration(Configuration.class);
+    Configuration<Object, Object> cache1CompleteConf = cache.getConfiguration(Configuration.class);
     //This ensures that we have compile time type safety, i.e when configuration does not have types defined but
     // what you get cache as should work.
-    assertThat((Class<Object>)cache1CompleteConf.getKeyType(), is(equalTo(Object.class)));
-    assertThat((Class<Object>)cache1CompleteConf.getValueType(), is(equalTo(Object.class)));
+    assertThat(cache1CompleteConf.getKeyType(), is(equalTo(Object.class)));
+    assertThat(cache1CompleteConf.getValueType(), is(equalTo(Object.class)));
 
     assertThat(cache.get(1l), is(equalTo("one")));
     assertThat(cache.get(2l), is(equalTo("two")));
 
 
-    javax.cache.Cache second = cacheManager.getCache("cache1");
+    javax.cache.Cache<String, String> second = cacheManager.getCache("cache1");
     second.put("3","three");
 
-    assertThat((String)second.get("3"), is(equalTo("three")));
+    assertThat(second.get("3"), is(equalTo("three")));
     cacheManager.destroyCache("cache1");
     cacheManager.close();
-
   }
-
 
   @Test
   public void testRunTimeTypeLaxity() throws Exception {

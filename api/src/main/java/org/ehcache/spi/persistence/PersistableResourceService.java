@@ -104,6 +104,8 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * An identifier for an existing persistable resource.
+   *
+   * @param <T> the associated persistence service type
    */
-  interface PersistenceSpaceIdentifier<T extends PersistableResourceService> extends ServiceConfiguration<T> {}
+  interface PersistenceSpaceIdentifier<T extends PersistableResourceService> extends ServiceConfiguration<T, Void> {}
 }

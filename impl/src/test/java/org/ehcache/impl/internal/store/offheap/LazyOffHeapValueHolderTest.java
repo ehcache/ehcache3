@@ -22,9 +22,9 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -38,7 +38,7 @@ public class LazyOffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, mock(WriteContext.class));
 
     valueHolder.detach();
     serialized.clear();
@@ -50,7 +50,7 @@ public class LazyOffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, mock(WriteContext.class));
 
     valueHolder.detach();
 
@@ -63,7 +63,7 @@ public class LazyOffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, mock(WriteContext.class));
 
     try {
       valueHolder.getBinaryValue();

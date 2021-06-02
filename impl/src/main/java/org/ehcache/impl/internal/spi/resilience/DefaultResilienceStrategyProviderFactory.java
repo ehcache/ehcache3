@@ -19,10 +19,12 @@ import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class DefaultResilienceStrategyProviderFactory implements ServiceFactory<ResilienceStrategyProvider> {
   @Override
-  public ResilienceStrategyProvider create(ServiceCreationConfiguration<ResilienceStrategyProvider> configuration) {
+  public ResilienceStrategyProvider create(ServiceCreationConfiguration<ResilienceStrategyProvider, ?> configuration) {
     if (configuration == null) {
       return new DefaultResilienceStrategyProvider();
     } else if (configuration instanceof DefaultResilienceStrategyProviderConfiguration) {
@@ -35,8 +37,8 @@ public class DefaultResilienceStrategyProviderFactory implements ServiceFactory<
   }
 
   @Override
-  public Class<ResilienceStrategyProvider> getServiceType() {
-    return ResilienceStrategyProvider.class;
+  public Class<? extends ResilienceStrategyProvider> getServiceType() {
+    return DefaultResilienceStrategyProvider.class;
   }
 
 }

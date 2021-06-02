@@ -1,19 +1,59 @@
 ---
 ---
 = Clustered Cache
-ifndef::sourcedir35[]
-include::common.adoc[]
-endif::sourcedir35[]
+ifndef::sourcedir39[]
+include::{includedir}/common.adoc[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Introduction
 
 Distributed caching allows you to harness additional benefits of horizontal scale-out, without losing on low latency offered by local on-heap tiers.
 
-image::ClusteredEhcacheTopology.png[]
+[ditaa]
+....
++------------------------------+            +------------------------------+
+|          Application         |            |          Application         |
+|                          cBE7|            |                          cBE7|
+|+----------------------------+|            |+----------------------------+|
+||        Cache Manager   c7DE||            ||        Cache Manager   c7DE||
+||+--------------------------+||            ||+--------------------------+||
+|||           Cache      c7AE|||            |||           Cache      c7AE|||
+|||+------------------------+|||            |||+------------------------+|||
+||||    Heap Tier       cFA4||||            ||||        Heap Tier   cFA4||||
+|||+------------------------+|||            |||+------------------------+|||
+||||                        ||||            ||||                        ||||
+||||      Off Heap Tier     ||||            ||||      Off Heap Tier     ||||
+||||                    cFA4||||            ||||                    cFA4||||
+|||+------------------------+|||            |||+------------------------+|||
+||||     Clustered Tier cA8D||||<--+    +-->||||     Clustered Tier cA8D||||
+|||+------------------------+|||   |    |   |||+------------------------+|||
+||+--------------------------+||   |    |   ||+--------------------------+||
+|+----------------------------+|   |    |   |+----------------------------+|
++------------------------------+   |    |   +------------------------------+
+                                   |    |
+                                   V    V
+                      +------------------------------+
+                      |       Terracotta Server      |
+                      |                          c7AE|
+                      |+----------------------------+|
+                      ||       Cache Clustered      ||
+                      ||        Tier Manager    cF55||
+                      |+----------------------------+|
+                      ||                            ||
+                      ||          Off Heap          ||
+                      ||        Data Storage        ||
+                      ||                        cFA4||
+                      |+----------------------------+|
+                      +------------------------------+
+....
+ * Hot data is cached locally, hotter data in faster tiers
+ * Data cached by one application instance is available to all cluster members.
+ * Full data is available in the cluster.
+ * One or more mirror servers may be deployed to provide HA
 
 To enable clustering with Terracotta, you will have to deploy a Terracotta server configured with clustered cache storage.
 For convenience Ehcache 3.1 introduced a downloadable kit that contains the Terracotta Server and also the required client libraries.
@@ -58,42 +98,50 @@ Consequently, when resource capacity is reached and triggers eviction, the evict
 
 Here is a pictorial representation of the concepts explained above:
 
-image::StoragePools.png[]
+[ditaa]
+....
++-----------------------------------------+
+|         Primary Server Resource         |
+|                (196 GB)                 |
+|                                         |
+|  /---------------\   /---------------\  |
+|  | Shared Pool A |   | Shared Pool B |  |
+|  |    (32 GB)cBEC|   |    (24 GB)cBEC|  |
+|  \---------------/   \---------------/  |
+|                                         |
+|  /---------------\   /---------------\  |
+|  | Fixed Pool C  |   |  Fixed Pool D |  |
+|  |    (32 GB)cA8D|   |    (16 GB)cA8D|  |
+|  \---------------/   \---------------/  |
+|                                     cFAA|
++-----------------------------------------+
+|        Secondary Server Resource        |
+|                 (96 GB)                 |
+|                                         |
+|  /---------------\   /---------------\  |
+|  | Shared Pool E |   |  Fixed Pool F |  |
+|  |    (28 GB)cBEC|   |    (12 GB)cA8D|  |
+|  \---------------/   \---------------/  |
+|                                     cF55|
++-----------------------------------------+
+....
 
 [[starting-server]]
 == Starting the Terracotta Server
 
-You can start the Terracotta Server with the following configuration.
-It contains the bare minimum configuration required for the samples in the rest of the document to work.
+The snippet below defines two offheap resources named `primary-server-resource` and `secondary-server-resource` having
+sizes `128MB` and `96MB` respectively:
 
-[source,xml,indent=0]
+[listing]
 ----
-include::{sourcedir35}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
+offheap-resources=primary-server-resource:128MB,secondary-server-resource:96MB
 ----
 
-The above configuration defines two named server off-heap resources:
-
-<1> An off-heap resource of 128 MB size named `primary-server-resource`.
-<2> Another off-heap resource named `secondary-server-resource` with 96 MB capacity.
-
-The rest of the document explains in detail how you can configure cache managers and caches to consume the server's off-heap resources.
+This can either be defined in config properties file or during server startup.
 
 Assuming that you have the clustered Ehcache kit available locally, start with extracting the *ehcache-clustered* kit.
-Change to your extracted directory and then execute the *start-tc-server* script as below to start the Terracotta server with the above configuration:
-
-On Windows:
-[source,cmd]
-----
-cd <path/to/terracotta/kit>/server/bin
-start-tc-server.bat -f <path/to/server/config>/tc-config.xml
-----
-
-On Unix/Mac:
-[source,bash]
-----
-cd <path/to/terracotta/kit>/server/bin
-./start-tc-server.sh -f <path/to/server/config>/tc-config.xml
-----
+Change to your extracted directory and then execute the *start-tc-server* script located under `$KIT_DIR/server/bin` to start the Terracotta server.
+You will then need to activate the cluster using `activate` command of config tool which is located under `$KIT_DIR/tools/bin`.
 
 NOTE: You will need to have `JAVA_HOME` point to a Java 8 installation while starting the Terracotta server.
 
@@ -109,13 +157,13 @@ Here is a code sample that shows how to configure a cache manager with clusterin
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance.
 <2> Use the `ClusteringServiceConfigurationBuilder` static method `.cluster(URI)` for connecting the cache manager to the clustered storage at the `URI` specified that returns the clustering service configuration builder instance.
 Sample `URI` provided in the example is pointing to the clustered storage instance named "my-application" on the Terracotta server (assuming the server is running on localhost and port 9410).
-<3> Auto-create the clustered storage if it doesn't already exist.
+<3> Auto-create the clustered storage if it doesn't already exist. We also allow auto-create on reconnection since the cluster is not persistent.
 <4> Returns a fully initialized cache manager that can be used to create clustered caches.
 <5> Close the cache manager.
 
@@ -126,7 +174,7 @@ This code sample demonstrates the usage of the concepts explained in the previou
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
 ----
 
 <1> `defaultServerResource(String)` on `ClusteringServiceConfigurationBuilder` instance sets the default server off-heap resource for the cache manager.
@@ -153,15 +201,16 @@ When configuring a cache manager to connect to a cluster tier manager there are 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
 ----
-
-<1> In auto-create mode if no cluster tier manager exists then one is created with the supplied configuration.
+<1> In auto create mode if no cluster tier manager exists then one is created with the supplied configuration.
 If it exists and its configuration matches the supplied configuration then a connection is established.
 If the supplied configuration does not match then the cache manager will fail to initialize.
-<2> In expected mode if a cluster tier manager exists and its configuration matches the supplied configuration then a connection is established.
+<2> In auto create on reconnect mode we additionally support auto creation of any necessary entities when reconnecting to a cluster.
+This behavior is useful in an non-persistent cluster in case the cluster loses its state due to a restart (planned or accidental).
+<3> In expected mode if a cluster tier manager exists and its configuration matches the supplied configuration then a connection is established.
 If the supplied configuration does not match or the cluster tier manager does not exist then the cache manager will fail to initialize.
-<3> In config-less mode if a cluster tier manager exists then a connection is established without regard to its configuration.
+<4> In config-less mode if a cluster tier manager exists then a connection is established without regard to its configuration.
 If it does not exist then the cache manager will fail to initialize.
 
 [[clustered-cache]]
@@ -171,7 +220,7 @@ If it does not exist then the cache manager will fail to initialize.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
 ----
 
 <1> Configuring the heap tier for cache.
@@ -181,7 +230,7 @@ The equivalent XML configuration is as follows:
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
+include::{sourcedir39}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
 ----
 
 <1> Specify the heap tier for cache.
@@ -204,7 +253,7 @@ This comes with a latency penalty on the write operation required to give this g
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
 ----
 
 <1> Specify the consistency level through the use of additional service configuration, using _strong_ consistency here.
@@ -214,7 +263,7 @@ The equivalent XML configuration is as follows:
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
+include::{sourcedir39}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
 ----
 
 <1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
@@ -244,12 +293,12 @@ The example code below shows how this can be implemented.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir35}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
+include::{sourcedir39}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
 ----
 
-<1> Configure the first cache manager with auto create
+<1> Configure the first cache manager with auto create on reconnect
 <2> Build a cache configuration for a clustered `dedicated` resource pool
 <3> Create cache `my-dedicated-cache` using the cache configuration
-<4> Configure the second cache manager as _expecting_ (auto create off)
+<4> Configure the second cache manager as _expecting_
 <5> Build a cache configuration for a clustered _unspecified_ resource pool, which will use the previously configured clustered _dedicated_ resource pool.
 <6> Create cache with the same name `my-dedicated-cache` and use the clustered _unspecified_ cache configuration

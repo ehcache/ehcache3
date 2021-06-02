@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,23 +34,21 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ConnectionClosedTest {
 
   private static final URI CLUSTER_URI = URI.create("terracotta://connection.com:9540/timeout");
 
   @Before
-  public void definePassthroughServer() throws Exception {
+  public void definePassthroughServer() {
     UnitTestConnectionService.add(CLUSTER_URI,
             new UnitTestConnectionService.PassthroughServerBuilder()
                     .resource("primary-server-resource", 64, MemoryUnit.MB)
@@ -57,7 +56,7 @@ public class ConnectionClosedTest {
   }
 
   @After
-  public void removePassthroughServer() throws Exception {
+  public void removePassthroughServer() {
     try {
       UnitTestConnectionService.remove(CLUSTER_URI);
     } catch (IllegalStateException e) {
@@ -78,47 +77,31 @@ public class ConnectionClosedTest {
                                     .timeouts()
                                     .connection(Duration.ofSeconds(20))
                                     .build())
-                            .autoCreate())
+                            .autoCreate(c -> c))
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
-                            resourcePoolsBuilder));
-    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+                      resourcePoolsBuilder).withResilienceStrategy(new ThrowingResilienceStrategy<>()));
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
 
-    Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
+      Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
 
-    Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
+      Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
 
-    assertThat(connectionProperties.size(), is(1));
-    Properties properties = connectionProperties.iterator().next();
+      assertThat(connectionProperties.size(), is(1));
+      Properties properties = connectionProperties.iterator().next();
 
-    assertThat(properties.getProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT), is("20000"));
+      assertThat(properties.getProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT), is("20000"));
 
-    cache.put(1L, "value");
-    assertThat(cache.get(1L), is("value"));
+      cache.put(1L, "value");
+      assertThat(cache.get(1L), is("value"));
 
-    Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
+      Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
 
-    assertThat(connections.size(), is(1));
+      assertThat(connections.size(), is(1));
 
-    Connection connection = connections.iterator().next();
+      connections.iterator().next().close();
 
-    connection.close();
-
-    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-      while (true) {
-        try {
-          Thread.sleep(200);
-        } catch (InterruptedException e) {
-          //
-        }
-        String result;
-        if ((result = cache.get(1L)) != null) {
-          return result;
-        }
-      }
-    });
-
-    assertThat(future.get(5, TimeUnit.SECONDS), is("value"));
-
+      assertThat(() -> cache.get(1L), within(Duration.ofSeconds(60)).is("value"));
+    }
   }
 
 }

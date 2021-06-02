@@ -15,9 +15,12 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.CachePersistenceException;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
@@ -27,6 +30,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.util.ArrayList;
@@ -45,6 +50,9 @@ import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 
+import static org.ehcache.jsr107.CloseUtil.chain;
+import static org.ehcache.jsr107.CloseUtil.closeAll;
+
 /**
  * @author teck
  */
@@ -56,27 +64,25 @@ class Eh107CacheManager implements CacheManager {
 
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<>();
-  private final Eh107InternalCacheManager ehCacheManager;
+  private final org.ehcache.CacheManager ehCacheManager;
   private final EhcacheCachingProvider cachingProvider;
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
   private final ConfigurationMerger configurationMerger;
+  private final StatisticsService statisticsService;
 
-  Eh107CacheManager(EhcacheCachingProvider cachingProvider, Eh107InternalCacheManager ehCacheManager, Properties props,
-                    ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
+  Eh107CacheManager(EhcacheCachingProvider cachingProvider, org.ehcache.CacheManager ehCacheManager, Jsr107Service jsr107Service,
+                    Properties props, ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
     this.configurationMerger = configurationMerger;
+    this.statisticsService = jsr107Service.getStatistics();
 
     refreshAllCaches();
-  }
-
-  Eh107InternalCacheManager getEhCacheManager() {
-    return ehCacheManager;
   }
 
   private void refreshAllCaches() {
@@ -109,7 +115,7 @@ class Eh107CacheManager implements CacheManager {
     CacheLoaderWriter<? super K, V> cacheLoaderWriter = cache.getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
-    for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
+    for (ServiceConfiguration<?, ?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration) serviceConfiguration;
         if(!copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
@@ -121,7 +127,7 @@ class Eh107CacheManager implements CacheManager {
     configurationMerger.setUpManagementAndStats(cache, config);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<>(cache.getRuntimeConfiguration().getExpiryPolicy());
     CacheResources<K, V> resources = new CacheResources<>(alias, wrapCacheLoaderWriter(cacheLoaderWriter), expiry);
-    return new Eh107Cache<>(alias, config, resources, cache, this);
+    return new Eh107Cache<>(alias, config, resources, cache, statisticsService, this);
   }
 
   private <K, V> Jsr107CacheLoaderWriter<K, V> wrapCacheLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter) {
@@ -194,14 +200,10 @@ class Eh107CacheManager implements CacheManager {
       try {
         ehCache = (InternalCache<K, V>)ehCacheManager.createCache(cacheName, configHolder.cacheConfiguration);
       } catch (IllegalArgumentException e) {
-        MultiCacheException mce = new MultiCacheException(e);
-        configHolder.cacheResources.closeResources(mce);
-        throw new CacheException("A Cache named [" + cacheName + "] already exists", mce);
+        throw configHolder.cacheResources.closeResourcesAfter(new CacheException("A Cache named [" + cacheName + "] already exists"));
       } catch (Throwable t) {
         // something went wrong in ehcache land, make sure to clean up our stuff
-        MultiCacheException mce = new MultiCacheException(t);
-        configHolder.cacheResources.closeResources(mce);
-        throw mce;
+        throw configHolder.cacheResources.closeResourcesAfter(new CacheException(t));
       }
 
       Eh107Cache<K, V> cache = null;
@@ -212,7 +214,7 @@ class Eh107CacheManager implements CacheManager {
             cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<>(cacheName, new Eh107CompleteConfiguration<>(configHolder.jsr107Configuration, ehCache
-          .getRuntimeConfiguration()), cacheResources, ehCache, this);
+          .getRuntimeConfiguration()), cacheResources, ehCache, statisticsService, this);
 
         caches.put(cacheName, cache);
 
@@ -226,13 +228,11 @@ class Eh107CacheManager implements CacheManager {
 
         return cache;
       } catch (Throwable t) {
-        MultiCacheException mce = new MultiCacheException(t);
         if (cache != null) {
-          cache.closeInternal(mce);
+          throw cache.closeInternalAfter(new CacheException(t));
         } else {
-          cacheResources.closeResources(mce);
+          throw cacheResources.closeResourcesAfter(new CacheException(t));
         }
-        throw mce;
       }
     }
   }
@@ -312,7 +312,6 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    MultiCacheException destroyException = new MultiCacheException();
     synchronized (cachesLock) {
       checkClosed();
 
@@ -324,27 +323,25 @@ class Eh107CacheManager implements CacheManager {
       }
 
       try {
-        enableManagement(cache, false);
+        chain(
+          () -> enableManagement(cache, false),
+          () -> enableStatistics(cache, false),
+          () -> cache.closeInternal(),
+          () -> ehCacheManager.removeCache(cache.getName()),
+          () -> {
+            if (ehCacheManager instanceof PersistentCacheManager) {
+              try {
+                ((PersistentCacheManager) ehCacheManager).destroyCache(cache.getName());
+              } catch (CachePersistenceException t) {
+                throw new IOException(t);
+              }
+            }
+          }
+        );
       } catch (Throwable t) {
-        destroyException.addThrowable(t);
-      }
-
-      try {
-        enableStatistics(cache, false);
-      } catch (Throwable t) {
-        destroyException.addThrowable(t);
-      }
-
-      cache.destroy(destroyException);
-
-      try {
-        ehCacheManager.removeCache(cache.getName());
-      } catch (Throwable t) {
-        destroyException.addThrowable(t);
+        throw new CacheException(t);
       }
     }
-
-    destroyException.throwIfNotEmpty();
   }
 
   @Override
@@ -440,68 +437,30 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public void close() {
-    MultiCacheException closeException = new MultiCacheException();
-    cachingProvider.close(this, closeException);
-    closeException.throwIfNotEmpty();
+    cachingProvider.close(this);
   }
 
-  void closeInternal(MultiCacheException closeException) {
-    try {
-      synchronized (cachesLock) {
-        for (Eh107Cache<?, ?> cache : caches.values()) {
-          try {
-            close(cache, closeException);
-          } catch (Throwable t) {
-            closeException.addThrowable(t);
-          }
-        }
-
-        try {
-          caches.clear();
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
-
-        try {
-          ehCacheManager.close();
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
+  void closeInternal() {
+    synchronized (cachesLock) {
+      try {
+        closeAll(caches.values(), (Closeable) caches::clear, ehCacheManager);
+      } catch (IOException e) {
+        throw new CacheException(e);
       }
-    } catch (Throwable t) {
-      closeException.addThrowable(t);
     }
   }
 
-  void close(Eh107Cache<?, ?> cache, MultiCacheException closeException) {
-    try {
-      if (caches.remove(cache.getName(), cache)) {
-        try {
-          unregisterObject(cache.getManagementMBean());
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
-
-        try {
-          unregisterObject(cache.getStatisticsMBean());
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
-
-        try {
-          cache.closeInternal(closeException);
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
-
-        try {
-          ehCacheManager.removeCache(cache.getName());
-        } catch (Throwable t) {
-          closeException.addThrowable(t);
-        }
+  void close(Eh107Cache<?, ?> cache) {
+    if (caches.remove(cache.getName(), cache)) {
+      try {
+        chain(
+          () -> unregisterObject(cache.getManagementMBean()),
+          () -> unregisterObject(cache.getStatisticsMBean()),
+          () -> cache.closeInternal(),
+          () -> ehCacheManager.removeCache(cache.getName()));
+      } catch (Throwable t) {
+        throw new CacheException(t);
       }
-    } catch (Throwable t) {
-      closeException.addThrowable(t);
     }
   }
 }

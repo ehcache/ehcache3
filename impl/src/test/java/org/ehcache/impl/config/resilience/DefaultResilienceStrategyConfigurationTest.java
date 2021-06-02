@@ -15,29 +15,32 @@
  */
 package org.ehcache.impl.config.resilience;
 
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
 
+import static org.ehcache.test.MockitoUtil.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.fail;
 
 public class DefaultResilienceStrategyConfigurationTest {
 
   @Test
   public void testBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null), sameInstance(configuration));
   }
 
   @Test
   public void testLoaderWriterBindOnInstanceConfigurationReturnsSelf() {
-    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(mock(ResilienceStrategy.class));
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration((ResilienceStrategy<?, ?>) mock(ResilienceStrategy.class));
     assertThat(configuration.bind(null, null), sameInstance(configuration));
   }
 
@@ -45,7 +48,7 @@ public class DefaultResilienceStrategyConfigurationTest {
   public void testBindOnRegularConfigurationAppendsParameters() {
     Object foo = new Object();
     DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(RobustResilienceStrategy.class, foo);
-    RecoveryStore recoveryStore = mock(RecoveryStore.class);
+    RecoveryStore<?> recoveryStore = mock(RecoveryStore.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore);
 
     assertThat(bound.getArguments(), arrayContaining(foo, recoveryStore));
@@ -57,8 +60,8 @@ public class DefaultResilienceStrategyConfigurationTest {
   public void testLoaderWriterBindOnInstanceConfigurationAppendsParameters() {
     Object foo = new Object();
     DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(RobustResilienceStrategy.class, foo);
-    RecoveryStore recoveryStore = mock(RecoveryStore.class);
-    CacheLoaderWriter loaderWriter = mock(CacheLoaderWriter.class);
+    RecoveryStore<?> recoveryStore = mock(RecoveryStore.class);
+    CacheLoaderWriter<?, ?> loaderWriter = mock(CacheLoaderWriter.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore, loaderWriter);
 
     assertThat(bound.getArguments(), arrayContaining(foo, recoveryStore, loaderWriter));
@@ -69,8 +72,8 @@ public class DefaultResilienceStrategyConfigurationTest {
   @Test
   public void testAlreadyBoundConfigurationCannotBeBound() {
     DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(RobustResilienceStrategy.class);
-    RecoveryStore recoveryStore = mock(RecoveryStore.class);
-    CacheLoaderWriter loaderWriter = mock(CacheLoaderWriter.class);
+    RecoveryStore<?> recoveryStore = mock(RecoveryStore.class);
+    CacheLoaderWriter<?, ?> loaderWriter = mock(CacheLoaderWriter.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore, loaderWriter);
 
     try {
@@ -84,7 +87,7 @@ public class DefaultResilienceStrategyConfigurationTest {
   @Test
   public void testAlreadyBoundLoaderWriterConfigurationCannotBeBound() {
     DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(RobustResilienceStrategy.class);
-    RecoveryStore recoveryStore = mock(RecoveryStore.class);
+    RecoveryStore<?> recoveryStore = mock(RecoveryStore.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore);
 
     try {
@@ -93,5 +96,15 @@ public class DefaultResilienceStrategyConfigurationTest {
     } catch (IllegalStateException e) {
       //expected
     }
+  }
+
+  @Test
+  public void testDeriveDetachesCorrectly() {
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
+    DefaultResilienceStrategyConfiguration configuration = new DefaultResilienceStrategyConfiguration(resilienceStrategy);
+    DefaultResilienceStrategyConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived, is(not(sameInstance(configuration))));
+    assertThat(derived.getInstance(), sameInstance(configuration.getInstance()));
   }
 }

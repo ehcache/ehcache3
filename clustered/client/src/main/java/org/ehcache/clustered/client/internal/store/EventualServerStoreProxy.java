@@ -18,6 +18,8 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 public class EventualServerStoreProxy implements ServerStoreProxy {
@@ -39,7 +41,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
@@ -49,8 +51,13 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return delegate.getAndAppend(key, payLoad);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    delegate.enableEvents(enable);
   }
 
   @Override
@@ -61,5 +68,10 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     delegate.clear();
+  }
+
+  @Override
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

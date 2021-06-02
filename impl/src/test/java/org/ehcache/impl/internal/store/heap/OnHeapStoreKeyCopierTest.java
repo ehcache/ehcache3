@@ -19,6 +19,8 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -39,11 +41,11 @@ import java.util.function.Supplier;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -73,15 +75,14 @@ public class OnHeapStoreKeyCopierTest {
 
   private OnHeapStore<Key, String> store;
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    Store.Configuration<Key, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Key.class);
     when(configuration.getValueType()).thenReturn(String.class);
-    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
-    @SuppressWarnings("unchecked")
-    Store.Configuration<Key, String> config = configuration;
+    when(configuration.getExpiry()).thenReturn((ExpiryPolicy) ExpiryPolicyBuilder.noExpiration());
 
     Copier<Key> keyCopier = new Copier<Key>() {
       @Override
@@ -101,7 +102,8 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(),
+      new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @Test
@@ -125,12 +127,12 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testCompute() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, (key, value) -> {
+    store.getAndCompute(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
       return VALUE;
     });
     copyKey.state = "Different!";
-    store.compute(copyKey, (key, value) -> {
+    store.getAndCompute(copyKey, (key, value) -> {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
@@ -151,12 +153,12 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
       return VALUE;
-    }, NOT_REPLACE_EQUAL);
+    }, NOT_REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
@@ -167,7 +169,7 @@ public class OnHeapStoreKeyCopierTest {
         }
       }
       return value;
-    }, NOT_REPLACE_EQUAL);
+    }, NOT_REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {
       assertThat(copyKey.state, is("Different!"));
@@ -177,12 +179,12 @@ public class OnHeapStoreKeyCopierTest {
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Key copyKey = new Key(KEY);
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
       return VALUE;
-    }, REPLACE_EQUAL);
+    }, REPLACE_EQUAL, () -> false);
     copyKey.state = "Different!";
-    store.compute(copyKey, (key, value) -> {
+    store.computeAndGet(copyKey, (key, value) -> {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
@@ -193,7 +195,7 @@ public class OnHeapStoreKeyCopierTest {
         }
       }
       return value;
-    }, REPLACE_EQUAL);
+    }, REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {
       assertThat(copyKey.state, is("Different!"));

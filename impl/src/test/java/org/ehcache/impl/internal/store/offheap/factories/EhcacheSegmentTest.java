@@ -36,7 +36,7 @@ import org.terracotta.offheapstore.util.Factory;
 import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -44,19 +44,19 @@ public class EhcacheSegmentTest {
 
   @SuppressWarnings("unchecked")
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
-    return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+    return createTestSegmentWithAdvisorAndListener(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
   @SuppressWarnings("unchecked")
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
-    return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegmentWithAdvisor(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
+    return createTestSegmentWithAdvisorAndListener(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
-    return createTestSegment(Eviction.noAdvice(), evictionListener);
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegmentWithListener(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+    return createTestSegmentWithAdvisorAndListener(Eviction.noAdvice(), evictionListener);
   }
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegmentWithAdvisorAndListener(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -94,7 +94,7 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutAdvisedAgainstEvictionComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment((key, value) -> {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegmentWithAdvisor((key, value) -> {
       return "please-do-not-evict-me".equals(key);
     });
     try {
@@ -107,7 +107,7 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutPinnedAdvisedAgainstComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment((key, value) -> {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegmentWithAdvisor((key, value) -> {
       return "please-do-not-evict-me".equals(key);
     });
     try {
@@ -133,7 +133,7 @@ public class EhcacheSegmentTest {
   public void testEvictionFiresEvent() {
     @SuppressWarnings("unchecked")
     EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(evictionListener);
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegmentWithListener(evictionListener);
     try {
       segment.put("key", "value");
       segment.evict(segment.getEvictionIndex(), false);

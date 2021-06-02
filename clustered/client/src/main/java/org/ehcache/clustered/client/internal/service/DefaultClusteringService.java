@@ -17,14 +17,19 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.loaderwriter.writebehind.ClusteredWriteBehindStore;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.lock.LockManager;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxyImpl;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
@@ -42,29 +47,27 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 /**
  * Provides support for accessing server-based cluster services.
  */
-class DefaultClusteringService implements ClusteringService, EntityService {
+public class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
   static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
-  private final URI clusterUri;
-  private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final ConnectionState connectionState;
 
@@ -72,15 +75,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final Collection<Runnable> connectionRecoveryListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean inMaintenance = false;
+  private ExecutorService asyncExecutor;
 
   DefaultClusteringService(ClusteringServiceConfiguration configuration) {
     this.configuration = configuration;
-    URI ehcacheUri = configuration.getClusterUri();
-    this.clusterUri = extractClusterUri(ehcacheUri);
-    this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     Properties properties = configuration.getProperties();
-    this.connectionState = new ConnectionState(clusterUri, configuration.getTimeouts(),
-            entityIdentifier, properties, configuration);
+    this.connectionState = new ConnectionState(configuration.getTimeouts(), properties, configuration);
     this.connectionState.setConnectionRecoveryListener(() -> connectionRecoveryListeners.forEach(Runnable::run));
   }
 
@@ -92,14 +92,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public void removeConnectionRecoveryListener(Runnable runnable) {
     connectionRecoveryListeners.remove(runnable);
-  }
-
-  private static URI extractClusterUri(URI uri) {
-    try {
-      return new URI(uri.getScheme(), uri.getAuthority(), null, null, null);
-    } catch (URISyntaxException e) {
-      throw new AssertionError(e);
-    }
   }
 
   @Override
@@ -127,13 +119,19 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    connectionState.initClusterConnection();
-    connectionState.initializeState();
+    try {
+      asyncExecutor = createAsyncWorker();
+      connectionState.initClusterConnection(asyncExecutor);
+      connectionState.initializeState();
+    } catch (ClusterTierManagerValidationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
-    connectionState.initClusterConnection();
+    asyncExecutor = createAsyncWorker();
+    connectionState.initClusterConnection(asyncExecutor);
     if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
       connectionState.acquireLeadership();
     }
@@ -142,7 +140,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void stop() {
-    LOGGER.info("Closing connection to cluster {}", this.clusterUri);
+    LOGGER.info("Closing connection to cluster {}", configuration.getConnectionSource());
 
     /*
      * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
@@ -151,8 +149,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
      * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
      * take care of server-side cleanup in the event the server is connected.
      */
-    connectionState.destroyState();
+    connectionState.destroyState(true);
     inMaintenance = false;
+    asyncExecutor.shutdown();
     connectionState.closeConnection();
   }
 
@@ -170,7 +169,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;
@@ -189,7 +188,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
     ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
     if (knownPersistenceSpaces.remove(clusterCacheIdentifier.getId()) == null) {
-      throw new CachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
+      throw new PerpetualCachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
     }
   }
 
@@ -198,7 +197,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(clusterCacheIdentifier.getId());
     if (clusteredSpace == null) {
-      throw new CachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
+      throw new PerpetualCachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
     }
     ConcurrentMap<String, ClusterStateRepository> stateRepositories = clusteredSpace.stateRepositories;
     ClusterStateRepository currentRepo = stateRepositories.get(name);
@@ -233,8 +232,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                     final Store.Configuration<K, V> storeConfig,
+  public <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier,
+                                                     Store.Configuration<K, V> storeConfig,
                                                      Consistency configuredConsistency,
                                                      ServerCallback invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
@@ -260,14 +259,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
-    final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
-        clusteredResourcePool.getPoolAllocation(),
-        storeConfig.getKeyType().getName(),
-        storeConfig.getValueType().getName(),
-        (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
-        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-        configuredConsistency
-    );
+    ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
+      clusteredResourcePool.getPoolAllocation(),
+      storeConfig.getKeyType().getName(),
+      storeConfig.getValueType().getName(),
+      (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
+      (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
+      configuredConsistency, storeConfig.getCacheLoaderWriter() != null,
+      invalidation instanceof ClusteredWriteBehindStore.WriteBehindServerCallback);
 
     ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 
@@ -284,15 +283,30 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
 
     try {
-      storeClientEntity.validate(clientStoreConfiguration);
-    } catch (ClusterTierException e) {
-      serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
-    } catch (TimeoutException e) {
-      serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '"
-          + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
-          + "'; validate operation timed out", e);
+      try {
+        storeClientEntity.validate(clientStoreConfiguration);
+      } catch (ClusterTierValidationException e) {
+        throw new PerpetualCachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
+      } catch (ClusterTierException e) {
+        throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
+      } catch (TimeoutException e) {
+        throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+          + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
+      }
+    } catch (Throwable t) {
+      try {
+        serverStoreProxy.close();
+      } catch (Throwable u) {
+        t.addSuppressed(u);
+      }
+      throw t;
+    }
+
+    if (storeConfig.getCacheLoaderWriter() != null) {
+      LockManager lockManager = new LockManager(storeClientEntity);
+      serverStoreProxy = new LockingServerStoreProxyImpl(serverStoreProxy, lockManager);
     }
 
     return serverStoreProxy;
@@ -346,4 +360,27 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  // for test purposes
+  public ConnectionState getConnectionState() {
+    return connectionState;
+  }
+
+  private static ExecutorService createAsyncWorker() {
+    SecurityManager s = System.getSecurityManager();
+    ThreadGroup initialGroup = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+    return Executors.newSingleThreadExecutor(r -> {
+      ThreadGroup group = initialGroup;
+      while (group != null && group.isDestroyed()) {
+        ThreadGroup parent = group.getParent();
+        if (parent == null) {
+          break;
+        } else {
+          group = parent;
+        }
+      }
+      Thread t = new Thread(group, r, "Async DefaultClusteringService Worker");
+      t.setDaemon(true);
+      return t;
+    });
+  }
 }

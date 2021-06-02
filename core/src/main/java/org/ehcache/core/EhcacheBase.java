@@ -297,9 +297,6 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         if (put[0]) {
           putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
           return null;
-        } else if (inCache == null) {
-          putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
-          return null;
         } else {
           putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
           return inCache.get();
@@ -323,7 +320,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
-    return new CacheEntryIterator(false);
+    return new CacheEntryIterator();
   }
 
   /**
@@ -702,14 +699,20 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
     @Override
     public void removeAll() {
+      Collection<StoreAccessException> failures = new ArrayList<>();
       Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
       while (iterator.hasNext()) {
         try {
           Entry<K, ValueHolder<V>> next = iterator.next();
           remove(next.getKey());
         } catch (StoreAccessException cae) {
-          // skip
+          failures.add(cae);
         }
+      }
+      if (!failures.isEmpty()) {
+        StoreAccessException removeAllFailure = new StoreAccessException("Iteration failures may have prevented a complete removal");
+        failures.forEach(removeAllFailure::addSuppressed);
+        resilienceStrategy.clearFailure(removeAllFailure);
       }
     }
 
@@ -718,13 +721,11 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, ValueHolder<V>>> iterator;
-    private final boolean quiet;
     private Cache.Entry<K, ValueHolder<V>> current;
     private Cache.Entry<K, ValueHolder<V>> next;
     private StoreAccessException nextException;
 
-    public CacheEntryIterator(boolean quiet) {
-      this.quiet = quiet;
+    public CacheEntryIterator() {
       this.iterator = store.iterator();
       advance();
     }
@@ -733,7 +734,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       try {
         while (iterator.hasNext()) {
           next = iterator.next();
-          if (getNoLoader(next.getKey()) != null) {
+          if (next != null) {
             return;
           }
         }
@@ -759,14 +760,14 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
         throw new NoSuchElementException();
       }
 
-      if (!quiet) getObserver.begin();
+      getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(GetOutcome.HIT);
+        getObserver.end(GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<>(current);
       } else {
-        if (!quiet) getObserver.end(GetOutcome.FAILURE);
+        getObserver.end(GetOutcome.FAILURE);
         StoreAccessException cae = nextException;
         nextException = null;
         return resilienceStrategy.iteratorFailure(cae);

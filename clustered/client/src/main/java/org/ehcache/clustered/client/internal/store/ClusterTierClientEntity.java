@@ -53,10 +53,12 @@ public interface ClusterTierClientEntity extends Entity {
 
   void addDisconnectionListener(DisconnectionListener disconnectionListener);
 
-  void setReconnectListener(ReconnectListener reconnectListener);
+  void addReconnectListener(ReconnectListener reconnectListener);
+
+  void enableEvents(boolean enable) throws ClusterException, TimeoutException;
 
   interface ResponseListener<T extends EhcacheEntityResponse> {
-    void onResponse(T response);
+    void onResponse(T response) throws TimeoutException;
   }
 
   interface DisconnectionListener {

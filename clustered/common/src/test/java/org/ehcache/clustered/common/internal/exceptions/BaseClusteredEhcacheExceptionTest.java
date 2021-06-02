@@ -22,12 +22,12 @@ import org.junit.AssumptionViolatedException;
 
 import java.lang.reflect.Constructor;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.typeCompatibleWith;
-import static org.junit.Assert.assertThat;
 
 /**
  * Foundation for tests on {@link ClusterException} subclasses.

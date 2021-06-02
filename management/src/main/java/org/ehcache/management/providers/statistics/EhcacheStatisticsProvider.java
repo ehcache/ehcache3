@@ -17,6 +17,7 @@ package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.CacheBindingManagementProvider;
@@ -24,10 +25,9 @@ import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.DefaultStatisticsManagementProvider;
+import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.collect.StatisticProvider;
-import org.terracotta.statistics.registry.Statistic;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -41,10 +41,10 @@ import static java.util.stream.Collectors.toList;
 @StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private final StatisticsService statisticsService;
+  private final ExtendedStatisticsService statisticsService;
   private final TimeSource timeSource;
 
-  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, StatisticsService statisticsService, TimeSource timeSource) {
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, ExtendedStatisticsService statisticsService, TimeSource timeSource) {
     super(configuration);
     this.statisticsService = Objects.requireNonNull(statisticsService);
     this.timeSource = Objects.requireNonNull(timeSource);
@@ -72,8 +72,7 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
     if (exposedObject == null) {
       return Collections.emptyMap();
     }
-    return DefaultStatisticsManagementProvider.collect(exposedObject.getStatisticRegistry(), statisticNames, since);
-
+    return exposedObject.collectStatistics(statisticNames, since);
   }
 
 }

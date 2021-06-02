@@ -49,6 +49,16 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
 
   /**
+   * Return the value holder currently in this tier.
+   *
+   * @param key the key
+   * @return the value holder, or {@code null}
+   *
+   * @throws StoreAccessException if the mapping cannot be access
+   */
+  Store.ValueHolder<V> get(K key) throws StoreAccessException;
+
+  /**
    * Return the value holder currently in this tier and removes it atomically.
    *
    * @param key the key
@@ -114,7 +124,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new lower caching tier
      */
-    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link LowerCachingTier}.

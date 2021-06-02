@@ -19,8 +19,9 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -30,14 +31,14 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.terracotta.statistics.StatisticsManager;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
@@ -58,8 +59,6 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
   @Before
   public void setUp() {
     storeFactory = new StoreFactory<String, String>() {
-
-      final Copier DEFAULT_COPIER = new IdentityCopier();
 
       @Override
       public Store<String, String> newStore() {
@@ -86,13 +85,14 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<>());
+        return new OnHeapStore<>(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+          new NoopSizeOfEngine(), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override
       @SuppressWarnings("unchecked")
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, DEFAULT_COPIER);
+        return new CopiedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, IdentityCopier.identityCopier());
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
@@ -114,23 +114,24 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public void close(final Store<String, String> store) {
         OnHeapStore.Provider.close((OnHeapStore)store);
+        StatisticsManager.nodeFor(store).clean();
       }
 
       @Override

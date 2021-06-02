@@ -18,16 +18,17 @@ package org.ehcache.transactions.xa.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
+
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.
  */
-public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider> {
+public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider, Class<? extends TransactionManagerLookup>> {
 
   private final Class<? extends TransactionManagerLookup> lookupClass;
 
-  @SuppressWarnings("unchecked")
   public LookupTransactionManagerProviderConfiguration(String className) throws ClassNotFoundException {
-    this.lookupClass = (Class<? extends TransactionManagerLookup>) Class.forName(className);
+    this.lookupClass = uncheckedCast(Class.forName(className));
   }
 
   public LookupTransactionManagerProviderConfiguration(Class<? extends TransactionManagerLookup> clazz) {
@@ -39,12 +40,22 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
    *
    * @return the transaction manager lookup class
    */
-  Class<? extends TransactionManagerLookup> getTransactionManagerLookup() {
+  public Class<? extends TransactionManagerLookup> getTransactionManagerLookup() {
     return lookupClass;
   }
 
   @Override
   public Class<TransactionManagerProvider> getServiceType() {
     return TransactionManagerProvider.class;
+  }
+
+  @Override
+  public Class<? extends TransactionManagerLookup> derive() {
+    return getTransactionManagerLookup();
+  }
+
+  @Override
+  public LookupTransactionManagerProviderConfiguration build(Class<? extends TransactionManagerLookup> clazz) {
+    return new LookupTransactionManagerProviderConfiguration(clazz);
   }
 }

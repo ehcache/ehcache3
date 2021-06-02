@@ -18,9 +18,9 @@ package org.ehcache.clustered.client.internal.service;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.terracotta.connection.Connection;
@@ -31,21 +31,23 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class ReconnectTest {
 
   private static URI CLUSTER_URI = URI.create("mock://localhost:9510");
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
-          .autoCreate()
+          .autoCreate(c -> c)
           .build();
 
   @Test(expected = RuntimeException.class)
   public void testInitialConnectDoesNotRetryAfterConnectionException() {
     MockConnectionService.mockConnection = null;
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
   }
 
   @Test
@@ -57,11 +59,17 @@ public class ReconnectTest {
 
     MockConnectionService.mockConnection = connection;
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
-    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> connectionState.initializeState());
+    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+      try {
+        connectionState.initializeState();
+      } catch (ClusterTierManagerValidationException e) {
+        throw new AssertionError(e);
+      }
+    });
 
     MockConnectionService.mockConnection = null;
 
@@ -79,10 +87,10 @@ public class ReconnectTest {
     try {
       future.get();
     } catch (ExecutionException e) {
-      Assert.assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
+      assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
     }
 
-    Assert.assertThat(connectionState.getReconnectCount(), Matchers.is(1));
+    assertThat(connectionState.getReconnectCount(), Matchers.is(1));
 
   }
 

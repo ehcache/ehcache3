@@ -1,5 +1,5 @@
 plugins {
-  id 'org.gretty' version '2.1.0' apply false
+  id 'org.gretty' apply false
 }
 
 subprojects {
@@ -17,7 +17,9 @@ subprojects {
   }
 
   dependencies {
-    compile 'javax.servlet:javax.servlet-api:3.1.0', project(':impl')
-    runtime 'ch.qos.logback:logback-classic:1.2.3', 'com.h2database:h2:1.4.196'
+    implementation project(':impl')
+    implementation 'javax.servlet:javax.servlet-api:3.1.0'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+    runtimeOnly 'com.h2database:h2:1.4.196'
   }
 }

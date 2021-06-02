@@ -17,7 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;
@@ -30,6 +30,8 @@ import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * The stateless {@link Serializer} used to serialize {@link SoftLock}s.
@@ -62,13 +64,12 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
     return ByteBuffer.wrap(bout.toByteArray());
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SoftLock<T> read(ByteBuffer entry) throws SerializerException, ClassNotFoundException {
     ByteBufferInputStream bin = new ByteBufferInputStream(entry);
     try {
       try (OIS ois = new OIS(bin, classLoader)) {
-        return (SoftLock) ois.readObject();
+        return uncheckedCast(ois.readObject());
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -110,7 +111,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
 
     @Override
     protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
-      Class<?>[] interfaceClasses = new Class[interfaces.length];
+      Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }

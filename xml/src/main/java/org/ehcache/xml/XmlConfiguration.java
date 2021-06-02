@@ -18,73 +18,30 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
-import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
-import org.ehcache.core.config.ExpiryUtils;
-import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
-import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
-import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.resilience.ResilienceStrategy;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.xml.ConfigurationParser.Batching;
-import org.ehcache.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.CopierType;
-import org.ehcache.xml.model.EventType;
-import org.ehcache.xml.model.SerializerType;
-import org.ehcache.xml.model.ServiceType;
-import org.ehcache.xml.model.ThreadPoolReferenceType;
-import org.ehcache.xml.model.ThreadPoolsType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
+import org.w3c.dom.Document;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.URL;
-import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Predicate;
 
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static java.lang.Class.forName;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
+import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
+import static org.ehcache.xml.ConfigurationParser.documentToText;
+import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
@@ -94,20 +51,21 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
  */
 public class XmlConfiguration implements Configuration {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(XmlConfiguration.class);
+  public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
 
-  private final URL xml;
-  private final ClassLoader classLoader;
+  private final URL source;
+  private final Document document;
+  private final String renderedDocument;
+
+  private final Configuration configuration;
   private final Map<String, ClassLoader> cacheClassLoaders;
-
-  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<>();
-  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<>();
-  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<>();
+  private final Map<String, Template> templates;
 
   /**
-   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
+   * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}.
    * <p>
-   * Parses the XML file at the {@code url} provided.
+   * The default ClassLoader will first try to use the thread context class loader, followed by the ClassLoader that
+   * loaded the Ehcache classes.
    *
    * @param url URL pointing to the XML file's location
    *
@@ -121,8 +79,6 @@ public class XmlConfiguration implements Configuration {
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances).
-   * <p>
-   * Parses the XML file at the {@code url} provided.
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
@@ -138,9 +94,8 @@ public class XmlConfiguration implements Configuration {
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
    * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
-   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}
-   * <p>
-   * Parses the XML file at the {@code url} provided.
+   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
+   * aliases that do not appear in the map will use {@code classLoader} as a default.
    *
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
@@ -150,20 +105,19 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
       throws XmlConfigurationException {
-    if(url == null) {
-      throw new NullPointerException("The url can not be null");
-    }
-    if(classLoader == null) {
-      throw new NullPointerException("The classLoader can not be null");
-    }
-    if(cacheClassLoaders == null) {
-      throw new NullPointerException("The cacheClassLoaders map can not be null");
-    }
-    this.xml = url;
-    this.classLoader = classLoader;
-    this.cacheClassLoaders = new HashMap<>(cacheClassLoaders);
+
+    this.source = requireNonNull(url, "The url can not be null");
+    requireNonNull(classLoader, "The classLoader can not be null");
+    this.cacheClassLoaders = requireNonNull(cacheClassLoaders, "The cacheClassLoaders map can not be null");
+
     try {
-      parseConfiguration();
+      ConfigurationParser parser = new ConfigurationParser();
+      this.document = parser.uriToDocument(source.toURI());
+      ConfigurationParser.XmlConfigurationWrapper configWrapper = parser.documentToConfig(document, classLoader, cacheClassLoaders);
+      this.configuration = configWrapper.getConfiguration();
+      this.templates = configWrapper.getTemplates();
+
+      this.renderedDocument = ConfigurationParser.urlToText(url, document.getInputEncoding());
     } catch (XmlConfigurationException e) {
       throw e;
     } catch (Exception e) {
@@ -171,200 +125,112 @@ public class XmlConfiguration implements Configuration {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
-  private void parseConfiguration()
-      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException, JAXBException, ParserConfigurationException {
-    LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
-    ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm());
-
-    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<>();
-
-    for (ServiceType serviceType : configurationParser.getServiceElements()) {
-      final ServiceCreationConfiguration<?> serviceConfiguration = configurationParser.parseExtension(serviceType.getServiceCreationConfiguration());
-        serviceConfigs.add(serviceConfiguration);
-    }
-
-    if (configurationParser.getDefaultSerializers() != null) {
-      DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
-
-      for (SerializerType.Serializer serializer : configurationParser.getDefaultSerializers().getSerializer()) {
-        configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
-      }
-      serviceConfigs.add(configuration);
-    }
-    if (configurationParser.getDefaultCopiers() != null) {
-      DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
-
-      for (CopierType.Copier copier : configurationParser.getDefaultCopiers().getCopier()) {
-        configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
-      }
-      serviceConfigs.add(configuration);
-    }
-    if (configurationParser.getHeapStore() != null) {
-      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(
-              configurationParser.getHeapStore().getMaxObjectSize(), configurationParser.getHeapStore().getUnit(),
-              configurationParser.getHeapStore().getMaxObjectGraphSize());
-      serviceConfigs.add(configuration);
-    }
-    if (configurationParser.getPersistence() != null) {
-      serviceConfigs.add(new CacheManagerPersistenceConfiguration(new File(configurationParser.getPersistence().getDirectory())));
-    }
-    if (configurationParser.getThreadPools() != null) {
-      PooledExecutionServiceConfiguration poolsConfiguration = new PooledExecutionServiceConfiguration();
-      for (ThreadPoolsType.ThreadPool pool : configurationParser.getThreadPools().getThreadPool()) {
-        if (pool.isDefault()) {
-          poolsConfiguration.addDefaultPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
-        } else {
-          poolsConfiguration.addPool(pool.getAlias(), pool.getMinSize().intValue(), pool.getMaxSize().intValue());
-        }
-      }
-      serviceConfigs.add(poolsConfiguration);
-    }
-    if (configurationParser.getEventDispatch() != null) {
-      ThreadPoolReferenceType eventDispatchThreading = configurationParser.getEventDispatch();
-      serviceConfigs.add(new CacheEventDispatcherFactoryConfiguration(eventDispatchThreading.getThreadPool()));
-    }
-    if (configurationParser.getWriteBehind() != null) {
-      ThreadPoolReferenceType writeBehindThreading = configurationParser.getWriteBehind();
-      serviceConfigs.add(new WriteBehindProviderConfiguration(writeBehindThreading.getThreadPool()));
-    }
-    if (configurationParser.getDiskStore() != null) {
-      ThreadPoolReferenceType diskStoreThreading = configurationParser.getDiskStore();
-      serviceConfigs.add(new OffHeapDiskStoreProviderConfiguration(diskStoreThreading.getThreadPool()));
-    }
-
-    serviceConfigurations.addAll(serviceConfigs);
-
-    for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
-      String alias = cacheDefinition.id();
-      if(cacheConfigurations.containsKey(alias)) {
-        throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
-      }
-
-      ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
-      boolean classLoaderConfigured = false;
-      if (cacheClassLoader != null) {
-        classLoaderConfigured = true;
-      }
-
-      if (cacheClassLoader == null) {
-        if (classLoader != null) {
-          cacheClassLoader = classLoader;
-        } else {
-          cacheClassLoader = ClassLoading.getDefaultClassLoader();
-        }
-      }
-
-      Class keyType = getClassForName(cacheDefinition.keyType(), cacheClassLoader);
-      Class valueType = getClassForName(cacheDefinition.valueType(), cacheClassLoader);
-      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
-      for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
-        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
-      }
-      CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(keyType, valueType, resourcePoolsBuilder);
-      if (classLoaderConfigured) {
-        builder = builder.withClassLoader(cacheClassLoader);
-      }
-
-      if (cacheDefinition.keySerializer() != null) {
-        Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
-        builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
-      }
-      if (cacheDefinition.keyCopier() != null) {
-        Class keyCopier = getClassForName(cacheDefinition.keyCopier(), cacheClassLoader);
-        builder = builder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
-      }
-      if (cacheDefinition.valueSerializer() != null) {
-        Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
-        builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
-      }
-      if (cacheDefinition.valueCopier() != null) {
-        Class valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
-        builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
-      }
-      if (cacheDefinition.heapStoreSettings() != null) {
-        builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheDefinition.heapStoreSettings().getMaxObjectSize(), cacheDefinition.heapStoreSettings().getUnit(),
-            cacheDefinition.heapStoreSettings().getMaxObjectGraphSize()));
-      }
-      EvictionAdvisor evictionAdvisor = getInstanceOfName(cacheDefinition.evictionAdvisor(), cacheClassLoader, EvictionAdvisor.class);
-      builder = builder.withEvictionAdvisor(evictionAdvisor);
-      final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
-      if (parsedExpiry != null) {
-        builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
-      }
-      final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
-      if (parsedDiskStoreSettings != null) {
-        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency(), parsedDiskStoreSettings.diskSegments()));
-      }
-      for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
-        builder = builder.add(serviceConfig);
-      }
-      if(cacheDefinition.loaderWriter()!= null) {
-        final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(cacheDefinition.loaderWriter(), cacheClassLoader);
-        builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
-        if(cacheDefinition.writeBehind() != null) {
-          WriteBehind writeBehind = cacheDefinition.writeBehind();
-          WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
-          if (writeBehind.batching() == null) {
-            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
-          } else {
-            Batching batching = writeBehind.batching();
-            writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder
-                    .newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
-            if (batching.isCoalesced()) {
-              writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
-            }
-          }
-          builder = builder.add(writeBehindConfigurationBuilder
-                  .useThreadPool(writeBehind.threadPool())
-                  .concurrencyLevel(writeBehind.concurrency())
-                  .queueSize(writeBehind.maxQueueSize()));
-        }
-      }
-      if (cacheDefinition.resilienceStrategy() != null) {
-        Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(cacheDefinition.resilienceStrategy(), cacheClassLoader);
-        builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
-      }
-      builder = handleListenersConfig(cacheDefinition.listenersConfig(), cacheClassLoader, builder);
-      CacheConfiguration<?, ?> config = builder.build();
-      cacheConfigurations.put(alias, config);
-    }
-
-    templates.putAll(configurationParser.getTemplates());
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM.
+   * <p>
+   * The default ClassLoader will first try to use the thread context class loader, followed by the ClassLoader that
+   * loaded the Ehcache classes.
+   *
+   * @param xml XML Document Object Model
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml) throws XmlConfigurationException {
+    this(xml, ClassLoading.getDefaultClassLoader());
   }
 
-  @SuppressWarnings({"unchecked", "deprecation"})
-  private ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    final ExpiryPolicy<? super Object, ? super Object> expiry;
-    if (parsedExpiry.isUserDef()) {
-      ExpiryPolicy<? super Object, ? super Object> tmpExpiry;
-      try {
-        tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
-      } catch (ClassCastException e) {
-        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
-      }
-      expiry = tmpExpiry;
-    } else if (parsedExpiry.isTTL()) {
-      expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
-    } else if (parsedExpiry.isTTI()) {
-      expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
-    } else {
-      expiry = ExpiryPolicyBuilder.noExpiration();
-    }
-    return expiry;
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM and using the provided {@code classLoader} to
+   * load user types (e.g. key and value Class instances).
+   *
+   * @param xml XML Document Object Model
+   * @param classLoader ClassLoader to use to load user types.
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml, ClassLoader classLoader) throws XmlConfigurationException {
+    this(xml, classLoader, emptyMap());
   }
 
-  private static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    if (name == null) {
-      return null;
+  /**
+   * Constructs an instance of XmlConfiguration from the given XML DOM and using the provided {@code classLoader} to
+   * load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will let you specify a
+   * different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by the
+   * {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
+   * aliases that do not appear in the map will use {@code classLoader} as a default.
+   *
+   * @param xml XML Document Object Model
+   * @param classLoader ClassLoader to use to load user types.
+   * @param cacheClassLoaders the map with mappings between cache names and the corresponding class loaders
+   *
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
+   */
+  public XmlConfiguration(Document xml, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws XmlConfigurationException {
+    requireNonNull(xml, "The source-element cannot be null");
+    requireNonNull(classLoader, "The classLoader can not be null");
+    this.cacheClassLoaders = requireNonNull(cacheClassLoaders, "The cacheClassLoaders map can not be null");
+
+    this.source = null;
+    try {
+      ConfigurationParser parser = new ConfigurationParser();
+      this.document = xml;
+      ConfigurationParser.XmlConfigurationWrapper configWrapper = parser.documentToConfig(document, classLoader, cacheClassLoaders);
+      this.configuration = configWrapper.getConfiguration();
+      this.templates = configWrapper.getTemplates();
+
+      this.renderedDocument = documentToText(xml);
+    } catch (XmlConfigurationException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new XmlConfigurationException("Error parsing XML configuration", e);
     }
-    Class<?> klazz = getClassForName(name, classLoader);
-    return klazz.asSubclass(type).newInstance();
   }
 
-  private static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
-    return Class.forName(name, true, classLoader);
+  /**
+   * Constructs an instance of XmlConfiguration from an existing configuration object.
+   *
+   * @param configuration existing configuration
+   *
+   * @throws XmlConfigurationException if anything went wrong converting to XML
+   */
+  public XmlConfiguration(Configuration configuration) throws XmlConfigurationException {
+    this.source = null;
+    this.cacheClassLoaders = emptyMap();
+    try {
+      ConfigurationParser parser = new ConfigurationParser();
+      this.configuration = configuration;
+      this.templates = emptyMap();
+
+      this.document = parser.configToDocument(configuration);
+      this.renderedDocument = documentToText(document);
+    } catch (XmlConfigurationException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new XmlConfigurationException("Error unparsing configuration: " + configuration, e);
+    }
+  }
+
+  /**
+   * Return this configuration as an XML {@link org.w3c.dom.Document}.
+   *
+   * @return configuration XML DOM.
+   */
+  public Document asDocument() {
+    return document;
+  }
+
+  /**
+   * Return this configuration as a rendered XML string.
+   *
+   * @return configuration XML string
+   */
+  public String asRenderedDocument() {
+    return renderedDocument;
+  }
+
+  @Override
+  public String toString() {
+    return asRenderedDocument();
   }
 
   /**
@@ -372,12 +238,12 @@ public class XmlConfiguration implements Configuration {
    * @return The URL provided at object instantiation
    */
   public URL getURL() {
-    return xml;
+    return source;
   }
 
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
-   * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
+   * by the given {@code name} in the parsed XML configuration.
    * <p>
    * Note that this version does not specify resources, which are mandatory to create a
    * {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
@@ -393,8 +259,7 @@ public class XmlConfiguration implements Configuration {
    * @return the preconfigured {@link CacheConfigurationBuilder}
    *         or {@code null} if no cache-template for the provided {@code name}
    *
-   * @throws IllegalStateException if {@link #parseConfiguration()} hasn't yet been successfully invoked or the template
-   * does not configure resources.
+   * @throws IllegalStateException if the template does not configure resources.
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
    * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
@@ -405,12 +270,17 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, null);
+    Template template = templates.get(name);
+    if (template == null) {
+      return null;
+    } else {
+      return template.builderFor(cacheClassLoaders.getOrDefault(name, getClassLoader()), keyType, valueType, null);
+    }
   }
 
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
-   * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
+   * by the given {@code name} in the parsed XML configuration.
    *
    * @param name the unique name identifying the cache-template element in the XML
    * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, must
@@ -424,7 +294,6 @@ public class XmlConfiguration implements Configuration {
    * @return the preconfigured {@link CacheConfigurationBuilder}
    *         or {@code null} if no cache-template for the provided {@code name}
    *
-   * @throws IllegalStateException if {@link #parseConfiguration()} hasn't yet been successfully invoked
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
    * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
@@ -436,15 +305,17 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<V> valueType,
                                                                                          final ResourcePools resourcePools)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    if (resourcePools == null || resourcePools.getResourceTypeSet().isEmpty()) {
-      throw new IllegalArgumentException("ResourcePools parameter must define at least one resource");
+    Template template = templates.get(name);
+    if (template == null) {
+      return null;
+    } else {
+      return template.builderFor(cacheClassLoaders.getOrDefault(name, getClassLoader()), keyType, valueType, requireNonNull(resourcePools));
     }
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePools);
   }
 
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
-   * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
+   * by the given {@code name} in the parsed XML configuration.
    *
    * @param name the unique name identifying the cache-template element in the XML
    * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, must
@@ -458,7 +329,6 @@ public class XmlConfiguration implements Configuration {
    * @return the preconfigured {@link CacheConfigurationBuilder}
    *         or {@code null} if no cache-template for the provided {@code name}
    *
-   * @throws IllegalStateException if {@link #parseConfiguration()} hasn't yet been successfully invoked
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
    * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
@@ -470,158 +340,101 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<V> valueType,
                                                                                          final Builder<? extends ResourcePools> resourcePoolsBuilder)
       throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-    return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
-  }
-
-  @SuppressWarnings("unchecked")
-  private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(final String name,
-                                                                                               final Class<K> keyType,
-                                                                                               final Class<V> valueType,
-                                                                                               final ResourcePools resourcePools)
-        throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-
-    final ConfigurationParser.CacheTemplate cacheTemplate = templates.get(name);
-    if (cacheTemplate == null) {
-      return null;
-    }
-    final ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-    Class keyClass = getClassForName(cacheTemplate.keyType(), defaultClassLoader);
-    Class valueClass = getClassForName(cacheTemplate.valueType(), defaultClassLoader);
-    if(keyType != null && cacheTemplate.keyType() != null && !keyClass.isAssignableFrom(keyType)) {
-      throw new IllegalArgumentException("CacheTemplate '" + name + "' declares key type of " + cacheTemplate.keyType());
-    }
-    if(valueType != null && cacheTemplate.valueType() != null && !valueClass.isAssignableFrom(valueType)) {
-      throw new IllegalArgumentException("CacheTemplate '" + name + "' declares value type of " + cacheTemplate.valueType());
-    }
-
-    if ((resourcePools == null || resourcePools.getResourceTypeSet().isEmpty()) && cacheTemplate.resourcePools().isEmpty()) {
-      throw new IllegalStateException("Template defines no resources, and none were provided");
-    }
-    CacheConfigurationBuilder<K, V> builder;
-    if (resourcePools != null) {
-      builder = newCacheConfigurationBuilder(keyType, valueType, resourcePools);
-    } else {
-      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
-      for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
-        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
-      }
-      builder = newCacheConfigurationBuilder(keyType, valueType, resourcePoolsBuilder);
-    }
-    builder = builder
-        .withEvictionAdvisor(getInstanceOfName(cacheTemplate.evictionAdvisor(), defaultClassLoader, EvictionAdvisor.class));
-    final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
-    if (parsedExpiry != null) {
-      builder = builder.withExpiry(getExpiry(defaultClassLoader, parsedExpiry));
-    }
-
-    if (cacheTemplate.keySerializer() != null) {
-      final Class<Serializer<?>> keySerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.keySerializer(), defaultClassLoader);
-      builder = builder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
-    }
-    if (cacheTemplate.keyCopier() != null) {
-      final Class<Copier<?>> keyCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.keyCopier(), defaultClassLoader);
-      builder = builder.add(new DefaultCopierConfiguration(keyCopier, DefaultCopierConfiguration.Type.KEY));
-    }
-    if (cacheTemplate.valueSerializer() != null) {
-      final Class<Serializer<?>> valueSerializer = (Class<Serializer<?>>) getClassForName(cacheTemplate.valueSerializer(), defaultClassLoader);
-      builder = builder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
-    }
-    if (cacheTemplate.valueCopier() != null) {
-      final Class<Copier<?>> valueCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.valueCopier(), defaultClassLoader);
-      builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
-    }
-    if (cacheTemplate.heapStoreSettings() != null) {
-      builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheTemplate.heapStoreSettings().getMaxObjectSize(), cacheTemplate.heapStoreSettings().getUnit(),
-        cacheTemplate.heapStoreSettings().getMaxObjectGraphSize()));
-    }
-    final String loaderWriter = cacheTemplate.loaderWriter();
-    if(loaderWriter!= null) {
-      final Class<CacheLoaderWriter<?, ?>> cacheLoaderWriterClass = (Class<CacheLoaderWriter<?,?>>)getClassForName(loaderWriter, defaultClassLoader);
-      builder = builder.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriterClass));
-      if(cacheTemplate.writeBehind() != null) {
-        WriteBehind writeBehind = cacheTemplate.writeBehind();
-        WriteBehindConfigurationBuilder writeBehindConfigurationBuilder;
-        if (writeBehind.batching() == null) {
-          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration();
-        } else {
-          Batching batching = writeBehind.batching();
-          writeBehindConfigurationBuilder = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(batching.maxDelay(), batching.maxDelayUnit(), batching.batchSize());
-          if (batching.isCoalesced()) {
-            writeBehindConfigurationBuilder = ((BatchedWriteBehindConfigurationBuilder) writeBehindConfigurationBuilder).enableCoalescing();
-          }
-        }
-        builder = builder.add(writeBehindConfigurationBuilder
-                .concurrencyLevel(writeBehind.concurrency())
-                .queueSize(writeBehind.maxQueueSize()));
-      }
-    }
-    String resilienceStrategy = cacheTemplate.resilienceStrategy();
-    if (resilienceStrategy != null) {
-      final Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(resilienceStrategy, defaultClassLoader);
-      builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
-    }
-    builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
-    for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
-      builder = builder.add(serviceConfiguration);
-    }
-    return builder;
-  }
-
-  private <K, V> CacheConfigurationBuilder<K, V> handleListenersConfig(ConfigurationParser.ListenersConfig listenersConfig, ClassLoader defaultClassLoader, CacheConfigurationBuilder<K, V> builder) throws ClassNotFoundException {
-    if(listenersConfig != null) {
-      if (listenersConfig.threadPool() != null) {
-        builder = builder.add(new DefaultCacheEventDispatcherConfiguration(listenersConfig.threadPool()));
-      }
-      if (listenersConfig.listeners() != null) {
-        for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
-          @SuppressWarnings("unchecked")
-          final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
-          final List<EventType> eventListToFireOn = listener.fireOn();
-          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<>();
-          for (EventType events : eventListToFireOn) {
-            switch (events) {
-              case CREATED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.CREATED);
-                break;
-              case EVICTED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.EVICTED);
-                break;
-              case EXPIRED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.EXPIRED);
-                break;
-              case UPDATED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.UPDATED);
-                break;
-              case REMOVED:
-                eventSetToFireOn.add(org.ehcache.event.EventType.REMOVED);
-                break;
-              default:
-                throw new IllegalArgumentException("Invalid Event Type provided");
-            }
-          }
-          CacheEventListenerConfigurationBuilder listenerBuilder = CacheEventListenerConfigurationBuilder
-              .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
-              .firingMode(EventFiring.valueOf(listener.eventFiring().value()))
-              .eventOrdering(EventOrdering.valueOf(listener.eventOrdering().value()));
-          builder = builder.add(listenerBuilder);
-        }
-      }
-    }
-    return builder;
+    return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
   @Override
   public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {
-    return cacheConfigurations;
+    return configuration.getCacheConfigurations();
   }
 
   @Override
-  public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
-    return serviceConfigurations;
+  public Collection<ServiceCreationConfiguration<?, ?>> getServiceCreationConfigurations() {
+    return configuration.getServiceCreationConfigurations();
   }
 
   @Override
   public ClassLoader getClassLoader() {
-    return classLoader;
+    return configuration.getClassLoader();
   }
+
+  @Override
+  public FluentConfigurationBuilder<?> derive() {
+    return newConfigurationBuilder(this);
+  }
+
+  public interface Template {
+    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
+  }
+
+  public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
+    return PRETTY_FORMATS.stream().filter(p -> p.applies().test(name)).findFirst().map(PrettyClassFormat::lookup).orElseThrow(AssertionError::new).lookup(name, classLoader);
+  }
+
+  private static final List<PrettyClassFormat> PRETTY_FORMATS = asList(
+    //Primitive Types
+    when("boolean"::equals).then((n, l) -> Boolean.TYPE),
+    when("byte"::equals).then((n, l) -> Byte.TYPE),
+    when("short"::equals).then((n, l) -> Short.TYPE),
+    when("int"::equals).then((n, l) -> Integer.TYPE),
+    when("long"::equals).then((n, l) -> Long.TYPE),
+    when("char"::equals).then((n, l) -> Character.TYPE),
+    when("float"::equals).then((n, l) -> Float.TYPE),
+    when("double"::equals).then((n, l) -> Double.TYPE),
+
+    //Java Language Array Syntax
+    when(n -> n.endsWith("[]")).then((n, l) -> {
+      String component = n.split("(\\[\\])+$", 2)[0];
+      int dimensions = (n.length() - component.length()) >> 1;
+      return Array.newInstance(getClassForName(component, l), new int[dimensions]).getClass();
+    }),
+
+    //Inner Classes
+    when(n -> n.contains(".")).then((n, l) -> {
+      try {
+        return forName(n, false, l);
+      } catch (ClassNotFoundException e) {
+        int innerSeperator = n.lastIndexOf(".");
+        if (innerSeperator == -1) {
+          throw e;
+        } else {
+          return forName(n.substring(0, innerSeperator) + "$" + n.substring(innerSeperator + 1), false, l);
+        }
+      }
+    }),
+
+    //Everything Else
+    when(n -> true).then((n, l) -> forName(n, false, l))
+  );
+
+  interface PrettyClassFormat {
+
+    static Builder when(Predicate<String> predicate) {
+      return lookup -> new PrettyClassFormat() {
+        @Override
+        public Predicate<String> applies() {
+          return predicate;
+        }
+
+        @Override
+        public Lookup lookup() {
+          return lookup;
+        }
+      };
+    }
+
+    Predicate<String> applies();
+
+    Lookup lookup();
+
+    interface Builder {
+      PrettyClassFormat then(Lookup lookup);
+    }
+  }
+
+  private interface Lookup {
+
+    Class<?> lookup(String name, ClassLoader loader) throws ClassNotFoundException;
+  }
+
 }

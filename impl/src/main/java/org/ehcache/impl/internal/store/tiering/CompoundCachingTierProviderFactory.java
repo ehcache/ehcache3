@@ -15,20 +15,22 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class CompoundCachingTierProviderFactory implements ServiceFactory<CompoundCachingTier.Provider> {
   @Override
-  public CompoundCachingTier.Provider create(ServiceCreationConfiguration<CompoundCachingTier.Provider> serviceConfiguration) {
+  public CompoundCachingTier.Provider create(ServiceCreationConfiguration<CompoundCachingTier.Provider, ?> serviceConfiguration) {
     return new CompoundCachingTier.Provider();
   }
 
   @Override
-  public Class<CompoundCachingTier.Provider> getServiceType() {
+  public Class<? extends CompoundCachingTier.Provider> getServiceType() {
     return CompoundCachingTier.Provider.class;
   }
 }

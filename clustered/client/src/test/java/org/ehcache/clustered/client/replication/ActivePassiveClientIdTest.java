@@ -29,13 +29,12 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,18 +45,16 @@ import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
 
@@ -105,7 +102,7 @@ public class ActivePassiveClientIdTest {
 
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-        .autoCreate()
+        .autoCreate(c -> c)
         .build();
 
     service = new ClusteringServiceFactory().create(configuration);
@@ -142,8 +139,7 @@ public class ActivePassiveClientIdTest {
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, activeMessageHandler.getTrackedClients().findFirst().get());
-    assertThat(responses).hasSize(1); // should now track one message
+    assertThat(activeMessageHandler.getRecordedMessages().collect(Collectors.toList())).hasSize(1); // should now track one message
 
     assertThat(activeEntity.getConnectedClients()).hasSize(1); // make sure we currently have one client attached
 
@@ -161,11 +157,8 @@ public class ActivePassiveClientIdTest {
     // Nothing tracked
     assertThat(activeMessageHandler.getTrackedClients().count()).isZero();
 
-    List<Element> elements = new ArrayList<>(1);
-    elements.add(getElement(createPayload(44L)));
-
     // Send a replace message, those are not tracked
-    storeProxy.replaceAtHead(44L, getChain(elements), getChain(new ArrayList<>(0)));
+    storeProxy.replaceAtHead(44L, chainOf(createPayload(44L)), chainOf());
 
     // Not tracked as well
     storeProxy.get(42L);
@@ -188,7 +181,8 @@ public class ActivePassiveClientIdTest {
 
     assertThat(passiveMessageHandler.getTrackedClients().count()).isEqualTo(1L); // one client tracked
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getRecordedMessages().filter(r->r.getClientSourceId().toLong() == activeMessageHandler.getTrackedClients().findFirst().get().toLong())
+            .collect(Collectors.toMap(r->r.getTransactionId(), r->r.getResponse()));
     assertThat(responses).hasSize(1); // one message should have sync
   }
 
@@ -198,7 +192,8 @@ public class ActivePassiveClientIdTest {
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getRecordedMessages().filter(r->r.getClientSourceId().toLong() == activeMessageHandler.getTrackedClients().findFirst().get().toLong())
+            .collect(Collectors.toMap(r->r.getTransactionId(), r->r.getResponse()));
     assertThat(responses).hasSize(1); // should now track one message
 
     service.stop(); // stop the service. It will remove the client

@@ -21,7 +21,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEvents;
-import org.ehcache.core.internal.events.EventListenerWrapper;
+import org.ehcache.core.events.EventListenerWrapper;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -107,6 +107,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
         aSyncListenersList.add(wrapper);
         break;
       case SYNCHRONOUS:
+        if (syncListenersList.isEmpty()) {
+          storeEventSource.setSynchronous(true);
+        }
         syncListenersList.add(wrapper);
         break;
       default:
@@ -138,15 +141,18 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    * @param wrapper the listener wrapper to unregister
    * @param listenersList the listener list to remove from
    */
-  private synchronized boolean removeWrapperFromList(EventListenerWrapper wrapper, List<EventListenerWrapper<K, V>> listenersList) {
+  private synchronized boolean removeWrapperFromList(EventListenerWrapper<K, V> wrapper, List<EventListenerWrapper<K, V>> listenersList) {
     int index = listenersList.indexOf(wrapper);
     if (index != -1) {
-      EventListenerWrapper containedWrapper = listenersList.remove(index);
+      EventListenerWrapper<K, V> containedWrapper = listenersList.remove(index);
       if(containedWrapper.isOrdered() && --orderedListenerCount == 0) {
         storeEventSource.setEventOrdering(false);
       }
       if (--listenersCount == 0) {
         storeEventSource.removeEventListener(eventListener);
+      }
+      if (syncListenersList.isEmpty()) {
+        storeEventSource.setSynchronous(false);
       }
       return true;
     }
@@ -160,6 +166,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   public synchronized void shutdown() {
     storeEventSource.removeEventListener(eventListener);
     storeEventSource.setEventOrdering(false);
+    storeEventSource.setSynchronous(false);
     syncListenersList.clear();
     aSyncListenersList.clear();
     unOrderedExectuor.shutdown();

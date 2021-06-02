@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -72,7 +72,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
+   * Tests the effect of a {@link Ehcache#get(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.get} throws</li>

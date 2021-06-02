@@ -17,22 +17,24 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -48,16 +50,60 @@ public class OffHeapValueHolderPortabilityTest {
     valueHolderPortability = new OffHeapValueHolderPortability<>(provider
       .createValueSerializer(String.class, getClass().getClassLoader()));
 
-    originalValue = new BasicOffHeapValueHolder<>(-1, "aValue", 1L, 2L, 3L, 0);
+    originalValue = new BasicOffHeapValueHolder<>(-1, "aValue", 1L, 2L, 3L);
 
   }
 
   @Test
-  public void testEncodeDecode() {
+  public void testEncodeDecode() throws IOException {
     ByteBuffer encoded = valueHolderPortability.encode(originalValue);
+
+    // uncomment to perform backward compatibility tests
+    // passThroughAFile(encoded);
+
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(encoded);
 
     assertThat(originalValue, equalTo(decoded));
+  }
+
+  /**
+   * This method can be used to test backward compatibility punctually. You run the test once and it will save the content
+   * of the buffer to a file. You then run it again with the new version by commenting the file writing. If it works,
+   * it means you are backward compatible.
+   *
+   * @param encoded the buffer to save to file
+   * @throws IOException if something goes wrong
+   */
+  private void passThroughAFile(ByteBuffer encoded) throws IOException {
+    Path path = Paths.get("build/offheap.dat");
+    Files.write(path, encoded.array()); // comment this line when running the second time
+    encoded.position(0);
+    encoded.put(Files.readAllBytes(path));
+    encoded.flip();
+  }
+
+  @Test
+  public void testDecodingAPreviousVersionWithTheHits() {
+    StringSerializer serializer = new StringSerializer();
+    ByteBuffer serialized = serializer.serialize("test");
+
+    long time = System.currentTimeMillis();
+
+    ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + 40);
+    byteBuffer.putLong(123L); // id
+    byteBuffer.putLong(time); // creation time
+    byteBuffer.putLong(time + 1); // last access time
+    byteBuffer.putLong(time + 2); // expiration time
+    byteBuffer.putLong(100L); // hits
+    byteBuffer.put(serialized); // the held value
+    byteBuffer.flip();
+
+    OffHeapValueHolder<String> decoded = valueHolderPortability.decode(byteBuffer);
+    assertThat(decoded.getId(), equalTo(123L));
+    assertThat(decoded.creationTime(), equalTo(time));
+    assertThat(decoded.lastAccessTime(), equalTo(time + 1));
+    assertThat(decoded.expirationTime(), equalTo(time + 2));
+    assertThat(decoded.get(), equalTo("test"));
   }
 
   @Test
@@ -66,18 +112,12 @@ public class OffHeapValueHolderPortabilityTest {
     WriteContext writeContext = mock(WriteContext.class);
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(encoded, writeContext);
 
-    Class<?> abstractValueHolder = AbstractValueHolder.class;
-    Method setHits = abstractValueHolder.getDeclaredMethod("setHits", long.class);
-    setHits.setAccessible(true);
-
-    decoded.setExpirationTime(4L, TimeUnit.MILLISECONDS);
-    decoded.setLastAccessTime(6L, TimeUnit.MILLISECONDS);
-    setHits.invoke(decoded, 8L);
-
+    decoded.setExpirationTime(4L);
+    decoded.setLastAccessTime(6L);
     decoded.writeBack();
+
     verify(writeContext).setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, 6L);
     verify(writeContext).setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, 4L);
-    verify(writeContext).setLong(OffHeapValueHolderPortability.HITS_OFFSET, 8L);
   }
 
 }

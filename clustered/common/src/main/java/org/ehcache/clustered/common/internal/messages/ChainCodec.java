@@ -19,7 +19,6 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.SequencedElement;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructArrayDecoder;
@@ -28,8 +27,12 @@ import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 public final class ChainCodec {
 
@@ -46,16 +49,21 @@ public final class ChainCodec {
     .structs("elements", 10, ELEMENT_STRUCT)
     .build();
 
-  public static byte[] encode(Chain chain) {
+  public static final Struct CHAIN_ENTRY_STRUCT = StructBuilder.newStructBuilder()
+    .int64("key", 5)
+    .structs("elements", 10, ELEMENT_STRUCT)
+    .build();
+
+  public static byte[] encodeChain(Chain chain) {
     StructEncoder<Void> encoder = CHAIN_STRUCT.encoder();
 
-    encode(encoder, chain);
+    encodeChain(encoder, chain);
 
     ByteBuffer byteBuffer = encoder.encode();
     return byteBuffer.array();
   }
 
-  public static void encode(StructEncoder<?> encoder, Chain chain) {
+  public static void encodeChain(StructEncoder<?> encoder, Chain chain) {
     StructArrayEncoder<? extends StructEncoder<?>> elementsEncoder = encoder.structs("elements");
     for (Element element : chain) {
       StructEncoder<?> elementEncoder = elementsEncoder.add();
@@ -68,12 +76,17 @@ public final class ChainCodec {
     elementsEncoder.end();
   }
 
-  public static Chain decode(byte[] payload) {
-    StructDecoder<Void> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
-    return decode(decoder);
+  public static void encodeChainEntry(StructEncoder<?> encoder, Map.Entry<Long, Chain> chain) {
+    encoder.int64("key", chain.getKey());
+    encodeChain(encoder, chain.getValue());
   }
 
-  public static Chain decode(StructDecoder<?> decoder) {
+  public static Chain decodeChain(byte[] payload) {
+    StructDecoder<Void> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
+    return decodeChain(decoder);
+  }
+
+  public static Chain decodeChain(StructDecoder<?> decoder) {
     StructArrayDecoder<? extends StructDecoder<?>> elementsDecoder = decoder.structs("elements");
 
     final List<Element> elements = new ArrayList<>();
@@ -84,14 +97,35 @@ public final class ChainCodec {
       elementDecoder.end();
 
       if (sequence == null) {
-        elements.add(Util.getElement(byteBuffer));
+        elements.add(byteBuffer::asReadOnlyBuffer);
       } else {
-        elements.add(Util.getElement(sequence, byteBuffer));
+        elements.add(new SequencedElement() {
+          @Override
+          public long getSequenceNumber() {
+            return sequence;
+          }
+
+          @Override
+          public ByteBuffer getPayload() {
+            return byteBuffer.asReadOnlyBuffer();
+          }
+
+          @Override
+          public String toString() {
+            return "SequencedElement{sequence=" + sequence + " size=" + byteBuffer.capacity() + "}";
+          }
+        });
       }
     }
 
     elementsDecoder.end();
 
-    return Util.getChain(elements);
+    return chainFromList(elements);
+  }
+
+  public static Map.Entry<Long, Chain> decodeChainEntry(StructDecoder<?> decoder) {
+    Long key = decoder.int64("key");
+    Chain elements = decodeChain(decoder);
+    return new AbstractMap.SimpleImmutableEntry<>(key, elements);
   }
 }

@@ -37,20 +37,22 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static java.util.Collections.singletonMap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Samples to get started with Ehcache 3
@@ -61,6 +63,9 @@ import static org.junit.Assert.assertThat;
  */
 @SuppressWarnings("unused")
 public class GettingStarted {
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void cachemanagerExample() {
@@ -117,7 +122,7 @@ public class GettingStarted {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, ResourcePoolsBuilder.heap(10))
-                .add(cacheEventListenerConfiguration) // <3>
+                .withService(cacheEventListenerConfiguration) // <3>
         ).build(true);
 
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
@@ -155,7 +160,7 @@ public class GettingStarted {
     Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero"))) // <1>
-            .add(WriteBehindConfigurationBuilder // <2>
+            .withService(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
                 .queueSize(3)// <4>
                 .concurrencyLevel(1) // <5>
@@ -294,6 +299,9 @@ public class GettingStarted {
   }
 
   private static class Person implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     String name;
     int age;
 
@@ -350,8 +358,8 @@ public class GettingStarted {
     }
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 
   public static class CustomExpiry implements ExpiryPolicy<Long, String> {

@@ -39,6 +39,12 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
   private final String defaultServerResource;
   private final Map<String, Pool> pools;
 
+  ServerSideConfigurationBuilder() {
+    this.clientSideBuilder = null;
+    this.defaultServerResource = null;
+    this.pools = emptyMap();
+  }
+
   ServerSideConfigurationBuilder(ClusteringServiceConfigurationBuilder clientSideBuilder) {
     if (clientSideBuilder == null) {
       throw new NullPointerException("clientSideBuilder can not be null");
@@ -46,6 +52,12 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
     this.clientSideBuilder = clientSideBuilder;
     this.defaultServerResource = null;
     this.pools = emptyMap();
+  }
+
+  protected ServerSideConfigurationBuilder(ServerSideConfiguration serverSideConfiguration) {
+    this.clientSideBuilder = null;
+    this.defaultServerResource = serverSideConfiguration.getDefaultServerResource();
+    this.pools = serverSideConfiguration.getResourcePools();
   }
 
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String defaultServerResource) {
@@ -119,7 +131,7 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
     return clientSideBuilder.build(buildServerSideConfiguration());
   }
 
-  private ServerSideConfiguration buildServerSideConfiguration() {
+  ServerSideConfiguration buildServerSideConfiguration() {
     if (defaultServerResource == null) {
       return new ServerSideConfiguration(pools);
     } else {

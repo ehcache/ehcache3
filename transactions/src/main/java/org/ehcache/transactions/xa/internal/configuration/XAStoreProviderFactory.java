@@ -19,18 +19,20 @@ package org.ehcache.transactions.xa.internal.configuration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.transactions.xa.internal.XAStore;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
   @Override
-  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider> configuration) {
+  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider, ?> configuration) {
     return new XAStore.Provider();
   }
 
   @Override
-  public Class<XAStore.Provider> getServiceType() {
+  public Class<? extends XAStore.Provider> getServiceType() {
     return XAStore.Provider.class;
   }
 }

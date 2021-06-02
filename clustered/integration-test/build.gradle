@@ -19,35 +19,31 @@ configurations {
 }
 
 dependencies {
-  // not required by gradle but required by the IDE because 'dist' do not has any transitive dependencies
-  testCompileOnly project(':clustered:client')
-  testCompileOnly project(':clustered:common')
-  testCompileOnly project(':impl')
-  testCompileOnly project(':xml')
-  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
-  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
-
-  testCompile project(':management')
-  testCompile "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
-  testCompile "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
-  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
-  testRuntime project(':clustered:clustered-dist')
-  testRuntime project(':dist')
-
-  testCompile (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion) {
-    // galvan-support depends on junit 4.11 and version enforcement plugin won't allow that
+  testImplementation project(':clustered:client')
+  testImplementation project(':clustered:common')
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':107')
+  testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
     exclude group:'junit', module:'junit'
   }
-  testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     exclude group:'junit', module:'junit'
-    exclude group:'org.hamcrest', module:'hamcrest-core'
   }
-  testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
-    exclude group:'org.terracotta.management.dist', module:'mnm-common'
-  }
+  testImplementation project(':management')
+  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+
+  testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  testRuntimeOnly project(':clustered:clustered-dist')
+
+  testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
+  testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 }
 
 task unzipKit(type: Copy) {
@@ -63,14 +59,22 @@ task copyServerLibs(type: Copy) {
 }
 
 test {
+  maxHeapSize = '512m'
+  maxParallelForks = 8
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-    environment 'JAVA_OPTS', '--add-modules java.xml.bind'
-  }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
+}
+
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('junit:junit:4.12'))
+        .because('CVE-2020-15250')
+        .with(module('junit:junit:4.13.1'))
+    }
+  }
 }

@@ -20,10 +20,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Comparator;
+import java.util.Map;
 
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import org.terracotta.testing.config.ConfigRepoStartupBuilder;
+import org.terracotta.testing.rules.BasicExternalClusterBuilder;
 
 /**
  * Base class for all clustered tests. It makes sure the environment is correctly configured to launch the servers. Especially
@@ -94,5 +100,39 @@ public abstract class ClusteredTests {
       fail("Failed to set kitInstallationPath from " + basedir, e);
       return null;
     }
+  }
+
+  protected static Path clusterPath() {
+    return Paths.get("build", "cluster");
+  }
+
+  protected static String offheapResource(String name, long size) {
+    return offheapResources(singletonMap(name, size));
+  }
+
+  protected static String offheapResources(Map<String, Long> resources) {
+    StringBuilder sb = new StringBuilder("<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>");
+    sb.append("<ohr:offheap-resources>");
+    for (Map.Entry<String, Long> e : resources.entrySet()) {
+      sb.append("<ohr:resource name=\"").append(e.getKey()).append("\" unit=\"MB\">").append(e.getValue()).append("</ohr:resource>");
+    }
+    sb.append("</ohr:offheap-resources>");
+    return sb.append("</config>\n").toString();
+  }
+
+  protected static BasicExternalClusterBuilder newCluster() {
+    return BasicExternalClusterBuilder.newCluster().startupBuilder(ConfigRepoStartupBuilder::new);
+  }
+
+  protected static BasicExternalClusterBuilder newCluster(int size) {
+    return BasicExternalClusterBuilder.newCluster(size).startupBuilder(ConfigRepoStartupBuilder::new);
+  }
+
+  protected static String leaseLength(Duration leaseLength) {
+    return "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
+      + "<lease:connection-leasing>"
+      + "<lease:lease-length unit='seconds'>" + leaseLength.get(SECONDS) + "</lease:lease-length>"
+      + "</lease:connection-leasing>"
+      + "</service>";
   }
 }

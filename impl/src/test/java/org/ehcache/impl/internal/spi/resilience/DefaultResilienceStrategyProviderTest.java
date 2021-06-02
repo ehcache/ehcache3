@@ -16,9 +16,9 @@
 package org.ehcache.impl.internal.spi.resilience;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -27,17 +27,17 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static org.ehcache.test.MockitoUtil.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultResilienceStrategy(resilienceStrategy);
@@ -49,7 +49,7 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultLoaderWriterInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultLoaderWriterResilienceStrategy(resilienceStrategy);

@@ -20,8 +20,10 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -38,7 +40,6 @@ import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
@@ -65,7 +66,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  */
 public class ByteAccountingTest {
 
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
   private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 
   private static final String KEY = "key";
@@ -141,6 +141,11 @@ public class ByteAccountingTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
   }
@@ -332,11 +337,11 @@ public class ByteAccountingTest {
   public void testPutIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     long current = store.getCurrentUsageInBytes();
     assertThat(current, is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.putIfAbsent(KEY, "New Value to Put");
+    store.putIfAbsent(KEY, "New Value to Put", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(current));
   }
 
@@ -347,7 +352,7 @@ public class ByteAccountingTest {
 
     store.put(KEY, "an expired value");
     timeSource.advanceTime(1000L);
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
   }
 
@@ -357,7 +362,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.putIfAbsent(KEY, "another value ... whatever");
+    store.putIfAbsent(KEY, "another value ... whatever", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
@@ -389,11 +394,11 @@ public class ByteAccountingTest {
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute("another", (a, b) -> null);
+    store.getAndCompute("another", (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute(KEY, (a, b) -> null);
+    store.getAndCompute(KEY, (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -402,14 +407,14 @@ public class ByteAccountingTest {
   public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.compute(KEY, (a, b) -> VALUE);
+    store.getAndCompute(KEY, (a, b) -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     final String replace = "Replace the original value";
     long delta = SIZEOF.deepSizeOf(replace) - SIZEOF.deepSizeOf(VALUE);
 
-    store.compute(KEY, (a, b) -> replace);
+    store.getAndCompute(KEY, (a, b) -> replace);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
   }
@@ -420,18 +425,18 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2, () -> false);
+    store.computeAndGet(KEY, (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testComputeExpiryOnUpdate() throws StoreAccessException {
+  public void testGetAndComputeExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2);
+    store.getAndCompute(KEY, (s, s2) -> s2);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -483,7 +488,7 @@ public class ByteAccountingTest {
     timeSource.advanceTime(1);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
     assertThat(store.get(KEY), nullValue());
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
@@ -519,8 +524,7 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    @SuppressWarnings("unchecked")
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0L, 0L, true, DEFAULT_COPIER);
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<>(value, 0L, 0L, true, IdentityCopier.identityCopier());
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -532,12 +536,10 @@ public class ByteAccountingTest {
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
-    private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
     @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, eventDispatcher, new DefaultStatisticsService());
     }
 
     long getCurrentUsageInBytes() {
