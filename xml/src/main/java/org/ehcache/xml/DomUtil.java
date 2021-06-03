@@ -26,25 +26,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
+
+import static org.ehcache.xml.ConfigurationParser.newSchema;
 
 public class DomUtil {
 
-  private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
-
-  private static Schema newSchema(Source[] schemas) throws SAXException {
-    synchronized (XSD_SCHEMA_FACTORY) {
-      return XSD_SCHEMA_FACTORY.newSchema(schemas);
-    }
-  }
 
   public static DocumentBuilder createAndGetDocumentBuilder(Collection<Source> schemaSources) throws SAXException, ParserConfigurationException {
     DocumentBuilderFactory factory = createAndGetFactory(schemaSources);

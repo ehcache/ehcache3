@@ -35,6 +35,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXParseException;
 
 import javax.xml.XMLConstants;
@@ -70,6 +71,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,7 +90,6 @@ import static java.util.regex.Pattern.quote;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Stream.of;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -101,11 +102,19 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
  */
 public class ConfigurationParser {
 
-  private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-  private static Schema newSchema(Source... schemas) throws SAXException {
-    synchronized (XSD_SCHEMA_FACTORY) {
-      return XSD_SCHEMA_FACTORY.newSchema(schemas);
+  public static Schema newSchema(Source... schemas) throws SAXException {
+    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    try {
+      /*
+       * Our schema is accidentally not XSD 1.1 compatible. Since Saxon incorrectly (imho) defaults to XSD 1.1 for
+       * `XMLConstants.W3C_XML_SCHEMA_NS_URI` we force it back to 1.0.
+       */
+      schemaFactory.setProperty("http://saxon.sf.net/feature/xsd-version", "1.0");
+    } catch (SAXNotRecognizedException e) {
+      //not saxon
     }
+    schemaFactory.setErrorHandler(new FatalErrorHandler());
+    return schemaFactory.newSchema(schemas);
   }
   private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
@@ -314,9 +323,22 @@ public class ConfigurationParser {
 
   public static class FatalErrorHandler implements ErrorHandler {
 
-    private static final Pattern ABSTRACT_TYPE_FAILURES = of("service-creation-configuration", "service-configuration", "resource")
-      .map(element -> quote(format("\"http://www.ehcache.org/v3\":%s", element)))
-      .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile));
+    private static final Collection<Pattern> ABSTRACT_TYPE_FAILURES;
+    static {
+      ObjectFactory objectFactory = new ObjectFactory();
+      List<QName> abstractTypes = asList(
+        objectFactory.createServiceCreationConfiguration(null).getName(),
+        objectFactory.createServiceConfiguration(null).getName(),
+        objectFactory.createResource(null).getName());
+
+      ABSTRACT_TYPE_FAILURES = asList(
+        //Xerces
+        abstractTypes.stream().map(element -> quote(format("\"%s\":%s", element.getNamespaceURI(), element.getLocalPart())))
+          .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile)),
+        //Saxon
+        abstractTypes.stream().map(element -> quote(element.getLocalPart()))
+          .collect(collectingAndThen(joining("|", "^.*\\QThe content model does not allow element\\E.*(?:", ").*"), Pattern::compile)));
+    }
 
     @Override
     public void warning(SAXParseException exception) throws SAXException {
@@ -330,7 +352,7 @@ public class ConfigurationParser {
 
     @Override
     public void fatalError(SAXParseException exception) throws SAXException {
-      if (ABSTRACT_TYPE_FAILURES.matcher(exception.getMessage()).matches()) {
+      if (ABSTRACT_TYPE_FAILURES.stream().anyMatch(pattern -> pattern.matcher(exception.getMessage()).matches())) {
         throw new XmlConfigurationException(
           "Cannot confirm XML sub-type correctness. You might be missing client side libraries.", exception);
       } else {
@@ -392,16 +414,26 @@ public class ConfigurationParser {
   }
 
   public static Schema discoverSchema(Source ... fixedSources) throws SAXException, IOException {
-    ArrayList<Source> schemaSources = new ArrayList<>(asList(fixedSources));
+    Map<URI, Source> pluginSchemas = new HashMap<>();
     for (CacheManagerServiceConfigurationParser<?> p : servicesOfType(CacheManagerServiceConfigurationParser.class)) {
-      schemaSources.add(p.getXmlSchema());
+      if (!pluginSchemas.containsKey(p.getNamespace())) {
+        pluginSchemas.put(p.getNamespace(), p.getXmlSchema());
+      }
     }
     for (CacheServiceConfigurationParser<?> p : servicesOfType(CacheServiceConfigurationParser.class)) {
-      schemaSources.add(p.getXmlSchema());
+      if (!pluginSchemas.containsKey(p.getNamespace())) {
+        pluginSchemas.put(p.getNamespace(), p.getXmlSchema());
+      }
     }
     for (CacheResourceConfigurationParser p : servicesOfType(CacheResourceConfigurationParser.class)) {
-      schemaSources.add(p.getXmlSchema());
+      if (!pluginSchemas.containsKey(p.getNamespace())) {
+        pluginSchemas.put(p.getNamespace(), p.getXmlSchema());
+      }
     }
+
+    List<Source> schemaSources = new ArrayList<>(asList(fixedSources));
+    schemaSources.addAll(pluginSchemas.values());
+
     return newSchema(schemaSources.toArray(new Source[0]));
   }
 }

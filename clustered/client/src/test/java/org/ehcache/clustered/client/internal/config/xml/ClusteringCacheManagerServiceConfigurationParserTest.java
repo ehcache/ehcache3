@@ -67,6 +67,7 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -244,7 +245,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       fail("Expecting XmlConfigurationException");
     } catch (XmlConfigurationException e) {
       assertThat(e.getMessage(), containsString("Error parsing XML configuration "));
-      assertThat(e.getCause().getMessage(), containsString("Value 'femtos' is not facet-valid with respect to enumeration "));
+      assertThat(e.getCause().getMessage(), allOf(containsString("facet"), containsString("enumeration"), containsString("femtos")));
     }
   }
 
@@ -301,7 +302,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       fail("Expecting XmlConfigurationException");
     } catch (XmlConfigurationException e) {
       assertThat(e.getMessage(), containsString("Error parsing XML configuration "));
-      assertThat(e.getCause().getMessage(), containsString("'' is not a valid value of union type 'propertyOrPositiveInteger"));
+      assertThat(e.getCause().getMessage(), allOf(containsString("propertyOrPositiveInteger"), containsString("valid"), containsString("not")));
     }
   }
 

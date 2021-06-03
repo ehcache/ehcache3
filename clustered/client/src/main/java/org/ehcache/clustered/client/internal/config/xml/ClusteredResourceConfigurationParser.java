@@ -94,7 +94,7 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
 
         final String sizeValue;
         try {
-          sizeValue = fragment.getFirstChild().getNodeValue();
+          sizeValue = fragment.getFirstChild().getNodeValue().trim();
         } catch (DOMException e) {
           throw new XmlConfigurationException(String.format("XML configuration element <%s> value is not valid", elementName), e);
         }

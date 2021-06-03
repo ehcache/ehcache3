@@ -17,8 +17,9 @@
 package org.ehcache.clustered.client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.fail;
 
 import org.ehcache.xml.XmlConfiguration;
@@ -43,7 +44,7 @@ public class XmlUnknownCacheTest {
       new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-attribute.xml"));
       fail("Expected XmlConfigurationException");
     } catch(XmlConfigurationException xce) {
-      assertThat(xce.getCause().getMessage(), endsWith("Attribute 'unit' is not allowed to appear in element 'tc:clustered'."));
+      assertThat(xce.getCause().getMessage(), allOf(containsString("unit"), containsString("not allowed"), containsString("clustered")));
     }
   }
 
@@ -53,7 +54,7 @@ public class XmlUnknownCacheTest {
       new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-element.xml"));
       fail("Expected XmlConfigurationException");
     } catch(XmlConfigurationException xce) {
-      assertThat(xce.getCause().getMessage(), endsWith("Element 'tc:clustered' must have no character or element information item [children], because the type's content type is empty."));
+      assertThat(xce.getCause().getMessage(), allOf(containsString("haracter"), containsString("clustered"), containsString("empty")));
     }
   }
 

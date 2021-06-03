@@ -23,6 +23,7 @@ import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 
 /**
@@ -43,7 +44,7 @@ public class TerracottaUriXmlTest {
     try {
       new XmlConfiguration(getClass().getResource("/configs/cluster-invalid-uri.xml"));
     } catch (XmlConfigurationException e) {
-      assertThat(e.getCause().getMessage(), containsString("not facet-valid with respect to pattern"));
+      assertThat(e.getCause().getMessage(), allOf(containsString("facet"), containsString("pattern")));
     }
   }
 }
