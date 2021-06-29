@@ -13,18 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.server;
 
-plugins {
-  id 'org.ehcache.build.deploy'
-}
+import org.ehcache.clustered.common.internal.util.ExtensionInfoSkeleton;
 
-dependencies {
-  api project(':clustered:common-api')
+import static org.ehcache.clustered.common.internal.util.ExtensionInfoSkeleton.Type.ENTITY;
 
-  providedImplementation project(':api')
-  providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
-  providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  providedImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
+/**
+ * @author Mathieu Carbou
+ */
+public class ClusterTierManagerExtensionInfo extends ExtensionInfoSkeleton {
 
-  testImplementation project(':clustered:test-utils')
+  @Override
+  protected String getName() {
+    return "Ehcache Cluster Tier Manager";
+  }
+
+  @Override
+  protected Type getType() {
+    return ENTITY;
+  }
 }

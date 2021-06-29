@@ -1,0 +1,3 @@
+org.ehcache.clustered.server.ClusterTierManagerExtensionInfo
+org.ehcache.clustered.server.store.ClusterTierExtensionInfo
+org.ehcache.clustered.lock.server.ReadWriteLockExtensionInfo

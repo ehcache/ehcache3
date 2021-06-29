@@ -49,6 +49,8 @@ class Utils {
             'provider': 'gradle',
             'Implementation-Title': title,
             'Implementation-Version': "$version $revision",
+            'Bundle-Version': "$version",
+            'BuildInfo-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
             'Built-By': System.getProperty('user.name'),
             'Built-JDK': System.getProperty('java.version'))
     if (isReleaseVersion) {

@@ -29,6 +29,8 @@ dependencies {
   implementation "org.terracotta:offheap-store:$offheapVersion"
   implementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
 
+  providedImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
+
   testImplementation project(':clustered:server:service')
   testImplementation project(':clustered:test-utils')
 }

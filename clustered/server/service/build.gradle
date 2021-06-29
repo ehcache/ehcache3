@@ -27,6 +27,8 @@ dependencies {
   implementation project(':clustered:common')
   implementation "org.terracotta:offheap-store:$offheapVersion"
 
+  providedImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
+
   testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
