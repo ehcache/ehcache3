@@ -139,7 +139,7 @@ subprojects {
   }
 
   jar {
-    utils.fillManifest(manifest,"ehcache-${project.name}")
+    utils.fillManifest(manifest,"${project.group}","ehcache-${project.name}")
     from "$rootDir/LICENSE"
   }
 
