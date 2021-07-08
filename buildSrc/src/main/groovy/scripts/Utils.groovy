@@ -44,11 +44,13 @@ class Utils {
     logger.debug(revision)
   }
 
-  def fillManifest(manifest, title) {
+  def fillManifest(manifest, group, title) {
     manifest.attributes(
             'provider': 'gradle',
             'Implementation-Title': title,
-            'Implementation-Version': "$version $revision",
+            'Implementation-Vendor-Id': group,
+            'Implementation-Version': "$version",
+            'Implementation-Revision': "$revision",
             'Built-By': System.getProperty('user.name'),
             'Built-JDK': System.getProperty('java.version'))
     if (isReleaseVersion) {
