@@ -110,7 +110,22 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a {@code CacheManager}
    */
   public static CacheManager newCacheManager(final Configuration configuration) {
-    return new EhcacheManager(configuration);
+    return newCacheManager(configuration, false);
+  }
+
+  /**
+   * Creates a new {@link CacheManager} based on the provided configuration.
+   *
+   * @param configuration the configuration to use
+   * @param init <code>true</code> to return an initialized {@link CacheManager}, <code>false</code> otherwise.
+   * @return a {@code CacheManager}
+   */
+  public static CacheManager newCacheManager(final Configuration configuration, boolean init) {
+    EhcacheManager ehcacheManager = new EhcacheManager(configuration);
+    if (init) {
+      ehcacheManager.init();
+    }
+    return ehcacheManager;
   }
 
   T newCacheManager(Collection<Service> services, final Configuration configuration) {
