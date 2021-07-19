@@ -27,6 +27,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -50,7 +51,7 @@ public class TxCacheServiceConfigurationParserTest {
 
     System.setProperty(property, "Brian");
     try {
-      XAStoreConfiguration configuration = (XAStoreConfiguration) configParser.parseServiceConfiguration(node, null);
+      XAStoreConfiguration configuration = configParser.parse(node, null);
 
       assertThat(configuration.getUniqueXAResourceId(), is("Brian"));
     } finally {
@@ -59,13 +60,13 @@ public class TxCacheServiceConfigurationParserTest {
   }
 
   @Test
-  public void testTranslateServiceConfiguration() {
+  public void testTranslateServiceConfiguration() throws IOException, ParserConfigurationException, SAXException {
     TxCacheServiceConfigurationParser configTranslator = new TxCacheServiceConfigurationParser();
     XAStoreConfiguration storeConfiguration = new XAStoreConfiguration("my-unique-resource");
 
-    Node retElement = configTranslator.unparseServiceConfiguration(storeConfiguration);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), storeConfiguration);
     String inputString = "<tx:xa-store unique-XAResource-id = \"my-unique-resource\" " +
-                         "xmlns:tx = \"http://www.ehcache.org/v3/tx\"/>";
+      "xmlns:tx = \"http://www.ehcache.org/v3/tx\"/>";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 

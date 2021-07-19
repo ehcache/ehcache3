@@ -28,6 +28,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -52,8 +53,7 @@ public class ManagementRegistryServiceConfigurationParserTest {
 
     System.setProperty(property, "tag2");
     try {
-      DefaultManagementRegistryConfiguration configuration =
-        (DefaultManagementRegistryConfiguration) configParser.parseServiceCreationConfiguration(node, null);
+      DefaultManagementRegistryConfiguration configuration = configParser.parse(node, null);
 
       assertThat(configuration.getTags(), Matchers.hasItems("tag1", "tag2"));
     } finally {
@@ -62,31 +62,31 @@ public class ManagementRegistryServiceConfigurationParserTest {
   }
 
   @Test
-  public void testTranslateServiceCreationConfiguration() {
+  public void testTranslateServiceCreationConfiguration() throws IOException, ParserConfigurationException, SAXException {
     ManagementRegistryServiceConfigurationParser configTranslator = new ManagementRegistryServiceConfigurationParser();
 
     DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration =
       new DefaultManagementRegistryConfiguration().setCacheManagerAlias("my-cache-alias").
         setCollectorExecutorAlias("my-executor").addTag("tag1").addTag("tag2");
 
-    Node retElement = configTranslator.unparseServiceCreationConfiguration(defaultManagementRegistryConfiguration);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), defaultManagementRegistryConfiguration);
     String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
-                         "xmlns:mgm = \"http://www.ehcache.org/v3/management\" >" +
-                         "<mgm:tags><mgm:tag>tag1</mgm:tag><mgm:tag>tag2</mgm:tag></mgm:tags></mgm:management>";
+      "xmlns:mgm = \"http://www.ehcache.org/v3/management\" >" +
+      "<mgm:tags><mgm:tag>tag1</mgm:tag><mgm:tag>tag2</mgm:tag></mgm:tags></mgm:management>";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
   @Test
-  public void testTranslateServiceCreationConfigurationWithoutTags() {
+  public void testTranslateServiceCreationConfigurationWithoutTags() throws IOException, ParserConfigurationException, SAXException {
     ManagementRegistryServiceConfigurationParser configTranslator = new ManagementRegistryServiceConfigurationParser();
 
     DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration =
       new DefaultManagementRegistryConfiguration().setCacheManagerAlias("my-cache-alias").
         setCollectorExecutorAlias("my-executor");
 
-    Node retElement = configTranslator.unparseServiceCreationConfiguration(defaultManagementRegistryConfiguration);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), defaultManagementRegistryConfiguration);
     String inputString = "<mgm:management cache-manager-alias = \"my-cache-alias\" collector-executor-alias = \"my-executor\" " +
-                         "xmlns:mgm = \"http://www.ehcache.org/v3/management\"></mgm:management>";
+      "xmlns:mgm = \"http://www.ehcache.org/v3/management\"></mgm:management>";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 

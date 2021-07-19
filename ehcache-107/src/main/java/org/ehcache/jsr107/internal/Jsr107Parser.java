@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.jsr107.internal;
 
-import org.ehcache.config.ResourcePool;
+import org.ehcache.xml.BaseConfigParser;
 
-import java.util.Set;
+import java.net.URI;
 
-/**
- * Defines a handler for processing {@code /config/cache/resources} extension elements.
- *
- * @author Clifford W. Johnson
- */
-public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
+import static java.util.Collections.singletonMap;
 
-  Set<Class<? extends ResourcePool>> getResourceTypes();
+public abstract class Jsr107Parser<T> extends BaseConfigParser<T> {
+
+  private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
+
+  public Jsr107Parser() {
+    super(singletonMap(NAMESPACE, Jsr107Parser.class.getResource("/ehcache-107-ext.xsd")));
+  }
 }

@@ -16,16 +16,25 @@
 
 package org.ehcache.xml;
 
-import org.ehcache.config.ResourcePool;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
+import javax.xml.transform.Source;
+import java.net.URI;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
-/**
- * Defines a handler for processing {@code /config/cache/resources} extension elements.
- *
- * @author Clifford W. Johnson
- */
-public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
+public interface Parser<T> {
 
-  Set<Class<? extends ResourcePool>> getResourceTypes();
+  Map<URI, Supplier<Source>> getSchema();
+
+  default Set<URI> getTargetNamespaces() {
+    return getSchema().keySet();
+  }
+
+  T parse(Element fragment, ClassLoader classLoader);
+
+  Element unparse(Document target, T object);
 }
+

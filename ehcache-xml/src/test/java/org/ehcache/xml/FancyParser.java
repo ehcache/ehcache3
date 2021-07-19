@@ -18,37 +18,34 @@ package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+
+import static java.util.Collections.singletonMap;
 
 /**
  *
  * @author cdennis
  */
-public class FancyParser implements CacheServiceConfigurationParser<Service> {
+public class FancyParser implements CacheServiceConfigurationParser<Service, ServiceConfiguration<Service, ?>> {
 
   private static final URI NAMESPACE = URI.create("http://www.example.com/fancy");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/fancy.xsd");
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
+  public Map<URI, Supplier<Source>> getSchema() {
+    return singletonMap(NAMESPACE, () -> new StreamSource(getClass().getResourceAsStream("/configs/fancy.xsd")));
   }
 
   @Override
-  public ServiceConfiguration<Service, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<Service, ?> parse(Element fragment, ClassLoader classLoader) {
     return new FooConfiguration();
-  }
-
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
   }
 
   @Override
@@ -57,7 +54,7 @@ public class FancyParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<Service, ?> serviceConfiguration) {
+  public Element unparse(Document target, ServiceConfiguration<Service, ?> serviceConfiguration) {
     return null;
   }
 

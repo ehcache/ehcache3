@@ -42,13 +42,13 @@ import org.ehcache.xml.model.PersistableMemoryTypeWithPropSubst;
 import org.ehcache.xml.model.ResourceTypeWithPropSubst;
 import org.ehcache.xml.model.ResourcesType;
 import org.w3c.dom.Document;
+import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,7 +84,7 @@ public class ResourceConfigurationParser {
     }
   }
 
-  public ResourcePools parseResourceConfiguration(CacheTemplate cacheTemplate, ResourcePoolsBuilder resourcePoolsBuilder) {
+  public ResourcePools parse(CacheTemplate cacheTemplate, ResourcePoolsBuilder resourcePoolsBuilder, ClassLoader classLoader) {
 
     if (cacheTemplate.getHeap() != null) {
       resourcePoolsBuilder = resourcePoolsBuilder.with(parseHeapConfiguration(cacheTemplate.getHeap()));
@@ -92,7 +92,7 @@ public class ResourceConfigurationParser {
       for (Element element : cacheTemplate.getResources()) {
         ResourcePool resourcePool;
         if (!CORE_SCHEMA_NS.equals(element.getNamespaceURI())) {
-          resourcePool = parseResourceExtension(element);
+          resourcePool = parseResourceExtension(element, classLoader);
         } else {
           try {
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
@@ -136,17 +136,17 @@ public class ResourceConfigurationParser {
     if (resourceType.getUnit().equals(org.ehcache.xml.model.ResourceUnit.ENTRIES)) {
       return EntryUnit.ENTRIES;
     } else {
-      return MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
+      return org.ehcache.config.units.MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
     }
   }
 
-  private static MemoryUnit parseMemory(MemoryTypeWithPropSubst memoryType) {
+  private static org.ehcache.config.units.MemoryUnit parseMemory(MemoryTypeWithPropSubst memoryType) {
     return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
-  ResourcePool parseResourceExtension(final Element element) {
+  ResourcePool parseResourceExtension(final Element element, ClassLoader classLoader) {
     for (CacheResourceConfigurationParser parser : extensionParsers) {
-      ResourcePool resourcePool = parser.parseResourceConfiguration(element);
+      ResourcePool resourcePool = parser.parse(element, classLoader);
       if (resourcePool != null) {
         return resourcePool;
       }
@@ -154,10 +154,9 @@ public class ResourceConfigurationParser {
     throw new XmlConfigurationException("Can't find parser for element: " + element);
   }
 
-  public CacheType unparseResourceConfiguration(ResourcePools resourcePools, CacheType cacheType) {
+  public CacheType unparse(Document target, ResourcePools resourcePools, CacheType cacheType) {
     List<Element> resources = new ArrayList<>();
     resourcePools.getResourceTypeSet().forEach(resourceType -> {
-      Element element;
       ResourcePool resourcePool = resourcePools.getPoolForResource(resourceType);
       if (resourceType instanceof org.ehcache.config.ResourceType.Core) {
         SizedResourcePool pool = (SizedResourcePool) resourcePool;
@@ -174,12 +173,20 @@ public class ResourceConfigurationParser {
         }
 
         try {
-          Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
+          DocumentFragment fragment = target.createDocumentFragment();
           Marshaller marshaller = jaxbContext.createMarshaller();
           marshaller.setSchema(CORE_SCHEMA);
-          marshaller.marshal(resource, document);
-          element = document.getDocumentElement();
-        } catch (SAXException | ParserConfigurationException | IOException | JAXBException e) {
+          marshaller.marshal(resource, fragment);
+          NodeList children = fragment.getChildNodes();
+          for (int i = 0; i < children.getLength(); i++) {
+            Node item = children.item(i);
+            if (item instanceof Element) {
+              resources.add((Element) item);
+            } else {
+              throw new XmlConfigurationException("Unexpected marshalled resource node: " + item);
+            }
+          }
+        } catch (JAXBException e) {
           throw new XmlConfigurationException(e);
         }
       } else {
@@ -187,13 +194,11 @@ public class ResourceConfigurationParser {
         extensionParsers.forEach(parser -> parser.getResourceTypes().forEach(rt -> parsers.put(rt, parser)));
         CacheResourceConfigurationParser parser = parsers.get(resourcePool.getClass());
         if (parser != null) {
-          element = parser.unparseResourcePool(resourcePool);
+          resources.add(parser.unparse(target, resourcePool));
         } else {
           throw new AssertionError("Parser not found for resource type: " + resourceType);
         }
       }
-
-      resources.add(element);
     });
     return cacheType.withResources(OBJECT_FACTORY.createResourcesType().withResource(resources));
   }
