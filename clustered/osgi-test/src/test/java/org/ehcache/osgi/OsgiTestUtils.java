@@ -19,22 +19,23 @@ package org.ehcache.osgi;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.UrlProvisionOption;
 import org.ops4j.pax.exam.options.WrappedUrlProvisionOption;
+import org.terracotta.utilities.test.net.PortManager;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static java.nio.file.Files.find;
 import static java.nio.file.Files.isRegularFile;
+import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
@@ -50,6 +51,8 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-port-chooser"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
       junitBundles()
     );
@@ -76,8 +79,10 @@ public class OsgiTestUtils {
     Path kitLocation = Paths.get(System.getProperty("kitInstallationPath"));
 
     Path configFile = serverDirectory.resolve("tc-config.xml");
-    int tsaPort = selectAvailableEphemeralPort();
-    int tsaGroupPort = selectAvailableEphemeralPort();
+
+    PortManager portManager = PortManager.getInstance();
+    PortManager.PortRef tsaPort = portManager.reservePort();
+    PortManager.PortRef tsaGroupPort = portManager.reservePort();
 
     try (PrintWriter writer = new PrintWriter(new FileWriter(configFile.toFile()))) {
       writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
@@ -92,8 +97,8 @@ public class OsgiTestUtils {
       writer.println("<servers>");
       writer.println("<server host=\"localhost\" name=\"default-server\" bind=\"0.0.0.0\">");
       writer.println("<logs>" + serverDirectory.toString() + "</logs>");
-      writer.println("<tsa-port bind=\"0.0.0.0\">" + tsaPort + "</tsa-port>");
-      writer.println("<tsa-group-port bind=\"0.0.0.0\">" + tsaGroupPort + "</tsa-group-port>");
+      writer.println("<tsa-port bind=\"0.0.0.0\">" + tsaPort.port() + "</tsa-port>");
+      writer.println("<tsa-group-port bind=\"0.0.0.0\">" + tsaGroupPort.port() + "</tsa-group-port>");
       writer.println("</server>");
       writer.println("<client-reconnect-window>120</client-reconnect-window>");
       writer.println("</servers>");
@@ -125,13 +130,7 @@ public class OsgiTestUtils {
         "-f", configFile.toString())
       .inheritIO();
 
-    return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort), serverDirectory);
-  }
-
-  private static int selectAvailableEphemeralPort() throws IOException {
-    try (ServerSocketChannel channel = ServerSocketChannel.open().bind(new InetSocketAddress(0))) {
-      return channel.socket().getLocalPort();
-    }
+    return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort.port()), serverDirectory, tsaPort, tsaGroupPort);
   }
 
   static class Cluster implements Closeable {
@@ -139,11 +138,14 @@ public class OsgiTestUtils {
     private final Process serverProcess;
     private final URI connectionUri;
     private final Path workingPath;
+    private final Collection<PortManager.PortRef> ports;
 
-    Cluster(Process serverProcess, URI connectionUri, Path workingPath) {
+
+    Cluster(Process serverProcess, URI connectionUri, Path workingPath, PortManager.PortRef... ports) {
       this.serverProcess = serverProcess;
       this.connectionUri = connectionUri;
       this.workingPath = workingPath;
+      this.ports = asList(ports);
     }
 
     public URI getConnectionUri() {
@@ -159,6 +161,8 @@ public class OsgiTestUtils {
           serverProcess.waitFor(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
           throw new AssertionError(e);
+        } finally {
+          ports.forEach(PortManager.PortRef::close);
         }
       }
     }
