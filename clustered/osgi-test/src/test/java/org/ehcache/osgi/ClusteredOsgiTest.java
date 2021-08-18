@@ -96,7 +96,8 @@ public class ClusteredOsgiTest {
       gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ClusteredOsgiTest", "individualModules"),
-      gradleBundle("org.terracotta:terracotta-utilities-test-tools")
+      gradleBundle("org.terracotta:terracotta-utilities-test-tools"),
+      gradleBundle("org.terracotta:terracotta-utilities-port-chooser")
     );
   }
 
@@ -107,7 +108,9 @@ public class ClusteredOsgiTest {
       gradleBundle("org.ehcache:clustered-dist"),
 
       baseConfiguration("ClusteredOsgiTest", "uberJar"),
-      gradleBundle("org.terracotta:terracotta-utilities-test-tools")
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
+      gradleBundle("org.terracotta:terracotta-utilities-test-tools"),
+      gradleBundle("org.terracotta:terracotta-utilities-port-chooser")
     );
   }
 

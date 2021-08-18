@@ -16,6 +16,8 @@
 
 package org.ehcache.osgi;
 
+import org.terracotta.utilities.test.net.PortManager;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -23,6 +25,7 @@ import java.net.URI;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
@@ -31,8 +34,10 @@ public class ClusterSupport {
 
   public static Cluster startServer(Path serverDirectory) throws IOException {
     Path kitLocation = Paths.get(System.getProperty("kitInstallationPath"));
-    int tsaPort = selectAvailableEphemeralPort();
-    int tsaGroupPort = selectAvailableEphemeralPort();
+
+    PortManager portManager = PortManager.getInstance();
+    PortManager.PortRef tsaPort = portManager.reservePort();
+    PortManager.PortRef tsaGroupPort = portManager.reservePort();
 
     Path serverDir = kitLocation.resolve("server");
 
@@ -52,14 +57,14 @@ public class ClusterSupport {
       "--client-reconnect-window=120s",
       "--name=default-server",
       "--hostname=localhost",
-      "--port=" + tsaPort,
-      "--group-port=" + tsaGroupPort,
+      "--port=" + tsaPort.port(),
+      "--group-port=" + tsaGroupPort.port(),
       "--log-dir=" + serverDirectory.resolve("logs"),
       "--config-dir=" + serverDirectory.resolve("repository"),
       "--offheap-resources=main:32MB"));
     serverProcess.inheritIO();
 
-    return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort), serverDirectory);
+    return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort.port()), serverDirectory, tsaPort, tsaGroupPort);
   }
 
   private static int selectAvailableEphemeralPort() throws IOException {
@@ -73,11 +78,13 @@ public class ClusterSupport {
     private final Process serverProcess;
     private final URI connectionUri;
     private final Path workingPath;
+    private final Collection<PortManager.PortRef> ports;
 
-    Cluster(Process serverProcess, URI connectionUri, Path workingPath) {
+    Cluster(Process serverProcess, URI connectionUri, Path workingPath, PortManager.PortRef... ports) {
       this.serverProcess = serverProcess;
       this.connectionUri = connectionUri;
       this.workingPath = workingPath;
+      this.ports = asList(ports);
     }
 
     public URI getConnectionUri() {
@@ -93,6 +100,8 @@ public class ClusterSupport {
           serverProcess.waitFor(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
           throw new AssertionError(e);
+        } finally {
+          ports.forEach(PortManager.PortRef::close);
         }
       }
     }
