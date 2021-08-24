@@ -71,6 +71,7 @@ import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapresource.OffHeapUsageEvent;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
 import java.nio.ByteBuffer;
@@ -80,12 +81,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.entry;
@@ -1423,6 +1426,16 @@ public class ClusterTierActiveEntityTest {
     @Override
     public boolean setCapacity(long size) throws IllegalArgumentException {
       throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    public void addUsageListener(UUID listenerUUID, float threshold, Consumer<OffHeapUsageEvent> consumer) {
+
+    }
+
+    @Override
+    public void removeUsageListener(UUID listenerUUID) throws IllegalArgumentException {
+
     }
 
     private long getUsed() {
