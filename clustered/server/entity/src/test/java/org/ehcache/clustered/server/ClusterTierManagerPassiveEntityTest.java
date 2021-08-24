@@ -37,6 +37,7 @@ import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapresource.OffHeapUsageEvent;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
 import java.util.Collection;
@@ -45,6 +46,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -437,6 +440,16 @@ public class ClusterTierManagerPassiveEntityTest {
     @Override
     public boolean setCapacity(long size) throws IllegalArgumentException {
       throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    public void addUsageListener(UUID listenerUUID, float threshold, Consumer<OffHeapUsageEvent> consumer) {
+
+    }
+
+    @Override
+    public void removeUsageListener(UUID listenerUUID) throws IllegalArgumentException {
+
     }
 
     private long getUsed() {
