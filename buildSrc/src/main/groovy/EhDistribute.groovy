@@ -67,7 +67,7 @@ class EhDistribute implements Plugin<Project> {
 
       classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
 
-      utils.fillManifest(manifest, project.archivesBaseName)
+      utils.fillManifest(manifest, project.group, project.archivesBaseName)
     }
 
 
