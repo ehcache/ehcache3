@@ -15,12 +15,17 @@
  */
 package org.ehcache.clustered.management;
 
+import java.util.concurrent.TimeoutException;
 import org.ehcache.clustered.util.BeforeAll;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AfterFailoverManagementServiceTest extends ClusteringManagementServiceTest {
+
+  private final static Logger LOGGER = LoggerFactory.getLogger(AfterFailoverManagementServiceTest.class);
 
   @BeforeAll
   @Override
@@ -28,6 +33,14 @@ public class AfterFailoverManagementServiceTest extends ClusteringManagementServ
     super.beforeAllTests();
     CLUSTER.getCluster().getClusterControl().terminateActive();
     CLUSTER.getCluster().getClusterControl().waitForActive();
-    CLUSTER.startCollectingServerEntityStats();
+    for (int i=0;i<3;i++) {
+      try {
+        CLUSTER.startCollectingServerEntityStats();
+        return;
+      } catch (TimeoutException to) {
+        LOGGER.info("timeout initiating server entity stats on try count {}", i+1);
+      }
+    }
+    throw new AssertionError("failed to start collecting server entity stats");
   }
 }

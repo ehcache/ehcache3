@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.replication;
 
+import com.tc.util.runtime.ThreadDumpUtil;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
@@ -38,21 +39,25 @@ import org.terracotta.testing.rules.Cluster;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assume.assumeThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.terracotta.utilities.test.matchers.Eventually;
 
 
 public class DuplicateTest extends ClusteredTests {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(DuplicateTest.class);
   private PersistentCacheManager cacheManager;
 
   @ClassRule
@@ -78,7 +83,7 @@ public class DuplicateTest extends ClusteredTests {
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(60)))
+        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofMinutes(1)))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -106,6 +111,7 @@ public class DuplicateTest extends ClusteredTests {
             if (i == (numEntries - 100)) {
               failoverComplete.acquire();
             }
+            LOGGER.info("putting " + i);
             cache.put(i, "value:" + i);
           }
         } catch (InterruptedException e) {
@@ -119,7 +125,7 @@ public class DuplicateTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateActive();
       failoverComplete.release();
 
-      assertThat(puts::isDone, eventually().is(true));
+      assertThat(puts::isDone, Eventually.within(Duration.ofMinutes(1)).is(true));
       puts.get();
 
       //if failover didn't interrupt puts then the test is 'moot'
@@ -142,6 +148,8 @@ public class DuplicateTest extends ClusteredTests {
         new Class<?>[] { ResilienceStrategy.class},
         (proxy, method, args) -> {
           if(method.getName().endsWith("Failure")) {
+            Map<Thread,StackTraceElement[]> stacks = Thread.getAllStackTraces();
+            LOGGER.error(ThreadDumpUtil.getThreadDump());
             throw new AssertionError("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
           }
 

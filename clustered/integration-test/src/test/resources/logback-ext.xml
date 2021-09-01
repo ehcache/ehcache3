@@ -1,0 +1,2 @@
+  <logger name="com.tc.objectserver.handler.ProcessTransactionHandler" level="DEBUG"/>
+

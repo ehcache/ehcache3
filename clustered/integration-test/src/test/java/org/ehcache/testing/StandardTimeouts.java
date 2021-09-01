@@ -22,6 +22,6 @@ import java.time.Duration;
 public interface StandardTimeouts {
 
   static Eventually.Timeout eventually() {
-    return Eventually.within(Duration.ofMinutes(1L));
+    return Eventually.within(Duration.ofMinutes(3L));
   }
 }

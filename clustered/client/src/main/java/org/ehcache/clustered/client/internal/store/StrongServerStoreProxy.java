@@ -33,6 +33,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.LongSupplier;
 
 import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
@@ -42,6 +45,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private static final Logger LOGGER = LoggerFactory.getLogger(StrongServerStoreProxy.class);
 
   private final CommonServerStoreProxy delegate;
+  private final ReadWriteLock reconnectLock = new ReentrantReadWriteLock();
   private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<>();
   private final AtomicReference<CountDownLatch> invalidateAllLatch = new AtomicReference<>();
   private final ClusterTierClientEntity entity;
@@ -88,10 +92,16 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   private void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
-    Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
-    reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
-    if (invalidateAllLatch.get() != null) {
-      reconnectMessage.clearInProgress();
+    Lock lock = reconnectLock.writeLock();
+    try {
+      lock.lock();
+      Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
+      reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
+      if (invalidateAllLatch.get() != null) {
+        reconnectMessage.clearInProgress();
+      }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -99,24 +109,29 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
 
     CountDownLatch latch = new CountDownLatch(1);
-    while (true) {
-      if (!entity.isConnected()) {
-        throw new IllegalStateException("Cluster tier manager disconnected");
+    Lock lock = reconnectLock.readLock();
+      lock.lock();
+
+      while (true) {
+        if (!entity.isConnected()) {
+          throw new IllegalStateException("Cluster tier manager disconnected");
+        }
+        CountDownLatch countDownLatch = hashInvalidationsInProgress.putIfAbsent(key, latch);
+        if (countDownLatch == null) {
+          break;
+        }
+        awaitOnLatch(countDownLatch, nanosRemaining);
       }
-      CountDownLatch countDownLatch = hashInvalidationsInProgress.putIfAbsent(key, latch);
-      if (countDownLatch == null) {
-        break;
-      }
-      awaitOnLatch(countDownLatch, nanosRemaining);
-    }
 
     try {
       T result = c.call();
       LOGGER.debug("CLIENT: Waiting for invalidations on key {}", key);
+      lock.unlock();
       awaitOnLatch(latch, nanosRemaining);
       LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking call", key);
       return result;
     } catch (Exception ex) {
+      lock.unlock();
       hashInvalidationsInProgress.remove(key);
       latch.countDown();
 
@@ -134,27 +149,32 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
 
     CountDownLatch newLatch = new CountDownLatch(1);
-    while (true) {
-      if (!entity.isConnected()) {
-        throw new IllegalStateException("Cluster tier manager disconnected");
-      }
+    Lock lock = reconnectLock.readLock();
+    lock.lock();
 
-      if (invalidateAllLatch.compareAndSet(null, newLatch)) {
-        break;
-      } else {
-        CountDownLatch existingLatch = invalidateAllLatch.get();
-        if (existingLatch != null) {
-          awaitOnLatch(existingLatch, nanosRemaining);
+    while (true) {
+        if (!entity.isConnected()) {
+          throw new IllegalStateException("Cluster tier manager disconnected");
+        }
+
+        if (invalidateAllLatch.compareAndSet(null, newLatch)) {
+          break;
+        } else {
+          CountDownLatch existingLatch = invalidateAllLatch.get();
+          if (existingLatch != null) {
+            awaitOnLatch(existingLatch, nanosRemaining);
+          }
         }
       }
-    }
 
     try {
       T result = c.call();
+      lock.unlock();
       awaitOnLatch(newLatch, nanosRemaining);
       LOGGER.debug("CLIENT: all invalidated on all clients, unblocking call");
       return result;
     } catch (Exception ex) {
+      lock.unlock();
       invalidateAllLatch.set(null);
       newLatch.countDown();
 

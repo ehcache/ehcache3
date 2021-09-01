@@ -27,23 +27,29 @@ jobs:
 - template: build-templates/gradle-common.yml@templates
   parameters:
     jdkVersion: '1.8'
+    gradleTasks: ':clustered:integration-test:test --tests=DuplicateTest'
     jobName: 'LinuxJava8'
+    options: '--info'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
     jdkVersion: '1.8'
-    options: '-PtestVM=java11Home'
+    gradleTasks: ':clustered:integration-test:test --tests=DuplicateTest'
+    options: '-PtestVM=java11Home --info'
     jobName: 'LinuxJava11'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
     vmImage: 'windows-latest'
     jdkVersion: '1.8'
+    gradleTasks: ':clustered:integration-test:test --tests=DuplicateTest'
+    options: '--info'
     jobName: 'WindowsJava8'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
     vmImage: 'windows-latest'
     jdkVersion: '1.8'
-    options: '-PtestVM=java11Home'
+    gradleTasks: ':clustered:integration-test:test --tests=DuplicateTest'
+    options: '-PtestVM=java11Home --info'
     jobName: 'WindowsJava11'
