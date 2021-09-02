@@ -30,8 +30,8 @@ import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 

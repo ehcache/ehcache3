@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-apply plugin: 'osgi-ds'
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'org.jayware.osgi-ds'
+}
 
 dependencies {
   compileOnly project(':impl')
@@ -31,9 +33,11 @@ dependencies {
   testImplementation project(':impl')
   testImplementation project(':xml')
   testImplementation project(':transactions')
-  testImplementation(project(':clustered:server')) {
+  testImplementation(project(':clustered:server:entity')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
+  testImplementation project(':clustered:server:service')
+  testImplementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
   testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
@@ -44,6 +48,5 @@ dependencies {
   }
   testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
   testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
-  testImplementation "org.awaitility:awaitility:3.1.6"
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
 }

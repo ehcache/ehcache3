@@ -21,6 +21,10 @@
  * https://discuss.gradle.org/t/dependency-substitution-wrong-with-more-than-one-sub-project-with-same-name/7253/6
  */
 
+plugins {
+  id 'distribution'
+  id 'org.ehcache.build.distribute'
+}
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
 
@@ -37,31 +41,37 @@ dependencies {
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
-apply plugin: 'distribution'
-apply plugin: EhDistribute
+def kitProvides = { Configuration c ->
+  c.exclude group:'org.slf4j', module:'slf4j-api'
+  c.exclude group:'org.terracotta', module:'entity-server-api'
+  c.exclude group:'org.terracotta', module:'entity-common-api'
+  c.exclude group:'org.terracotta', module:'packaging-support'
+  c.exclude group:'org.terracotta', module:'standard-cluster-services'
+  c.exclude group:'org.terracotta', module:'statistics'
+  c.exclude group:'org.terracotta', module:'runnel'
+  c.exclude group:'org.terracotta', module:'client-message-tracker'
+  c.exclude group:'org.terracotta.management', module:'monitoring-service-api'
+  c.exclude group:'org.terracotta.management', module:'management-model'
+  c.exclude group:'org.terracotta.management', module:'management-registry'
+  c.exclude group:'org.terracotta.management', module:'cluster-topology'
+  c.exclude group:'org.terracotta.management', module:'sequence-generator'
+}
 
 configurations {
   kit
-  serverLibs
+  serverApis(kitProvides)
+  serverLibs(kitProvides)
 }
 
 dependencies {
   compileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   compileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
-  serverLibs(project(':clustered:server')) {
-    exclude group: 'org.terracotta', module: 'entity-server-api'
-    exclude group: 'org.terracotta', module: 'entity-common-api'
-    exclude group: 'org.terracotta', module: 'packaging-support'
-    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
-  }
+  serverApis project(':clustered:server:service-api')
+  serverLibs project(':clustered:server:entity')
+  serverLibs project(':clustered:server:service')
 
-  // Needed because declared as provided in the different projects
-  serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
-
-  serverLibs "org.terracotta:lease-entity-server:$parent.terracottaPlatformVersion"
-
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
+  kit "org.terracotta:platform-kit:$terracottaPlatformVersion@tar.gz"
 
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
@@ -78,7 +88,7 @@ jar {
     'Bundle-SymbolicName': 'org.ehcache.clustered',
     'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
       'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
-    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, *'
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.annotation, *'
   )
 }
 
@@ -86,12 +96,16 @@ distributions {
   main {
     baseName = archivesBaseName
     contents {
+      filesMatching('**/*.jar') {
+        // We can safely exclude JAR duplicates as our dependency strategy is fail on conflict
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
+      }
       //tc kit
       into ('') {
         from configurations.kit.files.collect { tarTree(it) }
         eachFile { f ->
           // remove top level directory from the kit
-          f.path = f.path.replace("terracotta-$terracottaCoreVersion/", "")
+          f.path = f.path.replace("platform-kit-$terracottaPlatformVersion/", "")
         }
         exclude { f ->
           // Exclude tc's client subdir and README.txt - Issue 1273
@@ -99,8 +113,11 @@ distributions {
         }
         includeEmptyDirs = false
       }
+      into ("server/plugins/api") {
+        from configurations.serverApis
+      }
       into ("server/plugins/lib") {
-        from configurations.serverLibs
+        from (configurations.serverLibs - configurations.serverApis)
       }
       into ('client/ehcache') {
         from jar

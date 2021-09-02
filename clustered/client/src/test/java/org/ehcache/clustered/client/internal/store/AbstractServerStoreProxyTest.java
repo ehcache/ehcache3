@@ -16,6 +16,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
@@ -79,13 +80,13 @@ public abstract class AbstractServerStoreProxyTest {
 
     // Create ClusterTierManagerClientEntity if needed
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(
-      connection,
+      connection, Runnable::run,
       TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)).build());
     if (create) {
       entityFactory.create(name, new ServerSideConfiguration("defaultResource", Collections.emptyMap()));
     }
     // Create or fetch the ClusterTierClientEntity
-    SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, create);
+    SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, create ? ClusteringServiceConfiguration.ClientMode.AUTO_CREATE : ClusteringServiceConfiguration.ClientMode.CONNECT, false);
     if (validate) {
       clientEntity.validate(configuration);
     }

@@ -36,6 +36,7 @@ import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("deprecation")
 public class ClusteringServiceConfigurationTest {
 
   private static final URI DEFAULT_URI = URI.create("terracotta://localhost:9450");

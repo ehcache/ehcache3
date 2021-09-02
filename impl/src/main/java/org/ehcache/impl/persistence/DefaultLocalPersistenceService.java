@@ -24,6 +24,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.utilities.io.Files;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,7 +34,6 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 
 import static org.ehcache.impl.persistence.FileUtils.createLocationIfRequiredAndVerify;
-import static org.ehcache.impl.persistence.FileUtils.recursiveDeleteDirectoryContent;
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 import static org.ehcache.impl.persistence.FileUtils.tryRecursiveDelete;
 import static org.ehcache.impl.persistence.FileUtils.validateName;
@@ -121,7 +121,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
         // passes on windows
         rw.close();
-        if (!lockFile.delete()) {
+        try {
+          Files.delete(lockFile.toPath());
+        } catch (IOException e) {
           LOGGER.debug("Lock file was not deleted {}.", lockFile.getPath());
         }
       } catch (IOException e) {
@@ -185,16 +187,14 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   public void destroyAll(String owner) {
     File ownerDirectory = new File(rootDirectory, owner);
-    boolean cleared = true;
     if (ownerDirectory.exists() && ownerDirectory.isDirectory()) {
-      cleared = false;
-      if (recursiveDeleteDirectoryContent(ownerDirectory)) {
+      if (tryRecursiveDelete(ownerDirectory)) {
         LOGGER.debug("Destroyed all file based persistence contexts owned by {}", owner);
-        cleared = ownerDirectory.delete();
+      } else {
+        LOGGER.warn("Could not delete all file based persistence contexts owned by {}", owner);
       }
-    }
-    if (!cleared) {
-      LOGGER.warn("Could not delete all file based persistence contexts owned by {}", owner);
+    } else {
+      LOGGER.warn("Could not delete all file based persistence contexts owned by {} - is not a directory!", owner);
     }
   }
 

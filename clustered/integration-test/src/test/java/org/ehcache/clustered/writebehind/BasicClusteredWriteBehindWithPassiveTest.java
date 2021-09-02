@@ -25,11 +25,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.terracotta.testing.rules.Cluster;
-
-import java.io.File;
 
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
@@ -38,7 +34,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build()
+      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
   );
 
   private PersistentCacheManager cacheManager;

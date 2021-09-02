@@ -18,6 +18,7 @@ package org.ehcache.clustered;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.reconnect.ThrowingResiliencyStrategy;
@@ -39,11 +40,10 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.terracotta.testing.rules.Cluster;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -52,18 +52,22 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static java.util.stream.LongStream.range;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 @RunWith(Parallel.class)
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventsFailureBehaviorTest.class);
+
   private static final int KEYS = 500;
-  private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
+  private static final Duration TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration FAILOVER_TIMEOUT = Duration.ofMinutes(1);
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -73,7 +77,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
   @Rule
   public final TestName testName = new TestName();
 
@@ -97,9 +101,17 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
   @After
   public void tearDown() {
     try {
-      cacheManager1.close();
+      try {
+        cacheManager1.close();
+      } catch (StateTransitionException e) {
+        LOGGER.warn("Failed to shutdown cache manager", e);
+      }
     } finally {
-      cacheManager2.close();
+      try {
+        cacheManager2.close();
+      } catch (StateTransitionException e) {
+        LOGGER.warn("Failed to shutdown cache manager", e);
+      }
     }
   }
 
@@ -121,7 +133,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForActive();
 
     // wait for clients to be back in business
-    await().atMost(TIMEOUT).until(() -> {
+    assertThatEventually(() -> {
       try {
         cache1.replace(1L, new byte[0], new byte[0]);
         cache2.replace(1L, new byte[0], new byte[0]);
@@ -129,7 +141,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       } catch (Exception e) {
         return false;
       }
-    });
+    }, is(true)).within(FAILOVER_TIMEOUT);
   }
 
   @Test
@@ -145,10 +157,10 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -156,20 +168,20 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.UPDATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.UPDATED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.UPDATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.UPDATED), hasSize(greaterThan(0))).within(TIMEOUT);
 
     range(0, KEYS).forEach(cache1::remove);
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.REMOVED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.REMOVED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.REMOVED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.REMOVED), hasSize(greaterThan(0))).within(TIMEOUT);
 
     range(KEYS, KEYS * 2).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
   }
 
   @Test
@@ -185,10 +197,10 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       cache1.put(k, value);
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EVICTED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.CREATED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EVICTED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.CREATED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EVICTED), hasSize(greaterThan(0))).within(TIMEOUT);
 
     // failover passive -> active
     failover(cache1, cache2);
@@ -196,8 +208,8 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     range(0, KEYS).forEach(k -> {
       assertThat(cache1.get(k), is(nullValue()));
     });
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener1.events.get(EventType.EXPIRED).size(), greaterThan(0));
-    await().atMost(TIMEOUT).until(() -> accountingCacheEventListener2.events.get(EventType.EXPIRED).size(), greaterThan(0));
+    assertThatEventually(() -> accountingCacheEventListener1.events.get(EventType.EXPIRED), hasSize(greaterThan(0))).within(TIMEOUT);
+    assertThatEventually(() -> accountingCacheEventListener2.events.get(EventType.EXPIRED), hasSize(greaterThan(0))).within(TIMEOUT);
   }
 
 

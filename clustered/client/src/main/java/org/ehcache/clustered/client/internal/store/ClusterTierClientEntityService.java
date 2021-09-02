@@ -55,7 +55,7 @@ public class ClusterTierClientEntityService implements EntityClientService<Clust
   @Override
   public ClusterTierClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
                                         ClusterTierUserData userData) {
-    return new SimpleClusterTierClientEntity(endpoint, userData.getTimeouts(), userData.getStoreIdentifier());
+    return new SimpleClusterTierClientEntity(endpoint, userData.getTimeouts(), userData.getStoreIdentifier(), userData.getAsyncWorker());
   }
 
   @Override

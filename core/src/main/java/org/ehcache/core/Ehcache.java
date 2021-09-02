@@ -216,7 +216,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       ValueHolder<V> existingValue;
       try {
-        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> null);
+        existingValue = store.getAndRemove(key);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
@@ -240,7 +240,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       ValueHolder<V> existingValue;
       try {
-        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> value);
+        existingValue = store.getAndPut(key, value);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);

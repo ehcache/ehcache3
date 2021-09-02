@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered;
 
-import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -32,8 +32,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
-
-import java.io.File;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -52,7 +50,7 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
@@ -69,7 +67,7 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
       cacheManagerBuilder.build(true);
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
-      Throwable cause = getCause(e, CachePersistenceException.class);
+      Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
       assertThat(cause, notNullValue());
       assertThat(cause.getMessage(), startsWith("Unable to create"));
     }

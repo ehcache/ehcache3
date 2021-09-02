@@ -181,7 +181,7 @@ include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/clie
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance.
 <2> Use the `ClusteringServiceConfigurationBuilder` static method `.cluster(URI)` for connecting the cache manager to the clustered storage at the `URI` specified that returns the clustering service configuration builder instance.
 Sample `URI` provided in the example is pointing to the clustered storage instance named "my-application" on the Terracotta server (assuming the server is running on localhost and port 9410).
-<3> Auto-create the clustered storage if it doesn't already exist.
+<3> Auto-create the clustered storage if it doesn't already exist. We also allow auto-create on reconnection since the cluster is not persistent.
 <4> Returns a fully initialized cache manager that can be used to create clustered caches.
 <5> Close the cache manager.
 
@@ -221,13 +221,14 @@ When configuring a cache manager to connect to a cluster tier manager there are 
 ----
 include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
 ----
-
-<1> In auto-create mode if no cluster tier manager exists then one is created with the supplied configuration.
+<1> In auto create mode if no cluster tier manager exists then one is created with the supplied configuration.
 If it exists and its configuration matches the supplied configuration then a connection is established.
 If the supplied configuration does not match then the cache manager will fail to initialize.
-<2> In expected mode if a cluster tier manager exists and its configuration matches the supplied configuration then a connection is established.
+<2> In auto create on reconnect mode we additionally support auto creation of any necessary entities when reconnecting to a cluster.
+This behavior is useful in an non-persistent cluster in case the cluster loses its state due to a restart (planned or accidental).
+<3> In expected mode if a cluster tier manager exists and its configuration matches the supplied configuration then a connection is established.
 If the supplied configuration does not match or the cluster tier manager does not exist then the cache manager will fail to initialize.
-<3> In config-less mode if a cluster tier manager exists then a connection is established without regard to its configuration.
+<4> In config-less mode if a cluster tier manager exists then a connection is established without regard to its configuration.
 If it does not exist then the cache manager will fail to initialize.
 
 [[clustered-cache]]
@@ -313,9 +314,9 @@ The example code below shows how this can be implemented.
 include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
 ----
 
-<1> Configure the first cache manager with auto create
+<1> Configure the first cache manager with auto create on reconnect
 <2> Build a cache configuration for a clustered `dedicated` resource pool
 <3> Create cache `my-dedicated-cache` using the cache configuration
-<4> Configure the second cache manager as _expecting_ (auto create off)
+<4> Configure the second cache manager as _expecting_
 <5> Build a cache configuration for a clustered _unspecified_ resource pool, which will use the previously configured clustered _dedicated_ resource pool.
 <6> Create cache with the same name `my-dedicated-cache` and use the clustered _unspecified_ cache configuration

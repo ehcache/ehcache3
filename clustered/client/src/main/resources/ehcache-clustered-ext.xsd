@@ -157,10 +157,24 @@
         </xs:annotation>
       </xs:element>
     </xs:sequence>
-    <xs:attribute name="auto-create" type="xs:boolean" use="optional" default="false">
+
+    <xs:attribute name="auto-create" type="xs:boolean" use="optional">
+      <xs:annotation>
+        <xs:documentation xml:lang="en">
+          True if server side components should be automatically created if they are absent.
+
+          This attribute is deprecated, and has been replaced by the 'client-mode' attribute.
+          Use of both at the same time (although legal per the schema) will fail at parse time in Ehcache.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="client-mode" type="tc:client-mode-spec" use="optional">
       <xs:annotation>
         <xs:documentation> xml:lang="en">
-          True if server side components should be automatically created if they are absent.
+          The client connection behavior, either:
+           * expecting - expect a matching server configuration (fail otherwise)
+           * auto-create - expect a matching server configuration or create one if none is present
+           * auto-create-on-reconnect - as 'auto-create' but also auto-create on reconnection
         </xs:documentation>
       </xs:annotation>
     </xs:attribute>
@@ -185,6 +199,14 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+
+  <xs:simpleType name="client-mode-spec">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="expecting"/>
+      <xs:enumeration value="auto-create"/>
+      <xs:enumeration value="auto-create-on-reconnect"/>
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:element name="clustered-dedicated" type="tc:clustered-dedicated-resource-type" substitutionGroup="eh:resource">
     <xs:annotation>

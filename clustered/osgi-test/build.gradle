@@ -29,6 +29,7 @@ dependencies {
   osgiModule project(':clustered:clustered-dist')
   osgiModule "javax.cache:cache-api:$parent.jcacheVersion"
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
+  osgiModule "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
   osgiModule 'com.sun.activation:javax.activation:1.2.0'
   osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
@@ -56,10 +57,17 @@ dependencies {
 
 configurations.all {
   resolutionStrategy {
-    force 'org.ops4j.base:ops4j-base-lang:1.5.0'
-    force 'org.ops4j.base:ops4j-base-net:1.5.0'
-    force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
-    force 'org.ops4j.pax.url:pax-url-commons:2.6.1'
+    dependencySubstitution {
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
+        .because('https://ops4j1.jira.com/browse/PAXURL-341')
+        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
+        .because('https://ops4j1.jira.com/browse/PAXURL-341')
+        .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
+        .because('https://ops4j1.jira.com/browse/PAXURL-341')
+        .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+    }
   }
 }
 

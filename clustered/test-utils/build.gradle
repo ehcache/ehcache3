@@ -1,4 +1,4 @@
 dependencies {
-  compile project(':clustered:common')
-  compile "org.hamcrest:hamcrest-core:$hamcrestVersion"
+  api project(':clustered:common')
+  api "org.hamcrest:hamcrest-core:$hamcrestVersion"
 }

@@ -25,8 +25,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
-
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -46,7 +44,7 @@ public class EhcacheConfigWithManagementTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
                                               .withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass

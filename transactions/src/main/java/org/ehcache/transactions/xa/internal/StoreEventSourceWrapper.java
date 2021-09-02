@@ -84,6 +84,11 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
   }
 
   @Override
+  public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+    underlying.setSynchronous(synchronous);
+  }
+
+  @Override
   public boolean isEventOrdering() {
     return underlying.isEventOrdering();
   }

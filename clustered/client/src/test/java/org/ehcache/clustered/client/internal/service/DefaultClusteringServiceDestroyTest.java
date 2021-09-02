@@ -16,12 +16,10 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
@@ -39,7 +37,7 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 
-import static java.util.Collections.emptyMap;
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -91,8 +89,8 @@ public class DefaultClusteringServiceDestroyTest {
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
 
-    DefaultClusteringService service = new DefaultClusteringService(new ClusteringServiceConfiguration(URI
-      .create("mock://localhost/whatever")));
+    DefaultClusteringService service = new DefaultClusteringService(cluster((URI
+      .create("mock://localhost/whatever"))).build());
     service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     service.destroyAll();
@@ -103,8 +101,6 @@ public class DefaultClusteringServiceDestroyTest {
 
   @Test
   public void testAutoCreateOnPartialDestroyState() throws Exception {
-    ServerSideConfiguration serverConfig = new ServerSideConfiguration("default", emptyMap());
-
     mockLockForWriteLockSuccess();
 
     when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
@@ -114,14 +110,14 @@ public class DefaultClusteringServiceDestroyTest {
     doThrow(new EntityAlreadyExistsException("className", "entityName"))
       // Next time simulate creation
       .doNothing()
-        .when(managerEntityRef).create(new ClusterTierManagerConfiguration("whatever", serverConfig));
+        .when(managerEntityRef).create(new ClusterTierManagerConfiguration("whatever", any()));
     // And can be fetch
     when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
     // However validate indicates destroy in progress
     doThrow(new DestroyInProgressException("destroying"))
       // Next time validation succeeds
       .doNothing()
-      .when(managerEntity).validate(serverConfig);
+      .when(managerEntity).validate(any());
 
     Set<String> stores = new HashSet<>();
     stores.add("store1");
@@ -133,8 +129,8 @@ public class DefaultClusteringServiceDestroyTest {
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
 
-    DefaultClusteringService service = new DefaultClusteringService(new ClusteringServiceConfiguration(URI
-      .create("mock://localhost/whatever"), true, serverConfig));
+    DefaultClusteringService service = new DefaultClusteringService(cluster(URI
+      .create("mock://localhost/whatever")).autoCreate(s -> s).build());
     service.start(null);
 
     verify(managerEntity).prepareForDestroy();
@@ -154,8 +150,8 @@ public class DefaultClusteringServiceDestroyTest {
     // However validate indicates destroy in progress
     doThrow(new DestroyInProgressException("destroying")).when(managerEntity).validate(null);
 
-    DefaultClusteringService service = new DefaultClusteringService(new ClusteringServiceConfiguration(URI
-      .create("mock://localhost/whatever")));
+    DefaultClusteringService service = new DefaultClusteringService(cluster(URI
+      .create("mock://localhost/whatever")).build());
     try {
       service.start(null);
       fail("IllegalStateException expected");
@@ -183,8 +179,8 @@ public class DefaultClusteringServiceDestroyTest {
     when(tierEntityRef.destroy()).thenReturn(true);
     when(managerEntityRef.destroy()).thenReturn(true);
 
-    DefaultClusteringService service = new DefaultClusteringService(new ClusteringServiceConfiguration(URI
-      .create("mock://localhost/whatever")));
+    DefaultClusteringService service = new DefaultClusteringService(cluster(URI
+      .create("mock://localhost/whatever")).build());
     service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     service.destroyAll();

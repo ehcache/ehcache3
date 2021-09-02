@@ -31,7 +31,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -57,7 +56,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster(2).in(Paths.get("build", "cluster").toFile())
+      newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
         .withServiceFragment(RESOURCE_CONFIG)
         .build();
@@ -107,7 +106,8 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
           // a small pause
           try {
             Thread.sleep(10);
-          } catch (InterruptedException ignored) {
+          } catch (InterruptedException e) {
+            throw new AssertionError(e);
           }
         }
         cache.put(i, LARGE_VALUE);

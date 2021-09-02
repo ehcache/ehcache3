@@ -109,6 +109,15 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
     return holder;
   }
 
+  @Override
+  public boolean containsKey(K key) throws StoreAccessException {
+    try {
+      return super.getInternal(key) != null;
+    } catch (TimeoutException e) {
+      return false;
+    }
+  }
+
   private void append(K key, V value) throws TimeoutException {
     PutOperation<K, V> operation = new PutOperation<>(key, value, timeSource.getTimeMillis());
     ByteBuffer payload = codec.encode(operation);
@@ -117,7 +126,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   }
 
   @Override
-  protected PutStatus silentPut(K key, V value) throws StoreAccessException {
+  protected void silentPut(K key, V value) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
@@ -129,14 +138,32 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
       } finally {
         getProxy().unlock(hash, unlocked);
       }
-      return PutStatus.PUT;
     } catch (Exception e) {
       throw handleException(e);
     }
   }
 
   @Override
-  protected boolean silentRemove(K key) throws StoreAccessException {
+  protected ValueHolder<V> silentGetAndPut(K key, V value) throws StoreAccessException {
+    try {
+      long hash = extractLongKey(key);
+      boolean unlocked = false;
+      final ServerStoreProxy.ChainEntry chain = getProxy().lock(hash);
+      try {
+        cacheLoaderWriter.write(key, value);
+        append(key, value);
+        unlocked = true;
+        return resolver.resolve(chain, key, timeSource.getTimeMillis());
+      } finally {
+        getProxy().unlock(hash, unlocked);
+      }
+    } catch (Exception e) {
+      throw handleException(e);
+    }
+  }
+
+  @Override
+  protected ValueHolder<V> silentRemove(K key) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
@@ -147,7 +174,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         cacheLoaderWriter.delete(key);
         storeProxy.append(hash, payLoad);
         unlocked = true;
-        return resolver.resolve(chain, key, timeSource.getTimeMillis()) != null;
+        return resolver.resolve(chain, key, timeSource.getTimeMillis());
       } finally {
         getProxy().unlock(hash, unlocked);
       }

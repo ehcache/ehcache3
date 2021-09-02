@@ -14,6 +14,22 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:test-utils", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:clustered-dist", "clustered:ops-tool",
+pluginManagement {
+  plugins {
+    id 'io.codearte.nexus-staging' version '0.21.1'
+    id 'com.github.spotbugs' version '2.0.1'
+    id 'org.jayware.osgi-ds' version '0.5.6'
+    id 'org.owasp.dependencycheck' version '5.2.4'
+    id 'biz.aQute.bnd.builder' version '4.1.0'
+    id 'org.gretty' version '2.3.1'
+    id 'org.asciidoctor.jvm.base' version '2.3.0'
+    id 'org.unbroken-dome.xjc' version '1.4.3'
+  }
+}
+
+include "test-utilities", "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
+        "clustered", "clustered:common-api", "clustered:common",
+        "clustered:server:service-api", "clustered:server:service", "clustered:server:entity",
+        "clustered:client", "clustered:clustered-dist", "clustered:ops-tool",
+        "clustered:test-utils", "clustered:integration-test",
         "integration-test", "dist", "osgi-test", "clustered:osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"

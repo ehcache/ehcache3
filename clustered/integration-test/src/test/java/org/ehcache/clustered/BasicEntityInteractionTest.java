@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered;
 
-import java.io.File;
 import java.net.URI;
 
 import org.ehcache.Cache;
@@ -63,7 +62,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
 
   @BeforeClass

@@ -32,16 +32,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.google.code.tempusfugit.temporal.Duration.seconds;
-import static com.google.code.tempusfugit.temporal.Timeout.timeout;
-import static com.google.code.tempusfugit.temporal.WaitFor.waitOrTimeout;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class PassiveSyncTest extends ClusteredTests {
   private static final String RESOURCE_CONFIG =
@@ -53,7 +52,7 @@ public class PassiveSyncTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {
@@ -89,10 +88,9 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateActive();
       CLUSTER.getClusterControl().waitForActive();
 
-      // Sometimes the new passive believes there is a second connection and we have to wait for the full reconnect window before getting a result
-      waitOrTimeout(() -> "value-5".equals(cache.get(-5L)), timeout(seconds(130)));
 
-      for (long i = -4; i < 5; i++) {
+      assertThatEventually(() -> cache.get(0L), notNullValue()).within(Duration.ofSeconds(130));
+      for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
     } finally {

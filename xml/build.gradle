@@ -15,11 +15,10 @@
  */
 
 plugins {
-  id 'org.unbroken-dome.xjc' version '1.4.3'
+  id 'org.unbroken-dome.xjc'
+  id 'org.ehcache.build.deploy'
+  id 'biz.aQute.bnd.builder'
 }
-
-apply plugin: EhDeploy
-apply plugin: 'biz.aQute.bnd.builder'
 
 dependencies {
   api project(':api')
@@ -30,6 +29,10 @@ dependencies {
   testImplementation 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
+}
+
+configurations.xjcClasspath.resolutionStrategy.dependencySubstitution {
+  substitute module('commons-beanutils:commons-beanutils:1.9.3') with module('commons-beanutils:commons-beanutils:1.9.4')
 }
 
 jar {

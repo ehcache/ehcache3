@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
@@ -57,8 +58,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Chain> store1InvalidatedChains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Chain> store2InvalidatedChains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testInvalidationsContainChains", clientEntity1, new ServerCallback() {
       @Override
@@ -75,7 +78,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -109,7 +112,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -158,6 +161,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     MatcherAssert.assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testInvalidationsContainChains");
+    assertThat(store1InvalidatedAll.get(), is(false));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   @Test
@@ -167,8 +172,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final List<ByteBuffer> store1AppendedBuffers = new CopyOnWriteArrayList<>();
     final List<Chain> store1Chains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<ByteBuffer> store2AppendedBuffers = new CopyOnWriteArrayList<>();
     final List<Chain> store2Chains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAppendFireEvents", clientEntity1, new ServerCallback() {
       @Override
@@ -178,7 +185,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -208,7 +215,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -242,12 +249,14 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(store1Chains.size(), is(2));
     assertThat(store1Chains.get(0).length(), is(0));
     assertThat(store1Chains.get(1).length(), is(1));
+    assertThat(store1InvalidatedAll.get(), is(false));
     assertThat(store2AppendedBuffers.size(), is(2));
     assertThat(store2AppendedBuffers.get(0).asLongBuffer().get(), is(1L));
     assertThat(store2AppendedBuffers.get(1).asLongBuffer().get(), is(2L));
     assertThat(store2Chains.size(), is(2));
     assertThat(store2Chains.get(0).length(), is(0));
     assertThat(store2Chains.get(1).length(), is(1));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   private static void assertThatClientsWaitingForInvalidationIsEmpty(String name) throws Exception {

@@ -150,7 +150,6 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
-    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -222,35 +221,34 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError | IOException e) {
-          // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
+        } catch (IOException e) {
+          throw new AssertionError(e);
         }
       }
 
       //open destroy connection.  You need to make sure connection doesn't have any entities associated with it.
-      PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
+      try (PassthroughConnection connection = serverDescriptor.server.connectNewClient("destroy-connection")) {
+        // destroy in reverse order of the creation to keep coherence
+        List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
+        Collections.reverse(keys);
+        for (Class<? extends Entity> type : keys) {
+          Object[] args = serverDescriptor.knownEntities.get(type);
 
-      // destroy in reverse order of the creation to keep coherence
-      List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
-      Collections.reverse(keys);
-      for(Class<? extends Entity> type : keys) {
-        Object[] args = serverDescriptor.knownEntities.get(type);
+          Long version = (Long) args[0];
+          String stringArg = (String) args[1];
 
-        Long version = (Long) args[0];
-        String stringArg = (String) args[1];
-
-        try {
-          EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
-          entityRef.destroy();
-        } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed (not provided???): ", ex);
-        } catch (EntityNotFoundException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
-        } catch (PermanentEntityException ex) {
-          LOGGER.error("Entity destroy failed (permanent???): ", ex);
+          try {
+            EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
+            entityRef.destroy();
+          } catch (EntityNotProvidedException ex) {
+            LOGGER.error("Entity destroy failed (not provided???): ", ex);
+          } catch (EntityNotFoundException ex) {
+            LOGGER.error("Entity destroy failed: ", ex);
+          } catch (PermanentEntityException ex) {
+            LOGGER.error("Entity destroy failed (permanent???): ", ex);
+          }
         }
       }
-
       serverDescriptor.server.stop();
       LOGGER.info("Stopped PassthroughServer at {}", keyURI);
       return serverDescriptor.server;
@@ -366,9 +364,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerClientEntityService(service);
       }
 
-      if (!this.resources.getResource().isEmpty()) {
-        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
-      }
+      newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {
         newServer.registerServiceProvider(entry.getKey(), entry.getValue());

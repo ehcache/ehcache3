@@ -19,6 +19,8 @@ package org.ehcache.clustered.common.internal.messages;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.encoding.StructEncoder;
 
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_NAME;
+
 /**
  * MessageCodecUtils
  */
@@ -30,6 +32,6 @@ public final class MessageCodecUtils {
   private MessageCodecUtils() {}
 
   public static StructEncoder<Void> encodeMandatoryFields(Struct struct, EhcacheOperationMessage message) {
-    return struct.encoder().enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType());
+    return struct.encoder().enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType());
   }
 }
