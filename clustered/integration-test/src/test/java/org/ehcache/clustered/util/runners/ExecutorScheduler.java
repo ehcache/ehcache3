@@ -16,12 +16,17 @@
 package org.ehcache.clustered.util.runners;
 
 import org.junit.runners.model.RunnerScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class ExecutorScheduler implements RunnerScheduler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorScheduler.class);
 
   public final ExecutorService executor;
 
@@ -42,7 +47,8 @@ public class ExecutorScheduler implements RunnerScheduler {
         throw new AssertionError(new TimeoutException());
       }
     } catch (InterruptedException e) {
-      throw new AssertionError(e);
+      List<Runnable> runnables = executor.shutdownNow();
+      LOGGER.warn("Forcibly terminating execution of scheduled test tasks due to interrupt (" + runnables.size() + " tasks remain unscheduled)");
     }
   }
 }
