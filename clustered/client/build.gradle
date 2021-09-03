@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
 apply plugin: EhDeploy
 
 dependencies {
   compileOnly project(':api')
   compileOnly project(':xml')
-  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
-  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$slf4jVersion"
+  provided "org.terracotta:entity-client-api:$terracottaApisVersion"
+  provided "org.terracotta:runnel:$terracottaPlatformVersion"
+  provided "org.terracotta:lease-api:$terracottaPlatformVersion"
+  provided "org.terracotta:connection-api:$terracottaApisVersion"
 
   testCompile project(':api')
   testCompile project(':xml')
@@ -31,25 +31,14 @@ dependencies {
   testCompile(project(':clustered:server')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
-  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
-}
-
-compileTestJava {
-  options.forkOptions.javaHome = Jvm.current().javaHome
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
+  testCompile "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
+  testCompile "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testCompile "org.terracotta.internal:common:$terracottaCoreVersion"
+  testCompile "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
 }
 
 test {
-  if (!testJava.javaVersion.isJava8Compatible()) {
-    executable = Jvm.current().javaExecutable
-  }
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
 }

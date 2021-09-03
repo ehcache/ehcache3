@@ -16,7 +16,7 @@
 package org.ehcache.management.registry;
 
 import java.io.File;
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.NoSuchElementException;
@@ -55,10 +55,10 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 
 public class DefaultManagementRegistryServiceTest {
 
-  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> DISK_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -120,7 +120,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
@@ -155,10 +155,11 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
+      allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
       assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
@@ -169,7 +170,7 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @Test
-  public void descriptorDiskStoreTest() throws URISyntaxException {
+  public void descriptorDiskStoreTest() throws Exception {
     PersistentCacheManager persistentCacheManager = null;
     try {
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -194,7 +195,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
-      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      Collection<Descriptor> allDescriptors = new ArrayList<>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
@@ -206,10 +207,9 @@ public class DefaultManagementRegistryServiceTest {
     }
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
-
 
   @Test
   public void testCanGetCapabilities() {
@@ -277,7 +277,7 @@ public class DefaultManagementRegistryServiceTest {
         .on(context1);
 
     ContextualStatistics counters = getResultSet(builder1, context1, null, queryStatisticName).getResult(context1);
-    Number counterHistory1 = counters.getStatistic(queryStatisticName);
+    Number counterHistory1 = counters.<Number>getLatestSampleValue(queryStatisticName).get();
 
     assertThat(counters.size()).isEqualTo(1);
     assertThat(counterHistory1.longValue()).isEqualTo(1L);
@@ -292,8 +292,8 @@ public class DefaultManagementRegistryServiceTest {
     assertThat(allCounters.getResult(context1).size()).isEqualTo(1);
     assertThat(allCounters.getResult(context2).size()).isEqualTo(1);
 
-    assertThat(allCounters.getResult(context1).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
-    assertThat(allCounters.getResult(context2).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context1).getLatestSampleValue(queryStatisticName).get()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context2).getLatestSampleValue(queryStatisticName).get()).isEqualTo(1L);
 
     cacheManager1.close();
   }
@@ -306,12 +306,12 @@ public class DefaultManagementRegistryServiceTest {
       counters = builder.build().execute();
 
       ContextualStatistics statisticsContext1 = counters.getResult(context1);
-      Number counterContext1 = statisticsContext1.getStatistic(statisticsName);
+      Number counterContext1 = statisticsContext1.<Number>getLatestSampleValue(statisticsName).get();
 
       if(context2 != null)
       {
         ContextualStatistics statisticsContext2 = counters.getResult(context2);
-        Number counterHistoryContext2 = statisticsContext2.getStatistic(statisticsName);
+        Number counterHistoryContext2 = statisticsContext2.<Number>getLatestSampleValue(statisticsName).get();
 
         if(counterHistoryContext2.longValue() > 0 &&
            counterContext1.longValue() > 0)
@@ -415,42 +415,36 @@ public class DefaultManagementRegistryServiceTest {
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "SIZE"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:UpdateCount" , "COUNTER"));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER"));
 
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "SIZE"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "SIZE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:PutCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:UpdateCount", "COUNTER"));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:RemovalCount", "COUNTER"));
 
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "SIZE"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "SIZE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "GAUGE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "GAUGE"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:PutCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:UpdateCount", "COUNTER"));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:RemovalCount", "COUNTER"));
 
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:UpdateCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemovalCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:EvictionCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:GetLatency", "GAUGE"));
   }
 }

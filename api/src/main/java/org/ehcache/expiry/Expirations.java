@@ -15,18 +15,22 @@
  */
 package org.ehcache.expiry;
 
-import org.ehcache.ValueSupplier;
+import java.util.Objects;
 
 /**
  * Utility class for getting predefined {@link Expiry} instances.
  */
+@Deprecated
 public final class Expirations {
 
   /**
    * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache.
    *
    * @return the no expiry instance
+   *
+   * @deprecated Use {@code org.ehcache.config.builders.ExpiryPolicyBuilder#noExpiration()} instead
    */
+  @Deprecated
   public static Expiry<Object, Object> noExpiration() {
     return NoExpiry.INSTANCE;
   }
@@ -36,7 +40,10 @@ public final class Expirations {
    *
    * @param timeToLive the TTL duration
    * @return a TTL expiry
+   *
+   * @deprecated Use {@code org.ehcache.config.builders.ExpiryPolicyBuilder#timeToLiveExpiration(java.time.Duration)} instead
    */
+  @Deprecated
   public static Expiry<Object, Object> timeToLiveExpiration(Duration timeToLive) {
     if (timeToLive == null) {
       throw new NullPointerException("Duration cannot be null");
@@ -49,7 +56,10 @@ public final class Expirations {
    *
    * @param timeToIdle the TTI duration
    * @return a TTI expiry
+   *
+   * @deprecated Use {@code org.ehcache.config.builders.ExpiryPolicyBuilder#timeToIdleExpiration(java.time.Duration)} instead
    */
+  @Deprecated
   public static Expiry<Object, Object> timeToIdleExpiration(Duration timeToIdle) {
     if (timeToIdle == null) {
       throw new NullPointerException("Duration cannot be null");
@@ -65,9 +75,12 @@ public final class Expirations {
    * @param <K> the key type for the cache
    * @param <V> the value type for the cache
    * @return an {@link Expiry} builder
+   *
+   * @deprecated Use {@code org.ehcache.config.builders.ExpiryPolicyBuilder#expiry()} instead
    */
+  @Deprecated
   public static <K, V> ExpiryBuilder<K, V> builder() {
-    return new ExpiryBuilder<K, V>();
+    return new ExpiryBuilder<>();
   }
 
   private Expirations() {
@@ -77,6 +90,7 @@ public final class Expirations {
   /**
    * Simple implementation of the {@link Expiry} interface allowing to set constants to each expiry types.
    */
+  @Deprecated
   private static class BaseExpiry<K, V> implements Expiry<K, V> {
 
     private final Duration create;
@@ -95,12 +109,12 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+    public Duration getExpiryForAccess(K key, org.ehcache.ValueSupplier<? extends V> value) {
       return access;
     }
 
     @Override
-    public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+    public Duration getExpiryForUpdate(K key, org.ehcache.ValueSupplier<? extends V> oldValue, V newValue) {
       return update;
     }
 
@@ -111,18 +125,18 @@ public final class Expirations {
 
       final BaseExpiry that = (BaseExpiry)o;
 
-      if (access != null ? !access.equals(that.access) : that.access != null) return false;
-      if (create != null ? !create.equals(that.create) : that.create != null) return false;
-      if (update != null ? !update.equals(that.update) : that.update != null) return false;
+      if (!Objects.equals(access, that.access)) return false;
+      if (!Objects.equals(create, that.create)) return false;
+      if (!Objects.equals(update, that.update)) return false;
 
       return true;
     }
 
     @Override
     public int hashCode() {
-      int result = create != null ? create.hashCode() : 0;
-      result = 31 * result + (access != null ? access.hashCode() : 0);
-      result = 31 * result + (update != null ? update.hashCode() : 0);
+      int result = Objects.hashCode(create);
+      result = 31 * result + Objects.hashCode(access);
+      result = 31 * result + Objects.hashCode(update);
       return result;
     }
 
@@ -136,18 +150,21 @@ public final class Expirations {
     }
   }
 
+  @Deprecated
   private static class TimeToLiveExpiry extends BaseExpiry<Object, Object> {
     TimeToLiveExpiry(Duration ttl) {
       super(ttl, null, ttl);
     }
   }
 
+  @Deprecated
   private static class TimeToIdleExpiry extends BaseExpiry<Object, Object> {
     TimeToIdleExpiry(Duration tti) {
       super(tti, tti, tti);
     }
   }
 
+  @Deprecated
   private static class NoExpiry extends BaseExpiry<Object, Object> {
 
     private static final Expiry<Object, Object> INSTANCE = new NoExpiry();
@@ -163,6 +180,7 @@ public final class Expirations {
    * @param <K> Key type of the cache entries
    * @param <V> Value type of the cache entries
    */
+  @Deprecated
   public static final class ExpiryBuilder<K, V> {
 
     private Duration create = Duration.INFINITE;
@@ -209,7 +227,7 @@ public final class Expirations {
      * @return an {@link Expiry}
      */
     public Expiry<K, V> build() {
-      return new BaseExpiry<K, V>(create, access, update);
+      return new BaseExpiry<>(create, access, update);
     }
   }
 }

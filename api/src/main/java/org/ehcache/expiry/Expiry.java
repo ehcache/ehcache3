@@ -16,16 +16,14 @@
 
 package org.ehcache.expiry;
 
-import org.ehcache.ValueSupplier;
-
 /**
  * A policy object that governs expiration for mappings in a {@link org.ehcache.Cache Cache}.
  * <p>
- * Previous values are not accessible directly but are rather available through a {@link ValueSupplier value supplier}
+ * Previous values are not accessible directly but are rather available through a {@link org.ehcache.ValueSupplier value supplier}
  * to indicate that access can require computation (such as deserialization).
  * <p>
  * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
- * to decide whether to call {@link #getExpiryForUpdate(Object, ValueSupplier, Object)}  vs.
+ * to decide whether to call {@link #getExpiryForUpdate(Object, org.ehcache.ValueSupplier, Object)}  vs.
  * {@link #getExpiryForCreation(Object, Object)}. For these cache configurations it is advised to return the same
  * value for both of these methods
  * <p>
@@ -35,7 +33,11 @@ import org.ehcache.ValueSupplier;
  * @param <V> the value type for the cache
  *
  * @see Expirations
+ * @see ExpiryPolicy
+ *
+ * @deprecated Replaced with {@link ExpiryPolicy} that builds on the {@code java.time} types.
  */
+@Deprecated
 public interface Expiry<K, V> {
 
   /**
@@ -65,7 +67,7 @@ public interface Expiry<K, V> {
    * @param value a value supplier for the accessed entry
    * @return an expiration {@code Duration}, {@code null} means unchanged
    */
-  Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value);
+  Duration getExpiryForAccess(K key, org.ehcache.ValueSupplier<? extends V> value);
 
 
   /**
@@ -82,6 +84,6 @@ public interface Expiry<K, V> {
    * @param newValue the new value of the entry
    * @return an expiration {@code Duration}, {@code null} means unchanged
    */
-  Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue);
+  Duration getExpiryForUpdate(K key, org.ehcache.ValueSupplier<? extends V> oldValue, V newValue);
 
 }

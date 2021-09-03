@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -36,6 +35,7 @@ import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffH
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
+import org.terracotta.offheapstore.util.Factory;
 
 public class OffHeapChainMap<K> implements MapInternals {
 
@@ -44,32 +44,37 @@ public class OffHeapChainMap<K> implements MapInternals {
   }
 
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
-  private final OffHeapChainStorageEngine<K> chainStorage;
+  private final ChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;
 
-  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
-    this.chainStorage = new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
-    EvictionListener<K, InternalChain> listener = new EvictionListener<K, InternalChain>() {
-      @Override
-      public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {
+  private OffHeapChainMap(PageSource source, ChainStorageEngine<K> storageEngine) {
+    this.chainStorage = storageEngine;
+    EvictionListener<K, InternalChain> listener = callable -> {
+      try {
+        Map.Entry<K, InternalChain> entry = callable.call();
         try {
-          Map.Entry<K, InternalChain> entry = callable.call();
-          try {
-            if (evictionListener != null) {
-              evictionListener.onEviction(entry.getKey());
-            }
-          } finally {
-            entry.getValue().close();
+          if (evictionListener != null) {
+            evictionListener.onEviction(entry.getKey());
           }
-        } catch (Exception e) {
-          throw new AssertionError(e);
+        } finally {
+          entry.getValue().close();
         }
+      } catch (Exception e) {
+        throw new AssertionError(e);
       }
     };
 
     //TODO: EvictionListeningReadWriteLockedOffHeapClockCache lacks ctor that takes shareByThieving
     // this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
     this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(listener, source, chainStorage);
+  }
+
+  public OffHeapChainMap(PageSource source, Factory<? extends ChainStorageEngine<K>> storageEngineFactory) {
+    this(source, storageEngineFactory.newInstance());
+  }
+
+  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
+    this(source, new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving));
   }
 
   //For tests
@@ -80,6 +85,10 @@ public class OffHeapChainMap<K> implements MapInternals {
 
   void setEvictionListener(ChainMapEvictionListener<K> listener) {
     evictionListener = listener;
+  }
+
+  public ChainStorageEngine<K> getStorageEngine() {
+    return chainStorage;
   }
 
   public Chain get(K key) {
@@ -196,8 +205,8 @@ public class OffHeapChainMap<K> implements MapInternals {
           current.close();
         }
       } else {
-        for (Element x : chain) {
-          append(key, x.getPayload());
+        if (!chain.isEmpty()) {
+          heads.put(key, chainStorage.newChain(chain));
         }
       }
     } finally {
@@ -226,9 +235,7 @@ public class OffHeapChainMap<K> implements MapInternals {
   private void evict() {
     int evictionIndex = heads.getEvictionIndex();
     if (evictionIndex < 0) {
-      StringBuilder sb = new StringBuilder("Storage Engine and Eviction Failed - Everything Pinned (");
-      sb.append(getSize()).append(" mappings) \n").append("Storage Engine : ").append(chainStorage);
-      throw new OversizeMappingException(sb.toString());
+      throw new OversizeMappingException("Storage Engine and Eviction Failed - Everything Pinned (" + getSize() + " mappings) \n" + "Storage Engine : " + chainStorage);
     } else {
       heads.evict(evictionIndex, false);
     }
@@ -246,13 +253,18 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
 
     @Override
+    public int length() {
+      return 0;
+    }
+
+    @Override
     public Iterator<Element> iterator() {
       return Collections.<Element>emptyList().iterator();
     }
   };
 
   public static Chain chain(ByteBuffer... buffers) {
-    final List<Element> list = new ArrayList<Element>();
+    final List<Element> list = new ArrayList<>();
     for (ByteBuffer b : buffers) {
       list.add(element(b));
     }
@@ -275,16 +287,16 @@ public class OffHeapChainMap<K> implements MapInternals {
       public boolean isEmpty() {
         return elements.isEmpty();
       }
+
+      @Override
+      public int length() {
+        return elements.size();
+      }
     };
   }
 
   private static Element element(final ByteBuffer b) {
-    return new Element() {
-      @Override
-      public ByteBuffer getPayload() {
-        return b.asReadOnlyBuffer();
-      }
-    };
+    return b::asReadOnlyBuffer;
   }
 
   @Override
@@ -347,11 +359,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     return heads.getDataSize();
   }
 
-  boolean shrink() {
+  public boolean shrink() {
     return heads.shrink();
   }
 
-  Lock writeLock() {
+  public Lock writeLock() {
     return heads.writeLock();
   }
 

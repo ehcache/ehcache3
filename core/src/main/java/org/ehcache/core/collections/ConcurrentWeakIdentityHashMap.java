@@ -32,8 +32,8 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> {
 
-  private final ConcurrentMap<WeakReference<K>, V> map = new ConcurrentHashMap<WeakReference<K>, V>();
-  private final ReferenceQueue<K> queue = new ReferenceQueue<K>();
+  private final ConcurrentMap<WeakReference<K>, V> map = new ConcurrentHashMap<>();
+  private final ReferenceQueue<K> queue = new ReferenceQueue<>();
 
   @Override
   public V putIfAbsent(final K key, final V value) {
@@ -44,7 +44,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public boolean remove(final Object key, final Object value) {
     purgeKeys();
-    return map.remove(new WeakReference<Object>( key, null), value);
+    return map.remove(new WeakReference<>(key, null), value);
   }
 
   @Override
@@ -75,7 +75,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public boolean containsKey(final Object key) {
     purgeKeys();
-    return map.containsKey(new WeakReference<Object>(key, null));
+    return map.containsKey(new WeakReference<>(key, null));
   }
 
   @Override
@@ -87,7 +87,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public V get(final Object key) {
     purgeKeys();
-    return map.get(new WeakReference<Object>(key, null));
+    return map.get(new WeakReference<>(key, null));
   }
 
   @Override
@@ -99,7 +99,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public V remove(final Object key) {
     purgeKeys();
-    return map.remove(new WeakReference<Object>(key, null));
+    return map.remove(new WeakReference<>(key, null));
   }
 
   @Override
@@ -161,7 +161,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
             if (key == null) {
               return null;
             } else {
-              return new SimpleEntry<K, V>(key, u.getValue());
+              return new SimpleEntry<>(key, u.getValue());
             }
           }
         };
@@ -182,7 +182,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   }
 
   private WeakReference<K> newKey(final K key) {
-    return new WeakReference<K>(key, queue);
+    return new WeakReference<>(key, queue);
   }
 
   private static class WeakReference<T> extends java.lang.ref.WeakReference<T> {

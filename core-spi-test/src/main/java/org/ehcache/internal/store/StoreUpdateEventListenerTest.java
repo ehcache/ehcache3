@@ -19,8 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -108,12 +107,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       K key = factory.createKey(125L);
       store.put(key, factory.createValue(125L));
       StoreEventListener<K, V> listener = addListener(store);
-      store.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return factory.createValue(215L);
-        }
-      });
+      store.compute(key, (k, v) -> factory.createValue(215L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

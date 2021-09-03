@@ -33,7 +33,7 @@ class ServerStateRepository {
 
   private final ConcurrentMap<String, ConcurrentMap<Object, Object>> concurrentMapRepo = new ConcurrentHashMap<>();
 
-  EhcacheEntityResponse invoke(StateRepositoryOpMessage message) throws ClusterException {
+  EhcacheEntityResponse invoke(StateRepositoryOpMessage message) {
     String mapId = message.getMapId();
     ConcurrentMap<Object, Object> map = getStateMap(mapId);
 

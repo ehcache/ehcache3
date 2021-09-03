@@ -31,8 +31,6 @@ import static java.util.stream.Collectors.toMap;
  */
 public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
 
-  public static final int UNKNOWN_SEGMENT = -1;
-
   private final int segmentId;
   private final Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages;
 

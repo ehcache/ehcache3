@@ -22,6 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
@@ -30,11 +33,8 @@ import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -53,27 +53,32 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
 
   @Override
   protected InternalCache<Object, Object> getCache(Store<Object, Object> store) {
-    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
-        null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<>(Object.class, Object.class, null,
+      null, null, ResourcePoolsHelper.createHeapOnlyPools());
     @SuppressWarnings("unchecked")
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<Object, Object> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    return new EhcacheWithLoaderWriter<Object, Object>(config, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
+    @SuppressWarnings("unchecked")
+    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
+    return new EhcacheWithLoaderWriter<>(config, store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
   }
 
   @Test
   public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
+    @SuppressWarnings("unchecked")
+    ResilienceStrategy<String, String> resilienceStrategy = mock(ResilienceStrategy.class);
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
     @SuppressWarnings("unchecked")
     CacheEventDispatcher<String, String> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null,
-        null, null, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(config, store, loader, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheTest6"));
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null,
+      null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(config, store, resilienceStrategy, loader, cacheEventDispatcher, LoggerFactory
+      .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheTest6"));
     ehcache.init();
 
-    HashSet<String> keys = new HashSet<String>();
+    HashSet<String> keys = new HashSet<>();
     keys.add("key1");
     keys.add("key2");
     keys.add("key3");
@@ -88,13 +93,13 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     @Override
     public Map<String, ValueHolder<String>> bulkComputeIfAbsent(Set<? extends String> keys, Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction) throws StoreAccessException {
       Iterable<? extends Map.Entry<? extends String, ? extends String>> result = mappingFunction.apply(keys);
-      ArrayList<String> functionReturnedKeys = new ArrayList<String>();
+      ArrayList<String> functionReturnedKeys = new ArrayList<>();
       for (Map.Entry<? extends String, ? extends String> entry : result) {
         functionReturnedKeys.add(entry.getKey());
       }
       assertThat(functionReturnedKeys.size(), is(keys.size()));
 
-      ArrayList<String> paramKeys = new ArrayList<String>(keys);
+      ArrayList<String> paramKeys = new ArrayList<>(keys);
       Collections.sort(paramKeys);
       Collections.sort(functionReturnedKeys);
 
@@ -107,7 +112,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
 
     @Override
     public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
-      return new ArrayList<CacheConfigurationChangeListener>();
+      return new ArrayList<>();
     }
 
     @Override
@@ -171,7 +176,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -186,15 +191,15 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 
   private static class KeyFumblingCacheLoaderWriter implements CacheLoaderWriter<String, String> {
     @Override
-    public Map<String, String> loadAll(Iterable<? extends String> keys) throws Exception {
-      HashMap<String, String> result = new HashMap<String, String>();
+    public Map<String, String> loadAll(Iterable<? extends String> keys) {
+      HashMap<String, String> result = new HashMap<>();
       for (String key : keys) {
         result.put(new String(key), "valueFor" + key);
       }
@@ -202,27 +207,27 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public void write(String key, String value) throws Exception {
+    public void write(String key, String value) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends String, ? extends String>> entries) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void delete(String key) throws Exception {
+    public void delete(String key) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void deleteAll(Iterable<? extends String> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends String> keys) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public String load(String key) throws Exception {
+    public String load(String key) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }

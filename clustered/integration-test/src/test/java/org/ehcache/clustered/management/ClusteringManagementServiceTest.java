@@ -18,7 +18,6 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -48,14 +47,73 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
-  private static final Collection<StatisticDescriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<StatisticDescriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<StatisticDescriptor> DISK_DESCRIPTORS =  new ArrayList<>();
-  private static final Collection<StatisticDescriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<>();
-  private static final Collection<StatisticDescriptor> CACHE_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<StatisticDescriptor> SERVER_STORE_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<StatisticDescriptor> OFFHEAP_RES_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> ONHEAP_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER")
+  );
+  private static final Collection<StatisticDescriptor> OFFHEAP_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("OffHeap:MissCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"),
+    new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"),
+    new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:HitCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:PutCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:RemovalCount", "COUNTER")
+    );
+  private static final Collection<StatisticDescriptor> DISK_DESCRIPTORS =  Arrays.asList(
+    new StatisticDescriptor("Disk:OccupiedByteSize", "GAUGE"),
+    new StatisticDescriptor("Disk:AllocatedByteSize", "GAUGE"),
+    new StatisticDescriptor("Disk:HitCount", "COUNTER"),
+    new StatisticDescriptor("Disk:EvictionCount", "COUNTER"),
+    new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"),
+    new StatisticDescriptor("Disk:MissCount", "COUNTER"),
+    new StatisticDescriptor("Disk:MappingCount", "COUNTER"),
+    new StatisticDescriptor("Disk:PutCount", "COUNTER"),
+    new StatisticDescriptor("Disk:RemovalCount", "COUNTER")
+  );
+  private static final Collection<StatisticDescriptor> CLUSTERED_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("Clustered:MissCount", "COUNTER"),
+    new StatisticDescriptor("Clustered:HitCount", "COUNTER"),
+    new StatisticDescriptor("Clustered:PutCount", "COUNTER"),
+    new StatisticDescriptor("Clustered:RemovalCount", "COUNTER"),
+    new StatisticDescriptor("Clustered:EvictionCount", "COUNTER"),
+    new StatisticDescriptor("Clustered:ExpirationCount", "COUNTER")
+  );
+  private static final Collection<StatisticDescriptor> CACHE_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("Cache:HitCount", "COUNTER"),
+    new StatisticDescriptor("Cache:MissCount", "COUNTER"),
+    new StatisticDescriptor("Cache:PutCount", "COUNTER"),
+    new StatisticDescriptor("Cache:RemovalCount", "COUNTER"),
+    new StatisticDescriptor("Cache:EvictionCount", "COUNTER"),
+    new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"),
+    new StatisticDescriptor("Cache:GetLatency", "GAUGE")
+  );
+  private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("Pool:AllocatedSize", "GAUGE")
+  );
+  private static final Collection<StatisticDescriptor> SERVER_STORE_DESCRIPTORS = Arrays.asList(
+    new StatisticDescriptor("Store:AllocatedMemory", "GAUGE"),
+    new StatisticDescriptor("Store:DataAllocatedMemory", "GAUGE"),
+    new StatisticDescriptor("Store:OccupiedMemory", "GAUGE"),
+    new StatisticDescriptor("Store:DataOccupiedMemory", "GAUGE"),
+    new StatisticDescriptor("Store:Entries", "COUNTER"),
+    new StatisticDescriptor("Store:UsedSlotCount", "COUNTER"),
+    new StatisticDescriptor("Store:DataVitalMemory", "GAUGE"),
+    new StatisticDescriptor("Store:VitalMemory", "GAUGE"),
+    new StatisticDescriptor("Store:RemovedSlotCount", "COUNTER"),
+    new StatisticDescriptor("Store:DataSize", "GAUGE"),
+    new StatisticDescriptor("Store:TableCapacity", "GAUGE")
+  );
+  private static final Collection<StatisticDescriptor> OFFHEAP_RES_DESCRIPTORS =  Arrays.asList(
+    new StatisticDescriptor("OffHeapResource:AllocatedMemory", "GAUGE")
+  );
 
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
@@ -211,13 +269,21 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
-    ContextContainer contextContainer = readTopology().getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getContextContainer();
+    Cluster cluster = readTopology();
+    ContextContainer contextContainer = cluster.getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getContextContainer();
     assertThat(contextContainer.getSubContexts()).hasSize(4);
 
     TreeSet<String> cNames = contextContainer.getSubContexts().stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
     assertThat(cNames).isEqualTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3")));
 
-    waitForAllNotifications("SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+    if (cluster.serverStream().count() == 2) {
+      waitForAllNotifications(
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED",
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED"); // passive server
+    } else {
+      waitForAllNotifications(
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+    }
   }
 
   @Test
@@ -256,7 +322,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.getStatistic("Cache:HitCount").longValue();
+        val = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
       }
     } while(!Thread.currentThread().isInterrupted() && val != 2);
 
@@ -274,16 +340,18 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.getStatistic("Cache:HitCount").longValue();
+        val = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
       }
 
     } while(!Thread.currentThread().isInterrupted() && val != 4);
 
     // wait until we have some stats coming from the server entity
-    while (!Thread.currentThread().isInterrupted() &&  !allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).findFirst().isPresent()) {
+    while (!Thread.currentThread().isInterrupted() &&  !allStats.stream().anyMatch(statistics -> statistics.getContext().contains("consumerId"))) {
       allStats.addAll(waitForNextStats());
     }
-    List<ContextualStatistics> serverStats = allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).collect(Collectors.toList());
+    List<ContextualStatistics> serverStats = allStats.stream()
+      .filter(statistics -> statistics.getContext().contains("consumerId"))
+      .collect(Collectors.toList());
 
     // server-side stats
     TreeSet<String> capabilities = serverStats.stream()
@@ -331,79 +399,6 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .flatMap(statistics -> statistics.getStatistics().keySet().stream())
       .collect(Collectors.toSet());
     assertThat(offHeapResourceDescriptors).isEqualTo(OFFHEAP_RES_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
-  }
-
-  @BeforeClass
-  public static void initDescriptors() throws ClassNotFoundException {
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedByteSize", "SIZE"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:UpdateCount" , "COUNTER"));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER"));
-
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "SIZE"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "SIZE"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:PutCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:UpdateCount", "COUNTER"));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:RemovalCount", "COUNTER"));
-
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "SIZE"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "SIZE"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:PutCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:UpdateCount", "COUNTER"));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:RemovalCount", "COUNTER"));
-
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:PutCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:UpdateCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:RemovalCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MaxMappingCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:ExpirationCount", "COUNTER"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:OccupiedByteSize", "SIZE"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedByteSize", "SIZE"));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", "COUNTER"));
-
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:UpdateCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:RemovalCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:EvictionCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"));
-
-    POOL_DESCRIPTORS.add(new StatisticDescriptor("Pool:AllocatedSize", "SIZE"));
-
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:AllocatedMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataAllocatedMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:OccupiedMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataOccupiedMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:Entries", "COUNTER"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:UsedSlotCount", "COUNTER"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataVitalMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:VitalMemory", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:RemovedSlotCount", "COUNTER"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataSize", "SIZE"));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:TableCapacity", "SIZE"));
-
-    OFFHEAP_RES_DESCRIPTORS.add(new StatisticDescriptor("OffHeapResource:AllocatedMemory", "SIZE"));
   }
 
 }

@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link Store.ValueHolder#value()} contract of the
+ * Test the {@link Store.ValueHolder#get(Object)} contract of the
  * {@link Store.ValueHolder Store.ValueHolder} interface.
  *
  * @author Aurelien Broszniowski
@@ -43,7 +43,7 @@ public class StoreValueHolderValueTest<K, V> extends SPIStoreTester<K, V> {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(value);
 
     try {
-      assertThat(valueHolder.value(), is(equalTo(value)));
+      assertThat(valueHolder.get(), is(equalTo(value)));
     } catch (Exception e) {
       System.err.println("Warning, an exception is thrown due to the SPI test");
       e.printStackTrace();

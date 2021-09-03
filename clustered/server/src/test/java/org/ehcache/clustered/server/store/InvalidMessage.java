@@ -17,21 +17,5 @@ package org.ehcache.clustered.server.store;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
-import java.util.UUID;
-
 public class InvalidMessage extends EhcacheEntityMessage {
-  @Override
-  public void setId(long id) {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
-
-  @Override
-  public long getId() {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
-
-  @Override
-  public UUID getClientId() {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
 }

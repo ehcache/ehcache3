@@ -49,31 +49,31 @@ public class SerializersTest {
 
   @Test
   public void testStatefulSerializer() throws Exception {
-    StatefulSerializerImpl<Long> serializer = new StatefulSerializerImpl<Long>();
+    StatefulSerializerImpl<Long> serializer = new StatefulSerializerImpl<>();
     testSerializerWithByRefHeapCache(serializer);
     assertThat(serializer.initCount, is(0));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithByValueHeapCache(serializer);
     assertThat(serializer.initCount, is(1));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithOffheapCache(serializer);
     assertThat(serializer.initCount, is(1));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithHeapOffheapCache(serializer);
     assertThat(serializer.initCount, is(1));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithDiskCache(serializer);
     assertThat(serializer.initCount, is(1));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithHeapDiskCache(serializer);
     assertThat(serializer.initCount, is(1));
 
-    serializer = new StatefulSerializerImpl<Long>();
+    serializer = new StatefulSerializerImpl<>();
     testSerializerWithThreeTierCache(serializer);
     assertThat(serializer.initCount, is(1));
 

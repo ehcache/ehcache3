@@ -50,10 +50,6 @@ configurations.all {
    }
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
-
 sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir

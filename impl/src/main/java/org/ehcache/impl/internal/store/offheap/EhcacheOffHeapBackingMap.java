@@ -19,9 +19,9 @@ package org.ehcache.impl.internal.store.offheap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.terracotta.offheapstore.Segment;
 
 public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, OffHeapMapStatistics {
@@ -38,16 +38,6 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
    * @return the mapped value
    */
   V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin);
-
-  /**
-   * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   *
-   * @return the mapped value
-   */
-  V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction);
 
   /**
    * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already and

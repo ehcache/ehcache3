@@ -16,8 +16,6 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
@@ -32,6 +30,8 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.hamcrest.Matchers.nullValue;
@@ -60,25 +60,17 @@ public class CompoundCachingTierTest {
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return functionArg.getValue().apply(keyArg.getValue());
-      }
-    });
+    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(invocation -> functionArg.getValue().apply(keyArg.getValue()));
     when(lowerTier.getAndRemove(anyString())).thenReturn(null);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
-    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
-      @Override
-      public Store.ValueHolder<String> apply(String s) {
-        computed.set(true);
-        return valueHolder;
-      }
+    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", s -> {
+      computed.set(true);
+      return valueHolder;
     }), is(valueHolder));
     assertThat(computed.get(), is(true));
   }
@@ -94,16 +86,13 @@ public class CompoundCachingTierTest {
     when(lowerTier.getAndRemove(anyString())).thenThrow(AssertionError.class);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
-    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
-      @Override
-      public Store.ValueHolder<String> apply(String s) {
-        computed.set(true);
-        return valueHolder;
-      }
+    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", s -> {
+      computed.set(true);
+      return valueHolder;
     }), is(valueHolder));
     assertThat(computed.get(), is(false));
   }
@@ -117,25 +106,17 @@ public class CompoundCachingTierTest {
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return functionArg.getValue().apply(keyArg.getValue());
-      }
-    });
+    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(invocation -> functionArg.getValue().apply(keyArg.getValue()));
     when(lowerTier.getAndRemove(anyString())).thenReturn(valueHolder);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
-    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
-      @Override
-      public Store.ValueHolder<String> apply(String s) {
-        computed.set(true);
-        return valueHolder;
-      }
+    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", s -> {
+      computed.set(true);
+      return valueHolder;
     }), is(valueHolder));
     assertThat(computed.get(), is(false));
   }
@@ -150,40 +131,24 @@ public class CompoundCachingTierTest {
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return functionArg.getValue().apply(keyArg.getValue());
-      }
-    });
+    when(higherTier.getOrComputeIfAbsent(keyArg.capture(), functionArg.capture())).then(invocation -> functionArg.getValue().apply(keyArg.getValue()));
     final ArgumentCaptor<CachingTier.InvalidationListener> invalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(lowerTier).setInvalidationListener(invalidationListenerArg.capture());
-    when(lowerTier.getAndRemove(anyString())).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        invalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], originalValueHolder);
-        return null;
-      }
+    when(lowerTier.getAndRemove(anyString())).thenAnswer(invocation -> {
+      invalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], originalValueHolder);
+      return null;
     });
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
-    compoundCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-        invalidated.set(valueHolder);
-      }
-    });
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
+    compoundCachingTier.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
-    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", new Function<String, Store.ValueHolder<String>>() {
-      @Override
-      public Store.ValueHolder<String> apply(String s) {
-        computed.set(true);
-        return newValueHolder;
-      }
+    assertThat(compoundCachingTier.getOrComputeIfAbsent("1", s -> {
+      computed.set(true);
+      return newValueHolder;
     }), is(newValueHolder));
     assertThat(computed.get(), is(true));
     assertThat(invalidated.get(), is(originalValueHolder));
@@ -195,7 +160,7 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     compoundCachingTier.clear();
     verify(higherTier, times(1)).clear();
@@ -208,15 +173,10 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
-    compoundCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-        invalidated.set(valueHolder);
-      }
-    });
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
+    compoundCachingTier.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     compoundCachingTier.invalidate("1");
 
@@ -230,48 +190,32 @@ public class CompoundCachingTierTest {
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<Store.ValueHolder<String>>();
-    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<Store.ValueHolder<String>>(valueHolder);
+    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<>();
+    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<>(valueHolder);
 
     final ArgumentCaptor<CachingTier.InvalidationListener> higherTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(higherTier).setInvalidationListener(higherTierInvalidationListenerArg.capture());
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
-        ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
-        return null;
-      }
+    doAnswer(invocation -> {
+      higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
+      ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
+      return null;
     }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
 
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return lowerTierValueHolder.get();
-      }
-    });
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(invocation -> lowerTierValueHolder.get());
 
     final ArgumentCaptor<CachingTier.InvalidationListener> lowerTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(lowerTier).setInvalidationListener(lowerTierInvalidationListenerArg.capture());
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        lowerTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], lowerTierValueHolder.getAndSet(null));
-        return null;
-      }
+    doAnswer(invocation -> {
+      lowerTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], lowerTierValueHolder.getAndSet(null));
+      return null;
     }).when(lowerTier).invalidate(anyString());
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
-    compoundCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-        invalidated.set(valueHolder);
-      }
-    });
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
+    compoundCachingTier.setInvalidationListener((key, valueHolder1) -> invalidated.set(valueHolder1));
 
 
     compoundCachingTier.invalidate("1");
@@ -288,49 +232,35 @@ public class CompoundCachingTierTest {
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<Store.ValueHolder<String>>(valueHolder);
-    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<>(valueHolder);
+    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<>();
 
     final ArgumentCaptor<CachingTier.InvalidationListener> higherTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(higherTier).setInvalidationListener(higherTierInvalidationListenerArg.capture());
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
-        ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
-        return null;
-      }
+    doAnswer(invocation -> {
+      higherTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], higherTierValueHolder.getAndSet(null));
+      ((Function) invocation.getArguments()[1]).apply(higherTierValueHolder.get());
+      return null;
     }).when(higherTier).silentInvalidate(anyString(), any(Function.class));
     final ArgumentCaptor<Function> functionArg = ArgumentCaptor.forClass(Function.class);
     final ArgumentCaptor<String> keyArg = ArgumentCaptor.forClass(String.class);
-    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Object apply = functionArg.getValue().apply(keyArg.getValue());
-        lowerTierValueHolder.set((Store.ValueHolder<String>) apply);
-        return apply;
-      }
+    when(lowerTier.installMapping(keyArg.capture(), functionArg.capture())).then(invocation -> {
+      Object apply = functionArg.getValue().apply(keyArg.getValue());
+      lowerTierValueHolder.set((Store.ValueHolder<String>) apply);
+      return apply;
     });
 
     final ArgumentCaptor<CachingTier.InvalidationListener> lowerTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(lowerTier).setInvalidationListener(lowerTierInvalidationListenerArg.capture());
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        lowerTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], lowerTierValueHolder.getAndSet(null));
-        return null;
-      }
+    doAnswer(invocation -> {
+      lowerTierInvalidationListenerArg.getValue().onInvalidation(invocation.getArguments()[0], lowerTierValueHolder.getAndSet(null));
+      return null;
     }).when(lowerTier).invalidate(anyString());
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
-    compoundCachingTier.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-        invalidated.set(valueHolder);
-      }
-    });
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
+    compoundCachingTier.setInvalidationListener((key, valueHolder1) -> invalidated.set(valueHolder1));
 
 
     compoundCachingTier.invalidate("1");
@@ -346,7 +276,7 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     compoundCachingTier.invalidateAll();
 
@@ -358,7 +288,7 @@ public class CompoundCachingTierTest {
   @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    HashSet<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+    HashSet<ResourceType<?>> resourceTypes = new HashSet<>();
     resourceTypes.addAll(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
     assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
 

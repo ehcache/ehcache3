@@ -16,9 +16,10 @@
 
 package org.ehcache.core.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
+
+import java.util.function.Supplier;
 
 /**
  * NullStoreEventDispatcher
@@ -26,17 +27,17 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
 
   public static <K, V> StoreEventDispatcher<K, V> nullStoreEventDispatcher() {
-    return new NullStoreEventDispatcher<K, V>();
+    return new NullStoreEventDispatcher<>();
   }
 
   private final StoreEventSink<K, V> storeEventSink = new StoreEventSink<K, V>() {
     @Override
-    public void evicted(K key, ValueSupplier<V> value) {
+    public void evicted(K key, Supplier<V> value) {
       // Do nothing
     }
 
     @Override
-    public void expired(K key, ValueSupplier<V> value) {
+    public void expired(K key, Supplier<V> value) {
       // Do nothing
     }
 
@@ -46,12 +47,12 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
     }
 
     @Override
-    public void updated(K key, ValueSupplier<V> previousValue, V newValue) {
+    public void updated(K key, Supplier<V> previousValue, V newValue) {
       // Do nothing
     }
 
     @Override
-    public void removed(K key, ValueSupplier<V> removed) {
+    public void removed(K key, Supplier<V> removed) {
       // Do nothing
     }
   };

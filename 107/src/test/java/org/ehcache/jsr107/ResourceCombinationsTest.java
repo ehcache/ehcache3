@@ -74,14 +74,11 @@ public class ResourceCombinationsTest {
   public void testBasicCacheOperation() throws IOException, URISyntaxException {
     Configuration config = new DefaultConfiguration(ResourceCombinationsTest.class.getClassLoader(),
             new DefaultPersistenceConfiguration(diskPath.newFolder()));
-    CacheManager cacheManager = new EhcacheCachingProvider().getCacheManager(URI.create("dummy"), config);
-    try {
+    try (CacheManager cacheManager = new EhcacheCachingProvider().getCacheManager(URI.create("dummy"), config)) {
       Cache<String, String> cache = cacheManager.createCache("test", fromEhcacheCacheConfiguration(
-                      newCacheConfigurationBuilder(String.class, String.class, resources)));
+        newCacheConfigurationBuilder(String.class, String.class, resources)));
       cache.put("foo", "bar");
       assertThat(cache.get("foo"), is("bar"));
-    } finally {
-      cacheManager.close();
     }
   }
 }

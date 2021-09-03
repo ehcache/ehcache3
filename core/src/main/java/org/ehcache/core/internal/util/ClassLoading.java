@@ -28,12 +28,7 @@ public class ClassLoading {
   private static final ClassLoader DEFAULT_CLASSLOADER;
 
   static {
-    DEFAULT_CLASSLOADER = AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
-      @Override
-      public ClassLoader run() {
-        return new DefaultClassLoader();
-      }
-    });
+    DEFAULT_CLASSLOADER = AccessController.doPrivileged((PrivilegedAction<ClassLoader>) DefaultClassLoader::new);
   }
 
   public static ClassLoader getDefaultClassLoader() {

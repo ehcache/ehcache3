@@ -35,22 +35,22 @@ public class LazyOffHeapValueHolderTest {
 
   @Test
   public void testDelayedDeserialization() {
-    JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
+    JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     valueHolder.detach();
     serialized.clear();
-    assertThat(valueHolder.value(), is(testValue));
+    assertThat(valueHolder.get(), is(testValue));
   }
 
   @Test
   public void testCanAccessBinaryValue() throws ClassNotFoundException {
-    JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
+    JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     valueHolder.detach();
 
@@ -60,10 +60,10 @@ public class LazyOffHeapValueHolderTest {
 
   @Test
   public void testPreventAccessToBinaryValueIfNotPrepared() {
-    JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
+    JavaSerializer<String> serializer = new JavaSerializer<>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     try {
       valueHolder.getBinaryValue();

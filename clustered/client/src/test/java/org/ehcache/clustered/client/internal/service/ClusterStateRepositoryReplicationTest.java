@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.SimpleClusterTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
@@ -47,11 +48,12 @@ import java.net.URI;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.Eviction.noAdvice;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class ClusterStateRepositoryReplicationTest {
 
@@ -101,13 +103,13 @@ public class ClusterStateRepositoryReplicationTest {
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
       config);
 
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, mock(ServerCallback.class));
 
     SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 
     ClusterStateRepository stateRepository = new ClusterStateRepository(spaceIdentifier, "test", clientEntity);
 
-    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
+    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class, c -> true, null);
     testHolder.putIfAbsent("One", "One");
     testHolder.putIfAbsent("Two", "Two");
 
@@ -136,7 +138,7 @@ public class ClusterStateRepositoryReplicationTest {
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
       config);
 
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG, mock(ServerCallback.class));
 
     SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 
@@ -152,7 +154,7 @@ public class ClusterStateRepositoryReplicationTest {
       }
     }, "test", clientEntity);
 
-    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class);
+    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class, c -> true, null);
     testMap.putIfAbsent(new TestVal("One"), new TestVal("One"));
     testMap.putIfAbsent(new TestVal("Two"), new TestVal("Two"));
 

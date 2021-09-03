@@ -126,8 +126,8 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
-  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<String, StripeDescriptor>();
-  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<URI, ServerDescriptor>();
+  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<>();
+  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<>();
 
   private static final String PASSTHROUGH = "passthrough";
 
@@ -149,6 +149,7 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -169,10 +170,8 @@ public class UnitTestConnectionService implements ConnectionService {
       try {
         LOGGER.warn("Force close {}", formatConnectionId(connection));
         connection.close();
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // Ignored in case connection is already closed
-      } catch (IOException e) {
-        // Ignored
       }
     }
     stripeDescriptor.removeConnections();
@@ -222,10 +221,8 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError e) {
+        } catch (AssertionError | IOException e) {
           // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
-        } catch (IOException e) {
-          // Ignored
         }
       }
 
@@ -286,11 +283,11 @@ public class UnitTestConnectionService implements ConnectionService {
    */
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
-    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
+    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
     private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>>();
+      new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
-        new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
+      new IdentityHashMap<>();
 
     private final OffheapResourcesType resources = new OffheapResourcesType();
 
@@ -389,6 +386,11 @@ public class UnitTestConnectionService implements ConnectionService {
     }
   }
 
+  public static Collection<Connection> getConnections(URI uri) {
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
+    return serverDescriptor.getConnections().keySet();
+  }
+
   @Override
   public boolean handlesURI(URI uri) {
     if (PASSTHROUGH.equals(uri.getScheme())) {
@@ -478,8 +480,8 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   private static final class StripeDescriptor {
-    private final List<PassthroughServer> servers = new ArrayList<PassthroughServer>();
-    private final List<Connection> connections = new ArrayList<Connection>();
+    private final List<PassthroughServer> servers = new ArrayList<>();
+    private final List<Connection> connections = new ArrayList<>();
 
     synchronized void addServer (PassthroughServer server) {
       servers.add(server);
@@ -501,7 +503,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final class ServerDescriptor {
     private final PassthroughServer server;
-    private final Map<Connection, Properties> connections = new IdentityHashMap<Connection, Properties>();
+    private final Map<Connection, Properties> connections = new IdentityHashMap<>();
     private final Map<Class<? extends Entity>, Object[]> knownEntities = new LinkedHashMap<>();
 
     ServerDescriptor(PassthroughServer server) {

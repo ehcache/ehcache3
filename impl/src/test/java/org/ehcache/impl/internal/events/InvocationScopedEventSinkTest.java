@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
@@ -29,7 +28,6 @@ import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -47,10 +45,10 @@ public class InvocationScopedEventSinkTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setUp() {
-    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<StoreEventListener<String, String>>();
+    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = mock(StoreEventListener.class);
     storeEventListeners.add(listener);
-    eventSink = new InvocationScopedEventSink<String, String>(new HashSet<StoreEventFilter<String, String>>(),
+    eventSink = new InvocationScopedEventSink<String, String>(new HashSet<>(),
         false, new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) }, storeEventListeners);
 
   }
@@ -58,11 +56,11 @@ public class InvocationScopedEventSinkTest {
   @Test
   public void testReset() {
     eventSink.created("k1", "v1");
-    eventSink.evicted("k1", supplierOf("v2"));
+    eventSink.evicted("k1", () -> "v2");
     eventSink.reset();
     eventSink.created("k1", "v1");
-    eventSink.updated("k1", supplierOf("v1"), "v2");
-    eventSink.evicted("k1", supplierOf("v2"));
+    eventSink.updated("k1", () -> "v1", "v2");
+    eventSink.evicted("k1", () -> "v2");
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);

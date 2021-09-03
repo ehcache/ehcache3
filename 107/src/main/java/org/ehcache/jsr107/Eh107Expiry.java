@@ -15,13 +15,13 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 
 /**
  * Eh107Expiry
  */
-abstract class Eh107Expiry<K, V> implements Expiry<K, V> {
-  private final ThreadLocal<Object> shortCircuitAccess = new ThreadLocal<Object>();
+abstract class Eh107Expiry<K, V> implements ExpiryPolicy<K, V> {
+  private final ThreadLocal<Object> shortCircuitAccess = new ThreadLocal<>();
 
   void enableShortCircuitAccessCalls() {
     shortCircuitAccess.set(this);

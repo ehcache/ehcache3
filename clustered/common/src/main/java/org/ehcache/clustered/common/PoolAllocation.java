@@ -61,6 +61,7 @@ public interface PoolAllocation extends Serializable {
      *
      * @return the dedicated allocation size
      */
+    @Override
     public long getSize() {
       return size;
     }
@@ -71,6 +72,7 @@ public interface PoolAllocation extends Serializable {
      *
      * @return the server-side resource name
      */
+    @Override
     public String getResourceName() {
       return resourceName;
     }
@@ -117,6 +119,7 @@ public interface PoolAllocation extends Serializable {
      *
      * @return the server-side resource pool name
      */
+    @Override
     public String getResourcePoolName() {
       return resourcePoolName;
     }

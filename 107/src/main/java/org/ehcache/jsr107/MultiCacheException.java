@@ -20,14 +20,13 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 
 import javax.cache.CacheException;
 
 class MultiCacheException extends CacheException {
   private static final long serialVersionUID = -6839700789356356261L;
 
-  private final List<Throwable> throwables = new ArrayList<Throwable>();
+  private final List<Throwable> throwables = new ArrayList<>();
 
   MultiCacheException() {
     super();
@@ -47,9 +46,7 @@ class MultiCacheException extends CacheException {
     }
 
     if (t instanceof MultiCacheException) {
-      for (Throwable t2 : ((MultiCacheException)t).getThrowables()) {
-        throwables.add(t2);
-      }
+      throwables.addAll(((MultiCacheException) t).getThrowables());
     } else {
       throwables.add(t);
     }

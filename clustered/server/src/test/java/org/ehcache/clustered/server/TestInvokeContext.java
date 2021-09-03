@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.terracotta.entity.ActiveInvokeChannel;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ClientSourceId;
@@ -35,6 +36,11 @@ public final class TestInvokeContext implements ActiveInvokeContext {
   @Override
   public ClientDescriptor getClientDescriptor() {
     return clientDescriptor;
+  }
+
+  @Override
+  public ActiveInvokeChannel openInvokeChannel() {
+    return null;
   }
 
   @Override

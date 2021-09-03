@@ -25,7 +25,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.EntityManagementRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +46,7 @@ public class ClusterTierManagement implements Closeable {
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
     try {
-      managementRegistry = services.getService(new ManagementRegistryConfiguration(services, active));
+      managementRegistry = services.getService(new EntityManagementRegistryConfiguration(services, active));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -71,25 +71,38 @@ public class ClusterTierManagement implements Closeable {
     }
   }
 
-  // the goal of the following code is to send the management metadata from the entity into the monitoring tree AFTER the entity creation
-  public void init() {
+  public void entityCreated() {
     if (managementRegistry != null) {
-      LOGGER.trace("init({})", storeIdentifier);
-      ServerSideServerStore serverStore = ehcacheStateService.getStore(storeIdentifier);
-      ServerStoreBinding serverStoreBinding = new ServerStoreBinding(storeIdentifier, serverStore);
-      CompletableFuture<Void> r1 = managementRegistry.register(serverStoreBinding);
-      ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(storeIdentifier);
-      CompletableFuture<Void> allOf;
-      if (pool != null) {
-        allOf = CompletableFuture.allOf(r1, managementRegistry.register(new PoolBinding(storeIdentifier, pool, PoolBinding.AllocationType.DEDICATED)));
-      } else {
-        allOf = r1;
-      }
-      allOf.thenRun(() -> {
-          managementRegistry.refresh();
-          managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
-          });
+      LOGGER.trace("entityCreated({})", storeIdentifier);
+      managementRegistry.entityCreated();
+      init();
     }
+  }
+
+  public void entityPromotionCompleted() {
+    if (managementRegistry != null) {
+      LOGGER.trace("entityPromotionCompleted({})", storeIdentifier);
+      managementRegistry.entityPromotionCompleted();
+      init();
+    }
+  }
+
+  // the goal of the following code is to send the management metadata from the entity into the monitoring tree AFTER the entity creation
+  private void init() {
+    ServerSideServerStore serverStore = ehcacheStateService.getStore(storeIdentifier);
+    ServerStoreBinding serverStoreBinding = new ServerStoreBinding(storeIdentifier, serverStore);
+    CompletableFuture<Void> r1 = managementRegistry.register(serverStoreBinding);
+    ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(storeIdentifier);
+    CompletableFuture<Void> allOf;
+    if (pool != null) {
+      allOf = CompletableFuture.allOf(r1, managementRegistry.register(new PoolBinding(storeIdentifier, pool, PoolBinding.AllocationType.DEDICATED)));
+    } else {
+      allOf = r1;
+    }
+    allOf.thenRun(() -> {
+      managementRegistry.refresh();
+      managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
+    });
   }
 
 }

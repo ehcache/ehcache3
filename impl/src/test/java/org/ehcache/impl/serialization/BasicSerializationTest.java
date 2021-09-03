@@ -57,7 +57,7 @@ public class BasicSerializationTest {
     StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
     test.init(new TransientStateRepository());
 
-    HashMap<Integer, String> input = new HashMap<Integer, String>();
+    HashMap<Integer, String> input = new HashMap<>();
     input.put(1, "one");
     input.put(2, "two");
     input.put(3, "three");

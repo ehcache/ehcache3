@@ -60,18 +60,8 @@ public class LoadAtomicsWith107Test {
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
-          @Override
-          public CacheLoader<Number, CharSequence> create() {
-            return cacheLoader;
-          }
-        })
-        .setCacheWriterFactory(new Factory<CacheWriter<? super Number, ? super CharSequence>>() {
-          @Override
-          public CacheWriter<? super Number, ? super CharSequence> create() {
-            return cacheWriter;
-          }
-        })
+        .setCacheLoaderFactory(() -> cacheLoader)
+        .setCacheWriterFactory(() -> cacheWriter)
         .setTypes(Number.class, CharSequence.class));
   }
 

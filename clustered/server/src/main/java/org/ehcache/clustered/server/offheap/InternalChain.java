@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 
-interface InternalChain extends Closeable {
+public interface InternalChain extends Closeable {
 
   Chain detach();
 

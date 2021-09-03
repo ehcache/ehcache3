@@ -24,13 +24,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * LifeCycleMessageCodecTest
@@ -38,27 +36,22 @@ import static org.junit.Assert.*;
 public class LifeCycleMessageCodecTest {
 
   private static final long MESSAGE_ID = 42L;
-  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private final LifeCycleMessageFactory factory = new LifeCycleMessageFactory();
   private final LifeCycleMessageCodec codec = new LifeCycleMessageCodec(new CommonConfigCodec());
 
   @Before
   public void setUp() {
-    factory.setClientId(CLIENT_ID);
   }
 
   @Test
   public void testValidateStoreManager() throws Exception {
     ServerSideConfiguration configuration = getServerSideConfiguration();
     LifecycleMessage message = factory.validateStoreManager(configuration);
-    message.setId(MESSAGE_ID);
 
     byte[] encoded = codec.encode(message);
     LifecycleMessage.ValidateStoreManager decodedMessage = (LifecycleMessage.ValidateStoreManager) codec.decode(message.getMessageType(), wrap(encoded));
 
-    assertThat(decodedMessage.getId(), is(MESSAGE_ID));
-    assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
     assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.VALIDATE));
     assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is(configuration.getDefaultServerResource()));
     assertThat(decodedMessage.getConfiguration().getResourcePools(), is(configuration.getResourcePools()));
@@ -71,7 +64,6 @@ public class LifeCycleMessageCodecTest {
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
 
     byte[] encoded = codec.encode(message);
     LifecycleMessage.ValidateServerStore decodedMessage = (LifecycleMessage.ValidateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
@@ -90,7 +82,6 @@ public class LifeCycleMessageCodecTest {
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
 
     byte[] encoded = codec.encode(message);
     LifecycleMessage.ValidateServerStore decodedMessage = (LifecycleMessage.ValidateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
@@ -108,7 +99,6 @@ public class LifeCycleMessageCodecTest {
       "org.ehcache.impl.serialization.LongSerializer", "org.ehcache.impl.serialization.StringSerializer",
       Consistency.STRONG);
     LifecycleMessage message = factory.validateServerStore("store1", configuration);
-    message.setId(MESSAGE_ID);
 
     byte[] encoded = codec.encode(message);
     LifecycleMessage.ValidateServerStore decodedMessage = (LifecycleMessage.ValidateServerStore) codec.decode(message.getMessageType(), wrap(encoded));
@@ -119,8 +109,6 @@ public class LifeCycleMessageCodecTest {
   }
 
   private void validateCommonServerStoreConfig(LifecycleMessage.ValidateServerStore decodedMessage, ServerStoreConfiguration initialConfiguration) {
-    assertThat(decodedMessage.getId(), is(MESSAGE_ID));
-    assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
     assertThat(decodedMessage.getName(), is("store1"));
     assertThat(decodedMessage.getStoreConfiguration().getStoredKeyType(), is(initialConfiguration.getStoredKeyType()));
     assertThat(decodedMessage.getStoreConfiguration().getStoredValueType(), is(initialConfiguration.getStoredValueType()));

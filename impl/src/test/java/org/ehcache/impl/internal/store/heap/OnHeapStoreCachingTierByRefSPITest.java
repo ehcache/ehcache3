@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -70,8 +70,8 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       }
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
-                ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0, null, null);
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
+          ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, null, null);
 
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }

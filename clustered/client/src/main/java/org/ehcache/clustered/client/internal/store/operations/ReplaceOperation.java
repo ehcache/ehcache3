@@ -20,7 +20,7 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
+public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
 
   public ReplaceOperation(final K key, final V value, final long timeStamp) {
     super(key, value, timeStamp);
@@ -36,11 +36,16 @@ public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implemen
   }
 
   @Override
-  public Result<V> apply(final Result<V> previousOperation) {
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
     if(previousOperation == null) {
       return null;
     } else {
       return this;
     }
+  }
+
+  @Override
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    return new PutOperation<>(this, -expirationTime);
   }
 }

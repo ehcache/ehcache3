@@ -29,13 +29,12 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -47,7 +46,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -62,16 +60,10 @@ import static org.mockito.Mockito.mock;
 public class ClusterTierManagerActiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private Management management = mock(Management.class);
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfigBuilder().build());
-
-  @Before
-  public void setClientId() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
-  }
 
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
@@ -238,11 +230,9 @@ public class ClusterTierManagerActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    UUID client2Id = UUID.randomUUID();
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
   }
 
@@ -513,7 +503,7 @@ public class ClusterTierManagerActiveEntityTest {
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
+    if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
       throw ((Failure) response).getCause();
     }
   }
@@ -560,7 +550,7 @@ public class ClusterTierManagerActiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate a "closed" {@code ServiceRegistry}.  Using this constructor creates a
@@ -592,7 +582,7 @@ public class ClusterTierManagerActiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -619,7 +609,7 @@ public class ClusterTierManagerActiveEntityTest {
           }, config.getConfig().getConfiguration(), DEFAULT_MAPPER, service -> {});
         }
         return (T) (this.storeManagerService);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       }
 

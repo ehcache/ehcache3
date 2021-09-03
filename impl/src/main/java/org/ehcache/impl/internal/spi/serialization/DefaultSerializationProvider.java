@@ -59,14 +59,14 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   protected final Map<Class<?>, Class<? extends Serializer<?>>> serializers;
 
-  final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
+  final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
-      this.serializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>(configuration.getDefaultSerializers());
+      this.serializers = new LinkedHashMap<>(configuration.getDefaultSerializers());
     } else {
-      this.serializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>(Collections.<Class<?>, Class<? extends Serializer<?>>>emptyMap());
+      this.serializers = new LinkedHashMap<>(Collections.<Class<?>, Class<? extends Serializer<?>>>emptyMap());
     }
   }
 
@@ -141,14 +141,10 @@ public class DefaultSerializationProvider implements SerializationProvider {
       Serializer<T> serializer = constructor.newInstance(args);
       LOG.debug("Serializer for <{}> : {}", clazz.getName(), serializer);
       return serializer;
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
       throw new RuntimeException(e);
     } catch (IllegalArgumentException e) {
       throw new AssertionError(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
     }
   }
 

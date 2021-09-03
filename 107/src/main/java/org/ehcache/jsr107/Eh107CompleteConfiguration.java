@@ -49,7 +49,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   private final boolean isWriteThrough;
   private volatile boolean isStatisticsEnabled;
   private volatile boolean isManagementEnabled;
-  private final List<CacheEntryListenerConfiguration<K, V>> cacheEntryListenerConfigs = new CopyOnWriteArrayList<CacheEntryListenerConfiguration<K, V>>();
+  private final List<CacheEntryListenerConfiguration<K, V>> cacheEntryListenerConfigs = new CopyOnWriteArrayList<>();
   private final Factory<CacheLoader<K, V>> cacheLoaderFactory;
   private final Factory<CacheWriter<? super K, ? super V>> cacheWriterFactory;
   private final Factory<ExpiryPolicy> expiryPolicyFactory;
@@ -207,16 +207,13 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       return Unwrap.unwrap(clazz, this, ehcacheConfig);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     throw new UnsupportedOperationException("Serialization of Ehcache provider configuration classes is not supported");
   }
 
   private <T> Factory<T> createThrowingFactory() {
-    return new Factory<T>() {
-      @Override
-      public T create() {
-        throw new UnsupportedOperationException("Cannot convert from Ehcache type to JSR-107 factory");
-      }
+    return (Factory<T>) () -> {
+      throw new UnsupportedOperationException("Cannot convert from Ehcache type to JSR-107 factory");
     };
   }
 }

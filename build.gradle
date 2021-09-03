@@ -48,7 +48,7 @@ if (deployUrl.contains('nexus')) {
 project.nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
-  logger.warn("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
 // Disable automatic promotion for added safety
@@ -57,28 +57,7 @@ closeAndReleaseRepository.enabled = false
 
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.4.1-SNAPSHOT'
-
-  // Third parties
-  offheapVersion = '2.3.2'
-  statisticVersion = '1.4.3'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.7'
-  sizeofVersion = '0.3.0'
-  ehcache2Version = '2.10.3'
-
-  // Clustered
-  terracottaPlatformVersion = '5.3.4'
-  managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.3.1'
-  terracottaCoreVersion = '5.3.4'
-  offheapResourceVersion = terracottaPlatformVersion
-  entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.3.2'
-  entityTestLibVersion = terracottaPassthroughTestingVersion
-
-  // Tools
-  findbugsVersion = '3.0.1'
+  baseVersion = findProperty('overrideVersion') ?: '3.5.3-SNAPSHOT'
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
@@ -86,43 +65,14 @@ ext {
 }
 
 
-// Java 6 build setup
-def java6Error = 'Set the poperty \'java6Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 6 installation'
-assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run and a configured Java 6 installation\n' + java6Error
-assert hasProperty('java6Home') : 'The Ehcache 3 build requires a configured Java 6 installation\n' + java6Error
-def java6 = Jvm.discovered(new File(java6Home), JavaVersion.VERSION_1_6)
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
-  testJava = java6
+  testJava = Jvm.current()
 }
 
 if (hasProperty('testVM')) {
-  switch (testVM) {
-    case '6':
-      testJava = java6
-      break
-    case '7':
-      assert hasProperty('java7Home') : 'Set the poperty \'java7Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
-      testJava = Jvm.discovered(new File(java7Home), JavaVersion.VERSION_1_7)
-      break
-    case '8':
-      if (JavaVersion.current().isJava8()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
-        testJava = Jvm.discovered(new File(java7Home), JavaVersion.VERSION_1_8)
-      }
-      break
-    case '9':
-      if (JavaVersion.current().isJava9()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java9Home'): 'Set the poperty \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
-        testJava = Jvm.discovered(new File(java9Home), JavaVersion.VERSION_1_9)
-      }
-      break
-    default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 7, 8 or 9")
-  }
+  testJava = Utils.jvmForHome(new File(testVM))
+  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
 subprojects {
@@ -137,8 +87,8 @@ subprojects {
 
   archivesBaseName = "ehcache-${project.name}"
 
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 
   repositories {
     if (project.hasProperty('mvnlocal')) {
@@ -160,8 +110,8 @@ subprojects {
   dependencies {
     compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:1.7.1', 'org.hamcrest:hamcrest-library:1.3'
-    testCompile('org.mockito:mockito-core:2.7.14') {
+    testCompile "junit:junit:$junitVersion", "org.assertj:assertj-core:$assertjVersion", "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testCompile("org.mockito:mockito-core:$mockitoVersion") {
       exclude group:'org.hamcrest', module:'hamcrest-core'
     }
     testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
@@ -214,13 +164,13 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.9'
+    toolVersion = checkstyleVersion
   }
 
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    findbugs.toolVersion = parent.findbugsVersion
+    toolVersion = findbugsVersion
   }
 
   findbugsMain {
@@ -232,7 +182,7 @@ subprojects {
   }
 
   jacoco {
-    toolVersion = '0.7.9'
+    toolVersion = jacocoVersion
   }
 
   jacocoTestReport {
@@ -245,7 +195,6 @@ subprojects {
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
-      forkOptions.javaHome = java6.javaHome
     }
   }
   tasks.withType(Test) {
@@ -265,7 +214,7 @@ subprojects {
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint:unchecked']
+    options.compilerArgs += ['-Werror', '-Xlint:unchecked,deprecation']
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'

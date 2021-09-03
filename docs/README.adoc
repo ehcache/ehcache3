@@ -1,0 +1,31 @@
+= How to work on documentation
+
+The documentation is all in link:http://www.methods.co.nz/asciidoc/[asciidoc].
+
+== Build
+
+The documentation is built with
+
+  ./gradlew :docs:asciidoctor
+
+You will then find the result in `docs/build/asciidoc/user`.
+
+== Live reload
+
+To get live reload while editing the documentation, you need two shells.
+
+In the first one, do a continuous buid of the documentation.
+
+  ./gradlew -t :docs:asciidoctor
+
+In the second launch the live reload.
+
+  ./gradlew -t :docs:livereload
+
+The local port will be printed on the console. The usual URL is link:http://localhost:35729[http://localhost:35729].
+
+== Add a section
+
+1. Create a new adoc file
+2. Copy the header used in the other pages to it
+3. Reference it in `menu.adoc` and `index.adoc`

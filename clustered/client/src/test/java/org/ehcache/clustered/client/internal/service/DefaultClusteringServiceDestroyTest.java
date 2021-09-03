@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
@@ -61,7 +61,7 @@ public class DefaultClusteringServiceDestroyTest {
   @Mock
   private Connection connection;
   @Mock
-  private EntityRef<InternalClusterTierManagerClientEntity, Object, Void> managerEntityRef;
+  private EntityRef<ClusterTierManagerClientEntity, Object, Void> managerEntityRef;
   @Mock
   private EntityRef<InternalClusterTierClientEntity, Object, Void> tierEntityRef;
   @Mock
@@ -77,8 +77,8 @@ public class DefaultClusteringServiceDestroyTest {
   public void testDestroyAllFullyMocked() throws Exception {
     mockLockForWriteLockSuccess();
 
-    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
-    InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
+    when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
+    ClusterTierManagerClientEntity managerEntity = mock(ClusterTierManagerClientEntity.class);
     when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
 
     Set<String> stores = new HashSet<>();
@@ -107,8 +107,8 @@ public class DefaultClusteringServiceDestroyTest {
 
     mockLockForWriteLockSuccess();
 
-    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
-    InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
+    when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
+    ClusterTierManagerClientEntity managerEntity = mock(ClusterTierManagerClientEntity.class);
 
     // ClusterTierManager exists
     doThrow(new EntityAlreadyExistsException("className", "entityName"))
@@ -146,8 +146,8 @@ public class DefaultClusteringServiceDestroyTest {
   public void testFetchOnPartialDestroyState() throws Exception {
     mockLockForReadLockSuccess();
 
-    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
-    InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
+    when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
+    ClusterTierManagerClientEntity managerEntity = mock(ClusterTierManagerClientEntity.class);
 
     // ClusterTierManager can be fetch
     when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
@@ -168,8 +168,8 @@ public class DefaultClusteringServiceDestroyTest {
   public void testDestroyOnPartialDestroyState() throws Exception {
     mockLockForWriteLockSuccess();
 
-    when(getEntityRef(InternalClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
-    InternalClusterTierManagerClientEntity managerEntity = mock(InternalClusterTierManagerClientEntity.class);
+    when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
+    ClusterTierManagerClientEntity managerEntity = mock(ClusterTierManagerClientEntity.class);
     when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
     doThrow(new DestroyInProgressException("destroying")).when(managerEntity).validate(any());
 

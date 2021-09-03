@@ -43,16 +43,15 @@ public class CacheManagerBuilderTest {
   @Test
   public void testIsExtensible() {
 
-    final AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger counter = new AtomicInteger(0);
 
-    final PersistentCacheManager cacheManager = newCacheManagerBuilder().with(new CacheManagerConfiguration<PersistentCacheManager>() {
-      @SuppressWarnings("unchecked")
-      @Override
-      public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
-        counter.getAndIncrement();
-        return mock(CacheManagerBuilder.class);
-      }
-    }).build(true);
+    @SuppressWarnings("unchecked")
+    CacheManagerConfiguration<PersistentCacheManager> managerConfiguration = other -> {
+      counter.getAndIncrement();
+      return mock(CacheManagerBuilder.class);
+    };
+
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(managerConfiguration).build(true);
 
     assertThat(cacheManager).isNull();
     assertThat(counter.get()).isEqualTo(1);

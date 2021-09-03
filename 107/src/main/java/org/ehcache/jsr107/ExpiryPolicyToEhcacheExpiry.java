@@ -15,10 +15,11 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.ValueSupplier;
+import org.ehcache.core.config.ExpiryUtils;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
@@ -32,20 +33,17 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForCreation(K key, V value) {
+  public java.time.Duration getExpiryForCreation(K key, V value) {
     try {
       Duration duration = expiryPolicy.getExpiryForCreation();
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.INFINITE;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+      return convertDuration(duration);
     } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+      return java.time.Duration.ZERO;
     }
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+  public java.time.Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
     if (isShortCircuitAccessCalls()) {
       return null;
     }
@@ -55,28 +53,22 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
       if (duration == null) {
         return null;
       }
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.INFINITE;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+      return convertDuration(duration);
     } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+      return java.time.Duration.ZERO;
     }
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+  public java.time.Duration getExpiryForUpdate(K key, Supplier<? extends V> oldValue, V newValue) {
     try {
       Duration duration = expiryPolicy.getExpiryForUpdate();
       if (duration == null) {
         return null;
       }
-      if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.INFINITE;
-      }
-      return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
+      return convertDuration(duration);
     } catch (Throwable t) {
-      return org.ehcache.expiry.Duration.ZERO;
+      return java.time.Duration.ZERO;
     }
   }
 
@@ -85,5 +77,12 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
     if (expiryPolicy instanceof Closeable) {
       ((Closeable)expiryPolicy).close();
     }
+  }
+
+  private java.time.Duration convertDuration(Duration duration) {
+    if (duration.isEternal()) {
+      return org.ehcache.expiry.ExpiryPolicy.INFINITE;
+    }
+    return java.time.Duration.of(duration.getDurationAmount(), ExpiryUtils.jucTimeUnitToTemporalUnit(duration.getTimeUnit()));
   }
 }

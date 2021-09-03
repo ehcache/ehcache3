@@ -26,16 +26,11 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
@@ -43,12 +38,13 @@ public class PassiveReplicationMessageCodec {
 
   private static final String CHAIN_FIELD = "chain";
   private static final String OLDEST_TRANSACTION_ID_FIELD = "otId";
+  private static final String TRANSACTION_ID_FIELD = "tId";
+  private static final String CLIENT_ID_FIELD = "cId";
 
   private static final Struct CHAIN_REPLICATION_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
+    .int64(TRANSACTION_ID_FIELD, 15)
+    .int64(CLIENT_ID_FIELD, 20)
     .string(SERVER_STORE_NAME_FIELD, 30)
     .int64(OLDEST_TRANSACTION_ID_FIELD, 35)
     .int64(KEY_FIELD, 40)
@@ -106,9 +102,11 @@ public class PassiveReplicationMessageCodec {
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
+    encoder.int64(TRANSACTION_ID_FIELD, message.getTransactionId());
+    encoder.int64(CLIENT_ID_FIELD, message.getClientId());
     encoder.int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId());
     encoder.int64(KEY_FIELD, message.getKey());
-    encoder.struct(CHAIN_FIELD, message.getChain(), CHAIN_ENCODER_FUNCTION);
+    encoder.struct(CHAIN_FIELD, message.getChain(), ChainCodec::encode);
 
     return encoder.encode().array();
   }
@@ -142,8 +140,8 @@ public class PassiveReplicationMessageCodec {
   private PassiveReplicationMessage.ChainReplicationMessage decodeChainReplicationMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
 
-    Long currentTransactionId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
+    Long currentTransactionId = decoder.int64(TRANSACTION_ID_FIELD);
+    Long clientId = decoder.int64(CLIENT_ID_FIELD);
 
     Long oldestTransactionId = decoder.int64(OLDEST_TRANSACTION_ID_FIELD);
     Long key = decoder.int64(KEY_FIELD);

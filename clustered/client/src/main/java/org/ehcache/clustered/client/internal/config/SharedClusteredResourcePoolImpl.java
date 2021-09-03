@@ -47,11 +47,6 @@ public class SharedClusteredResourcePoolImpl
   }
 
   @Override
-  public ClusteredResourceType<SharedClusteredResourcePool> getType() {
-    return super.getType();
-  }
-
-  @Override
   public String getSharedResourcePool() {
     return this.sharedResourcePool;
   }

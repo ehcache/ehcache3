@@ -1,0 +1,210 @@
+= Ehcache Design Fundamentals
+
+:toc:
+
+== `CacheManager`, `Cache` and their dependencies
+
+As in the 1.x & 2.x line, Ehcache has the notion of a `CacheManager`, who manages `Cache` instances. Managing a `Cache`
+means fulfilling a couple of roles:
+
+ - Life cycling it: e.g. `.init()`, `.closing()` the `Cache`;
+ - Providing it with `Service` instance: A `CacheManager` comes with a set of base abstract services `Cache` can use
+ and that it will lifecycle too; but the `CacheManager` can lifecycle any amount of additional `Service` types that
+ gets registered with it. These `Service` can then be looked up, e.g. by `Cache` or other `Service` instances, using the
+ `ServiceProvider` interface;
+ - Finally, the `CacheManager` acts as a repository of alias'ed `Cache` instances. Unlike in the previous versions, `Cache`
+ instances aren't named, but are registered with the `CacheManager` under an _alias_. The `Cache` is never aware of this.
+
+This diagram tries to summarize the different roles:
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/baseTypes.png[Base Types]
+
+A user will only mostly interact with the `CacheManager` and `Cache` API types... He may need to configure specific
+`Service` types for his `Cache` instances to use. See <<configuration-types-and-builders>>
+
+=== The `CacheManager`
+
+While the `CacheManager` does act as a repository, it is _not_ possible to add a `Cache` directly to a `CacheManager`.
+A `Cache` can be created by a `CacheManager`, which will then keep a reference to it, alias'ed to a user provided name.
+To remove that `Cache` from the `CacheManager`, it has to be explicitly removed using `CacheManager.removeCache(String)`.
+Upon that method successfully returning, the `Cache` 's status will be `Status.UNINITIALIZED` and as such will not be
+usable anymore, see <<state-transitions>> section below.
+
+=== The `Cache`
+
+A `Cache` is backed by a `Store` where all cached entries (i.e. key to value mappings) are held. The `Cache` doesn't know
+what topology this `Store` is using; whether it's storing these entries on the JVM's heap, off the heap, on disk, on a remote
+JVM or any combination of the above.
+
+When a `Cache` is being constructed, e.g. by the `CacheManager` on a `.createCache()` method invoke, the `CacheManager`
+will lookup a `Store.Provider` which is one of the bundled `Service` types of Ehcache, asking it to create a `Store` based
+on the `CacheConfiguration` used to configure the given `Cache`. That indirection, makes both the `Cache` as well as the
+`CacheManager` ignorant of what topology this `Cache` is to use. Ehcache comes with a `DefaultStoreProvider` that will
+be loaded by the `ServiceProvider`, should none be explicitly provided. That in turn will resolve the required `Store`
+instance to be provided to the `Cache` being created.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/cacheStore.png[Cache's Store]
+
+The `Cache` also tries to never _fails_ on operations invoked, e.g. a get shouldn't result in throwing an exception if the
+`Store` that backs it up uses serialization and fails to retrieve the mapping. Instead, Ehcache tries to be resilient and
+will, by default, try to clear that mapping from its `Store` and return `null` instead to the user. It is the responsibility of the
+`Cache` to handle the exceptions a `Store` may throw (the `Store` interface explicitly declares it throws
+`CacheAccessException`, which is a checked exception). The `Cache` will delegate failures to the `ResilienceStrategy`,
+which in turn is responsible for handling the failure.
+
+Currently, Ehcache only has a single `ResilienceStrategy`, which is supporting single-JVM deployments, and will try to
+_heal_ the `Store` on failure and making the invoking action on a `Cache` a no-op. We'll add more `ResilienceStrategy`
+and will make it pluggable, when we move on to distributed topologies.
+
+=== The new `UserManagedCache`
+
+The `UserManagedCache` are, as the name implies, managed by the user instead of being managed by a `CacheManager`. While
+these instances are meant to be lightweight, short-lived ones, nothing prohibits a user from building a distributed
+`UserManagedCache` if so desired.
+
+As the user manages that instance himself, he needs to provide all `Service` instances required by the `UserManagedCache`.
+Also he'll need to invoke lifecycle methods on it (see <<state-transitions>>) and finally keep a reference to it, as it
+won't available in any `CacheManager`.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/userManagedCache.png[UserManagedCache]
+
+== State transitions
+
+A lifecycled instance, e.g. a `CacheManager` or a `UserManagedCache`, has three states represented by the
+`org.ehcache.Status` enum:
+
+ . `UNINITIALIZED`: The instance can't be used, it probably just got instantiated or got `.close()` invoked on it;
+ . `MAINTENANCE`: The instance is only usable by the thread that got the _maintenance lease_ for it. Special maintenance
+ operations can be performed on the instance;
+ . `AVAILABLE`: The operational state of the instance, all operations can be performed by any amount of threads.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/stateTransitions.png[Statuses & transitions]
+
+State should only be maintained at the _higher_ user-visible API instance, e.g. a concrete `Cache` instance like `Ehcache`.
+That means that it is the warrant for blocking operations during state transitions or on an _illegal state_. No need for
+the underlying data structure to do so too (e.g. `Store`), as this would come to much higher cost during runtime.
+
+NOTE: A generic utility class `StatusTransitioner` encapsulate that responsibility and should be reusable across types that
+require enforcing lifecycle constraints.
+
+== Configuration types and builders
+
+In the most generic sense, configuration types are used to _configure_ a given service, either _while_ it is being constructed or when it is used.
+A builder exposes a user-friendly DSL to configure and build _runtime instances_ (e.g. `CacheManager`). Finally runtime
+configuration types are configured from configuration types and used at runtime by the actual configured instance,
+providing a way for the user to mutate the behavior of that instance at runtime in limited ways.
+
+=== Configuring stuff
+
+You don't necessarily ever get exposed to a _configuration_ for a given type being constructed. The builder can hide it
+all from you and will create the actual configuration at `.build()` invocation time. Configuration types are always
+immutable. Instances of these types are used to configure some part of the system (e.g. `CacheManager`, `Cache`,
+`Service`, ...). If a given configured type has a requirement to modify it's configuration, an additional _runtime
+configuration_ is introduced, e.g. `RuntimeCacheConfiguration`. That type will expose additional mutative methods for
+attributes that are mutable. Internally it will also let consumers of the type register listener for these attributes.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/config.png[Configuration types]
+
+==== Services creation, `ServiceCreationConfiguration`, `ServiceProvider` and `ServiceConfiguration`
+
+A special type of configuration is the `ServiceCreationConfiguration<T extends Service>` type.
+That configuration type indicates to the system to lookup the `ServiceFactory<T extends Service>` to use to create the `Service` that's being configured.
+Subclasses of that configuration type are accepted at the outermost level of configuration, `CacheManager` or `UserManagedCacheBuilder`, which is the only place where services will be looked up from a configuration.
+
+This is what happens underneath that call when the `CacheManager` looks up `Service` instances:
+
+For each `ServiceCreationConfiguration`
+
+ . The service subsystem looks up whether it already has that `Service`
+ .. If it does, that instance returned
+ .. If it doesn't, it looks up all `ServiceFactory` it has for one that creates instances of that `Service` type.
+ ... If one is found in that `ServiceFactory` repository, it uses that to create the instance with the configuration
+ ... If none is found, it uses the JDK's `java.util.ServiceLoader` service to load `ServiceFactory` and recheck
+ .. If nothing could be found, an Exception is thrown
+
+After this, services are started and can be consummed by the different components.
+For this, the `ServiceProvider` is passed to `Service` instances at start point.
+Form there, calling into `ServiceProvider.getService(Class<T> serviceType)` will enable to retrieve a defined service.
+
+NOTE: When `Service.start(ServiceProvider serviceProvider)` is called, the service subsystem is currently starting.
+So while all `Service` instances are defined, they are not necessarily started which means your code in `start(...)` needs to limit itself to service lookups and not consumption.
+
+The `ServiceConfiguration<T extends Service>` interface enables to define extra configuration to a `Service` when using it. 
+
+=== Builder design guidelines
+
+ - Copy the instance, apply modification and return the copy. Never modify and return `this`
+ - Accept other builders as input, instead of just the actual "other thing's" configuration
+ - Provide names methods for boolean or `Enum` based settings. Apply this while keeping in mind that we do not want
+ method explosion on the builder as a whole. 
+ - Default values are to be handled inside the configuration classes and not duplicated inside the builder.
+
+== `javax.cache` API implications
+
+While we know we don't want to strictly go by the JSR-107 (aka JCache) API contract in the Ehcache3 APIs (e.g. `CacheLoader` &
+`CacheWriter` contracts when concurrent methods on the `Cache` are invoked), we still need a way to have our JCache
+implementation pass the TCK. It is important to at least read the specification with regards to any feature that's being
+implemented and list dissimilarities as well as how they'll be addressed in the 107 module.
+
+== The `PersistentCacheManager`
+
+The `PersistentCacheManager` interface adds lifecycle methods to the `CacheManager` type. Those lifecycle methods enable
+the user to completely destroy `Cache` instances from a given `CacheManager` (e.g. destroy the clustered state of a `Cache` entirely,
+or remove all the data of a `Cache` from disk); as well as go into _maintenance mode_ (see <<state-transitions>> section).
+
+=== `CacheManagerBuilder.with()` 's extension point
+
+A `CacheManagerBuilder` builds _at least_ a `CacheManager`, but its
+`.with(CacheManagerConfiguration<N>): CacheManagerBuilder<N>` let's you build any subtype of `CacheManager` (currently
+the supported types are a closed set of defined subtypes, but this could be extended to an open set later).
+
+[source,java]
+----
+
+PersistentCacheManager cm = newCacheManagerBuilder() // <1>
+    .with(new CacheManagerConfiguration<PersistentCacheManager>()) // <2>
+    .build(true); // <3>
+----
+
+<1> the `T` of `CacheManagerBuilder<T extends CacheManager>` is still of `CacheManager`
+<2> the `CacheManagerConfiguration` passed in to `.with` now narrows `T` down to `PersistentCacheManager`
+<3> returns the instance of `T` built
+
+=== Locally persistent
+
+When building a `PersistentCacheManager` the `CacheManagerConfiguration<PersistentCacheManager>` passed to the builder
+would let one configure all persistent related aspects of `Cache` instances managed by the `CacheManager`, e.g. root
+location for writing cached data to.
+
+=== Clustered topology
+
+In a Terracotta clustered scenario, all clustered `Cache` instances are considered persistent (i.e. will survive the
+_client_ JVM restart). So the idea is to provide all clustered configuration passing such a
+`CacheManagerConfiguration<PersistentCacheManager>` instance, with all the Terracotta client configuration stuff, to the
+`CacheManagerBuilder` at construction time.
+
+==== Persistence configuration
+
+Any given persistent `Cache` uses the lifecycle as described above in <<state-transitions>>. Yet the data on disk, or
+datastructures on disk to store. We think of states of those structures in these terms:
+
+ . Inexistent, nothing there: nothing can be stored until these exist;
+ . Online: the datastructures are present (with or without any data), referenced by the `Store` and the `Cache` is usable;
+ . Offline: the datastructures are present (with or without data), not referenced by any `Store` and nothing accesses it.
+
+image::https://raw.githubusercontent.com/ehcache/ehcache3/master/docs/images/design/basics/persistentStateTransitions.jpg[Persistence and statuses & their transitions]
+
+The user can fallback to the maintenance mode and the `Maintainable` instance returned when transitioning to the
+maintenance state. That `Maintainable` can be used to:
+
+ - `Maintainable.create()`, moving from nothing to online; _or_
+ - `Maintainable.destroy()`, moving from offline to nothing
+
+the associated data for a given `Cache` on disk or within the Terracotta Server stripe(s).
+
+We also want to provide with configuration based _modes_ to automatically:
+
+  - Create the persistent data structures if it doesn't already exit;
+  - Drop the persistent data structures if it exists, and create it anew;
+  - Verify the persistent data structures is there, otherwise fail fast;
+  - Create the persistent data structures expecting them to not be there, otherwise fail fast.

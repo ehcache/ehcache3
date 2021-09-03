@@ -27,7 +27,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 
 public class DiskWriteThreadPool implements Factory<ExecutorService> {
 
-  private final List<ExecutorService> writers = new CopyOnWriteArrayList<ExecutorService>();
+  private final List<ExecutorService> writers = new CopyOnWriteArrayList<>();
   private final ExecutionService executionService;
   private final String poolAlias;
   private final int threads;
@@ -44,7 +44,7 @@ public class DiskWriteThreadPool implements Factory<ExecutorService> {
   public ExecutorService newInstance() {
     ExecutorService writer;
     if (writers.size() < threads) {
-      writer = executionService.getOrderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>());
+      writer = executionService.getOrderedExecutor(poolAlias, new LinkedBlockingQueue<>());
       writers.add(writer);
     } else {
       writer = writers.get(index++);

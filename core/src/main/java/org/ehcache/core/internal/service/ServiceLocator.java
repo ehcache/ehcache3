@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,8 +90,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return services.contains(serviceConfig.getServiceType());
   }
 
-  public void startAllServices() throws Exception {
-    Deque<Service> started = new LinkedList<Service>();
+  public void startAllServices() {
+    Deque<Service> started = new LinkedList<>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
     try {
@@ -103,7 +102,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       /*
        * This ensures that we start services in dependency order
        */
-      LinkedList<Service> unstarted = new LinkedList<Service>(services.all());
+      LinkedList<Service> unstarted = new LinkedList<>(services.all());
       int totalServices = unstarted.size();
       long start = System.currentTimeMillis();
       LOGGER.debug("Starting {} Services...", totalServices);
@@ -155,7 +154,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       /*
        * This ensures that we stop services in dependency order
        */
-      Collection<Service> running = new LinkedList<Service>(services.all());
+      Collection<Service> running = new LinkedList<>(services.all());
       int totalServices = running.size();
       long start = System.currentTimeMillis();
       LOGGER.debug("Stopping {} Services...", totalServices);
@@ -223,7 +222,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     private final ServiceLoader<ServiceFactory> serviceLoader = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
 
     private final ServiceMap provided = new ServiceMap();
-    private final Set<Class<? extends Service>> requested = new HashSet<Class<? extends Service>>();
+    private final Set<Class<? extends Service>> requested = new HashSet<>();
 
     public DependencySet with(Service service) {
       provided.add(service);
@@ -377,7 +376,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
      *        but is already registered
      */
     private <T> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
-      Collection<ServiceFactory<? extends T>> serviceFactories = new ArrayList<ServiceFactory<? extends T>>();
+      Collection<ServiceFactory<? extends T>> serviceFactories = new ArrayList<>();
       for (ServiceFactory<?> factory : ServiceLocator.getServiceFactories(serviceLoader)) {
         final Class<? extends Service> factoryServiceType = factory.getServiceType();
         if (serviceClass.isAssignableFrom(factoryServiceType) && !factory.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class)) {
@@ -395,7 +394,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static Collection<Class<?>> getAllInterfaces(final Class<?> clazz) {
-    ArrayList<Class<?>> interfaces = new ArrayList<Class<?>>();
+    ArrayList<Class<?>> interfaces = new ArrayList<>();
     for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
       for (Class<?> i : c.getInterfaces()) {
         interfaces.add(i);
@@ -410,7 +409,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       return emptySet();
     }
 
-    Set<Class<? extends Service>> dependencies = new HashSet<Class<? extends Service>>();
+    Set<Class<? extends Service>> dependencies = new HashSet<>();
     final ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
     if (annotation != null) {
       for (final Class<?> dependency : annotation.value()) {
@@ -437,9 +436,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static Set<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
-    Set<Class<? extends Service>> transitive = new HashSet<Class<? extends Service>>();
 
     Set<Class<? extends Service>> dependencies = identifyImmediateDependenciesOf(clazz);
+    Set<Class<? extends Service>> transitive = new HashSet<>(dependencies.size() * 3); // 3 is my feeling of how many there should be per class at most
     transitive.addAll(dependencies);
 
     for (Class<? extends Service> klazz : dependencies) {
@@ -451,7 +450,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
   @SuppressWarnings("unchecked")
   private static <T extends Service> Iterable<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
-    List<ServiceFactory<T>> list = new ArrayList<ServiceFactory<T>>();
+    List<ServiceFactory<T>> list = new ArrayList<>();
     for (ServiceFactory<?> factory : serviceFactory) {
       list.add((ServiceFactory<T>)factory);
     }
@@ -469,7 +468,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     private final Map<Class<? extends Service>, Set<Service>> services;
 
     public ServiceMap(ServiceMap resolved) {
-      this.services = new HashMap<Class<? extends Service>, Set<Service>>();
+      this.services = new HashMap<>();
       for (Map.Entry<Class<? extends Service>, Set<Service>> e : resolved.services.entrySet()) {
         Set<Service> copy = newSetFromMap(new IdentityHashMap<Service, Boolean>());
         copy.addAll(e.getValue());
@@ -478,7 +477,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     public ServiceMap() {
-      this.services = new HashMap<Class<? extends Service>, Set<Service>>();
+      this.services = new HashMap<>();
     }
 
     public <T extends Service> Set<T> get(Class<T> serviceType) {
@@ -499,7 +498,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     public ServiceMap add(Service service) {
-      Set<Class<? extends Service>> serviceClazzes = new HashSet<Class<? extends Service>>();
+      Set<Class<? extends Service>> serviceClazzes = new HashSet<>();
 
       serviceClazzes.add(service.getClass());
       for (Class<?> i : getAllInterfaces(service.getClass())) {
@@ -522,7 +521,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
           // Permit multiple registrations
           Set<Service> registeredServices = services.get(serviceClazz);
           if (registeredServices == null) {
-            registeredServices = new LinkedHashSet<Service>();
+            registeredServices = new LinkedHashSet<>();
             services.put(serviceClazz, registeredServices);
           }
           registeredServices.add(service);

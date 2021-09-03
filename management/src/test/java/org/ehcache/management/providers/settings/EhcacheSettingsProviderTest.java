@@ -21,10 +21,9 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -41,9 +40,9 @@ import org.terracotta.management.model.capabilities.context.CapabilityContext;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.assertEquals;
@@ -77,7 +76,7 @@ public class EhcacheSettingsProviderTest {
             .heap(10, EntryUnit.ENTRIES)
             .offheap(1, MemoryUnit.MB)
             .disk(2, MemoryUnit.MB, true))
-        .withExpiry(Expirations.noExpiration())
+        .withExpiry(ExpiryPolicyBuilder.noExpiration())
         .build();
 
     CacheConfiguration<String, String> cacheConfiguration2 = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
@@ -85,7 +84,7 @@ public class EhcacheSettingsProviderTest {
             .heap(10, EntryUnit.ENTRIES)
             .offheap(1, MemoryUnit.MB)
             .disk(2, MemoryUnit.MB, true))
-        .withExpiry(Expirations.timeToIdleExpiration(Duration.of(2, TimeUnit.HOURS)))
+        .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofHours(2)))
         .build();
 
     // ehcache cache manager
@@ -119,11 +118,8 @@ public class EhcacheSettingsProviderTest {
   }
 
   private String read(String path) throws FileNotFoundException {
-    Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8");
-    try {
+    try (Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8")) {
       return scanner.nextLine();
-    } finally {
-      scanner.close();
     }
   }
 

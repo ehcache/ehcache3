@@ -16,35 +16,32 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.ehcache.Cache;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.core.statistics.TierStatistics;
-import org.ehcache.core.statistics.TypedValueStatistic;
-import org.terracotta.statistics.ConstantValueStatistic;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.extended.StatisticType;
+import org.terracotta.statistics.ZeroOperationStatistic;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
+import static org.terracotta.statistics.ValueStatistics.counter;
+import static org.terracotta.statistics.ValueStatistics.gauge;
 
 /**
  * Contains usage statistics relative to a given tier.
  */
 class DefaultTierStatistics implements TierStatistics {
 
-  private static final ValueStatistic<Long> NOT_AVAILABLE = ConstantValueStatistic.instance(-1L);
-
   private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 
-  private final String tierName;
-
-  private final Map<String, TypedValueStatistic> knownStatistics;
+  private final Map<String, ValueStatistic<?>> knownStatistics;
 
   private final OperationStatistic<TierOperationOutcomes.GetOutcome> get;
   private final OperationStatistic<StoreOperationOutcomes.PutOutcome> put;
@@ -57,13 +54,14 @@ class DefaultTierStatistics implements TierStatistics {
   private final OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> expiration;
   private final OperationStatistic<StoreOperationOutcomes.ComputeOutcome> compute;
   private final OperationStatistic<StoreOperationOutcomes.ComputeIfAbsentOutcome> computeIfAbsent;
-  private final ValueStatistic<Long> mapping;
-  private final ValueStatistic<Long> maxMapping;
-  private final ValueStatistic<Long> allocatedMemory;
-  private final ValueStatistic<Long> occupiedMemory;
+
+  //Ehcache default to -1 if unavailable, but the management layer needs optional or null
+  // (since -1 can be a normal value for a stat).
+  private final Optional<ValueStatistic<Long>> mapping;
+  private final Optional<ValueStatistic<Long>> allocatedMemory;
+  private final Optional<ValueStatistic<Long>> occupiedMemory;
 
   public DefaultTierStatistics(Cache<?, ?> cache, String tierName) {
-    this.tierName = tierName;
 
     get = findOperationStatistic(cache, tierName, "tier", "get");
     put = findOperationStatistic(cache, tierName, "put");
@@ -78,127 +76,54 @@ class DefaultTierStatistics implements TierStatistics {
     computeIfAbsent = findOperationStatistic(cache, tierName, "computeIfAbsent");
 
     mapping = findValueStatistics(cache, tierName, "mappings");
-    maxMapping = findValueStatistics(cache, tierName, "maxMappings");
     allocatedMemory = findValueStatistics(cache, tierName, "allocatedMemory");
     occupiedMemory = findValueStatistics(cache, tierName, "occupiedMemory");
 
-    Map<String, TypedValueStatistic> knownStatistics = createKnownStatistics(tierName);
+    Map<String, ValueStatistic<?>> knownStatistics = createKnownStatistics(tierName);
     this.knownStatistics = Collections.unmodifiableMap(knownStatistics);
   }
 
-  private Map<String, TypedValueStatistic> createKnownStatistics(String tierName) {
-    Map<String, TypedValueStatistic> knownStatistics = new HashMap<String, TypedValueStatistic>(7);
-    addKnownStatistic(knownStatistics, tierName, "HitCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getHits();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "MissCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getMisses();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "PutCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getPuts();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "UpdateCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getUpdates();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "RemovalCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getRemovals();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "EvictionCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getEvictions();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "ExpirationCount", get, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getExpirations();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "MappingCount", mapping, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getMappings();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "MaxMappingCount", maxMapping, new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getMaxMappings();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "AllocatedByteSize", allocatedMemory, new TypedValueStatistic(StatisticType.SIZE) {
-      @Override
-      public Number value() {
-        return getAllocatedByteSize();
-      }
-    });
-    addKnownStatistic(knownStatistics, tierName, "OccupiedByteSize", occupiedMemory, new TypedValueStatistic(StatisticType.SIZE) {
-      @Override
-      public Number value() {
-        return getOccupiedByteSize();
-      }
-    });
+  private Map<String, ValueStatistic<?>> createKnownStatistics(String tierName) {
+    Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(7);
+    knownStatistics.put(tierName + ":HitCount", counter(this::getHits));
+    knownStatistics.put(tierName + ":MissCount", counter(this::getMisses));
+    knownStatistics.put(tierName + ":PutCount", counter(this::getPuts));
+    knownStatistics.put(tierName + ":RemovalCount", counter(this::getRemovals));
+    knownStatistics.put(tierName + ":EvictionCount", counter(this::getEvictions));
+    knownStatistics.put(tierName + ":ExpirationCount", counter(this::getExpirations));
+    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", counter(this::getMappings)));
+    allocatedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":AllocatedByteSize", gauge(this::getAllocatedByteSize)));
+    occupiedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":OccupiedByteSize", gauge(this::getOccupiedByteSize)));
     return knownStatistics;
   }
 
-  public Map<String, TypedValueStatistic> getKnownStatistics() {
+  @Override
+  public Map<String, ValueStatistic<?>> getKnownStatistics() {
     return knownStatistics;
-  }
-
-  private static void addKnownStatistic(Map<String, TypedValueStatistic> knownStatistics, String tierName, String name, Object stat, TypedValueStatistic statistic) {
-    if (stat != NOT_AVAILABLE) {
-      knownStatistics.put(tierName + ":" + name, statistic);
-    }
   }
 
   private <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Cache<?, ?> cache, String tierName, String tag, String stat) {
-    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, tag, stat);
-    if(s == null) {
-      return ZeroOperationStatistic.get();
-    }
-    return s;
+    return StatsUtils.<OperationStatistic<T>>findStatisticOnDescendants(cache, tierName, tag, stat).orElse(ZeroOperationStatistic.get());
   }
 
   private <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Cache<?, ?> cache, String tierName, String stat) {
-    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, stat);
-    if(s == null) {
-      return ZeroOperationStatistic.get();
-    }
-    return s;
+    return StatsUtils.<OperationStatistic<T>>findStatisticOnDescendants(cache, tierName, stat).orElse(ZeroOperationStatistic.get());
   }
 
-  private ValueStatistic<Long> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
-    ValueStatistic<Long> stat = findStatisticOnDescendants(cache, tierName, statName);
-    if (stat == null) {
-      return NOT_AVAILABLE;
-    }
-    return stat;
+  private Optional<ValueStatistic<Long>> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
+    return findStatisticOnDescendants(cache, tierName, statName);
   }
 
   /**
-   * Reset the values for this tier. However, note that {@code mapping, maxMappings, allocatedMemory, occupiedMemory}
+   * Reset the values for this tier. However, note that {@code mapping, allocatedMemory, occupiedMemory}
    * but be reset since it doesn't make sense.
    */
+  @Override
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
   }
 
+  @Override
   public long getHits() {
     return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.HIT)) +
            putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.HIT)) +
@@ -210,6 +135,7 @@ class DefaultTierStatistics implements TierStatistics {
            compensatingCounters.hits;
   }
 
+  @Override
   public long getMisses() {
     return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.MISS)) +
            putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT)) +
@@ -220,10 +146,10 @@ class DefaultTierStatistics implements TierStatistics {
            compensatingCounters.misses;
   }
 
+  @Override
   public long getPuts() {
     return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT)) +
            putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT)) +
-           put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
            compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT)) +
            computeIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT)) +
            replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
@@ -231,13 +157,7 @@ class DefaultTierStatistics implements TierStatistics {
            compensatingCounters.puts;
   }
 
-  public long getUpdates() {
-    return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
-           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
-           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) -
-           compensatingCounters.updates;
-  }
-
+  @Override
   public long getRemovals() {
     return remove.sum(EnumSet.of(StoreOperationOutcomes.RemoveOutcome.REMOVED)) +
            compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.REMOVED)) +
@@ -245,52 +165,51 @@ class DefaultTierStatistics implements TierStatistics {
            compensatingCounters.removals;
   }
 
+  @Override
   public long getEvictions() {
     return eviction.sum(EnumSet.of(TierOperationOutcomes.EvictionOutcome.SUCCESS)) -
       compensatingCounters.evictions;
   }
 
+  @Override
   public long getExpirations() {
     return expiration.sum() - compensatingCounters.expirations;
   }
 
+  @Override
   public long getMappings() {
-    return mapping.value();
+    return mapping.map(ValueStatistic::value).orElse(-1L);
   }
 
-  public long getMaxMappings() {
-    return maxMapping.value();
-  }
-
+  @Override
   public long getAllocatedByteSize() {
-    return allocatedMemory.value();
+    return allocatedMemory.map(ValueStatistic::value).orElse(-1L);
   }
 
+  @Override
   public long getOccupiedByteSize() {
-    return occupiedMemory.value();
+    return occupiedMemory.map(ValueStatistic::value).orElse(-1L);
   }
 
   private static class CompensatingCounters {
     final long hits;
     final long misses;
     final long puts;
-    final long updates;
     final long removals;
     final long evictions;
     final long expirations;
 
-    private CompensatingCounters(long hits, long misses, long puts, long updates, long removals, long evictions, long expirations) {
+    private CompensatingCounters(long hits, long misses, long puts, long removals, long evictions, long expirations) {
       this.hits = hits;
       this.misses = misses;
       this.puts = puts;
-      this.updates = updates;
       this.removals = removals;
       this.evictions = evictions;
       this.expirations = expirations;
     }
 
     static CompensatingCounters empty() {
-      return new CompensatingCounters(0, 0, 0, 0, 0, 0, 0);
+      return new CompensatingCounters(0, 0, 0, 0, 0, 0);
     }
 
     CompensatingCounters snapshot(DefaultTierStatistics statistics) {
@@ -298,7 +217,6 @@ class DefaultTierStatistics implements TierStatistics {
         statistics.getHits() + hits,
         statistics.getMisses() + misses,
         statistics.getPuts() + puts,
-        statistics.getUpdates() + updates,
         statistics.getRemovals() + removals,
         statistics.getEvictions() + evictions,
         statistics.getExpirations() + expirations

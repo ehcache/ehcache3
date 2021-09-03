@@ -40,7 +40,7 @@ public class DefaultSizeOfEngineTest {
       @SuppressWarnings("unchecked")
       IdentityCopier<MaxDepthGreaterThanThree> valueCopier = new IdentityCopier();
       sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(),
-        new CopiedOnHeapValueHolder<MaxDepthGreaterThanThree>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
+        new CopiedOnHeapValueHolder<>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));
@@ -54,7 +54,7 @@ public class DefaultSizeOfEngineTest {
       String overSized = new String(new byte[1000]);
       @SuppressWarnings("unchecked")
       IdentityCopier<String> valueCopier = new IdentityCopier();
-      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<String>("test", 0L, true, valueCopier));
+      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<>("test", 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));

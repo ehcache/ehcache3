@@ -59,14 +59,14 @@ class Ehcache3XAResourceHolder extends AbstractXAResourceHolder {
   /**
    * {@inheritDoc}
    */
-  public void close() throws Exception {
+  public void close() {
     throw new UnsupportedOperationException("Ehcache3XAResourceHolder cannot be used with an XAPool");
   }
 
   /**
    * {@inheritDoc}
    */
-  public Object getConnectionHandle() throws Exception {
+  public Object getConnectionHandle() {
     throw new UnsupportedOperationException("Ehcache3XAResourceHolder cannot be used with an XAPool");
   }
 
@@ -81,7 +81,7 @@ class Ehcache3XAResourceHolder extends AbstractXAResourceHolder {
    * {@inheritDoc}
    */
   public List<XAResourceHolder> getXAResourceHolders() {
-    return Collections.singletonList((XAResourceHolder) this);
+    return Collections.singletonList(this);
   }
 
 }

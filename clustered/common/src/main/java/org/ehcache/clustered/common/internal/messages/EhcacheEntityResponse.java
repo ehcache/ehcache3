@@ -27,9 +27,13 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public abstract EhcacheResponseType getResponseType();
 
+  public static Success success() {
+    return Success.INSTANCE;
+  }
+
   public static class Success extends EhcacheEntityResponse {
 
-    public static final Success INSTANCE = new Success();
+    private static final Success INSTANCE = new Success();
 
     private Success() {
       //singleton
@@ -41,11 +45,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static Failure failure(ClusterException cause) {
+    return new Failure(cause);
+  }
+
   public static class Failure extends EhcacheEntityResponse {
 
     private final ClusterException cause;
 
-    Failure(ClusterException cause) {
+    private Failure(ClusterException cause) {
       this.cause = cause;
     }
 
@@ -59,11 +67,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static GetResponse getResponse(Chain chain) {
+    return new GetResponse(chain);
+  }
+
   public static class GetResponse extends EhcacheEntityResponse {
 
     private final Chain chain;
 
-    GetResponse(Chain chain) {
+    private GetResponse(Chain chain) {
       this.chain = chain;
     }
 
@@ -84,7 +96,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
   public static class HashInvalidationDone extends EhcacheEntityResponse {
     private final long key;
 
-    HashInvalidationDone(long key) {
+    private HashInvalidationDone(long key) {
       this.key = key;
     }
 
@@ -104,7 +116,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public static class AllInvalidationDone extends EhcacheEntityResponse {
 
-    AllInvalidationDone() {
+    private AllInvalidationDone() {
     }
 
     @Override
@@ -120,7 +132,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
   public static class ServerInvalidateHash extends EhcacheEntityResponse {
     private final long key;
 
-    public ServerInvalidateHash(long key) {
+    private ServerInvalidateHash(long key) {
       this.key = key;
     }
 
@@ -142,7 +154,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     private final long key;
     private final int invalidationId;
 
-    public ClientInvalidateHash(long key, int invalidationId) {
+    private ClientInvalidateHash(long key, int invalidationId) {
       this.key = key;
       this.invalidationId = invalidationId;
     }
@@ -168,7 +180,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
   public static class ClientInvalidateAll extends EhcacheEntityResponse {
     private final int invalidationId;
 
-    public ClientInvalidateAll(int invalidationId) {
+    private ClientInvalidateAll(int invalidationId) {
       this.invalidationId = invalidationId;
     }
 
@@ -190,7 +202,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     private final Object value;
 
-    public MapValue(Object value) {
+    private MapValue(Object value) {
       this.value = value;
     }
 
@@ -204,11 +216,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static PrepareForDestroy prepareForDestroy(Set<String> stores) {
+    return new PrepareForDestroy(stores);
+  }
+
   public static class PrepareForDestroy extends EhcacheEntityResponse {
 
     private final Set<String> stores;
 
-    public PrepareForDestroy(Set<String> stores) {
+    private PrepareForDestroy(Set<String> stores) {
       this.stores = stores;
     }
 
@@ -222,4 +238,31 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static ResolveRequest resolveRequest(long key, Chain chain) {
+    return new ResolveRequest(key, chain);
+  }
+
+  public static class ResolveRequest extends EhcacheEntityResponse {
+
+    private final long key;
+    private final Chain chain;
+
+    ResolveRequest(long key, Chain chain) {
+      this.key = key;
+      this.chain = chain;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.RESOLVE_REQUEST;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    public Chain getChain() {
+      return chain;
+    }
+  }
 }

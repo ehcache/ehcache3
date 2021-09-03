@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.statistics;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.ehcache.Cache;
@@ -55,7 +56,7 @@ final class StatsUtils {
       @Override
       protected boolean matchesSafely(Map<String, Object> properties) {
         Object val = properties.get(key);
-        return val == null ? false : value.equals(val);
+        return val != null && value.equals(val);
       }
     });
   }
@@ -71,12 +72,12 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
+  static <T> Optional<T> findStatisticOnDescendants(Object context, String discriminator, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasProperty("discriminator", discriminator),
         hasTag(tag)))))
@@ -89,11 +90,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -106,12 +107,12 @@ final class StatsUtils {
    * @return the wanted statistic or null if no such statistic is found
    * @throws RuntimeException when more than one matching statistic is found
    */
-  static <T> T findStatisticOnDescendants(Object context, String tag, String statName) {
+  static <T> Optional<T> findStatisticOnDescendants(Object context, String tag, String statName) {
 
     @SuppressWarnings("unchecked")
     Set<TreeNode> statResult = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("name", statName),
         hasTag(tag)))))
       .build().execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -123,11 +124,11 @@ final class StatsUtils {
     if (statResult.size() == 1) {
       @SuppressWarnings("unchecked")
       T result = (T) statResult.iterator().next().getContext().attributes().get("this");
-      return result;
+      return Optional.ofNullable(result);
     }
 
     // No such stat in this context
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -144,7 +145,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Query query = queryBuilder()
       .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
       .build();
 
     Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(context)));
@@ -177,7 +178,7 @@ final class StatsUtils {
     @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
       .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
+      .filter(context(attributes(Matchers.allOf(hasAttribute("name", "eviction"), hasAttribute("type", StoreOperationOutcomes.EvictionOutcome.class)))))
       .build();
 
     Set<TreeNode> statResult = statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));

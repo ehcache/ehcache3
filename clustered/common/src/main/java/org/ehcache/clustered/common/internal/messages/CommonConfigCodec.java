@@ -175,7 +175,7 @@ public class CommonConfigCodec implements ConfigCodec {
   public ServerSideConfiguration decodeServerSideConfiguration(StructDecoder<?> decoder) {
     String defaultResource = decoder.string(DEFAULT_RESOURCE_FIELD);
 
-    HashMap<String, ServerSideConfiguration.Pool> resourcePools = new HashMap<String, ServerSideConfiguration.Pool>();
+    HashMap<String, ServerSideConfiguration.Pool> resourcePools = new HashMap<>();
     StructArrayDecoder<? extends StructDecoder<?>> poolsDecoder = decoder.structs(POOLS_SUB_STRUCT);
     if (poolsDecoder != null) {
       for (int i = 0; i < poolsDecoder.length(); i++) {

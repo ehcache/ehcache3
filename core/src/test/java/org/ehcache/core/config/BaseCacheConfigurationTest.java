@@ -36,7 +36,7 @@ public class BaseCacheConfigurationTest {
     expectedException.expect(NullPointerException.class);
     expectedException.expectMessage("keyType");
 
-    new BaseCacheConfiguration<Object, String>(null, String.class, null,
+    new BaseCacheConfiguration<>(null, String.class, null,
       null, null, mock(ResourcePools.class));
   }
 
@@ -45,7 +45,7 @@ public class BaseCacheConfigurationTest {
     expectedException.expect(NullPointerException.class);
     expectedException.expectMessage("valueType");
 
-    new BaseCacheConfiguration<Long, Object>(Long.class, null, null,
+    new BaseCacheConfiguration<>(Long.class, null, null,
       null, null, mock(ResourcePools.class));
   }
 
@@ -54,7 +54,7 @@ public class BaseCacheConfigurationTest {
     expectedException.expect(NullPointerException.class);
     expectedException.expectMessage("resourcePools");
 
-    new BaseCacheConfiguration<Long, String>(Long.class, String.class, null,
+    new BaseCacheConfiguration<>(Long.class, String.class, null,
       null, null, null);
   }
 

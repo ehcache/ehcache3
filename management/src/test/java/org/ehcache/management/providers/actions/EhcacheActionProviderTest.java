@@ -94,7 +94,7 @@ public class EhcacheActionProviderTest {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
 
     try {
-      ehcacheActionProvider.collectStatistics(null, null);
+      ehcacheActionProvider.collectStatistics(null, null, 0);
       fail("expected UnsupportedOperationException");
     } catch (UnsupportedOperationException uoe) {
       // expected

@@ -24,6 +24,7 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
@@ -39,8 +40,8 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
 
   private final ClientCommunicator communicator;
 
-  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<ClientDescriptor>();
-  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<ClientDescriptor>();
+  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<>();
+  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<>();
 
   private volatile ClientDescriptor exclusiveHolder;
 
@@ -49,11 +50,17 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   }
 
   @Override
-  public LockTransition invoke(ClientDescriptor client, LockOperation message) {
+  public LockTransition invokeActive(ActiveInvokeContext<LockTransition> context, LockOperation message) {
+    ClientDescriptor clientDescriptor = context.getClientDescriptor();
+    return invokeActive(clientDescriptor, message);
+  }
+
+  private LockTransition invokeActive(ClientDescriptor clientDescriptor, LockOperation message) {
     switch (message.getOperation()) {
-      case TRY_ACQUIRE: return tryAcquire(client, message.getHoldType());
-      case ACQUIRE: return acquire(client, message.getHoldType());
-      case RELEASE: return release(client, message.getHoldType());
+      case TRY_ACQUIRE:
+        return tryAcquire(clientDescriptor, message.getHoldType());
+      case ACQUIRE: return acquire(clientDescriptor, message.getHoldType());
+      case RELEASE: return release(clientDescriptor, message.getHoldType());
       default: throw new AssertionError();
     }
   }
@@ -98,18 +105,21 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor client, byte[] reconnectData) {
-    if (reconnectData.length == 0) {
-      releaseListeners.add(client);
-    } else {
-      try {
-        if (!invoke(client, LockMessaging.codec().decodeMessage(reconnectData)).isAcquired()) {
-          throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> {
+      if (bytes.length == 0) {
+        releaseListeners.add(clientDescriptor);
+      } else {
+        try {
+          LockOperation message = LockMessaging.codec().decodeMessage(bytes);
+          if (!invokeActive(clientDescriptor, message).isAcquired()) {
+            throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+          }
+        } catch (MessageCodecException ex) {
+          throw new AssertionError(ex);
         }
-      } catch (MessageCodecException ex) {
-        throw new AssertionError(ex);
       }
-    }
+    };
   }
 
   @Override

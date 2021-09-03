@@ -70,8 +70,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -101,7 +99,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
 
-  protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
+  protected final AtomicReference<Status> status = new AtomicReference<>(Status.UNINITIALIZED);
 
   private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Class<K> keyType;
@@ -176,12 +174,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
 
-    FileInputStream fis = new FileInputStream(metadataFile);
     Properties properties = new Properties();
-    try {
+    try (FileInputStream fis = new FileInputStream(metadataFile)) {
       properties.load(fis);
-    } finally {
-      fis.close();
     }
     try {
       Class<?> persistedKeyType = Class.forName(properties.getProperty(KEY_TYPE_PROPERTY_NAME), false, classLoader);
@@ -200,40 +195,39 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new IllegalStateException("Persisted value type class not found", cnfe);
     }
 
-    FileInputStream fin = new FileInputStream(indexFile);
-    try {
+    try (FileInputStream fin = new FileInputStream(indexFile)) {
       ObjectInputStream input = new ObjectInputStream(fin);
       long dataTimestampFromIndex = input.readLong();
       long dataTimestampFromFile = dataFile.lastModified();
       long delta = dataTimestampFromFile - dataTimestampFromIndex;
       if (delta < 0) {
         LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
-                    dataFile.getName(), -delta);
+          dataFile.getName(), -delta);
       } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
         LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
-                    dataFile.getName(), delta);
+          dataFile.getName(), delta);
         return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } else if (delta > 0) {
         LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
-                    dataFile.getName(), delta);
+          dataFile.getName(), delta);
       }
 
       MappedPageSource source = new MappedPageSource(dataFile, false, size);
       try {
-        PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
-        PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
+        PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
+        PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<>(valueSerializer));
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
+          max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
-        EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
-            source,
-            storageEngineFactory,
-            64,
-            evictionAdvisor,
-            mapEvictionListener, false);
-        EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
+        EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<>(
+          source,
+          storageEngineFactory,
+          64,
+          evictionAdvisor,
+          mapEvictionListener, false);
+        EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> m = new EhcachePersistentConcurrentOffHeapClockCache<>(input, evictionAdvisor, factory);
 
         m.bootstrap(input);
         return m;
@@ -245,38 +239,33 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
       LOGGER.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
-    } finally {
-      fin.close();
     }
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File metadataFile = getMetadataFile();
-    FileOutputStream fos = new FileOutputStream(metadataFile);
-    try {
+    try (FileOutputStream fos = new FileOutputStream(metadataFile)) {
       Properties properties = new Properties();
       properties.put(KEY_TYPE_PROPERTY_NAME, keyType.getName());
       properties.put(VALUE_TYPE_PROPERTY_NAME, valueType.getName());
       properties.store(fos, "Key and value types");
-    } finally {
-      fos.close();
     }
 
     MappedPageSource source = new MappedPageSource(getDataFile(), size);
-    PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
-    PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
+    PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
+    PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<>(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
         max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
 
-    EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
-        source,
-        storageEngineFactory,
-        64,
-        evictionAdvisor,
-        mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, diskSegments);
+    EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<>(
+      source,
+      storageEngineFactory,
+      64,
+      evictionAdvisor,
+      mapEvictionListener, true);
+    return new EhcachePersistentConcurrentOffHeapClockCache<>(evictionAdvisor, factory, diskSegments);
 
   }
 
@@ -305,8 +294,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private final Map<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>>();
-    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, PersistenceSpaceIdentifier>();
+    private final Map<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
@@ -331,18 +320,18 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+      OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-              new MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
-                      store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "get", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "get", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(store);
       tieredOps.add(get);
 
       MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
-                      store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
@@ -383,9 +372,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         FileBasedPersistenceContext persistenceContext = diskPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
-        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
-                executionService, threadPoolAlias, writerConcurrency, diskSegments,
-                storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
+        OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<>(persistenceContext,
+          executionService, threadPoolAlias, writerConcurrency, diskSegments,
+          storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
         createdStores.put(offHeapStore, space);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
@@ -413,12 +402,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (localMap != null) {
         resource.map = null;
         localMap.flush();
-        ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()));
-        try {
+        try (ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()))) {
           output.writeLong(System.currentTimeMillis());
           localMap.persist(output);
-        } finally {
-          output.close();
         }
         localMap.close();
       }
@@ -434,7 +420,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
       Serializer keySerializer = diskStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
         } catch (CachePersistenceException e) {
@@ -444,7 +430,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       Serializer valueSerializer = diskStore.valueSerializer;
       if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
         } catch (CachePersistenceException e) {
@@ -478,18 +464,19 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+      OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
+        .getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
-              new MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome>(
-                      authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "getAndFault", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "getAndFault", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(authoritativeTier);
       tieredOps.add(get);
 
       MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
-                      authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
+        new MappedOperationStatistic<>(
+          authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(authoritativeTier);
       tieredOps.add(evict);
 
@@ -519,15 +506,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
     proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
 
-    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, new InvocationHandler() {
-
-      @Override
-      public Object invoke(Object o, Method method, Object[] os) throws Throwable {
-        if (method.getDeclaringClass().equals(Persistent.class)) {
-          return null;
-        } else {
-          return method.invoke(normal, os);
-        }
+    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, (o, method, os) -> {
+      if (method.getDeclaringClass().equals(Persistent.class)) {
+        return null;
+      } else {
+        return method.invoke(normal, os);
       }
     });
   }

@@ -26,7 +26,6 @@ import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -36,13 +35,6 @@ final class ExceptionCodec {
   private ExceptionCodec() {
     //no instances please
   }
-
-  public static final StructEncoderFunction<ClusterException> EXCEPTION_ENCODER_FUNCTION = new StructEncoderFunction<ClusterException>() {
-    @Override
-    public void encode(StructEncoder<?> encoder, ClusterException exception) {
-      ExceptionCodec.encode(encoder, exception);
-    }
-  };
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCodec.class);
 
@@ -100,7 +92,7 @@ final class ExceptionCodec {
     }
     arrayDecoder.end();
     Class clazz = null;
-    ClusterException exception = null;
+    ClusterException exception;
     try {
       clazz = Class.forName(exceptionClassName);
     } catch (ClassNotFoundException e) {
@@ -121,13 +113,7 @@ final class ExceptionCodec {
       try {
         Constructor declaredConstructor = clazz.getDeclaredConstructor(String.class);
         exception = (ClusterException)declaredConstructor.newInstance(message);
-      } catch (NoSuchMethodException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (IllegalAccessException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (InstantiationException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (InvocationTargetException e) {
+      } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
         LOGGER.error("Failed to instantiate exception object.", e);
       }
     }

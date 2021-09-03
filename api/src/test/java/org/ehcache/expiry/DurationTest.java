@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class DurationTest {
 
   @Test
@@ -47,7 +48,7 @@ public class DurationTest {
 
   @Test
   public void testEqualsHashcode() {
-    Set<Duration> set = new HashSet<Duration>();
+    Set<Duration> set = new HashSet<>();
     assertAdd(Duration.INFINITE, set);
     assertAdd(Duration.ZERO, set);
     assertThat(set.add(new Duration(0L, TimeUnit.SECONDS)), equalTo(false));

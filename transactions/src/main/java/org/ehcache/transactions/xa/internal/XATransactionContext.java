@@ -16,7 +16,7 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
@@ -45,7 +45,7 @@ public class XATransactionContext<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(XATransactionContext.class);
 
-  private final ConcurrentHashMap<K, Command<V>> commands = new ConcurrentHashMap<K, Command<V>>();
+  private final ConcurrentHashMap<K, Command<V>> commands = new ConcurrentHashMap<>();
   private final TransactionId transactionId;
   private final Store<K, SoftLock<V>> underlyingStore;
   private final Journal<K> journal;
@@ -82,7 +82,7 @@ public class XATransactionContext<K, V> {
   }
 
   public Map<K, XAValueHolder<V>> newValueHolders() {
-    Map<K, XAValueHolder<V>> puts = new HashMap<K, XAValueHolder<V>>();
+    Map<K, XAValueHolder<V>> puts = new HashMap<>();
 
     for (Map.Entry<K, Command<V>> entry : commands.entrySet()) {
       Command<V> command = entry.getValue();
@@ -123,7 +123,7 @@ public class XATransactionContext<K, V> {
   public V newValueOf(K key) {
     Command<V> command = commands.get(key);
     XAValueHolder<V> valueHolder = command == null ? null : command.getNewValueHolder();
-    return valueHolder == null ? null : valueHolder.value();
+    return valueHolder == null ? null : valueHolder.get();
   }
 
   public int prepare() throws StoreAccessException, IllegalStateException, TransactionTimeoutException {
@@ -142,8 +142,8 @@ public class XATransactionContext<K, V> {
           continue;
         }
         V oldValue = entry.getValue().getOldValue();
-        SoftLock<V> oldSoftLock = oldValue == null ? null : new SoftLock<V>(null, oldValue, null);
-        SoftLock<V> newSoftLock = new SoftLock<V>(transactionId, oldValue, entry.getValue().getNewValueHolder());
+        SoftLock<V> oldSoftLock = oldValue == null ? null : new SoftLock<>(null, oldValue, null);
+        SoftLock<V> newSoftLock = new SoftLock<>(transactionId, oldValue, entry.getValue().getNewValueHolder());
         if (oldSoftLock != null) {
           boolean replaced = replaceInUnderlyingStore(entry.getKey(), oldSoftLock, newSoftLock);
           if (!replaced) {
@@ -186,7 +186,7 @@ public class XATransactionContext<K, V> {
     for (K key : keys) {
       SoftLock<V> preparedSoftLock = getFromUnderlyingStore(key);
       XAValueHolder<V> newValueHolder = preparedSoftLock == null ? null : preparedSoftLock.getNewValueHolder();
-      SoftLock<V> definitiveSoftLock = newValueHolder == null ? null : new SoftLock<V>(null, newValueHolder.value(), null);
+      SoftLock<V> definitiveSoftLock = newValueHolder == null ? null : new SoftLock<>(null, newValueHolder.get(), null);
 
       if (preparedSoftLock != null) {
         if (preparedSoftLock.getTransactionId() != null && !preparedSoftLock.getTransactionId().equals(transactionId)) {
@@ -241,7 +241,7 @@ public class XATransactionContext<K, V> {
       for (K key : keys) {
         SoftLock<V> preparedSoftLock = getFromUnderlyingStore(key);
         V oldValue = preparedSoftLock == null ? null : preparedSoftLock.getOldValue();
-        SoftLock<V> definitiveSoftLock = oldValue == null ? null : new SoftLock<V>(null, oldValue, null);
+        SoftLock<V> definitiveSoftLock = oldValue == null ? null : new SoftLock<>(null, oldValue, null);
 
         if (preparedSoftLock != null) {
           if (preparedSoftLock.getTransactionId() != null && !preparedSoftLock.getTransactionId().equals(transactionId)) {
@@ -298,7 +298,7 @@ public class XATransactionContext<K, V> {
 
   private SoftLock<V> getFromUnderlyingStore(K key) throws StoreAccessException {
     Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
-    return softLockValueHolder == null ? null : softLockValueHolder.value();
+    return softLockValueHolder == null ? null : softLockValueHolder.get();
   }
 
   private void evictFromUnderlyingStore(K key) throws StoreAccessException {

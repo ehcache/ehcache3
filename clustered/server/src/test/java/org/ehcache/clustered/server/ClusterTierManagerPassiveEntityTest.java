@@ -19,7 +19,6 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -33,7 +32,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -46,7 +45,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -58,13 +56,10 @@ import static org.mockito.Mockito.mock;
 
 public class ClusterTierManagerPassiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   @Before
   public void setClientId() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
   }
 
   @Test(expected = ConfigurationException.class)
@@ -273,7 +268,7 @@ public class ClusterTierManagerPassiveEntityTest {
   }
 
   private static final class ServerSideConfigBuilder {
-    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
+    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
     private String defaultServerResource;
 
     ServerSideConfigBuilder sharedPool(String poolName, String resourceName, int size, MemoryUnit unit) {
@@ -305,7 +300,7 @@ public class ClusterTierManagerPassiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate an "open" {@code ServiceRegistry}.  Using this constructor creates a
@@ -347,7 +342,7 @@ public class ClusterTierManagerPassiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }
@@ -376,7 +371,7 @@ public class ClusterTierManagerPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;

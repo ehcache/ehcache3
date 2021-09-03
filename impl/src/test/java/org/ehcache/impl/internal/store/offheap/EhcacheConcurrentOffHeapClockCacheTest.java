@@ -61,8 +61,8 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
       PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheConcurrentOffHeapClockCacheTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheConcurrentOffHeapClockCacheTest.class.getClassLoader());
-      Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
-      Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
+      Portability<String> keyPortability = new SerializerPortability<>(keySerializer);
+      Portability<String> elementPortability = new SerializerPortability<>(valueSerializer);
       Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
       SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
 
@@ -83,8 +83,8 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
           this.enabled = switchedOn;
         }
       };
-      EhcacheSegmentFactory<String, String> segmentFactory = new EhcacheSegmentFactory<String, String>(pageSource, storageEngineFactory, 0, wrappedEvictionAdvisor, evictionListener);
-      return new EhcacheConcurrentOffHeapClockCache<String, String>(evictionPredicate, segmentFactory, 1);
+      EhcacheSegmentFactory<String, String> segmentFactory = new EhcacheSegmentFactory<>(pageSource, storageEngineFactory, 0, wrappedEvictionAdvisor, evictionListener);
+      return new EhcacheConcurrentOffHeapClockCache<>(evictionPredicate, segmentFactory, 1);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }

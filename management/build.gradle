@@ -22,26 +22,22 @@ dependencies {
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
-  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
-  compileOnly "org.terracotta.management.dist:mnm-nms-agent:$parent.managementVersion"
+  compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
+  compileOnly "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
 
   compileOnly project(':api')
   compileOnly project(':core')
   compileOnly project(':impl')
-  testCompile ("org.terracotta.management:management-registry:$parent.managementVersion") {
+  testCompile ("org.terracotta.management:management-registry:$terracottaPlatformVersion") {
     exclude group: 'org.terracotta', module: 'statistics'
   }
 
   testCompile project(':xml')
-  testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
+  testCompile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
 }
 
 test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
 }

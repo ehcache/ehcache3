@@ -110,9 +110,8 @@ public class PassiveSyncTest {
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
         .autoCreate()
         .defaultServerResource("primary-server-resource"));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -125,17 +124,14 @@ public class PassiveSyncTest {
 
       final CountDownLatch latch = new CountDownLatch(1);
       final AtomicBoolean complete = new AtomicBoolean(false);
-      Thread lifeCycleThread = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          while (!complete.get()) {
-            try {
-              latch.await();
-              clusteredCacheManagerBuilder.build(true);
-              Thread.sleep(200);
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-            }
+      Thread lifeCycleThread = new Thread(() -> {
+        while (!complete.get()) {
+          try {
+            latch.await();
+            clusteredCacheManagerBuilder.build(true);
+            Thread.sleep(200);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
           }
         }
       });
@@ -149,8 +145,6 @@ public class PassiveSyncTest {
       for (long i = 0; i < 100; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
-    } finally {
-      cacheManager.close();
     }
   }
 }

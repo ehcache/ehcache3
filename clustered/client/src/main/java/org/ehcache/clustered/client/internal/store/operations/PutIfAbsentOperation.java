@@ -20,7 +20,7 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
+public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<K, V> {
 
   public PutIfAbsentOperation(final K key, final V value, final long timeStamp) {
     super(key, value, timeStamp);
@@ -40,11 +40,16 @@ public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> impl
    * for the same key.
    */
   @Override
-  public Result<V> apply(final Result<V> previousOperation) {
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
     if(previousOperation == null) {
       return this;
     } else {
       return previousOperation;
     }
+  }
+
+  @Override
+  public PutOperation<K, V> asOperationExpiringAt(long expirationTime) {
+    return new PutOperation<>(this, -expirationTime);
   }
 }

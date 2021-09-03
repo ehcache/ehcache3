@@ -73,13 +73,13 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else if (conf == null &&  preConfigured != null && preConfigured.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()
                                         + "' which doesn't implement java.io.Serializable");
       }
-      copier = new SerializingCopier<T>(serializer);
+      copier = new SerializingCopier<>(serializer);
     } else {
       copier = createCopier(clazz, conf, type);
     }
@@ -92,7 +92,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
       @SuppressWarnings("unchecked")
-      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration((Class) IdentityCopier.class, type));
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration(IdentityCopier.class, type));
       copier = defaultInstance;
     }
     return copier;

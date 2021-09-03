@@ -24,14 +24,10 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
@@ -39,20 +35,7 @@ public class LifeCycleMessageCodec {
 
   private static final String CONFIG_PRESENT_FIELD = "configPresent";
 
-  private final StructBuilder VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .bool(CONFIG_PRESENT_FIELD, 30);
   private static final int CONFIGURE_MESSAGE_NEXT_INDEX = 40;
-
-  private final StructBuilder VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .string(SERVER_STORE_NAME_FIELD, 30);
   private static final int VALIDATE_STORE_NEXT_INDEX = 40;
 
   private final Struct PREPARE_FOR_DESTROY_STRUCT = newStructBuilder()
@@ -68,11 +51,20 @@ public class LifeCycleMessageCodec {
   public LifeCycleMessageCodec(ConfigCodec configCodec) {
     this.messageCodecUtils = new MessageCodecUtils();
     this.configCodec = configCodec;
+
+    StructBuilder validateMessageStructBuilderPrefix = newStructBuilder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+      .bool(CONFIG_PRESENT_FIELD, 30);
+
     validateMessageStruct = this.configCodec.injectServerSideConfiguration(
-      VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+      validateMessageStructBuilderPrefix, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+
+    StructBuilder validateStoreMessageStructBuilderPrefix = newStructBuilder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+      .string(SERVER_STORE_NAME_FIELD, 30);
 
     validateStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
-      VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
+      validateStoreMessageStructBuilderPrefix, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
   }
 
   public byte[] encode(LifecycleMessage message) {
@@ -125,8 +117,9 @@ public class LifeCycleMessageCodec {
         return decodeValidateServerStoreMessage(messageBuffer);
       case PREPARE_FOR_DESTROY:
         return decodePrepareForDestroyMessage();
+      default:
+        throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
     }
-    throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
   }
 
   private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {
@@ -136,22 +129,15 @@ public class LifeCycleMessageCodec {
   private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = validateStoreMessageStruct.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
-
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
 
-    LifecycleMessage.ValidateServerStore message = new LifecycleMessage.ValidateServerStore(storeName, config, cliendId);
-    message.setId(msgId);
-    return message;
+    return new LifecycleMessage.ValidateServerStore(storeName, config);
   }
 
   private LifecycleMessage.ValidateStoreManager decodeValidateMessage(ByteBuffer messageBuffer) {
     StructDecoder<Void> decoder = validateMessageStruct.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
     boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
 
     ServerSideConfiguration config = null;
@@ -159,11 +145,6 @@ public class LifeCycleMessageCodec {
       config = configCodec.decodeServerSideConfiguration(decoder);
     }
 
-
-    LifecycleMessage.ValidateStoreManager message = new LifecycleMessage.ValidateStoreManager(config, cliendId);
-    if (msgId != null) {
-      message.setId(msgId);
-    }
-    return message;
+    return new LifecycleMessage.ValidateStoreManager(config);
   }
 }

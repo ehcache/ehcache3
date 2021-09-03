@@ -22,7 +22,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.EntityManagementRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
@@ -42,7 +42,7 @@ public class Management implements Closeable {
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
     try {
-      managementRegistry = services.getService(new ManagementRegistryConfiguration(services, active));
+      managementRegistry = services.getService(new EntityManagementRegistryConfiguration(services, active));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -82,17 +82,19 @@ public class Management implements Closeable {
     getManagementRegistry().addManagementProvider(new ClusterTierManagerSettingsManagementProvider());
   }
 
-  // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
-  public void init() {
+  public void entityCreated() {
     if (managementRegistry != null) {
-      LOGGER.trace("init()");
+      LOGGER.trace("entityCreated()");
+      managementRegistry.entityCreated();
+      init();
+    }
+  }
 
-      CompletableFuture.allOf(
-        managementRegistry.register(generateClusterTierManagerBinding()),
-        // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
-        // this object is ignored from the stats and descriptors
-        managementRegistry.register(PoolBinding.ALL_SHARED)
-      ).thenRun(managementRegistry::refresh);
+  public void entityPromotionCompleted() {
+    if (managementRegistry != null) {
+      LOGGER.trace("entityPromotionCompleted()");
+      managementRegistry.entityPromotionCompleted();
+      init();
     }
   }
 
@@ -109,6 +111,16 @@ public class Management implements Closeable {
           managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
         });
     }
+  }
+
+  // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
+  private void init() {
+    CompletableFuture.allOf(
+      managementRegistry.register(generateClusterTierManagerBinding()),
+      // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
+      // this object is ignored from the stats and descriptors
+      managementRegistry.register(PoolBinding.ALL_SHARED)
+    ).thenRun(managementRegistry::refresh);
   }
 
 }

@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -75,7 +75,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
+    assertThat(kvStore.get(key).get(), is(equalTo(newValue)));
   }
 
   @SPITest
@@ -91,7 +91,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     V newValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.replace(key, newValue).value(), is(equalTo(originalValue)));
+      assertThat(kvStore.replace(key, newValue).get(), is(equalTo(originalValue)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

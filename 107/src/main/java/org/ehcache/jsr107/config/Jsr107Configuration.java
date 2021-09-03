@@ -37,8 +37,8 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    *  @param defaultTemplate the default template
    * @param templates cache alias to template name map
    * @param jsr107CompliantAtomics behaviour of loader writer in atomic operations
-   * @param enableManagementAll
-   * @param enableStatisticsAll
+   * @param enableManagementAll enable management JMX
+   * @param enableStatisticsAll enable statistics JMX
    */
   public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
                              boolean jsr107CompliantAtomics, ConfigurationElementState enableManagementAll, ConfigurationElementState enableStatisticsAll) {
@@ -46,7 +46,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
     this.enableManagementAll = enableManagementAll;
     this.enableStatisticsAll = enableStatisticsAll;
-    this.templates = new ConcurrentHashMap<String, String>(templates);
+    this.templates = new ConcurrentHashMap<>(templates);
   }
 
   /**

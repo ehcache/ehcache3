@@ -27,7 +27,7 @@ import javax.cache.event.CacheEntryListenerException;
  * TestCacheEntryListener
  */
 public class Test107CacheEntryListener implements CacheEntryCreatedListener<String, String> {
-  public static List<CacheEntryEvent<? extends String, ? extends String>> seen = new ArrayList<CacheEntryEvent<? extends String, ? extends String>>();
+  public static List<CacheEntryEvent<? extends String, ? extends String>> seen = new ArrayList<>();
 
   @Override
   public void onCreated(Iterable<CacheEntryEvent<? extends String, ? extends String>> cacheEntryEvents) throws CacheEntryListenerException {

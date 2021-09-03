@@ -21,6 +21,7 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
@@ -29,11 +30,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.collect.DefaultStatisticCollector;
-import org.terracotta.management.registry.collect.StatisticCollector;
 
-import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
@@ -73,15 +71,13 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     scheduledExecutorService = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getCollectorExecutorAlias());
 
+    TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
       scheduledExecutorService,
-      new StatisticCollector.Collector() {
-        @Override
-        public void onStatistics(Collection<ContextualStatistics> statistics) {
-          collector.onStatistics(statistics);
-        }
-      });
+      collector::onStatistics,
+      timeSource::getTimeMillis);
 
     cacheManager.registerListener(this);
   }

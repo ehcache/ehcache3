@@ -47,7 +47,7 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
    * @return a JSR-107 configuration
    */
   public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(CacheConfiguration<K, V> ehcacheConfig) {
-    return new Eh107ConfigurationWrapper<K, V> (ehcacheConfig);
+    return new Eh107ConfigurationWrapper<>(ehcacheConfig);
   }
 
   /**
@@ -61,7 +61,7 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
    * @return a JSR-107 configuration
    */
   public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(Builder<? extends CacheConfiguration<K, V>> ehcacheConfigBuilder) {
-    return new Eh107ConfigurationWrapper<K, V>(ehcacheConfigBuilder.build());
+    return new Eh107ConfigurationWrapper<>(ehcacheConfigBuilder.build());
   }
 
   /**

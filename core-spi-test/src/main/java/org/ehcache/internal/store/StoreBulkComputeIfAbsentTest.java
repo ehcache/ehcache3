@@ -16,8 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -25,11 +25,14 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
+import static java.util.Collections.emptySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -63,7 +66,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -74,13 +77,10 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-            @Override
-            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-              assertThat(entries.iterator().hasNext(), is(false));
-              return new HashMap<K, V>().entrySet();
-            }
-          }
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        assertThat(entries.iterator().hasNext(), is(false));
+        return emptySet();
+      }
       );
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -89,8 +89,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void missingIterableEntriesAreIgnoredByTheStore() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    Map<K, V> mappedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    Map<K, V> mappedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -102,16 +102,10 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-            @Override
-            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-              return new HashMap<K, V>().entrySet();
-            }
-          }
-      );
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> emptySet());
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -120,9 +114,9 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingIsSameInTheStoreForEntriesReturnedWithDifferentValueFromMappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    Map<K, V> mappedEntries = new HashMap<K, V>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    Map<K, V> mappedEntries = new HashMap<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -136,19 +130,16 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (K key : entries) {
-            update.put(key, computedEntries.get(key));
-          }
-          return update.entrySet();
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<>();
+        for (K key : entries) {
+          update.put(key, computedEntries.get(key));
         }
+        return update.entrySet();
       });
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -158,7 +149,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
 
@@ -170,11 +161,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-          throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
-        }
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
       });
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -186,8 +174,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void computeValuesForEveryKeyUsingAMappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -197,19 +185,16 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       computedEntries.put(k, v);
     }
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (K key : entries) {
-            update.put(key, computedEntries.get(key));
-          }
-          return update.entrySet();
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<>();
+        for (K key : entries) {
+          update.put(key, computedEntries.get(key));
         }
+        return update.entrySet();
       });
 
       for (Map.Entry<K, V> entry : computedEntries.entrySet()) {
-        assertThat(kvStore.get(entry.getKey()).value(), is(entry.getValue()));
+        assertThat(kvStore.get(entry.getKey()).get(), is(entry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -219,8 +204,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -231,19 +216,16 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (K key : entries) {
-            if (factory.getKeyType() == String.class) {
-              update.put((K)new StringBuffer(key.toString()), computedEntries.get(key));
-            } else {
-              update.put((K)key.toString(), computedEntries.get(key));
-            }
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<>();
+        for (K key : entries) {
+          if (factory.getKeyType() == String.class) {
+            update.put((K)new StringBuffer(key.toString()), computedEntries.get(key));
+          } else {
+            update.put((K)key.toString(), computedEntries.get(key));
           }
-          return update.entrySet();
         }
+        return update.entrySet();
       });
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException cce) {
@@ -256,8 +238,8 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testMappingFunctionProducesWrongValueType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
        K k = factory.createKey(i);
@@ -268,25 +250,49 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkComputeIfAbsent(inputKeys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (K key : entries) {
-            if (factory.getKeyType() == String.class) {
-              update.put(key, (V)new StringBuffer(computedEntries.get(key).toString()));
-            } else {
-              update.put(key, (V)computedEntries.get(key).toString());
-            }
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<>();
+        for (K key : entries) {
+          if (factory.getKeyType() == String.class) {
+            update.put(key, (V)new StringBuffer(computedEntries.get(key).toString()));
+          } else {
+            update.put(key, (V)computedEntries.get(key).toString());
           }
-          return update.entrySet();
         }
+        return update.entrySet();
       });
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException cce) {
       //expected
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void exception() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+
+    try {
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> { throw exception; });
+    } catch (StoreAccessException e) {
+      assertThat(e.getCause(), is(exception));
+    }
+  }
+
+  @SPITest
+  public void passThroughException() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+    StorePassThroughException ste = new StorePassThroughException(exception);
+
+    try {
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> { throw ste; });
+    } catch (RuntimeException e) {
+      assertThat(e, is(exception));
     }
   }
 }
