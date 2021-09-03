@@ -26,9 +26,11 @@ import org.junit.Test;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ClientSourceId;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,22 +55,18 @@ public class EhcacheMessageTrackerMessageTest {
 
   @Before
   public void before() {
-    @SuppressWarnings("unchecked")
-    OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler = mock(OOOMessageHandler.class);
-
-    Set<ClientSourceId> clientSourceIds = Sets.newLinkedHashSet(id1, id2);
-    when(messageHandler.getTrackedClients()).thenReturn(clientSourceIds);
-
     Map<Long, EhcacheEntityResponse> res1 = Maps.newHashMap();
     res1.put(3L, r3);
     res1.put(4L, r4);
-    when(messageHandler.getTrackedResponses(id1)).thenReturn(res1);
 
     Map<Long, EhcacheEntityResponse> res2 = Maps.newHashMap();
     res2.put(5L, r5);
-    when(messageHandler.getTrackedResponses(id2)).thenReturn(res2);
 
-    message = new EhcacheMessageTrackerMessage(messageHandler);
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackingMap = new HashMap<>();
+    trackingMap.put(id1.toLong(), res1);
+    trackingMap.put(id2.toLong(), res2);
+
+    message = new EhcacheMessageTrackerMessage(2, trackingMap);
   }
 
   @Test

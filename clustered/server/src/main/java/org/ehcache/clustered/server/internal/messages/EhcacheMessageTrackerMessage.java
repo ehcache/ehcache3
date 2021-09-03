@@ -21,9 +21,9 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ClientSourceId;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+
+import static java.util.stream.Collectors.toMap;
 
 /**
  * Message sending messages that are tracked for duplication. If a passive becoming active receives
@@ -31,18 +31,19 @@ import java.util.Set;
  */
 public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
 
+  public static final int UNKNOWN_SEGMENT = -1;
+
+  private final int segmentId;
   private final Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages;
 
-  public EhcacheMessageTrackerMessage(Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages) {
+  public EhcacheMessageTrackerMessage(int segmentId, Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages) {
+    this.segmentId = segmentId;
     this.trackedMessages = trackedMessages;
   }
 
-  public EhcacheMessageTrackerMessage(OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler) {
-    Set<ClientSourceId> clientSourceIds = messageHandler.getTrackedClients();
-    trackedMessages = new HashMap<>(clientSourceIds.size());
-    clientSourceIds.forEach(id -> {
-      trackedMessages.put(id.toLong(), new HashMap<>(messageHandler.getTrackedResponses(id))); // clone the map to prevent referencing the message handler one
-    });
+  public EhcacheMessageTrackerMessage(int segmentId, OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler)  {
+    this(segmentId, messageHandler.getTrackedClients()
+      .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(segmentId, clientSourceId))));
   }
 
   @Override
@@ -52,5 +53,9 @@ public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
 
   public Map<Long, Map<Long, EhcacheEntityResponse>> getTrackedMessages() {
     return trackedMessages;
+  }
+
+  public int getSegmentId() {
+    return segmentId;
   }
 }

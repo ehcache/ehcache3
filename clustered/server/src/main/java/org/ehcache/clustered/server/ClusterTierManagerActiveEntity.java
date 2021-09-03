@@ -18,16 +18,14 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -40,18 +38,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.StateDumpCollector;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
@@ -108,13 +95,11 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
     LOGGER.info("Connecting {}", clientDescriptor);
-    management.clientConnected(clientDescriptor);
   }
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
     LOGGER.info("Disconnecting {}", clientDescriptor);
-    management.clientDisconnected(clientDescriptor);
   }
 
   @Override
@@ -139,7 +124,6 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-    management.clientReconnected(clientDescriptor);
   }
 
   @Override
@@ -207,6 +191,5 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     ehcacheStateService.validate(message.getConfiguration());
-    management.clientValidated(clientDescriptor);
   }
 }

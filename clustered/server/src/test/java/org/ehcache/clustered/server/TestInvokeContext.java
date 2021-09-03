@@ -61,4 +61,9 @@ public final class TestInvokeContext implements ActiveInvokeContext {
   public ClientSourceId makeClientSourceId(long l) {
     return new TestClientSourceId(l);
   }
+
+  @Override
+  public int getConcurrencyKey() {
+    return 1;
+  }
 }
