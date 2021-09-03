@@ -1,9 +1,9 @@
 ---
 ---
 = Eviction Advisor
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -29,7 +29,7 @@ If the eviction is advised against, Ehcache will try to honor the preference of 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionAdvisor]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionAdvisor]
 ----
 
 <1> Configure a constrained heap, as the eviction advisor is only relevant when mappings get evicted from the cache.

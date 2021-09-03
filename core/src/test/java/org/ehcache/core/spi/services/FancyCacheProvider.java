@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.services;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.CacheProvider;
 import org.ehcache.spi.service.Service;
@@ -30,12 +30,12 @@ public class FancyCacheProvider implements CacheProvider {
   public int startStopCounter = 0;
 
   @Override
-  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(final EhcacheWithLoaderWriter<?, ?> resource) {
+  public void releaseCache(final Ehcache<?, ?> resource) {
     //
   }
 

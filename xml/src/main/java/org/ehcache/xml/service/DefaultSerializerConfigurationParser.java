@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 
@@ -27,7 +28,6 @@ import java.util.Collection;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
-import static org.ehcache.xml.service.SimpleCoreServiceConfigurationParser.checkNoConcreteInstance;
 
 public class DefaultSerializerConfigurationParser implements CoreServiceConfigurationParser {
 
@@ -52,11 +52,14 @@ public class DefaultSerializerConfigurationParser implements CoreServiceConfigur
     Collection<DefaultSerializerConfiguration> serializerConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     for (DefaultSerializerConfiguration serializerConfig : serializerConfigs) {
-      checkNoConcreteInstance(serializerConfig);
-      if (serializerConfig.getType() == DefaultSerializerConfiguration.Type.KEY) {
-        cacheType.getKeyType().setSerializer(serializerConfig.getClazz().getName());
+      if(serializerConfig.getInstance() == null) {
+        if (serializerConfig.getType() == DefaultSerializerConfiguration.Type.KEY) {
+          cacheType.getKeyType().setSerializer(serializerConfig.getClazz().getName());
+        } else {
+          cacheType.getValueType().setSerializer(serializerConfig.getClazz().getName());
+        }
       } else {
-        cacheType.getValueType().setSerializer(serializerConfig.getClazz().getName());
+        throw new XmlConfigurationException("XML translation for instance based initialization for DefaultSerializerConfiguration is not supported");
       }
     }
     return cacheType;

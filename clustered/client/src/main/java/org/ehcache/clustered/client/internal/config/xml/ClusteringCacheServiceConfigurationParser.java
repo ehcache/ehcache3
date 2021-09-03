@@ -22,6 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -40,6 +41,7 @@ import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheCon
  *
  * @see ClusteredCacheConstants#XSD
  */
+@Component
 public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<ClusteredStoreConfiguration> implements CacheServiceConfigurationParser<ClusteredStore.Provider> {
 
   public static final String CLUSTERED_STORE_ELEMENT_NAME = "clustered-store";
@@ -60,7 +62,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   }
 
   @Override
-  public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
       if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
         return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));

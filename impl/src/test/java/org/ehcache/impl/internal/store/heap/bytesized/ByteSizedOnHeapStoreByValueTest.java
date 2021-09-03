@@ -30,6 +30,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;
@@ -101,6 +102,11 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
   }

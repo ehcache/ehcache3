@@ -29,6 +29,7 @@ import org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapS
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -101,6 +102,11 @@ public class OversizeMappingTest {
       public int getDispatcherConcurrency() {
         return 0;
       }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
+      }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<>());
   }
 
@@ -126,7 +132,7 @@ public class OversizeMappingTest {
   public void testPutIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.putIfAbsent(KEY, OVER_SIZED_VALUE);
+    store.putIfAbsent(KEY, OVER_SIZED_VALUE, b -> {});
     assertNullMapping(store);
   }
 
@@ -152,15 +158,15 @@ public class OversizeMappingTest {
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
+    store.getAndCompute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
 
-    store.compute(KEY, (a, b) -> VALUE);
+    store.getAndCompute(KEY, (a, b) -> VALUE);
 
     assertNotNullMapping(store);
 
-    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
+    store.getAndCompute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
   }

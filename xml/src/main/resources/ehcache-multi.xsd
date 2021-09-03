@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<xs:schema version="1.0"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ehcache="http://www.ehcache.org/v3"
+           xmlns:multi="http://www.ehcache.org/v3/multi"
+           xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="2.0"
+           elementFormDefault="qualified"
+           targetNamespace="http://www.ehcache.org/v3/multi">
+
+  <xs:annotation>
+    <xs:appinfo>
+      <jaxb:schemaBindings>
+        <jaxb:package name="org.ehcache.xml.multi.model"/>
+      </jaxb:schemaBindings>
+    </xs:appinfo>
+  </xs:annotation>
+
+  <xs:import namespace="http://www.ehcache.org/v3"/>
+
+  <xs:element name="configurations">
+    <xs:complexType>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="configuration">
+          <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+              <xs:element ref="ehcache:config">
+                <xs:annotation>
+                  <xs:appinfo>
+                    <jaxb:dom/>
+                  </xs:appinfo>
+                </xs:annotation>
+              </xs:element>
+              <xs:sequence>
+                <xs:element name="variant">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element ref="ehcache:config">
+                        <xs:annotation>
+                          <xs:appinfo>
+                            <jaxb:dom/>
+                          </xs:appinfo>
+                        </xs:annotation>
+                      </xs:element>
+                    </xs:sequence>
+                    <xs:attribute name="type" type="xs:string" use="required"/>
+                  </xs:complexType>
+                </xs:element>
+              </xs:sequence>
+            </xs:choice>
+            <xs:attribute name="identity" type="xs:string" use="required"/>
+          </xs:complexType>
+
+          <xs:unique name="variant-type-uniqueness">
+            <xs:selector xpath="multi:variant"></xs:selector>
+            <xs:field xpath="@type"></xs:field>
+          </xs:unique>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+
+    <xs:unique name="configuration-identifier-uniqueness">
+      <xs:selector xpath="multi:configuration"></xs:selector>
+      <xs:field xpath="@identity"></xs:field>
+    </xs:unique>
+  </xs:element>
+</xs:schema>

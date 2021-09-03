@@ -320,6 +320,7 @@ public abstract class AbstractClusteringManagementTest {
   public static void waitForAllNotifications(String... notificationTypes) throws InterruptedException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     List<ContextualNotification> missingOnes = new ArrayList<>();
+    List<ContextualNotification> existingOnes = new ArrayList<>();
 
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
 //    System.out.println("waitForAllNotifications: " + waitingFor);
@@ -330,6 +331,7 @@ public abstract class AbstractClusteringManagementTest {
           if (message.getType().equals("NOTIFICATION")) {
             for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
               if (waitingFor.remove(notification.getType())) {
+                existingOnes.add(notification);
 //                System.out.println("Remove " + notification.getType());
 //                System.out.println("Still waiting for: " + waitingFor);
               } else {
@@ -347,7 +349,7 @@ public abstract class AbstractClusteringManagementTest {
     t.join(30_000); // should be way enough to receive all messages
     t.interrupt(); // we interrupt the thread that is waiting on the message queue
 
-    assertTrue("Still waiting for: " + waitingFor, waitingFor.isEmpty());
-    assertTrue("Unexpected notification: " + missingOnes, missingOnes.isEmpty());
+    assertTrue("Still waiting for: " + waitingFor + ", only got: " + existingOnes, waitingFor.isEmpty());
+    assertTrue("Unexpected notification: " + missingOnes + ", only got: " + existingOnes, missingOnes.isEmpty());
   }
 }

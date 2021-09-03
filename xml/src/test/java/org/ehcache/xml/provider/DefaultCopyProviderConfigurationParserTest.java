@@ -18,10 +18,10 @@ package org.ehcache.xml.provider;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
 import org.junit.Test;
@@ -41,15 +41,11 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultCopyProviderConfigurationParserTest extends ServiceProvideConfigurationParserTestBase {
-
-  public DefaultCopyProviderConfigurationParserTest() {
-    super(new DefaultCopyProviderConfigurationParser());
-  }
+public class DefaultCopyProviderConfigurationParserTest {
 
   @Test
   public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
-    Configuration xmlConfig = parseXmlConfiguration("/configs/cache-copiers.xml");
+    Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/cache-copiers.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
@@ -58,7 +54,7 @@ public class DefaultCopyProviderConfigurationParserTest extends ServiceProvideCo
     assertThat(configuration).isExactlyInstanceOf(DefaultCopyProviderConfiguration.class);
 
     DefaultCopyProviderConfiguration factoryConfiguration = (DefaultCopyProviderConfiguration) configuration;
-    Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = factoryConfiguration.getDefaults();
+    Map<Class<?>, DefaultCopierConfiguration<?>> defaults = factoryConfiguration.getDefaults();
     assertThat(defaults).hasSize(2);
     assertThat(defaults.get(Description.class).getClazz()).isEqualTo(DescriptionCopier.class);
     assertThat(defaults.get(Person.class).getClazz()).isEqualTo((PersonCopier.class));
@@ -71,7 +67,7 @@ public class DefaultCopyProviderConfigurationParserTest extends ServiceProvideCo
     providerConfig.addCopierFor(Person.class, PersonCopier.class);
 
     Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
-    ConfigType configType = parser.unparseServiceCreationConfiguration(config, new ConfigType());
+    ConfigType configType = new DefaultCopyProviderConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     List<CopierType.Copier> copiers = configType.getDefaultCopiers().getCopier();
     assertThat(copiers).hasSize(2);

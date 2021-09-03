@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.config.copy;
 
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
@@ -28,7 +27,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  * Enables configuring {@link Class} - {@link Copier} pairs that will be selected unless cache level configurations
  * are provided.
  */
-public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
+public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, DefaultCopierConfiguration<?>> implements ServiceCreationConfiguration<CopyProvider> {
 
   /**
    * Default constructor.
@@ -93,9 +92,7 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
     if (!overwrite && getDefaults().containsKey(clazz)) {
       throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
-    @SuppressWarnings("unchecked")
-    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<>(copierClass);
-    getDefaults().put(clazz, configuration);
+    getDefaults().put(clazz, new DefaultCopierConfiguration<>(copierClass));
     return this;
   }
 }

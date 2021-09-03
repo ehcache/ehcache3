@@ -20,7 +20,6 @@ import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration.Type;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -36,7 +35,7 @@ import java.util.Collection;
 /**
  * @author Albin Suresh
  */
-public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<?>> implements CopyProvider {
+public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, DefaultCopierConfiguration<?>, Copier<?>> implements CopyProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultCopyProvider.class);
 
@@ -67,7 +66,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
-    final ClassInstanceConfiguration<Copier<?>> preConfigured = preconfigured.get(clazz);
+    final DefaultCopierConfiguration<?> preConfigured = preconfigured.get(clazz);
     if (conf != null && conf.getClazz().isAssignableFrom(SerializingCopier.class)) {
       if (serializer == null) {
         throw new IllegalStateException("No Serializer configured for type '" + clazz.getName()

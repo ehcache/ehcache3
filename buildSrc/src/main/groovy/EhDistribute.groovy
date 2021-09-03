@@ -1,6 +1,7 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.plugins.osgi.OsgiPluginConvention
 import scripts.Utils
 
 /*
@@ -32,13 +33,11 @@ class EhDistribute implements Plugin<Project> {
     project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
+    project.plugins.apply 'biz.aQute.bnd.builder'
     project.plugins.apply 'com.github.johnrengelman.shadow'
-    project.plugins.apply EhOsgi
     project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
     project.plugins.apply EhPomGenerate
-
-    def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
     project.configurations {
         shadowCompile
@@ -63,6 +62,10 @@ class EhDistribute implements Plugin<Project> {
       // LICENSE is included in root gradle build
       from "$project.rootDir/NOTICE"
       duplicatesStrategy = 'exclude'
+
+      classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
+
+      utils.fillManifest(manifest, project.archivesBaseName)
     }
 
 
@@ -71,7 +74,6 @@ class EhDistribute implements Plugin<Project> {
         it.sourceSets.main.allSource
       }
     }
-
 
     project.signing {
       required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }

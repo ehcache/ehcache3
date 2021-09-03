@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -229,22 +230,22 @@ public abstract class CacheTest {
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -254,7 +255,7 @@ public abstract class CacheTest {
         }
       };
     });
-    when(store.putIfAbsent(eq("foo"), any(String.class))).then(invocation -> {
+    when(store.putIfAbsent(eq("foo"), any(String.class), any(Consumer.class))).then(invocation -> {
       final Object toReturn;
       if ((toReturn = existingValue.get()) == null) {
         existingValue.compareAndSet(null, invocation.getArguments()[1]);
@@ -266,22 +267,22 @@ public abstract class CacheTest {
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -317,7 +318,7 @@ public abstract class CacheTest {
       if (ehcache instanceof Ehcache) {
         ((Ehcache)ehcache).removeHook(hook);
       } else {
-        ((EhcacheWithLoaderWriter)ehcache).removeHook(hook);
+        ((Ehcache)ehcache).removeHook(hook);
       }
       fail();
     } catch (IllegalStateException e) {

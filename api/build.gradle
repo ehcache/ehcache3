@@ -15,7 +15,17 @@
  */
 
 apply plugin: EhDeploy
+apply plugin: 'biz.aQute.bnd.builder'
 
 checkstyle {
   configFile = file("$projectDir/config/checkstyle.xml")
 }
+
+jar {
+  bnd(
+    'Export-Package': 'org.ehcache.*',
+    'Import-Package': '*'
+  )
+}
+
+check.dependsOn(baseline)

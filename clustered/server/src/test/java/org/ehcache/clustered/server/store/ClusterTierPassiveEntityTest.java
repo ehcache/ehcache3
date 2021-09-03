@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.TestInvokeContext;
@@ -45,10 +44,8 @@ import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
-import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +53,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -146,7 +144,7 @@ public class ClusterTierPassiveEntityTest {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
 
-    Chain chain = Util.getChain(true, createPayload(1L));
+    Chain chain = sequencedChainOf(createPayload(1L));
     TestInvokeContext context = new TestInvokeContext();
 
     long clientId = 3;
@@ -157,7 +155,7 @@ public class ClusterTierPassiveEntityTest {
     // Should be added
     assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
 
-    Chain emptyChain = Util.getChain(true);
+    Chain emptyChain = sequencedChainOf();
     PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
     passiveEntity.invokePassive(context, message2);
 
@@ -179,11 +177,11 @@ public class ClusterTierPassiveEntityTest {
 
     int key = 2;
 
-    Chain chain = Util.getChain(true, createPayload(1L));
+    Chain chain = sequencedChainOf(createPayload(1L));
     PassiveReplicationMessage message = new PassiveReplicationMessage.ChainReplicationMessage(key, chain, 2L, 1L, 3L);
     passiveEntity.invokePassive(context, message);
 
-    Chain oversizeChain = Util.getChain(true, createPayload(2L, 1024 * 1024));
+    Chain oversizeChain = sequencedChainOf(createPayload(2L, 1024 * 1024));
     ServerStoreOpMessage.ReplaceAtHeadMessage oversizeMsg = new ServerStoreOpMessage.ReplaceAtHeadMessage(key, chain, oversizeChain);
     passiveEntity.invokePassive(context, oversizeMsg);
     // Should be evicted, the value is oversize.
@@ -197,7 +195,7 @@ public class ClusterTierPassiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
 
     long key = 2L;
-    Chain oversizeChain = Util.getChain(true, createPayload(key, 1024 * 1024));
+    Chain oversizeChain = sequencedChainOf(createPayload(key, 1024 * 1024));
     PassiveReplicationMessage oversizeMsg = new PassiveReplicationMessage.ChainReplicationMessage(key, oversizeChain, 2L, 1L, (long) 3);
     passiveEntity.invokePassive(context, oversizeMsg);
     // Should be cleared, the value is oversize.
@@ -258,7 +256,7 @@ public class ClusterTierPassiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
+        keySerializerType, valueSerializerType, consistency, false, false);
     }
   }
 
@@ -360,7 +358,7 @@ public class ClusterTierPassiveEntityTest {
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
         OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
         return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
-          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
+          oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy(), () -> {});
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
@@ -413,6 +411,11 @@ public class ClusterTierPassiveEntityTest {
     @Override
     public long capacity() {
       return capacity;
+    }
+
+    @Override
+    public boolean setCapacity(long size) throws IllegalArgumentException {
+      throw new UnsupportedOperationException("Not supported");
     }
 
     private long getUsed() {

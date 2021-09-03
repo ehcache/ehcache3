@@ -53,20 +53,24 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     this.lastAccessTime = creationTime;
   }
 
-  protected abstract TimeUnit nativeTimeUnit();
-
   @Override
-  public long creationTime(TimeUnit unit) {
-    return unit.convert(creationTime, nativeTimeUnit());
+  public long creationTime() {
+    return creationTime;
   }
 
-  public void setExpirationTime(long expirationTime, TimeUnit unit) {
+  /**
+   * Set the new expiration time in milliseconds. Can be {@link #NO_EXPIRE} if the entry
+   * shouldn't expire.
+   *
+   * @param expirationTime new expiration time
+   */
+  public void setExpirationTime(long expirationTime) {
     if (expirationTime == NO_EXPIRE) {
       updateExpirationTime(NO_EXPIRE);
-    } else if (expirationTime <= 0) {
+    } else if (expirationTime < 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
-      updateExpirationTime(nativeTimeUnit().convert(expirationTime, unit));
+      updateExpirationTime(expirationTime);
     }
   }
 
@@ -83,49 +87,48 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   public void accessed(long now, Duration expiration) {
-    final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
       if (isExpiryDurationInfinite(expiration)) {
-        setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
+        setExpirationTime(Store.ValueHolder.NO_EXPIRE);
       } else {
         long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);
-        setExpirationTime(newExpirationTime, timeUnit);
+        setExpirationTime(newExpirationTime);
       }
     }
-    setLastAccessTime(now, timeUnit);
+    setLastAccessTime(now);
   }
 
   @Override
-  public long expirationTime(TimeUnit unit) {
-    final long expire = this.expirationTime;
-    if (expire == NO_EXPIRE) {
-      return NO_EXPIRE;
-    }
-    return unit.convert(expire, nativeTimeUnit());
+  public long expirationTime() {
+    return this.expirationTime;
   }
 
   @Override
-  public boolean isExpired(long expirationTime, TimeUnit unit) {
-    final long expire = this.expirationTime;
+  public boolean isExpired(long expirationTime) {
+    long expire = this.expirationTime;
     if (expire == NO_EXPIRE) {
       return false;
     }
-    return expire <= nativeTimeUnit().convert(expirationTime, unit);
+    return expire <= expirationTime;
   }
 
   @Override
-  public long lastAccessTime(TimeUnit unit) {
-    return unit.convert(lastAccessTime, nativeTimeUnit());
+  public long lastAccessTime() {
+    return lastAccessTime;
   }
 
-  public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-    long update = unit.convert(lastAccessTime, nativeTimeUnit());
+  /**
+   * Set the last time this entry was accessed in milliseconds.
+   *
+   * @param lastAccessTime last time the entry was accessed
+   */
+  public void setLastAccessTime(long lastAccessTime) {
     while (true) {
       long current = this.lastAccessTime;
-      if (current >= update) {
+      if (current >= lastAccessTime) {
         break;
       }
-      if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
+      if (ACCESSTIME_UPDATER.compareAndSet(this, current, lastAccessTime)) {
         break;
       }
     }
@@ -145,9 +148,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
     if (obj instanceof AbstractValueHolder) {
       AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
       return
-          other.creationTime(nativeTimeUnit()) == creationTime && creationTime(other.nativeTimeUnit()) == other.creationTime &&
-          other.expirationTime(nativeTimeUnit()) == expirationTime && expirationTime(other.nativeTimeUnit()) == other.expirationTime &&
-          other.lastAccessTime(nativeTimeUnit()) == lastAccessTime && lastAccessTime(other.nativeTimeUnit()) == other.lastAccessTime;
+          other.creationTime == creationTime &&
+          other.expirationTime == expirationTime &&
+          other.lastAccessTime == lastAccessTime;
     }
     return false;
   }

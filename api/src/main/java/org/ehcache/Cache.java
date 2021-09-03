@@ -22,6 +22,7 @@ import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -254,6 +255,16 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
 
+  /**
+   * Returns an iterator over the cache entries.
+   * <p>
+   * Due to the interactions of the cache and iterator contracts it is possible
+   * for iteration to return expired entries.
+   *
+   * @return an Iterator over the cache entries.
+   */
+  @Override
+  Iterator<Entry<K, V>> iterator();
 
   /**
    * A mapping of key to value held in a {@link Cache}.

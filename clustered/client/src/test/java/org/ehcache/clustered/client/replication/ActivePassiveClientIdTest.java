@@ -29,13 +29,12 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,18 +45,15 @@ import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
 
@@ -161,11 +157,8 @@ public class ActivePassiveClientIdTest {
     // Nothing tracked
     assertThat(activeMessageHandler.getTrackedClients().count()).isZero();
 
-    List<Element> elements = new ArrayList<>(1);
-    elements.add(getElement(createPayload(44L)));
-
     // Send a replace message, those are not tracked
-    storeProxy.replaceAtHead(44L, getChain(elements), getChain(new ArrayList<>(0)));
+    storeProxy.replaceAtHead(44L, chainOf(createPayload(44L)), chainOf());
 
     // Not tracked as well
     storeProxy.get(42L);

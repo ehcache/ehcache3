@@ -16,12 +16,11 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.junit.Test;
 
-import java.util.Iterator;
-
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -31,29 +30,12 @@ public class ChainBuilderTest {
 
   @Test
   public void testChainBuilder() {
-    ChainBuilder cb1 = new ChainBuilder();
+    Chain chain = new ChainBuilder()
+      .add(createPayload(1L))
+      .add(createPayload(3L))
+      .add(createPayload(4L))
+      .add(createPayload(2L)).build();
 
-    ChainBuilder cb2 = cb1.add(Util.createPayload(1L))
-                          .add(Util.createPayload(3L))
-                          .add(Util.createPayload(4L));
-
-    ChainBuilder cb3  = cb2.add(Util.createPayload(2L));
-
-    Chain chain1 = cb1.build();
-    Chain chain2 = cb2.build();
-    Chain chain3 = cb3.build();
-
-    assertChainHas(chain1);
-    assertChainHas(chain2, 1L, 3L, 4L);
-    assertChainHas(chain3, 1L, 3L, 4L, 2L);
-
-  }
-
-  private static void assertChainHas(Chain chain, long... payLoads) {
-    Iterator<Element> elements = chain.iterator();
-    for (long payLoad : payLoads) {
-      assertThat(Util.readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
-    }
-    assertThat(elements.hasNext(), is(false));
+    assertThat(chain, hasPayloads(1L, 3L, 4L, 2L));
   }
 }

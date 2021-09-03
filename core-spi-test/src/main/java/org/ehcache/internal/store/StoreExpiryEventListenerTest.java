@@ -92,7 +92,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.putIfAbsent(k, v), is(nullValue()));
+    assertThat(kvStore.putIfAbsent(k, v, b -> {}), is(nullValue()));
     verifyListenerInteractions(listener);
   }
 
@@ -133,11 +133,12 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testComputeOnExpiration() throws Exception {
+  public void testGetAndComputeOnExpiration() throws Exception {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.compute(k, (mappedKey, mappedValue) -> v2).get(), is(v2));
+    assertThat(kvStore.getAndCompute(k, (mappedKey, mappedValue) -> v2), nullValue());
+    assertThat(kvStore.get(k).get(), is(v2));
     verifyListenerInteractions(listener);
   }
 

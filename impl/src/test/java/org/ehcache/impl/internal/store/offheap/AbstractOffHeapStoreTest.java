@@ -112,12 +112,15 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("1", "one");
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
-    offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
+    offHeapStore.setInvalidationListener((key, valueHolder) -> {
+      valueHolder.get();
+      invalidated.set(valueHolder);
+    });
 
     timeSource.advanceTime(20);
     assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
     assertThat(invalidated.get().get(), equalTo("one"));
-    assertThat(invalidated.get().isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS), is(true));
+    assertThat(invalidated.get().isExpired(timeSource.getTimeMillis()), is(true));
     assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
   }
 
@@ -158,7 +161,10 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("1", "one");
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
-    offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
+    offHeapStore.setInvalidationListener((key, valueHolder) -> {
+      valueHolder.get();
+      invalidated.set(valueHolder);
+    });
 
     offHeapStore.invalidate("1");
     assertThat(invalidated.get().get(), equalTo("one"));
@@ -188,7 +194,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("key1", "value1");
     timeSource.advanceTime(10);
     OffHeapValueHolder<String> valueHolder = (OffHeapValueHolder<String>)offHeapStore.get("key1");
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(10L));
+    assertThat(valueHolder.lastAccessTime(), is(10L));
     timeSource.advanceTime(10);
     assertThat(offHeapStore.get("key1"), notNullValue());
     timeSource.advanceTime(16);
@@ -231,7 +237,7 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(firstValueHolder)), is(false));
       assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(secondValueHolder)), is(true));
       timeSource.advanceTime(10); // this should NOT affect
-      assertThat(offHeapStore.getAndFault(key).lastAccessTime(TimeUnit.MILLISECONDS), is(secondValueHolder.creationTime(TimeUnit.MILLISECONDS) + 20));
+      assertThat(offHeapStore.getAndFault(key).lastAccessTime(), is(secondValueHolder.creationTime() + 20));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -372,7 +378,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> s2, () -> false);
+    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(result, valueHeld("value"));
   }
@@ -385,7 +391,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> "newValue", () -> false);
+    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> "newValue", () -> false, () -> false);
 
     assertThat(result, valueHeld("newValue"));
   }
@@ -397,7 +403,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("key", "value");
     timeSource.advanceTime(20L);
 
-    offHeapStore.compute("key", (mappedKey, mappedValue) -> {
+    offHeapStore.getAndCompute("key", (mappedKey, mappedValue) -> {
       assertThat(mappedKey, is("key"));
       assertThat(mappedValue, Matchers.nullValue());
       return "value2";
@@ -575,23 +581,23 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    public long creationTime(final TimeUnit unit) {
-      return valueHolder.creationTime(unit);
+    public long creationTime() {
+      return valueHolder.creationTime();
     }
 
     @Override
-    public long expirationTime(final TimeUnit unit) {
-      return valueHolder.expirationTime(unit);
+    public long expirationTime() {
+      return valueHolder.expirationTime();
     }
 
     @Override
-    public boolean isExpired(final long expirationTime, final TimeUnit unit) {
-      return valueHolder.isExpired(expirationTime, unit);
+    public boolean isExpired(long expirationTime) {
+      return valueHolder.isExpired(expirationTime);
     }
 
     @Override
-    public long lastAccessTime(final TimeUnit unit) {
-      return valueHolder.lastAccessTime(unit);
+    public long lastAccessTime() {
+      return valueHolder.lastAccessTime();
     }
 
     @Override
@@ -610,32 +616,27 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    protected TimeUnit nativeTimeUnit() {
-      return TimeUnit.MILLISECONDS;
-    }
-
-    @Override
     public T get() {
       return value;
     }
 
     @Override
-    public long creationTime(TimeUnit unit) {
+    public long creationTime() {
       return 0;
     }
 
     @Override
-    public long expirationTime(TimeUnit unit) {
+    public long expirationTime() {
       return 0;
     }
 
     @Override
-    public boolean isExpired(long expirationTime, TimeUnit unit) {
+    public boolean isExpired(long expirationTime) {
       return false;
     }
 
     @Override
-    public long lastAccessTime(TimeUnit unit) {
+    public long lastAccessTime() {
       return 0;
     }
 

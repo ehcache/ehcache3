@@ -1,0 +1,82 @@
+= Ehcache events from clustered caches
+
+This document describes the core design of what is required to implement ehcache events from caches backed by a
+clustered store.
+
+== High-level requirements
+
+* Ehcache supports five types of cache events: on *eviction*, on *expiry*, on *removal*, on *update* and on *creation*.
+* When an event is fired, every connected client with a registered listener has to receive it.
+* Events must be delivered once and only once as long as the client(s), server(s) and network-in-between are all
+healthy.
+* What happens when there is a client disconnect, a passive take over, a split brain or any other hazard is yet to be
+determined.
+* No performance impact when the feature isn't used.
+
+=== Recommandations
+
+It must be made clear (documentation?) that the eventing mechanism is going to have a performance impact.
+
+Some features are undesirable because they are unlikely to be practical:
+
+* Synchronous events would require waiting for a round-trip to all clients before achieving a cache operation. This
+would pretty much make such cache unusably slow. Ordered events aren't impossible to do, but would require a serious
+engineering effort to get right as keeping the events in a strict order isn't trivial, so it's been left out.
+Such configs throw an exception when attempted.
+* Guaranteeing event delivery in all cases would require some form of stable store and a fairly complex and costly
+2-phase logic. This would also have an unsustainable performance impact. Instead, clients should have a way to figure
+out when such hazard happen to compensate for the possible lack of event delivery.
+
+== Technical facts
+
+Because of the current implementation:
+
+* All events find their source in a server: *creation*, *update*, *removal* and *expiration* are additions to the chain.
+*Eviction* happens when the server is running low on resource and are detected and notified by the chain.
+
+This means a cluster-wide listener mechanism has to be created with the following features:
+
+* Clients can register and unregister themselves. This is because events have a performance impact when enabled.
+* Events can be fired from any server.
+* Clients have to interpret the server-send event that actually are chain operations and resolve those into
+client-facing events. E.g.: the appending of a `RemoveOperation` translates to a *removal* event.
+
+== The transport mechanism
+
+An event delivery mechanism must be built to transport the events from the clients and servers to all clients registered
+as listeners. It requires the following:
+
+* API to (un)register a client as a listener, through all layers, down to the chain on the server
+* API for a server to fire an `append` event
+* Modify existing API for a server to fire an `eviction` event to include the necessary data to fire the client-side
+equivalent event(s).
+
+== The straightforward bits
+
+Modify the `ClusterTierActiveEntity` listener mechanism:
+`ServerStoreEvictionListener` already contains `void onEviction(long key)`. Add an extra `Chain evictedChain` parameter.
+Then add `void onAppend(ByteBuffer appended, Chain beforeAppend)` and finally rename the interface to
+`ServerStoreEventListener`.
+
+Assuming the plumbing for firing the above notifications from the servers to the clients is done, the resolver of the
+client needs to be modified so that it can be used to interpret the appended to and/or evicted chains.
+
+== The complicated bits
+
+The following cases are going to be more complicated to implement:
+
+* Expiration can't be fired once and only once with the existing chain `Operation` s. A new one has to be introduced
+for this purpose: `TimestampOperation`. This basically is a noop that indicates that an expiration has been detected
+by a client.
+* `TimestampOperation` cannot be interpreted by older clients. Fortunately, the codepath on which it's going to be
+added is robust enough to intercept such failure which will en up calling the `ResilienceStrategy` to evict the
+value. This is slightly odd, but still correct and we don't expect lots of cases where old clients will be mixed in.
+* The new `onAppend` callback is not cheap to perform. Simple appends eventually transform into getAndAppend at the
+very lowest layer of the chain to be able to make this call. This also means materializing an offheap chain onto the
+heap and sending kilobytes (maybe dozens of them) over the wire. This means it must only be materialized when at least
+one client has an event listener configured  and only forwarded to clients that do have a configured event listener.
+This is going to require a dynamic enabling/disabling mechanism as well as some carefully placed if-not-null checks.
+* The new `Chain evictedChain` parameter of the `onEviction` callback isn't cheap to generate (it needs to be
+materialized from off-heap onto the heap) nor to transport (can easily reach hundreds of KB) so null must be passed
+when it isn't needed, exactly for the same reasons as for `onAppend` above.
+

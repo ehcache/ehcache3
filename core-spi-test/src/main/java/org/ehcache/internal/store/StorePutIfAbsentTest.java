@@ -28,12 +28,13 @@ import org.ehcache.spi.test.SPITest;
 import java.time.Duration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link Store#putIfAbsent(Object, Object)} contract of the
+ * Test the {@link Store#putIfAbsent(Object, Object, java.util.function.Consumer)} contract of the
  * {@link Store Store} interface.
  *
  * @author Aurelien Broszniowski
@@ -64,7 +65,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.createValue(1);
 
     try {
-      assertThat(kvStore.putIfAbsent(key, value), is(nullValue()));
+      assertThat(kvStore.putIfAbsent(key, value, b -> {}), is(nullValue()));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -87,7 +88,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V updatedValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.putIfAbsent(key, updatedValue).get(), is(equalTo(value)));
+      assertThat(kvStore.putIfAbsent(key, updatedValue, b -> {}).get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -102,7 +103,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V value = factory.createValue(1);
 
     try {
-      kvStore.putIfAbsent(key, value);
+      kvStore.putIfAbsent(key, value, b -> {});
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
@@ -118,7 +119,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V value = null;
 
     try {
-      kvStore.putIfAbsent(key, value);
+      kvStore.putIfAbsent(key, value, b -> {});
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
@@ -135,9 +136,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore.putIfAbsent((K) (Float) 1.0f, value);
+        kvStore.putIfAbsent((K) (Float) 1.0f, value, b -> {});
       } else {
-        kvStore.putIfAbsent((K) "key", value);
+        kvStore.putIfAbsent((K) "key", value, b -> {});
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -157,9 +158,9 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       if (this.factory.getValueType() == String.class) {
-        kvStore.putIfAbsent(key, (V) (Float) 1.0f);
+        kvStore.putIfAbsent(key, (V) (Float) 1.0f, b -> {});
       } else {
-        kvStore.putIfAbsent(key, (V) "value");
+        kvStore.putIfAbsent(key, (V) "value", b -> {});
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
@@ -180,7 +181,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      assertThat(kvStore.putIfAbsent(key, newValue).get(), is(value));
+      assertThat(kvStore.putIfAbsent(key, newValue, b -> {}).get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

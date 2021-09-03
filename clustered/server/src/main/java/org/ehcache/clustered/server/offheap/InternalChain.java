@@ -18,8 +18,10 @@ package org.ehcache.clustered.server.offheap;
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 
+import com.tc.classloader.CommonComponent;
 import org.ehcache.clustered.common.internal.store.Chain;
 
+@CommonComponent
 public interface InternalChain extends Closeable {
 
   Chain detach();

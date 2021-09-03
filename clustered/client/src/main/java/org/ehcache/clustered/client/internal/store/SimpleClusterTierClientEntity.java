@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,11 @@ import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 public class SimpleClusterTierClientEntity implements InternalClusterTierClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierClientEntity.class);
-  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
+  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(
+    EhcacheMessageType.GET_STORE,
+    EhcacheMessageType.ITERATOR_ADVANCE,
+    EhcacheMessageType.ITERATOR_OPEN,
+    EhcacheMessageType.ITERATOR_CLOSE);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
@@ -72,11 +77,10 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Timeouts timeouts;
   private final String storeIdentifier;
 
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
 
   private volatile boolean connected = true;
+  private volatile boolean eventsEnabled;
 
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
                                        Timeouts timeouts, String storeIdentifier) {
@@ -94,8 +98,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(eventsEnabled);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
@@ -129,7 +133,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void close() {
     endpoint.close();
-    reconnectListener = null;
+    reconnectListeners.clear();
     disconnectionListeners.clear();
   }
 
@@ -139,8 +143,18 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws ClusterException, TimeoutException {
+    if (enable == this.eventsEnabled) {
+      return;
+    }
+    // make sure the server received and processed the message before returning
+    this.invokeAndWaitForComplete(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
+    this.eventsEnabled = enable;
   }
 
   @Override

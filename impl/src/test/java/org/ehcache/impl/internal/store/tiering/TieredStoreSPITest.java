@@ -21,12 +21,12 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -44,7 +44,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -69,7 +69,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.test.MockitoUtil.mock;
@@ -130,7 +130,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
         Copier<String> defaultCopier = IdentityCopier.identityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
         try {
           CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
@@ -229,22 +229,22 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public long creationTime(TimeUnit unit) {
+          public long creationTime() {
             return creationTime;
           }
 
           @Override
-          public long expirationTime(TimeUnit unit) {
+          public long expirationTime() {
             return 0;
           }
 
           @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
+          public boolean isExpired(long expirationTime) {
             return false;
           }
 
           @Override
-          public long lastAccessTime(TimeUnit unit) {
+          public long lastAccessTime() {
             return 0;
           }
 

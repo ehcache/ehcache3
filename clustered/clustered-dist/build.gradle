@@ -29,8 +29,10 @@ ext {
 }
 
 dependencies {
-  compileOnly project(':clustered:client')
-  compileOnly project(':clustered:common')
+  compileOnly(project(':clustered:client')) {
+    exclude group: 'org.ehcache.modules', module: 'api'
+    exclude group: 'org.terracotta', module: 'statistics'
+  }
   // Needed because declared as provided in the different projects
   compileOnly "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
@@ -69,6 +71,15 @@ task copyDocs(type: Copy) {
   dependsOn asciidocZip
   from zipTree(asciidocZip.archivePath)
   into docsFolder
+}
+
+jar {
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.clustered',
+    'Export-Package': '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, ' +
+      'org.ehcache.clustered.client.*, org.ehcache.clustered.common.*',
+    'Import-Package': '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, *'
+  )
 }
 
 distributions {

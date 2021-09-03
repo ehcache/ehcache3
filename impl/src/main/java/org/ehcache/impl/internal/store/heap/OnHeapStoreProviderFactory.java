@@ -16,12 +16,14 @@
 
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Alex Snaps
  */
+@Component
 public class OnHeapStoreProviderFactory implements ServiceFactory<OnHeapStore.Provider> {
 
   @Override

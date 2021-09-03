@@ -45,12 +45,13 @@ class Eh107CacheLoaderWriterProvider extends DefaultCacheLoaderWriterProvider {
   }
 
   @Override
-  public void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-    //
+  public void releaseCacheLoaderWriter(String alias, CacheLoaderWriter<?, ?> cacheLoaderWriter) {
+    deregisterJsrLoaderForCache(alias);
   }
 
   <K, V> void registerJsr107Loader(String alias, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     CacheLoaderWriter<?, ?> prev = cacheLoaderWriters.putIfAbsent(alias, cacheLoaderWriter);
+    registerJsrLoaderForCache(alias);
     if (prev != null) {
       throw new IllegalStateException("loader already registered for [" + alias + "]");
     }

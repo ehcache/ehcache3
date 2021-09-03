@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
@@ -48,8 +49,8 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
@@ -2052,6 +2053,23 @@ public class DefaultClusteringServiceTest {
       fail("First invocation of releasePersistenceSpaceIdentifier should not have failed");
     }
     service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+  }
+
+  @Test
+  public void releaseMaintenanceHoldsWhenConnectionClosedDuringDestruction() {
+    ClusteringServiceConfiguration configuration =
+      new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    assertThat(service.isConnected(), is(false));
+    service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
+    assertThat(service.isConnected(), is(true));
+
+    ConnectionState connectionState = service.getConnectionState();
+    ClusterTierManagerClientEntityFactory clusterTierManagerClientEntityFactory = connectionState.getEntityFactory();
+    assertEquals(clusterTierManagerClientEntityFactory.getMaintenanceHolds().size(), 1);
+    connectionState.destroyState(false);
+    assertEquals(clusterTierManagerClientEntityFactory.getMaintenanceHolds().size(), 0);
+    service.stop();
   }
 
   private static Throwable getRootCause(Throwable t) {

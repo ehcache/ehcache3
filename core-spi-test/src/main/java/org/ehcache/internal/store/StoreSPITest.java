@@ -26,8 +26,8 @@ public abstract class StoreSPITest<K, V> {
   protected abstract StoreFactory<K, V> getStoreFactory();
 
   @Test
-  public void testCompute() throws Exception {
-    StoreComputeTest<K, V> testSuite = new StoreComputeTest<>(getStoreFactory());
+  public void testGetAndCompute() throws Exception {
+    StoreGetAndComputeTest<K, V> testSuite = new StoreGetAndComputeTest<>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 

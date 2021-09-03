@@ -74,7 +74,7 @@ public class ServiceConfigurationParser {
       if(xmlConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      cacheBuilder = cacheBuilder.add(xmlConfigurationParser.parseServiceConfiguration(element));
+      cacheBuilder = cacheBuilder.add(xmlConfigurationParser.parseServiceConfiguration(element, cacheClassLoader));
     }
 
     return cacheBuilder;

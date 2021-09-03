@@ -92,17 +92,21 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   public void stop() {
     if (collectorService != null) {
       collectorService.stop();
+      collectorService = null;
     }
-    shutdownNow(managementCallExecutor);
+
+    if (managementCallExecutor != null) {
+      shutdownNow(managementCallExecutor);
+      managementCallExecutor = null;
+    }
 
     // nullify so that no further actions are done with them (see null-checks below)
     if (nmsAgentService != null) {
       nmsAgentService.close();
-      managementRegistryService = null;
       nmsAgentService = null;
     }
 
-    managementCallExecutor = null;
+    managementRegistryService = null;
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -35,10 +36,11 @@ import javax.xml.transform.stream.StreamSource;
 /**
  * Jsr107CacheConfigurationParser
  */
+@Component
 public class Jsr107CacheConfigurationParser implements CacheServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = Jsr107CacheConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final URL XML_SCHEMA = Jsr107CacheConfigurationParser.class.getResource("/ehcache-107-ext.xsd");
   private static final String MANAGEMENT_ENABLED_ATTRIBUTE = "enable-management";
   private static final String STATISTICS_ENABLED_ATTRIBUTE = "enable-statistics";
 
@@ -53,7 +55,7 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
   }
 
   @Override
-  public ServiceConfiguration<Jsr107Service> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<Jsr107Service> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("mbeans".equals(localName)) {
       ConfigurationElementState managementEnabled = ConfigurationElementState.UNSPECIFIED;

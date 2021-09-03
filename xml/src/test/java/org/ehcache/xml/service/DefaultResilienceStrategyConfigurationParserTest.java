@@ -19,31 +19,24 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.xml.NiResilience;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.integration.TestResilienceStrategy;
 
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-public class DefaultResilienceStrategyConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultResilienceStrategyConfigurationParserTest() {
-    super(new DefaultResilienceStrategyConfigurationParser());
-  }
+public class DefaultResilienceStrategyConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/resilience-config.xml", "ni");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/resilience-config.xml")).getCacheConfigurations().get("ni");
     DefaultResilienceStrategyConfiguration resilienceStrategyConfig =
       findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfiguration.getServiceConfigurations());
 
@@ -54,8 +47,8 @@ public class DefaultResilienceStrategyConfigurationParserTest extends ServiceCon
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      buildCacheConfigWithServiceConfig(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class));
-    CacheType cacheType = parser.unparseServiceConfiguration(cacheConfig, new CacheType());
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class)).build();
+    CacheType cacheType = new DefaultResilienceStrategyConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType());
 
     assertThat(cacheType.getResilience()).isEqualTo(TestResilienceStrategy.class.getName());
 
@@ -65,10 +58,10 @@ public class DefaultResilienceStrategyConfigurationParserTest extends ServiceCon
   public void unparseServiceConfigurationWithInstance() {
     TestResilienceStrategy<Integer, Integer> testObject = new TestResilienceStrategy<>();
     CacheConfiguration<?, ?> cacheConfig =
-      buildCacheConfigWithServiceConfig(new DefaultResilienceStrategyConfiguration(testObject));
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultResilienceStrategyConfiguration(testObject)).build();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
-      parser.unparseServiceConfiguration(cacheConfig, new CacheType()))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      new DefaultResilienceStrategyConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultResilienceStrategyConfiguration is not supported");
   }
 }

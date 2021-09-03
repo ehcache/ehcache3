@@ -141,6 +141,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @After
   public void tearDown() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+
     List<Runnable> unprocessed = executorService.shutdownNow();
     if(!unprocessed.isEmpty()) {
       log.warn("Tearing down with {} unprocess task", unprocessed);

@@ -19,7 +19,7 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -30,6 +30,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,7 +241,7 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
     CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build())
@@ -404,7 +405,7 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
-      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();

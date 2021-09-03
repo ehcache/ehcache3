@@ -16,13 +16,14 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
-import org.ehcache.clustered.client.internal.store.ResolvedChain;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -40,7 +41,6 @@ import java.util.Map;
  * @param <V> value type
  */
 public abstract class ChainResolver<K, V> {
-  protected static final Logger LOG = LoggerFactory.getLogger(EternalChainResolver.class);
   protected final OperationsCodec<K, V> codec;
 
   public ChainResolver(final OperationsCodec<K, V> codec) {
@@ -48,79 +48,129 @@ public abstract class ChainResolver<K, V> {
   }
 
   /**
-   * Extract the {@code Element}s from the provided {@code Chain} that are not associated with the provided key
-   * and create a new {@code Chain}
+   * Resolves the given key within the given chain entry to its current value with a specific compaction threshold.
+   * <p>
+   * If the resultant chain has shrunk by more than {@code threshold} elements then an attempt is made to perform the
+   * equivalent compaction on the server.
    *
-   * Separate the {@code Element}s from the provided {@code Chain} that are associated and not associated with
-   * the provided key. Create a new chain with the unassociated {@code Element}s. Resolve the associated elements
-   * and append the resolved {@code Element} to the newly created chain.
-   *
-   * @param chain a heterogeneous {@code Chain}
-   * @param key a key
-   * @param now time when the chain is being resolved
-   * @return a resolved chain, result of resolution of chain provided
+   * @param entry target chain entry
+   * @param key target key
+   * @param now current time
+   * @param threshold compaction threshold
+   * @return the current value
    */
-  public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
-    PutOperation<K, V> result = null;
-    ChainBuilder newChainBuilder = new ChainBuilder();
-    boolean matched = false;
-    for (Element element : chain) {
-      ByteBuffer payload = element.getPayload();
-      Operation<K, V> operation = codec.decode(payload);
+  public abstract ValueHolder<V> resolve(ServerStoreProxy.ChainEntry entry, K key, long now, int threshold);
 
-      if(key.equals(operation.getKey())) {
-        matched = true;
-        result = applyOperation(key, result, operation, now);
-      } else {
-        payload.rewind();
-        newChainBuilder = newChainBuilder.add(payload);
-      }
+  /**
+   * Resolves the given key within the given chain entry to its current value.
+   * <p>
+   * This is exactly equivalent to calling {@link #resolve(ServerStoreProxy.ChainEntry, Object, long, int)} with a zero
+   * compaction threshold.
+   *
+   * @param entry target chain entry
+   * @param key target key
+   * @param now current time
+   * @return the current value
+   */
+  public ValueHolder<V> resolve(ServerStoreProxy.ChainEntry entry, K key, long now) {
+    return resolve(entry, key, now, 0);
+  }
+
+  /**
+   * Resolves all keys within the given chain to their current values.
+   *
+   * @param chain target chain
+   * @param now current time
+   * @return a map of current values
+   */
+  public abstract Map<K, ValueHolder<V>> resolveAll(Chain chain, long now);
+
+  /**
+   * Compacts the given chain entry by resolving every key within.
+   *
+   * @param entry an uncompacted heterogenous {@link ServerStoreProxy.ChainEntry}
+   */
+  public void compact(ServerStoreProxy.ChainEntry entry) {
+    ChainBuilder builder = new ChainBuilder();
+    for (PutOperation<K, V> operation : resolveAll(entry).values()) {
+      builder = builder.add(codec.encode(operation));
     }
-
-    if(result == null) {
-      if (matched) {
-        Chain newChain = newChainBuilder.build();
-        return new ResolvedChain.Impl<>(newChain, key, null, chain.length() - newChain.length(), Long.MAX_VALUE);
-      } else {
-        return new ResolvedChain.Impl<>(chain, key, null, 0, Long.MAX_VALUE);
-      }
-    } else {
-      Chain newChain = newChainBuilder.add(codec.encode(result)).build();
-      return new ResolvedChain.Impl<>(newChain, key, result, chain.length() - newChain.length(), result.expirationTime());
+    Chain compacted = builder.build();
+    if (compacted.length() < entry.length()) {
+      entry.replaceAtHead(compacted);
     }
   }
 
   /**
-   * Compacts the given chain by resolving every key within.
+   * Resolves the given key within the given chain entry to an equivalent put operation.
+   * <p>
+   * If the resultant chain has shrunk by more than {@code threshold} elements then an attempt is made to perform the
+   * equivalent compaction on the server.
    *
-   * @param chain a compacted heterogenous {@code Chain}
-   * @param now time when the chain is being resolved
-   * @return a compacted chain
+   * @param entry target chain entry
+   * @param key target key
+   * @param threshold compaction threshold
+   * @return equivalent put operation
    */
-  public Chain applyOperation(Chain chain, long now) {
+  protected PutOperation<K, V> resolve(ServerStoreProxy.ChainEntry entry, K key, int threshold) {
+    PutOperation<K, V> result = null;
+    ChainBuilder resolvedChain = new ChainBuilder();
+    for (Element element : entry) {
+      ByteBuffer payload = element.getPayload();
+      Operation<K, V> operation = codec.decode(payload);
+
+      if(key.equals(operation.getKey())) {
+        result = applyOperation(key, result, operation);
+      } else {
+        payload.rewind();
+        resolvedChain = resolvedChain.add(payload);
+      }
+    }
+    if(result != null) {
+      resolvedChain = resolvedChain.add(codec.encode(result));
+    }
+
+    if (entry.length() - resolvedChain.length() > threshold) {
+      entry.replaceAtHead(resolvedChain.build());
+    }
+    return result;
+  }
+
+  /**
+   * Resolves all keys within the given chain to their equivalent put operations.
+   *
+   * @param chain target chain
+   * @return a map of equivalent put operations
+   */
+  protected Map<K, PutOperation<K, V>> resolveAll(Chain chain) {
     //absent hash-collisions this should always be a 1 entry map
     Map<K, PutOperation<K, V>> compacted = new HashMap<>(2);
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
-      compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation, now));
+      compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation));
     }
-
-    ChainBuilder builder = new ChainBuilder();
-    for (PutOperation<K, V> operation : compacted.values()) {
-      builder = builder.add(codec.encode(operation));
-    }
-    return builder.build();
+    return compacted;
   }
 
   /**
-   * Applies the given operation to the current state at the time specified.
+   * Resolves a key within the given chain to its equivalent put operation.
+   *
+   * @param chain target chain
+   * @param key the key
+   * @return the equivalent put operation
+   */
+  public PutOperation<K, V> resolve(Chain chain, K key) {
+    return resolveAll(chain).get(key);
+  }
+
+  /**
+   * Applies the given operation to the current state.
    *
    * @param key cache key
    * @param existing current state
    * @param operation operation to apply
-   * @param now current time
    * @return an equivalent put operation
    */
-  protected abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
+  public abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation);
 }

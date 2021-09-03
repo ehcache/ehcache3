@@ -26,13 +26,14 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNotNull;
@@ -50,7 +51,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
 
     return new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-      .getName(), Consistency.STRONG);
+      .getName(), Consistency.STRONG, false);
   }
 
   @Test
@@ -67,7 +68,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
         SimpleClusterTierClientEntity clientEntity2 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), false, false);
         StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity2, new ServerCallback() {
           @Override
-          public void onInvalidateHash(long hash) {
+          public void onInvalidateHash(long hash, Chain evictedChain) {
             invalidatedHash.set(hash);
           }
 
@@ -77,7 +78,12 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
           }
 
           @Override
-          public Chain compact(Chain chain) {
+          public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+            throw new AssertionError("Should not be called");
+          }
+
+          @Override
+          public void compact(ServerStoreProxy.ChainEntry chain) {
             throw new AssertionError();
           }
         });

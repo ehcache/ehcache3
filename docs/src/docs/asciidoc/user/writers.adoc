@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Loaders and Writers
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,8 +11,6 @@ endif::notBuildingForSite[]
 
 [[introduction]]
 == Introduction to Cache Loaders and Writers
-
-NOTE: Ehcache clustering is not yet compatible with _cache-through_.
 
 This section documents the specifics behind the cache-through implementation in Ehcache.
 Refer to the section <<caching-patterns#,Cache Usage Patterns>> if you are not familiar with terms
@@ -76,7 +74,7 @@ After this time has elapsed, the batch is processed even if incomplete.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> We register a sample `CacheLoaderWriter` that knows about the mapping ("41L" maps to "zero").
@@ -88,7 +86,7 @@ The returned mapping will populate the cache and be returned to the caller.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.
@@ -98,3 +96,5 @@ include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 <5> Define the concurrency level of write-behind queue(s).
 This indicates how many writer threads work in parallel to update the underlying system of record asynchronously.
 <6> Enable the write coalescing behavior, which ensures that only one update per key per batch reaches the underlying system of record.
+
+NOTE: `BatchedWriteBehindConfigurationBuilder` configurations are not honoured by clustered caches.

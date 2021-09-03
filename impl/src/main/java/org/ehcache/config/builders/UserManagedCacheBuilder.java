@@ -27,7 +27,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -35,27 +34,28 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreSupport;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -78,11 +78,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
@@ -274,21 +275,30 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     }
 
-    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    if (cacheLoaderWriter != null) {
+      serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
+    }
+
+    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigsList);
+    if (storeProvider == null) {
+      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+    }
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
-      expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
-    final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
+      expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
+    Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
+
+    AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
     lifeCycledList.add(new LifeCycled() {
       @Override
       public void init() {
-        storeProvider.initStore(store);
+        storeProviderRef.get().initStore(store);
       }
 
       @Override
       public void close() {
-        storeProvider.releaseStore(store);
+        storeProviderRef.get().releaseStore(store);
       }
     });
 
@@ -301,7 +311,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (cacheLoaderWriter == null) {
       resilienceStrategy = new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(store));
     } else {
-      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<K, V>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
+      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
     }
 
     if (persistent) {
@@ -318,12 +328,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
       return cast(cache);
     } else {
-      final InternalCache<K, V> cache;
-      if (cacheLoaderWriter == null) {
-        cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
-      } else {
-        cache = new EhcacheWithLoaderWriter<>(cacheConfig, store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
-      }
+      InternalCache<K, V> cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         (cache).addHook(lifeCycled);

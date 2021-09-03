@@ -159,22 +159,22 @@ public class EhcacheBulkMethodsTest {
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         throw new AssertionError();
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
+      public long lastAccessTime() {
         throw new AssertionError();
       }
 

@@ -21,7 +21,7 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.ExpiryUtils;
-import org.ehcache.core.internal.events.EventListenerWrapper;
+import org.ehcache.core.events.EventListenerWrapper;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;

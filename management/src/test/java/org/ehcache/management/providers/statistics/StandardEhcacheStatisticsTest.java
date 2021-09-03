@@ -151,7 +151,7 @@ public class StandardEhcacheStatisticsTest {
 
   private AbstractLongAssert<?> assertStatistic(String statName) {
     long value = getStatistic(statName);
-    return assertThat(value);
+    return assertThat(value).describedAs(statName);
   }
 
   private long getStatistic(String statName) {
@@ -220,23 +220,26 @@ public class StandardEhcacheStatisticsTest {
     return histogram;
   }
 
-  // Java does not provide a guarantee that Thread.sleep will actually sleep long enough
+  // Java does not provide a guarantee that Thread.sleep will actually sleep long enough.
   // In fact, on Windows, it does not sleep for long enough.
   // This method keeps sleeping until the full time has passed.
+  //
+  // Using System.nanoTime (accurate to 1 micro-second or better) in lieu of System.currentTimeMillis (on Windows
+  // accurate to ~16ms), the inaccuracy of which compounds when invoked multiple times, as in this method.
+
   private void minimumSleep(long millis) {
-    long start = System.currentTimeMillis();
+    long nanos = TimeUnit.MILLISECONDS.toNanos(millis);
+    long start = System.nanoTime();
 
     while (true) {
-      long now = System.currentTimeMillis();
-      long elapsed = now - start;
-      long millisLeft = millis - elapsed;
+      long nanosLeft = nanos - (System.nanoTime() - start);
 
-      if (millisLeft <= 0) {
+      if (nanosLeft <= 0) {
         break;
       }
 
       try {
-        Thread.sleep(millisLeft);
+        TimeUnit.NANOSECONDS.sleep(nanosLeft);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         return;

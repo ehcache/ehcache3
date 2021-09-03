@@ -17,25 +17,20 @@
 package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheEntryType;
 import org.ehcache.xml.model.CacheType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.serializer.TestSerializer3;
 import com.pany.ehcache.serializer.TestSerializer4;
 
-import java.io.IOException;
 import java.util.Collection;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -43,15 +38,11 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 
-public class DefaultSerializerConfigurationParserTest extends ServiceConfigurationParserTestBase {
-
-  public DefaultSerializerConfigurationParserTest() {
-    super(new DefaultSerializerConfigurationParser());
-  }
+public class DefaultSerializerConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
-    CacheConfiguration<?, ?> cacheConfiguration = getCacheDefinitionFrom("/configs/default-serializer.xml", "foo");
+    CacheConfiguration<?, ?> cacheConfiguration = new XmlConfiguration(getClass().getResource("/configs/default-serializer.xml")).getCacheConfigurations().get("foo");
     @SuppressWarnings("rawtypes")
     Collection<DefaultSerializerConfiguration> copierConfigs =
       findAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
@@ -82,7 +73,7 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
     valueType.setValue("bar");
     cacheType.setValueType(valueType);
 
-    cacheType = parser.unparseServiceConfiguration(cacheConfig, cacheType);
+    cacheType = new DefaultSerializerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 
     assertThat(cacheType.getKeyType().getSerializer()).isEqualTo(TestSerializer3.class.getName());
     assertThat(cacheType.getValueType().getSerializer()).isEqualTo(TestSerializer4.class.getName());
@@ -106,8 +97,8 @@ public class DefaultSerializerConfigurationParserTest extends ServiceConfigurati
     valueType.setValue("bar");
     cacheType.setValueType(valueType);
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
-      parser.unparseServiceConfiguration(cacheConfig, cacheType))
-      .withMessage("%s", "XML translation for instance based intialization for " +
+      new DefaultSerializerConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType))
+      .withMessage("%s", "XML translation for instance based initialization for " +
                          "DefaultSerializerConfiguration is not supported");
   }
 }

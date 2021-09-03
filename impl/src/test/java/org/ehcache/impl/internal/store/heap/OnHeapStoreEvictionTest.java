@@ -19,7 +19,8 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -60,7 +61,7 @@ public class OnHeapStoreEvictionTest {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put("key", "value");
-    store.compute("key", (mappedKey, mappedValue) -> "value2");
+    store.getAndCompute("key", (mappedKey, mappedValue) -> "value2");
 
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }
@@ -169,6 +170,11 @@ public class OnHeapStoreEvictionTest {
       @Override
       public int getDispatcherConcurrency() {
         return 1;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource);
   }

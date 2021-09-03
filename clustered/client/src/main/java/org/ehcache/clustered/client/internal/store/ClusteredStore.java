@@ -23,32 +23,33 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
-import org.ehcache.clustered.client.internal.store.operations.Result;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.core.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.impl.internal.store.basic.BaseStore;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -56,10 +57,14 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.Service;
@@ -79,6 +84,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -86,9 +92,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.util.Collections.emptyIterator;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
@@ -101,12 +109,13 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 4;
 
   private final int chainCompactionLimit;
-  private final OperationsCodec<K, V> codec;
-  private final ChainResolver<K, V> resolver;
+  protected final OperationsCodec<K, V> codec;
+  protected final ChainResolver<K, V> resolver;
 
-  private final TimeSource timeSource;
+  protected final TimeSource timeSource;
+  private final DelegatingStoreEventDispatcher<K, V> storeEventDispatcher;
 
-  private volatile ServerStoreProxy storeProxy;
+  protected volatile ServerStoreProxy storeProxy;
   private volatile InvalidationValve invalidationValve;
 
   private final OperationObserver<StoreOperationOutcomes.GetOutcome> getObserver;
@@ -121,13 +130,14 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  private ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource) {
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
     super(config);
 
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
     this.resolver = resolver;
     this.timeSource = timeSource;
+    this.storeEventDispatcher = new DelegatingStoreEventDispatcher<>(storeEventDispatcher);
 
     this.getObserver = createObserver("get", StoreOperationOutcomes.GetOutcome.class, true);
     this.putObserver = createObserver("put", StoreOperationOutcomes.PutOutcome.class, true);
@@ -143,8 +153,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   /**
    * For tests
    */
-  ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource) {
-    this(config, codec, resolver, timeSource);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
+    this(config, codec, resolver, timeSource, storeEventDispatcher);
     this.storeProxy = proxy;
   }
 
@@ -172,36 +182,16 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
   }
 
-  private ValueHolder<V> getInternal(K key) throws StoreAccessException, TimeoutException {
-    ClusteredValueHolder<V> holder = null;
+  protected ValueHolder<V> getInternal(K key) throws StoreAccessException, TimeoutException {
     try {
-      Chain chain = storeProxy.get(extractLongKey(key));
-      if(!chain.isEmpty()) {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-        if (resolvedChain.isCompacted()) {
-          Chain compactedChain = resolvedChain.getCompactedChain();
-          storeProxy.replaceAtHead(extractLongKey(key), chain, compactedChain);
-        }
-
-        Result<K, V> resolvedResult = resolvedChain.getResolvedResult(key);
-        if (resolvedResult != null) {
-          V value = resolvedResult.getValue();
-          long expirationTime = resolvedChain.getExpirationTime();
-          if (expirationTime == Long.MAX_VALUE) {
-            holder = new ClusteredValueHolder<>(value);
-          } else {
-            holder = new ClusteredValueHolder<>(value, expirationTime);
-          }
-        }
-      }
+      ServerStoreProxy.ChainEntry entry = storeProxy.get(extractLongKey(key));
+      return resolver.resolve(entry, key, timeSource.getTimeMillis());
     } catch (RuntimeException re) {
       throw handleException(re);
     }
-    return holder;
   }
 
-  private long extractLongKey(K key) {
+  protected long extractLongKey(K key) {
     return HashUtils.intHashToLong(key.hashCode());
   }
 
@@ -231,7 +221,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     return status;
   }
 
-  private PutStatus silentPut(final K key, final V value) throws StoreAccessException {
+  protected PutStatus silentPut(final K key, final V value) throws StoreAccessException {
     try {
       PutOperation<K, V> operation = new PutOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
@@ -244,28 +234,25 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
     putIfAbsentObserver.begin();
+    ValueHolder<V> result = silentPutIfAbsent(key, value);
+    if(result == null) {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+      return null;
+    } else {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+      return result;
+    }
+  }
+
+  protected ValueHolder<V> silentPutIfAbsent(K key, V value) throws StoreAccessException {
     try {
       PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      if(result == null) {
-        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
-        return null;
-      } else {
-        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
-        return new ClusteredValueHolder<>(result.getValue());
-      }
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -283,20 +270,25 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
   }
 
-  private boolean silentRemove(final K key) throws StoreAccessException {
+  protected boolean silentRemove(K key) throws StoreAccessException {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis()) != null;
+    } catch (Exception re) {
+      throw handleException(re);
+    }
+  }
 
-      if(resolvedChain.getResolvedResult(key) != null) {
-        storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
-        return true;
-      } else {
-        return false;
-      }
+  protected ValueHolder<V> silentRemove(K key, V value) throws StoreAccessException {
+    try {
+      ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      long extractedKey = extractLongKey(key);
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis());
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -305,56 +297,55 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
     conditionalRemoveObserver.begin();
-    try {
-      ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<>(key, value, timeSource.getTimeMillis());
-      ByteBuffer payload = codec.encode(operation);
-      long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      if(result != null) {
-        if(value.equals(result.getValue())) {
-          storeProxy.replaceAtHead(extractedKey, chain, resolvedChain.getCompactedChain());
-
-          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
-          return RemoveStatus.REMOVED;
-        } else {
-          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-          return RemoveStatus.KEY_PRESENT;
-        }
+    ValueHolder<V> result = silentRemove(key, value);
+    if(result != null) {
+      if(value.equals(result.get())) {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+        return RemoveStatus.REMOVED;
       } else {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-        return RemoveStatus.KEY_MISSING;
+        return RemoveStatus.KEY_PRESENT;
       }
-    } catch (Exception re) {
-      throw handleException(re);
+    } else {
+      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+      return RemoveStatus.KEY_MISSING;
     }
   }
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
     replaceObserver.begin();
+
+    ValueHolder<V> result = silentReplace(key, value);
+    if(result == null) {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+      return null;
+    } else {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+      return result;
+    }
+  }
+
+  protected ValueHolder<V> silentReplace(K key, V value) throws StoreAccessException {
     try {
       ReplaceOperation<K, V> operation = new ReplaceOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
+    } catch (Exception re) {
+      throw handleException(re);
+    }
+  }
 
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      if(result == null) {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
-        return null;
-      } else {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-        return new ClusteredValueHolder<>(result.getValue());
-      }
+  protected ValueHolder<V> silentReplace(K key, V oldValue, V newValue) throws StoreAccessException {
+    try {
+      ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, timeSource
+              .getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      long extractedKey = extractLongKey(key);
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis(), chainCompactionLimit);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -363,34 +354,18 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
     conditionalReplaceObserver.begin();
-    try {
-      ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, timeSource
-        .getTimeMillis());
-      ByteBuffer payload = codec.encode(operation);
-      long extractedKey = extractLongKey(key);
-      Chain chain = storeProxy.getAndAppend(extractedKey, payload);
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-
-      if (resolvedChain.getCompactionCount() > chainCompactionLimit) {
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(extractedKey, chain, compactedChain);
-      }
-
-      Result<K, V> result = resolvedChain.getResolvedResult(key);
-      if(result != null) {
-        if(oldValue.equals(result.getValue())) {
-          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
-          return ReplaceStatus.HIT;
-        } else {
-          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-          return ReplaceStatus.MISS_PRESENT;
-        }
+    ValueHolder<V> result = silentReplace(key, oldValue, newValue);
+    if(result != null) {
+      if(oldValue.equals(result.get())) {
+        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
+        return ReplaceStatus.HIT;
       } else {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-        return ReplaceStatus.MISS_NOT_PRESENT;
+        return ReplaceStatus.MISS_PRESENT;
       }
-    } catch (Exception re) {
-      throw handleException(re);
+    } else {
+      conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+      return ReplaceStatus.MISS_NOT_PRESENT;
     }
   }
 
@@ -405,24 +380,93 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
   @Override
   public StoreEventSource<K, V> getStoreEventSource() {
-    // TODO: Is there a StoreEventSource for a ServerStore?
-    return new NullStoreEventDispatcher<>();
+    return storeEventDispatcher;
   }
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
+    try {
+      java.util.Iterator<Chain> chainIterator = storeProxy.iterator();
+
+      return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+
+        private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> chain = nextChain();
+
+        @Override
+        public boolean hasNext() {
+          return chain.hasNext() || (chain = nextChain()).hasNext();
+        }
+
+        @Override
+        public Cache.Entry<K, ValueHolder<V>> next() {
+          try {
+            return chain.next();
+          } catch (NoSuchElementException e) {
+            return (chain = nextChain()).next();
+          }
+        }
+
+        private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
+          try {
+            while (true) {
+              Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
+              if (!chainContents.isEmpty()) {
+                return chainContents.entrySet().stream().map(entry -> {
+                  K key = entry.getKey();
+
+                  ValueHolder<V> valueHolder = entry.getValue();
+                  return new Cache.Entry<K, ValueHolder<V>>() {
+
+                    @Override
+                    public K getKey() {
+                      return key;
+                    }
+
+                    @Override
+                    public ValueHolder<V> getValue() {
+                      return valueHolder;
+                    }
+
+                    @Override
+                    public String toString() {
+                      return getKey() + "=" + getValue();
+                    }
+                  };
+                }).iterator();
+              }
+            }
+          } catch (NoSuchElementException e) {
+            return emptyIterator();
+          }
+        }
+      };
+    } catch (Exception e) {
+      return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+
+        private boolean accessed;
+
+        @Override
+        public boolean hasNext() {
+          return !accessed;
+        }
+
+        @Override
+        public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+          accessed = true;
+          throw handleException(e);
+        }
+      };
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
-  }
-
-  @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -459,7 +503,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
       }
     } else {
-      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This bulkCompute method is not yet capable of handling generic computation functions");
     }
     return valueHolderMap;
   }
@@ -490,7 +534,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
       return map;
     } else {
-      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+      throw new UnsupportedOperationException("This bulkComputeIfAbsent method is not yet capable of handling generic computation functions");
     }
   }
 
@@ -552,7 +596,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
-    private volatile ExecutionService executionService;
+    protected volatile ExecutionService executionService;
 
     private final Lock connectLock = new ReentrantLock();
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -565,7 +609,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -579,21 +623,23 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-        DefaultCacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, serviceConfigs);
-        if (loaderWriterConfiguration != null) {
-          throw new IllegalStateException("CacheLoaderWriter is not supported with clustered tiers");
-        }
-
         CacheEventListenerConfiguration eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
         if (eventListenerConfiguration != null) {
-          throw new IllegalStateException("CacheEventListener is not supported with clustered tiers");
+          if (eventListenerConfiguration.firingMode() == EventFiring.SYNCHRONOUS) {
+            // Forget it. Never.
+            throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
+          }
+          if (eventListenerConfiguration.orderingMode() == EventOrdering.ORDERED) {
+            // this could be supported, but at least expiration events would need to be reordered
+            throw new IllegalStateException("Ordered CacheEventListener is not supported with clustered tiers");
+          }
         }
 
         if (clusteringService == null) {
           throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteringServiceConfiguration");
         }
 
-        final HashSet<ResourceType<?>> clusteredResourceTypes =
+        HashSet<ResourceType<?>> clusteredResourceTypes =
                 new HashSet<>(storeConfig.getResourcePools().getResourceTypeSet());
         clusteredResourceTypes.retainAll(CLUSTER_RESOURCES);
 
@@ -622,8 +668,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           resolver = new ExpiryChainResolver<>(codec, expiry);
         }
 
-
-        ClusteredStore<K, V> store = new ClusteredStore<>(storeConfig, codec, resolver, timeSource);
+        ClusteredStore<K, V> store = createStore(storeConfig, codec, resolver, timeSource, storeConfig.useLoaderInAtomics(), serviceConfigs);
 
         createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
         return store;
@@ -632,8 +677,18 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
     }
 
+    protected <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig,
+                                                      OperationsCodec<K, V> codec,
+                                                      ChainResolver<K, V> resolver,
+                                                      TimeSource timeSource,
+                                                      boolean useLoaderInAtomics,
+                                                      Object[] serviceConfigs) {
+      StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
+      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher);
+    }
+
     @Override
-    public void releaseStore(final Store<?, ?> resource) {
+    public void releaseStore(Store<?, ?> resource) {
       connectLock.lock();
       try {
         if (createdStores.remove(resource) == null) {
@@ -649,53 +704,18 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public void initStore(final Store<?, ?> resource) {
+    public void initStore(Store<?, ?> resource) {
       connectLock.lock();
       try {
         StoreConfig storeConfig = createdStores.get(resource);
         if (storeConfig == null) {
           throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
         }
-        final ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
+        ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
         try {
           ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-                  new ServerCallback() {
-                    @Override
-                    public void onInvalidateHash(long hash) {
-                      EvictionOutcome result = EvictionOutcome.SUCCESS;
-                      clusteredStore.evictionObserver.begin();
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
-                          clusteredStore.invalidationValve.invalidateAllWithHash(hash);
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating hash {}", hash, sae);
-                          result = EvictionOutcome.FAILURE;
-                        }
-                      }
-                      clusteredStore.evictionObserver.end(result);
-                    }
-
-                    @Override
-                    public void onInvalidateAll() {
-                      if (clusteredStore.invalidationValve != null) {
-                        try {
-                          LOGGER.debug("CLIENT: calling invalidation valve for all");
-                          clusteredStore.invalidationValve.invalidateAll();
-                        } catch (StoreAccessException sae) {
-                          //TODO: what should be done here? delegate to resilience strategy?
-                          LOGGER.error("Error invalidating all", sae);
-                        }
-                      }
-                    }
-
-                    @Override
-                    public Chain compact(Chain chain) {
-                      return clusteredStore.resolver.applyOperation(chain, clusteredStore.timeSource.getTimeMillis());
-                    }
-                  });
+                                                                              getServerCallback(clusteredStore));
           ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
             Runnable reconnectTask = () -> {
               connectLock.lock();
@@ -713,7 +733,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
             };
             CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
           });
-          clusteredStore.storeProxy = reconnectingServerStoreProxy;
+          clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
         }
@@ -742,6 +762,95 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       } finally {
         connectLock.unlock();
       }
+    }
+
+    protected <K, V> ServerCallback getServerCallback(ClusteredStore<K, V> clusteredStore) {
+      return new ServerCallback() {
+        @Override
+        public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+          StoreEventSink<K, V> sink = clusteredStore.storeEventDispatcher.eventSink();
+          try {
+            Operation<K, V> operation = clusteredStore.codec.decode(appended);
+            K key = operation.getKey();
+
+            PutOperation<K, V> resolvedBefore = clusteredStore.resolver.resolve(beforeAppend, key);
+            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedBefore, operation);
+
+            if (resolvedBefore == null) {
+              if (resolvedAfter == null) {
+                //a non-event
+              } else {
+                sink.created(key, resolvedAfter.getValue());
+              }
+            } else {
+              if (resolvedAfter != null) {
+                if (resolvedAfter == resolvedBefore) {
+                  //non-event
+                } else {
+                  sink.updated(key, resolvedBefore::getValue, resolvedAfter.getValue());
+                }
+              } else {
+                switch (operation.getOpCode()) {
+                  case TIMESTAMP:
+                    sink.expired(key, resolvedBefore::getValue);
+                    break;
+                  default:
+                    sink.removed(key, resolvedBefore::getValue);
+                }
+              }
+            }
+            clusteredStore.storeEventDispatcher.releaseEventSink(sink);
+          } catch (Exception e) {
+            clusteredStore.storeEventDispatcher.releaseEventSinkAfterFailure(sink, e);
+            LOGGER.warn("Error processing server append event", e);
+          }
+        }
+
+        @Override
+        public void onInvalidateHash(long hash, Chain evictedChain) {
+          EvictionOutcome result = EvictionOutcome.SUCCESS;
+          clusteredStore.evictionObserver.begin();
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
+              result = EvictionOutcome.FAILURE;
+            }
+          }
+          if (evictedChain != null) {
+            StoreEventSink<K, V> sink = clusteredStore.storeEventDispatcher.eventSink();
+            Map<K, ValueHolder<V>> operationMap = clusteredStore.resolver.resolveAll(evictedChain, clusteredStore.timeSource.getTimeMillis());
+            for (Map.Entry<K, ValueHolder<V>> entry : operationMap.entrySet()) {
+              K key = entry.getKey();
+              V value = entry.getValue() == null ? null : entry.getValue().get();
+              sink.evicted(key, () -> value);
+            }
+            clusteredStore.storeEventDispatcher.releaseEventSink(sink);
+          }
+          clusteredStore.evictionObserver.end(result);
+        }
+
+        @Override
+        public void onInvalidateAll() {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for all");
+              clusteredStore.invalidationValve.invalidateAll();
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating all", sae);
+            }
+          }
+        }
+
+        @Override
+        public void compact(ServerStoreProxy.ChainEntry chain) {
+          clusteredStore.resolver.compact(chain);
+        }
+      };
     }
 
     @Override
@@ -809,6 +918,13 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
   }
 
+  private void setStoreProxy(ServerStoreProxy storeProxy) throws CachePersistenceException {
+    // don't change the order of the following two lines or you'll create a race condition that can
+    // make the server drop some event notifications during a client reconnection
+    this.storeEventDispatcher.setStoreProxy(storeProxy);
+    this.storeProxy = storeProxy;
+  }
+
   private static class StoreConfig {
 
     private final ClusteredCacheIdentifier cacheIdentifier;
@@ -833,4 +949,83 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       return consistency;
     }
   }
+
+  static class DelegatingStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
+    private int listenerCounter;
+    private ServerStoreProxy storeProxy; // protected by synchronized blocks
+    private final StoreEventDispatcher<K, V> delegate;
+
+    DelegatingStoreEventDispatcher(StoreEventDispatcher<K, V> delegate) {
+      this.delegate = delegate;
+    }
+
+    synchronized void setStoreProxy(ServerStoreProxy storeProxy) throws CachePersistenceException {
+      if (storeProxy != null && listenerCounter > 0) {
+        try {
+          storeProxy.enableEvents(true);
+        } catch (TimeoutException te) {
+          throw new CachePersistenceException("Error enabling events", te);
+        }
+      }
+      this.storeProxy = storeProxy;
+    }
+
+    @Override
+    public StoreEventSink<K, V> eventSink() {
+      return delegate.eventSink();
+    }
+    @Override
+    public void releaseEventSink(StoreEventSink<K, V> eventSink) {
+      delegate.releaseEventSink(eventSink);
+    }
+    @Override
+    public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
+      delegate.releaseEventSinkAfterFailure(eventSink, throwable);
+    }
+    @Override
+    public void reset(StoreEventSink<K, V> eventSink) {
+      delegate.reset(eventSink);
+    }
+    @Override
+    public synchronized void addEventListener(StoreEventListener<K, V> eventListener) {
+      if (listenerCounter == 0 && storeProxy != null) {
+        try {
+          storeProxy.enableEvents(true);
+        } catch (TimeoutException te) {
+          throw new RuntimeException("Error enabling events", te);
+        }
+      }
+      if (listenerCounter < Integer.MAX_VALUE) {
+        listenerCounter++;
+      }
+      delegate.addEventListener(eventListener);
+    }
+    @Override
+    public synchronized void removeEventListener(StoreEventListener<K, V> eventListener) {
+      if (listenerCounter == 1 && storeProxy != null) {
+        try {
+          storeProxy.enableEvents(false);
+        } catch (TimeoutException te) {
+          throw new RuntimeException("Error disabling events", te);
+        }
+      }
+      if (listenerCounter > 0) {
+        listenerCounter--;
+      }
+      delegate.removeEventListener(eventListener);
+    }
+    @Override
+    public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
+      delegate.addEventFilter(eventFilter);
+    }
+    @Override
+    public void setEventOrdering(boolean ordering) {
+      delegate.setEventOrdering(ordering);
+    }
+    @Override
+    public boolean isEventOrdering() {
+      return delegate.isEventOrdering();
+    }
+  }
+
 }

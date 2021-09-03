@@ -15,6 +15,8 @@
  */
 
 apply plugin: EhDeploy
+apply plugin: 'biz.aQute.bnd.builder'
+apply plugin: 'osgi-ds'
 
 configurations {
   tckTestClasses
@@ -37,21 +39,23 @@ dependencies {
   implementation project(':xml')
   implementation "org.terracotta:statistics:$parent.statisticVersion"
 
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+
   tckTestRuntime "javax.cache:cache-tests:$jcacheTckVersion"
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
-  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 javadoc {
   exclude '**/tck/**'
 }
 
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
+jar {
+  bnd(
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
+    'Import-Package': 'javax.cache.*;resolution:=optional, *',
+  )
 }
 
 task unpackTckTests(type: Copy) {

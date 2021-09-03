@@ -29,4 +29,18 @@ apply plugin: EhDistribute
 
 dependencies {
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowCompile "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  shadowProvided "javax.cache:cache-api:$parent.jcacheVersion"
+}
+
+jar {
+  bnd (
+    'Bundle-Name': 'Ehcache 3',
+    'Bundle-SymbolicName': 'org.ehcache',
+    'Bundle-Description': 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.',
+
+    'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*, org.terracotta.statistics.*, org.terracotta.context',
+    'Import-Package': 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, *'
+  )
 }

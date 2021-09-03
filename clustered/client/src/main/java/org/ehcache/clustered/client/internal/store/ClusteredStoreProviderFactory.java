@@ -18,10 +18,12 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * Factory to create instances of {@link ClusteredStore.Provider}.
  */
+@Component
 public class ClusteredStoreProviderFactory implements ServiceFactory<ClusteredStore.Provider> {
   @Override
   public ClusteredStore.Provider create(final ServiceCreationConfiguration<ClusteredStore.Provider> configuration) {

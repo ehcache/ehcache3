@@ -409,7 +409,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     ServerStoreImpl serverStore;
     ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
-      serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
+      serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper, serverStoreConfiguration.isWriteBehindConfigured());
     } catch (RuntimeException rte) {
       releaseDedicatedPool(name, resourcePageSource);
       throw new ConfigurationException("Failed to create ServerStore.", rte);

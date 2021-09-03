@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -39,7 +39,7 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 
 /**
  * This factory instantiates a CachingTier

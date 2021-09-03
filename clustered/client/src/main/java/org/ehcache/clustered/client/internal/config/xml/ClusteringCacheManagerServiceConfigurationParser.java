@@ -27,6 +27,7 @@ import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -63,6 +64,7 @@ import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
  *
  * @see ClusteredCacheConstants#XSD
  */
+@Component
 public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfigParser<ClusteringServiceConfiguration> implements CacheManagerServiceConfigurationParser<ClusteringService> {
 
   public static final String CLUSTER_ELEMENT_NAME = "cluster";
@@ -106,10 +108,11 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * This method presumes the element presented is valid according to the XSD.
    *
    * @param fragment the XML fragment to process
+   * @param classLoader
    * @return a {@link org.ehcache.clustered.client.config.ClusteringServiceConfiguration ClusteringServiceConfiguration}
    */
   @Override
-  public ServiceCreationConfiguration<ClusteringService> parseServiceCreationConfiguration(final Element fragment) {
+  public ServiceCreationConfiguration<ClusteringService> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
 
     if ("cluster".equals(fragment.getLocalName())) {
 
@@ -311,7 +314,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createTimeoutElement(Document doc, String timeoutName, Duration timeout) {
-    Element retElement = null;
+    Element retElement;
     if (READ_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
       retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + READ_TIMEOUT_ELEMENT_NAME);
     } else if (WRITE_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
@@ -425,7 +428,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   private Duration processTimeout(Element parentElement, Node timeoutNode) {
     try {
       // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
+      JAXBContext context = JAXBContext.newInstance(TimeType.class);
       Unmarshaller unmarshaller = context.createUnmarshaller();
       JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
 

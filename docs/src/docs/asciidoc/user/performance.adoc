@@ -1,0 +1,139 @@
+---
+---
+= Performance Tuning
+ifndef::sourcedir37[]
+include::common.adoc[]
+endif::sourcedir37[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+Ehcache is fast. Really fast.
+It was thought and made to be.
+For example, a straight `get(key)` from the cache should be under 500ns.
+That's fast and way sufficient for most purpose.
+
+Keep that in mind. Especially when comparing caching frameworks with a benchmark.
+If something looks 10% faster it actually means 50ns faster.
+Do you care that much about these 50ns to lose your precious time in benchmarking?
+
+That said, the way you configure Ehcache can have an impact on performance.
+This document is a work in progress.
+It will give you the performance impact of classical Ehcache configuration.
+It will also give you some advance tuning possibilities.
+
+In the future, we will add some figures of what "slower" means.
+However, always do your own benchmark.
+
+== Stores
+
+We probably know that the faster store is on-heap.
+Until you overwhelm the garbage collector.
+
+Your next best bet is off-heap.
+
+Try to avoid disk.
+Use a remote drive or even an HDD at your own risk.
+
+We won't talk about clustering here because it's a different realm and its performance is based on many factors.
+
+The next question would be: "Should I use a single tier?" Is using a single-tier off-heap faster than two-tiers?
+The answer depends on what you do with it.
+Having two tiers is a bit slower on writing.
+It is also a bit slower on reading when the data is not found in the caching tier (on-heap).
+However, it will be faster for an entry that is indeed found there.
+
+So again, it depends.
+The more you follow the caching hypothesis that the same data is always reused (and so in the caching
+tier), the more interesting having two tiers will be.
+
+== Byte Sizing
+
+A on-heap tier can be limited to a number of entries or a number of bytes.
+When using bytes, we need to calculate the size of every object added to the cache.
+This is of course much slower than calculating the number of entries.
+
+Size calculation is done using the https://github.com/ehcache/sizeof[SizeOf] library.
+This library uses multiple magic tricks to do so. It selects the fastest one for a given environment.
+Make sure of what is used to confirm you can't use a faster way on your platform.
+
+== Serialization
+
+Off-heap, disk and clustering need to serialize keys and values before storing them.
+By default, the Java serialization is used.
+It is well-known for not being the fastest thing around.
+Ehcache uses it because it is supported out of the box.
+However, you can increase performances by provoding your own serializers.
+
+== Copier
+
+By default, on-heap storage stores the entries by reference.
+You might want to use a copier to store entries by value for whatever reason.
+This can be much slower so watch out.
+
+== Loader-Writer
+
+Loader-writer is interesting for many reasons.
+First, it protects you against the Thundering Herd.
+However, it needs to pass through more complicated code to do so.
+
+We are expecting it to be a tiny bit slower.
+But nothing noticeable enough to prevent you from using it.
+
+== Expiration
+
+A cache with no expiration will always be faster.
+
+=== Time to Live
+
+If you need to set an expiration time, TTL will be the faster one.
+This is because the expiration time of an entry is calculated and updated ony when the entry is inserted or updated in the cache.
+But it still requires an expiration check at access time.
+
+So you can expect a 2% drop in performance when using TTL. Not bad.
+
+=== Time to Idle
+
+TTI is slower than TTL.
+We need to recalculate and update the expiration time each time the entry is accessed.
+
+=== Custom
+
+In general, using a custom `ExpiryPolicy` will be the slowest.
+Ehcache had optimised the handling to handle other cases.
+When using a custom policy, you are on your own.
+
+== Allocation rate
+
+Ehcache won't allocate any object during a simple `get()`.
+However, keep in mind that your configuration might do so.
+
+For instance, let's say you define an expiry policy like this.
+
+[source,java,indent=0]
+----
+include::{sourcedir37}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
+----
+
+<1> Will instantiate a `Duration` every time an entry is accessed
+
+In this case, putting the `Duration` as a constant would solve the problem.
+
+== Time Source
+
+By default, Ehcache uses a `TimeSource` that will retrieve the system time at every call. It is fast but not super
+duper fast. But it is super duper accurate.
+
+You can trade accuracy for speed by using a `TickingTimeSource`. Please read the javadoc for details but the concept is
+that a timer will increase time instead of always retrieving system time.
+
+Switching to `TickingTimeSource`, even with a granularity of 1ms, can improve the performance of a `get` as high as 30%.
+
+The drawback is that a timer will continuously run.
+Also, time might drift from the real time a bit.
+Especially if the granularity of the `systemUpdatePeriod` is big.
+Is your expiration needs to be really tightly linked with real time, it can be a problem.
+But in most cases, the drifting doesn't matter much.

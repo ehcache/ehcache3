@@ -23,14 +23,16 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValueHolderPortability;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestDiskResourceService;
@@ -39,7 +41,7 @@ import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -78,7 +80,7 @@ import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
@@ -232,8 +234,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .build());
     when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
-    OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(storeConfig1, space,
-      new OffHeapDiskStoreConfiguration("pool", 2, 4));
+    OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(
+            storeConfig1, space, new OffHeapDiskStoreConfiguration("pool", 2, 4));
     assertThat(offHeapDiskStore1.getThreadPoolAlias(), is("pool"));
     assertThat(offHeapDiskStore1.getWriterConcurrency(), is(2));
     assertThat(offHeapDiskStore1.getDiskSegments(), is(4));
@@ -248,13 +250,18 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
-        null, classLoader, expiry, null, 0, true, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
+        null, classLoader, expiry, null, 0, true, keySerializer, valueSerializer, null, false);
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
         storeConfiguration, timeSource,
         new TestStoreEventDispatcher<>(),
-        MB.toBytes(1));
+        MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<String> createValuePortability(Serializer<String> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -271,13 +278,18 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
-        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, true, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
+        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, true, keySerializer, valueSerializer, null, false);
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
         storeConfiguration, timeSource,
         new TestStoreEventDispatcher<>(),
-        MB.toBytes(1));
+        MB.toBytes(1)) {
+        @Override
+        protected OffHeapValueHolderPortability<byte[]> createValuePortability(Serializer<byte[]> serializer) {
+          return new AssertingOffHeapValueHolderPortability<>(serializer);
+        }
+      };
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {

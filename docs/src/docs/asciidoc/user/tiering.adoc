@@ -1,9 +1,9 @@
 ---
 ---
 = Ehcache Tiering Options
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -48,7 +48,7 @@ For this, simply define the single resource in the cache configuration:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
 ----
 
 <1> Start with defining the key and value type in the configuration builder.
@@ -65,7 +65,7 @@ A heap tier can be sized by entries or by size.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=heap]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=heap]
 ----
 
 <1> Only 10 entries allowed on heap. Eviction will occur when full.
@@ -83,7 +83,7 @@ NOTE: Byte sizing has a runtime performance impact that depends on the size and 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=byteSizedTieredCache]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=byteSizedTieredCache]
 ----
 
 <1> This will limit the amount of memory used by the heap tier for storing key-value pairs.
@@ -103,7 +103,7 @@ If you wish to use off-heap, you'll have to define a resource pool, giving the m
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheap]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheap]
 ----
 
 <1> Only 10 MB allowed off-heap.
@@ -126,7 +126,7 @@ The faster and more dedicated the disk is, the faster accessing the data will be
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=persistentCacheManager]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=persistentCacheManager]
 ----
 
 <1> To obtain a `PersistentCacheManager` which is a normal `CacheManager` but with the ability to
@@ -166,7 +166,7 @@ In some cases, you might want to reduce the concurrency and save resources by re
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
 ----
 
 <1> Define an `OffHeapDiskStoreConfiguration` instance specifying the required number of segments.
@@ -202,8 +202,22 @@ This leads to the typical pyramid shape for a multi-tiered setup.
 --
 [.left]
 .Tiers hierarchy
-image::TiersHierarchy.png[Tiers hierarchy]
-
+[ditaa]
+....
+    +-------------------+
+    |cBE7 Heap Tier     |
+  +-+-------------------+-+
+  |cFA4                   |
+  |     Off Heap Tier     |
+  |                       |
++-+-----------------------+-+
+|cA8D                       |
+|                           |
+|         Disk Tier         |
+|                           |
+|                           |
++---------------------------+
+....
 Ehcache requires the size of the heap tier to be smaller than the size of the offheap tier, and the size of the offheap tier to be smaller than the size of the disk tier.
 While Ehcache cannot verify at configuration time that a count-based sizing for heap will be smaller than a byte-based sizing for another tier, you should make sure that is the case during testing.
 --
@@ -220,7 +234,7 @@ Here is an example using heap, offheap and clustered.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=threeTiersCacheManager]
+include::{sourcedir37}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=threeTiersCacheManager]
 ----
 
 <1> Clustered specific information telling how to connect to the Terracotta cluster
@@ -239,7 +253,7 @@ Let's revisit an example used earlier:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=threeTiersCacheManager]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=threeTiersCacheManager]
 ----
 
 This is a cache using 3 tiers (heap, offheap, disk).
@@ -253,7 +267,7 @@ Consider for instance this code:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=notShared]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=notShared]
 ----
 
 You will end up with two caches that can contain 10 entries each.
@@ -270,7 +284,7 @@ Thus you can't change the sizing of off-heap or disk tiers.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=updateResourcesAtRuntime]
+include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=updateResourcesAtRuntime]
 ----
 
 <1> You will need to create a new `ResourcePools` object with resources of the required size, using `ResourcePoolsBuilder`.
@@ -297,19 +311,21 @@ This method destroys a given cache. The cache shouldn't be in use by another cac
 
 [[multi-tier-sequence-flow]]
 == Sequence Flow for Cache Operations with Multiple Tiers
-
+[.right]
+--
+.Multiple tiers using Put
+[plantuml]
+....
+include::{sourcedir37}/docs/src/docs/uml/put.puml[]
+....
+.Multiple tiers using Get
+[plantuml]
+....
+include::{sourcedir37}/docs/src/docs/uml/get.puml[]
+....
+--
 In order to understand what happens for different cache operations when using multiple tiers, here are examples of _Put_ and _Get_ operations.
 The sequence diagrams are oversimplified but still show the main points.
-
-[.float-group]
---
-[.left]
-.Multiple tiers using Put
-image::Put.png[Put]
-[.left]
-.Multiple tiers using Get
-image::Get.png[Get]
---
 
 You should then notice the following:
 

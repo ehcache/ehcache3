@@ -28,10 +28,11 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
@@ -42,7 +43,7 @@ import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -103,6 +104,11 @@ public class TieredStoreFlushWhileShutdownTest {
       public int getDispatcherConcurrency() {
         return 1;
       }
+
+      @Override
+      public CacheLoaderWriter<? super Number, String> getCacheLoaderWriter() {
+        return null;
+      }
     };
 
     ServiceLocator serviceLocator = getServiceLocator(persistenceLocation);
@@ -131,7 +137,7 @@ public class TieredStoreFlushWhileShutdownTest {
     // Keep the creation time to make sure we have them at restart
     long[] creationTimes = new long[20];
     for (int i = 0; i < 20; i++) {
-      creationTimes[i] = tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS);
+      creationTimes[i] = tieredStore.get(i).creationTime();
     }
 
     tieredStoreProvider.releaseStore(tieredStore);
@@ -149,7 +155,7 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS), is(creationTimes[i]));
+      assertThat(tieredStore.get(i).creationTime(), is(creationTimes[i]));
     }
   }
 

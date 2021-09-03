@@ -18,96 +18,89 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.SequencedElement;
 import org.junit.Test;
 
 import java.util.Iterator;
 
-import static org.junit.Assert.assertEquals;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.ehcache.clustered.Matchers.hasPayloads;
+import static org.ehcache.clustered.Matchers.sameSequenceAs;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 public class ChainCodecTest {
 
   @Test
   public void testChainWithSingleElement() {
-    Chain chain = getChain(false, createPayload(1L));
+    Chain chain = chainOf(createPayload(1L));
 
     assertThat(chain.isEmpty(), is(false));
     Iterator<Element> chainIterator = chain.iterator();
-    assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
     Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
-    assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
   }
 
   @Test
   public void testChainWithSingleSequencedElement() {
-    Chain chain = getChain(true, createPayload(1L));
+    Chain chain = sequencedChainOf(createPayload(1L));
 
     assertThat(chain.isEmpty(), is(false));
     Iterator<Element> chainIterator = chain.iterator();
-    assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
     Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
-    assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
+    assertThat(readPayload(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
-    assertSameSequenceChain(chain, decoded);
+    assertThat(decoded, sameSequenceAs(chain));
   }
 
   @Test
   public void testChainWithMultipleElements() {
-    Chain chain = getChain(false, createPayload(1L), createPayload(2L), createPayload(3L));
+    Chain chain = chainOf(createPayload(1L), createPayload(2L), createPayload(3L));
 
     assertThat(chain.isEmpty(), is(false));
-    Util.assertChainHas(chain, 1L, 2L, 3L);
+    assertThat(chain, hasPayloads(1L, 2L, 3L));
 
     Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
-    Util.assertChainHas(decoded, 1L, 2L, 3L);
+    assertThat(decoded, hasPayloads(1L, 2L, 3L));
   }
 
   @Test
   public void testChainWithMultipleSequencedElements() {
-    Chain chain = getChain(true, createPayload(1L), createPayload(2L), createPayload(3L));
+    Chain chain = sequencedChainOf(createPayload(1L), createPayload(2L), createPayload(3L));
 
     assertThat(chain.isEmpty(), is(false));
-    Util.assertChainHas(chain, 1L, 2L, 3L);
+    assertThat(chain, hasPayloads(1L, 2L, 3L));
 
     Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
-    Util.assertChainHas(decoded, 1L, 2L, 3L);
+    assertThat(decoded, hasPayloads(1L, 2L, 3L));
 
-    assertSameSequenceChain(chain, decoded);
+    assertThat(decoded, sameSequenceAs(chain));
   }
 
   @Test
   public void testEmptyChain() {
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(getChain(false)));
+    Chain decoded = ChainCodec.decode(ChainCodec.encode(chainOf()));
 
     assertThat(decoded.isEmpty(), is(true));
-  }
-
-  private static void assertSameSequenceChain(Chain original, Chain decoded) {
-    Iterator<Element> decodedIterator = decoded.iterator();
-    for (Element element : original) {
-      assertEquals(((SequencedElement) element).getSequenceNumber(),
-                   ((SequencedElement) decodedIterator.next()).getSequenceNumber());
-    }
   }
 }

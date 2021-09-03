@@ -27,6 +27,7 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -91,6 +92,11 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), (StoreEventDispatcher<K, V>) eventDispatcher);
   }

@@ -23,12 +23,11 @@ import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
-import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +106,7 @@ class ConfigurationMerger {
       }
 
       boolean useEhcacheLoaderWriter;
-      DefaultCacheLoaderWriterConfiguration ehcacheLoaderWriterConfiguration = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
+      CacheLoaderWriterConfiguration ehcacheLoaderWriterConfiguration = builder.getExistingServiceConfiguration(DefaultCacheLoaderWriterConfiguration.class);
       if (ehcacheLoaderWriterConfiguration == null) {
         useEhcacheLoaderWriter = false;
         // No template loader/writer - let's activate the JSR-107 one if any
@@ -152,7 +151,7 @@ class ConfigurationMerger {
           DefaultCopyProviderConfiguration defaultCopyProviderConfiguration = findSingletonAmongst(DefaultCopyProviderConfiguration.class,
               xmlConfiguration.getServiceCreationConfigurations());
           if (defaultCopyProviderConfiguration != null) {
-            Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = defaultCopyProviderConfiguration.getDefaults();
+            Map<Class<?>, DefaultCopierConfiguration<?>> defaults = defaultCopyProviderConfiguration.getDefaults();
             handleCopierDefaultsforImmutableTypes(defaults);
             boolean matchingDefault = false;
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
@@ -203,7 +202,7 @@ class ConfigurationMerger {
     return builder;
   }
 
-  private static void handleCopierDefaultsforImmutableTypes(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults) {
+  private static void handleCopierDefaultsforImmutableTypes(Map<Class<?>, DefaultCopierConfiguration<?>> defaults) {
     addIdentityCopierIfNoneRegistered(defaults, Long.class);
     addIdentityCopierIfNoneRegistered(defaults, Integer.class);
     addIdentityCopierIfNoneRegistered(defaults, String.class);
@@ -213,7 +212,7 @@ class ConfigurationMerger {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class<?> clazz) {
+  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, DefaultCopierConfiguration<?>> defaults, Class<?> clazz) {
     if (!defaults.containsKey(clazz)) {
       defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }

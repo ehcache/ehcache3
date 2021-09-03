@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -28,13 +27,10 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -104,9 +100,9 @@ public class OffHeapValueHolderPortabilityTest {
 
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(byteBuffer);
     assertThat(decoded.getId(), equalTo(123L));
-    assertThat(decoded.creationTime(OffHeapValueHolder.TIME_UNIT), equalTo(time));
-    assertThat(decoded.lastAccessTime(OffHeapValueHolder.TIME_UNIT), equalTo(time + 1));
-    assertThat(decoded.expirationTime(OffHeapValueHolder.TIME_UNIT), equalTo(time + 2));
+    assertThat(decoded.creationTime(), equalTo(time));
+    assertThat(decoded.lastAccessTime(), equalTo(time + 1));
+    assertThat(decoded.expirationTime(), equalTo(time + 2));
     assertThat(decoded.get(), equalTo("test"));
   }
 
@@ -116,8 +112,8 @@ public class OffHeapValueHolderPortabilityTest {
     WriteContext writeContext = mock(WriteContext.class);
     OffHeapValueHolder<String> decoded = valueHolderPortability.decode(encoded, writeContext);
 
-    decoded.setExpirationTime(4L, TimeUnit.MILLISECONDS);
-    decoded.setLastAccessTime(6L, TimeUnit.MILLISECONDS);
+    decoded.setExpirationTime(4L);
+    decoded.setLastAccessTime(6L);
     decoded.writeBack();
 
     verify(writeContext).setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, 6L);

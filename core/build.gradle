@@ -15,9 +15,19 @@
  */
 
 apply plugin: EhDeploy
+apply plugin: 'biz.aQute.bnd.builder'
 
 dependencies {
   api project(':api')
   api "org.terracotta:statistics:$parent.statisticVersion"
+  compileOnly 'org.osgi:osgi.core:6.0.0'
   testImplementation project(':spi-tester')
+}
+
+jar {
+  bnd (
+    'Bundle-Activator': 'org.ehcache.core.osgi.EhcacheActivator',
+    'Import-Package': '!javax.annotation, *',
+    'Export-Package': '!org.ehcache.core.internal.*, org.ehcache.core.*',
+  )
 }

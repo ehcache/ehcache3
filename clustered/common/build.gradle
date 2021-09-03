@@ -17,6 +17,9 @@
 apply plugin: EhDeploy
 
 dependencies {
+  providedImplementation project(':api')
   providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+
+  testImplementation project(':clustered:test-utils')
 }

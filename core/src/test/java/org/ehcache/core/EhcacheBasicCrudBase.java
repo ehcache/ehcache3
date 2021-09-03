@@ -41,7 +41,6 @@ import org.terracotta.context.TreeNode;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 
-import java.lang.reflect.Field;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -212,6 +212,7 @@ public abstract class EhcacheBasicCrudBase {
     };
 
     private static final Supplier<Boolean> REPLACE_EQUAL_TRUE = () -> true;
+    private static final Supplier<Boolean> INVOKE_WRITER_FALSE = () -> false;
 
     /**
      * The key:value pairs served by this {@code Store}.  This map may be empty.
@@ -276,7 +277,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(final String key, final String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(final String key, final String value, Consumer<Boolean> put) throws StoreAccessException {
       this.checkFailingKey(key);
       final FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
@@ -391,16 +392,16 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p>
      * This method is implemented as
-     * <code>this.{@link #compute(String, BiFunction, Supplier) compute}(keys, mappingFunction, () -> { returns true; })</code>
+     * <code>this.{@link Store#getAndCompute(Object, BiFunction)} (keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
-    public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
+    public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
         throws StoreAccessException {
-      return this.compute(key, mappingFunction, REPLACE_EQUAL_TRUE);
+      return this.computeAndGet(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
     }
 
     /**
-     * Common core for the {@link #compute(String, BiFunction, Supplier)} method.
+     * Common core for the {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -456,10 +457,10 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> compute(
-        final String key,
-        final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final Supplier<Boolean> replaceEqual)
+    public ValueHolder<String> computeAndGet(
+            final String key,
+            final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+            final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter)
         throws StoreAccessException {
       this.checkFailingKey(key);
 
@@ -514,8 +515,8 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * {@inheritDoc}
      * <p>
-     * This implementation calls {@link #compute(String, BiFunction, Supplier)
-     *    compute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
+     * This implementation calls {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)
+     *    } for each key presented in {@code keys}.
      */
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
@@ -526,14 +527,14 @@ public abstract class EhcacheBasicCrudBase {
 
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<>();
       for (final String key : keys) {
-        final ValueHolder<String> newValue = this.compute(key,
+        final ValueHolder<String> newValue = this.computeAndGet(key,
           (key1, oldValue) -> {
             final Entry<String, String> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
             final Entry<? extends String, ? extends String> remappedEntry =
                 remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
             return remappedEntry.getValue();
           },
-            replaceEqual);
+            replaceEqual, INVOKE_WRITER_FALSE);
 
         resultMap.put(key, newValue);
       }
@@ -599,23 +600,23 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public long creationTime(final TimeUnit unit) {
-        return unit.convert(this.creationTime, TimeUnit.MICROSECONDS);
+      public long creationTime() {
+        return creationTime;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(final TimeUnit unit) {
-        return unit.convert(this.lastAccessTime, TimeUnit.MICROSECONDS);
+      public long lastAccessTime() {
+        return lastAccessTime;
       }
 
       @Override

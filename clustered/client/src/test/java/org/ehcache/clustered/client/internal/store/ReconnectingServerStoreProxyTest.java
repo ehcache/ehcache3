@@ -76,4 +76,11 @@ public class ReconnectingServerStoreProxyTest {
     serverStoreProxy.get(0);
   }
 
+  @Test
+  public void testIterator() throws Exception {
+    doThrow(storeProxyException).when(proxy).iterator();
+
+    exception.expect(ReconnectInProgressException.class);
+    serverStoreProxy.iterator();
+  }
 }

@@ -18,6 +18,7 @@ package org.ehcache.xml.service;
 
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 
@@ -32,8 +33,11 @@ public class DefaultResilienceStrategyConfigurationParser
       CacheTemplate::resilienceStrategy,
       (config, loader) -> new DefaultResilienceStrategyConfiguration((Class<? extends ResilienceStrategy>) getClassForName(config, loader)),
       CacheType::getResilience, CacheType::setResilience, config -> {
-        checkNoConcreteInstance(config);
-        return config.getClazz().getName();
+        if(config.getInstance() == null) {
+          return config.getClazz().getName();
+        } else {
+          throw new XmlConfigurationException("XML translation for instance based initialization for DefaultResilienceStrategyConfiguration is not supported");
+        }
       });
   }
 }

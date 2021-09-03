@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -35,8 +36,9 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.impl.internal.store.basic.BaseStore;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -50,6 +52,7 @@ import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.impl.store.HashUtils;
+import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
@@ -180,7 +183,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       OffHeapValueHolder<V> result = backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         }
@@ -229,7 +232,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     try {
       BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           mappedValue = null;
         }
 
@@ -260,7 +263,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, StoreAccessException {
+  public Store.ValueHolder<V> putIfAbsent(final K key, final V value, Consumer<Boolean> put) throws NullPointerException, StoreAccessException {
     checkKey(key);
     checkValue(value);
 
@@ -273,7 +276,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue == null || mappedValue.isExpired(now)) {
           if (mappedValue != null) {
             onExpiration(mappedKey, mappedValue, eventSink);
           }
@@ -315,7 +318,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
 
       backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
 
-        if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue != null && mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         }
@@ -356,7 +359,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       backingMap().computeIfPresent(key, (mappedKey, mappedValue) -> {
         long now = timeSource.getTimeMillis();
 
-        if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+        if (mappedValue.isExpired(now)) {
           onExpiration(mappedKey, mappedValue, eventSink);
           return null;
         } else if (mappedValue.get().equals(value)) {
@@ -401,12 +404,13 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
 
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
         return null;
       } else {
+        mappedValue.forceDeserialization();
         returnValue.set(mappedValue);
         return newUpdatedValueHolder(mappedKey, value, mappedValue, now, eventSink);
       }
@@ -442,7 +446,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
 
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -520,12 +524,76 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
-    return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+    checkKey(key);
+
+    computeObserver.begin();
+
+    AtomicBoolean write = new AtomicBoolean(false);
+    AtomicReference<OffHeapValueHolder<V>> valueHeld = new AtomicReference<>();
+    AtomicReference<OffHeapValueHolder<V>> existingValueHolder = new AtomicReference<>();
+    StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
+      long now = timeSource.getTimeMillis();
+      V existingValue = null;
+      if (mappedValue == null || mappedValue.isExpired(now)) {
+        if (mappedValue != null) {
+          onExpiration(mappedKey, mappedValue, eventSink);
+        }
+        mappedValue = null;
+      } else {
+        existingValue = mappedValue.get();
+        existingValueHolder.set(mappedValue);
+      }
+      V computedValue = mappingFunction.apply(mappedKey, existingValue);
+      if (computedValue == null) {
+        if (mappedValue != null) {
+          write.set(true);
+          eventSink.removed(mappedKey, mappedValue);
+        }
+        return null;
+      }
+
+      checkValue(computedValue);
+      write.set(true);
+      if (mappedValue != null) {
+        OffHeapValueHolder<V> valueHolder = newUpdatedValueHolder(key, computedValue, mappedValue, now, eventSink);
+        if (valueHolder == null) {
+          valueHeld.set(new BasicOffHeapValueHolder<>(mappedValue.getId(), computedValue, now, now));
+        }
+        return valueHolder;
+      } else {
+        return newCreateValueHolder(key, computedValue, now, eventSink);
+      }
+    };
+
+    OffHeapValueHolder<V> result;
+    try {
+      result = computeWithRetry(key, computeFunction, false);
+      if (result == null && valueHeld.get() != null) {
+        result = valueHeld.get();
+      }
+      eventDispatcher.releaseEventSink(eventSink);
+      if (result == null) {
+        if (write.get()) {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+        } else {
+          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
+        }
+      } else if (write.get()) {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
+      } else {
+        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
+      }
+      return existingValueHolder.get();
+    } catch (StoreAccessException | RuntimeException caex) {
+      eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
+      throw caex;
+    }
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -536,7 +604,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
       V existingValue = null;
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -620,7 +688,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
@@ -719,7 +787,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
           return null;
         }
       };
-      ValueHolder<V> computed = compute(key, biFunction, replaceEqual);
+      ValueHolder<V> computed = computeAndGet(key, biFunction, replaceEqual, () -> false);
       result.put(key, computed);
     }
     return result;
@@ -755,7 +823,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
       mappedValue = backingMap().computeIfPresentAndPin(key, (mappedKey, mappedValue1) -> {
-        if(mappedValue1.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        if(mappedValue1.isExpired(timeSource.getTimeMillis())) {
           onExpiration(mappedKey, mappedValue1, eventSink);
           return null;
         }
@@ -792,7 +860,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     try {
       boolean result = backingMap().computeIfPinned(key, (k, valuePresent) -> {
         if (valuePresent.getId() == valueFlushed.getId()) {
-          if (valueFlushed.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+          if (valueFlushed.isExpired(timeSource.getTimeMillis())) {
             onExpiration(k, valuePresent, eventSink);
             return null;
           }
@@ -899,7 +967,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     final AtomicReference<ValueHolder<V>> valueHolderAtomicReference = new AtomicReference<>();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+      if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpirationInCachingTier(mappedValue, key);
         }
@@ -933,7 +1001,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
       }
       ValueHolder<V> valueHolder = source.apply(k);
       if (valueHolder != null) {
-        if (valueHolder.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        if (valueHolder.isExpired(timeSource.getTimeMillis())) {
           onExpirationInCachingTier(valueHolder, key);
           return null;
         } else {
@@ -1021,7 +1089,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     }
 
     if (duration == null) {
-      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, existing.expirationTime());
     } else if (isExpiryDurationInfinite(duration)) {
       return new BasicOffHeapValueHolder<>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
@@ -1047,11 +1115,11 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
       return new BinaryOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), ((BinaryValueHolder) valueHolder).getBinaryValue(),
-        valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+        valueHolder.creationTime(), valueHolder.expirationTime(),
+        valueHolder.lastAccessTime());
     } else {
-      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<>(valueHolder.getId(), valueHolder.get(), valueHolder.creationTime(),
+        valueHolder.expirationTime(), valueHolder.lastAccessTime());
     }
   }
 
@@ -1082,6 +1150,10 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
   protected abstract SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor();
+
+  protected OffHeapValueHolderPortability<V> createValuePortability(Serializer<V> serializer) {
+    return new OffHeapValueHolderPortability<>(serializer);
+  }
 
   protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<>(delegate);
