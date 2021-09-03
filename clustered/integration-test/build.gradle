@@ -30,7 +30,6 @@ dependencies {
   testCompileOnly project(':impl')
   testCompileOnly project(':xml')
   testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
 
   testCompile project(':management')
   testCompile "org.terracotta.management.dist:mnm-nms:$parent.managementVersion"

@@ -20,8 +20,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.junit.Before;
@@ -34,7 +32,7 @@ import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.asy
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
+public class VoltronReadWriteLockPassiveIntegrationTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).build();

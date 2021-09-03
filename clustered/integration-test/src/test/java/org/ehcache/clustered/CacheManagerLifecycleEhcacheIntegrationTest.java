@@ -58,7 +58,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
+public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
