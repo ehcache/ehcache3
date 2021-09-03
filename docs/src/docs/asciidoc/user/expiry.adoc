@@ -1,12 +1,12 @@
 ---
 ---
 = Expiry
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Introduction
@@ -20,7 +20,7 @@ Expiry is configured at the cache level, in Java or in XML:
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
 ----
 
 <1> Expiry policy is configured at the cache level, so start by defining a cache configuration,
@@ -28,7 +28,7 @@ include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 [source,xml,indent=0]
 ----
-include::{sourcedir37}/xml/src/test/resources/configs/docs/expiry.xml[tags=expiry]
+include::{sourcedir38}/xml/src/test/resources/configs/docs/expiry.xml[tags=expiry]
 ----
 
 <1> At the cache level, using the predefined _time-to-live_ again.
@@ -50,7 +50,7 @@ Supporting your own expiration scheme simply means implementing the `ExpiryPolic
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/api/src/main/java/org/ehcache/expiry/ExpiryPolicy.java[lines=21..-1]
+include::{sourcedir38}/api/src/main/java/org/ehcache/expiry/ExpiryPolicy.java[lines=21..-1]
 ----
 
 The main points to remember on the return value from these methods:
@@ -71,7 +71,7 @@ In Java:
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=customExpiry]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=customExpiry]
 ----
 
 <1> Simply pass your custom expiry instance into the cache builder.
@@ -80,7 +80,7 @@ In XML:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir37}/xml/src/test/resources/configs/docs/expiry.xml[tags=customExpiry]
+include::{sourcedir38}/xml/src/test/resources/configs/docs/expiry.xml[tags=customExpiry]
 ----
 
 <1> Simply pass the fully qualified class name of your custom expiry.

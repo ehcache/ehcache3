@@ -53,7 +53,7 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   }
 
   @Override
-  public ServiceCreationConfiguration<ManagementRegistryService> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceCreationConfiguration<ManagementRegistryService, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     if ("management".equals(fragment.getLocalName())) {
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration();
 
@@ -102,7 +102,7 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService, ?> serviceCreationConfiguration) {
     return unparseConfig(serviceCreationConfiguration);
   }
 

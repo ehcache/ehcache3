@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * {@link ServiceCreationConfiguration} for default {@link Jsr107Service} implementation.
  */
-public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service> {
+public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service, Void> {
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;

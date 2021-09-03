@@ -20,7 +20,6 @@ import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.io.ObjectStreamException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -110,8 +109,8 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
 
   private static <K, V> boolean isStoreByValue(Configuration<K, V> config, CacheConfiguration<K, V> ehcacheConfig) {
     if(ehcacheConfig != null) {
-      Collection<ServiceConfiguration<?>> serviceConfigurations = ehcacheConfig.getServiceConfigurations();
-      for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
+      Collection<ServiceConfiguration<?, ?>> serviceConfigurations = ehcacheConfig.getServiceConfigurations();
+      for (ServiceConfiguration<?, ?> serviceConfiguration : serviceConfigurations) {
         if (serviceConfiguration instanceof DefaultCopierConfiguration) {
           DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
           if(copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {

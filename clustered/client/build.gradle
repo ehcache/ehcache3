@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-apply plugin: 'osgi-ds'
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'org.jayware.osgi-ds'
+}
 
 dependencies {
   compileOnly project(':impl')
   compileOnly project(':xml')
   implementation project(':clustered:common')
-  implementation "org.terracotta:statistics:$parent.statisticVersion"
   providedImplementation "org.terracotta:entity-client-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
   providedImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
@@ -45,4 +46,6 @@ dependencies {
   }
   testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
   testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
+  testImplementation "org.awaitility:awaitility:3.1.6"
+  testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
 }

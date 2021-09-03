@@ -1,18 +1,15 @@
----
-version: 3.7
----
-= Ehcache 3.7 Documentation Overview
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+= Ehcache {version} Documentation Overview
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.7 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.8 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
@@ -57,5 +54,6 @@ Each topic below corresponds to a menu item at the left.
 |link:eviction-advisor{outfilesuffix}[Eviction Advisor]|Affecting the way entries are chosen for eviction
 |link:class-loading{outfilesuffix}[Class loading]|Ehcache and `ClassLoader` interactions
 |link:osgi{outfilesuffix}[OSGi Deployment]|How to use Ehcache in an OSGi Environment
+|link:config-derive{outfilesuffix}[Configuration Derivation]|How to derive a new configuration from an existing one
 |link:performance{outfilesuffix}[Performance Tuning]|Ehcache Performance Tuning
 |===

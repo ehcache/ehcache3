@@ -1,14 +1,11 @@
----
-version: 3.7
----
-= Ehcache 3.7 Documentation
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+= Ehcache 3.8 Documentation
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Configuring Ehcache
@@ -28,7 +25,7 @@ As with the previous versions of Ehcache, the canonical way of dealing with `Cac
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> The static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` returns a new `org.ehcache.config.builders.CacheManagerBuilder` instance.
@@ -63,7 +60,7 @@ Here is a shorter version featuring 3 important things:
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
+include::{sourcedir38}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
 ----
 <1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
 A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.
@@ -77,7 +74,7 @@ You can create an XML file to configure a `CacheManager`.
 
 [source,xml,indent=0]
 ----
-include::{sourcedir37}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir38}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`.
@@ -111,7 +108,7 @@ In addition, for creating the cache manager with clustering support, you will ne
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
@@ -140,7 +137,7 @@ A classical example would be using 3 tiers with a persistent disk storage.
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -159,7 +156,7 @@ The following illustrates how to configure a _time-to-live_ expiry.
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
 ----
 
 <1> Expiry is configured at the cache level, so start by defining a cache configuration,

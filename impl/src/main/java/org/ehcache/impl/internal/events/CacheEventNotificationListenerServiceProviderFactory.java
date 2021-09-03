@@ -25,7 +25,7 @@ import org.osgi.service.component.annotations.Component;
 public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventDispatcherFactory> {
 
   @Override
-  public CacheEventDispatcherFactory create(ServiceCreationConfiguration<CacheEventDispatcherFactory> configuration) {
+  public CacheEventDispatcherFactory create(ServiceCreationConfiguration<CacheEventDispatcherFactory, ?> configuration) {
     if (configuration == null) {
       return new CacheEventDispatcherFactoryImpl();
     } else if (configuration instanceof CacheEventDispatcherFactoryConfiguration) {

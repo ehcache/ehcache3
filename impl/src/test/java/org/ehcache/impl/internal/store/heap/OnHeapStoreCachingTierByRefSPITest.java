@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -70,7 +71,8 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, null, null);
 
-        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+          new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
       }
 
       @Override
@@ -102,8 +104,8 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override

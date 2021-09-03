@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -56,7 +57,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
         null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
       OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(storeConfiguration, timeSource, new TestStoreEventDispatcher<>(), MemoryUnit.MB
-        .toBytes(1)) {
+        .toBytes(1), new DefaultStatisticsService()) {
         @Override
         protected OffHeapValueHolderPortability<String> createValuePortability(Serializer<String> serializer) {
           return new AssertingOffHeapValueHolderPortability<>(serializer);
@@ -80,7 +81,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
         evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<>(), MemoryUnit.MB
-        .toBytes(1)) {
+        .toBytes(1), new DefaultStatisticsService()) {
         @Override
         protected OffHeapValueHolderPortability<byte[]> createValuePortability(Serializer<byte[]> serializer) {
           return new AssertingOffHeapValueHolderPortability<>(serializer);
@@ -121,7 +122,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+        Collections.<ServiceConfiguration<?, ?>>emptyList()),
         is(expectedRank));
   }
 

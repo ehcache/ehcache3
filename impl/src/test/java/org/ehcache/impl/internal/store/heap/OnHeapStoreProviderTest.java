@@ -83,7 +83,7 @@ public class OnHeapStoreProviderTest {
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+        Collections.<ServiceConfiguration<?, ?>>emptyList()),
         is(expectedRank));
   }
 }

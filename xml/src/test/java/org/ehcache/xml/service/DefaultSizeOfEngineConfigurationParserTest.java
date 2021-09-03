@@ -64,7 +64,7 @@ public class DefaultSizeOfEngineConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultSizeOfEngineConfiguration(123, MemoryUnit.MB, 987)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultSizeOfEngineConfiguration(123, MemoryUnit.MB, 987)).build();
     CacheType cacheType = new CacheType();
     cacheType = new DefaultSizeOfEngineConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 

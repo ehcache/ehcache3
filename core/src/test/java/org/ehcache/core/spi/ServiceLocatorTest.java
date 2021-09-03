@@ -518,7 +518,7 @@ class OptService2 implements Service {
 class YetAnotherCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?, ?>... config) {
     return null;
   }
 

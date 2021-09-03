@@ -42,7 +42,7 @@ public final class StoreSupport {
   private StoreSupport() {
   }
 
-  public static Store.Provider selectWrapperStoreProvider(ServiceProvider<Service> serviceProvider, Collection<ServiceConfiguration<?>> serviceConfigs) {
+  public static Store.Provider selectWrapperStoreProvider(ServiceProvider<Service> serviceProvider, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
     Collection<WrapperStore.Provider> storeProviders = serviceProvider.getServicesOfType(WrapperStore.Provider.class);
     Optional<Tuple<Integer, WrapperStore.Provider>> wrapperProvider = storeProviders.stream()
             .map(provider -> new Tuple<>(provider.wrapperStoreRank(serviceConfigs), provider))
@@ -78,7 +78,7 @@ public final class StoreSupport {
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      ServiceProvider<Service> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      ServiceProvider<Service> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
 
     Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     List<Store.Provider> filteredStoreProviders = storeProviders.stream().filter(provider -> !(provider instanceof WrapperStore.Provider)).collect(Collectors.toList());

@@ -97,7 +97,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return services.get(serviceType);
   }
 
-  public boolean knowsServiceFor(ServiceConfiguration<?> serviceConfig) {
+  public boolean knowsServiceFor(ServiceConfiguration<?, ?> serviceConfig) {
     return services.contains(serviceConfig.getServiceType());
   }
 
@@ -249,7 +249,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       return this;
     }
 
-    public <T extends Service> DependencySet with(ServiceCreationConfiguration<T> config) {
+    public <T extends Service> DependencySet with(ServiceCreationConfiguration<T, ?> config) {
       Class<T> serviceType = config.getServiceType();
 
       //TODO : This stanza is due to the way we use configure the JSR-107 service

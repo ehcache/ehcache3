@@ -48,7 +48,7 @@ public class UnSupportedResourceTypeTest {
     when(resourcePools.getResourceTypeSet()).thenReturn(resourceTypes);
 
     try {
-      provider.createStore(configuration, (ServiceConfiguration<?>) null);
+      provider.createStore(configuration, (ServiceConfiguration<?, ?>) null);
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
 

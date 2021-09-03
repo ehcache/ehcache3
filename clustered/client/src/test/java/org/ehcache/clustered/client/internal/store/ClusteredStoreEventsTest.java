@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.ChainUtils;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
@@ -44,15 +45,19 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.terracotta.connection.Connection;
 
 import java.net.URI;
@@ -62,13 +67,14 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class ClusteredStoreEventsTest {
 
@@ -150,7 +156,7 @@ public class ClusteredStoreEventsTest {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
       Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null, false);
-    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    ClusterTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity("TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, ClusteringServiceConfiguration.ClientMode.AUTO_CREATE, false);
     clientEntity.validate(serverStoreConfiguration);
     ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(CACHE_IDENTIFIER, clientEntity, mock(ServerCallback.class));
 
@@ -163,7 +169,7 @@ public class ClusteredStoreEventsTest {
     storeEventSink = mock(StoreEventSink.class);
     when(storeEventDispatcher.eventSink()).thenReturn(storeEventSink);
 
-    ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, resolver, serverStoreProxy, testTimeSource, storeEventDispatcher);
+    ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, resolver, serverStoreProxy, testTimeSource, storeEventDispatcher, new DefaultStatisticsService());
     serverCallback = new ClusteredStore.Provider().getServerCallback(store);
   }
 
@@ -186,28 +192,22 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_PutAfterPutFiresUpdatedEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     serverCallback.onAppend(beforeAppend, op(new PutOperation<>(1L, "one-bis", testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).updated(eq(1L), supplierArgumentCaptor.capture(), eq("one-bis"));
+    verify(storeEventSink).updated(eq(1L), argThat(supplies("one")), eq("one-bis"));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_RemoveAfterPutFiresRemovedEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     serverCallback.onAppend(beforeAppend, op(new RemoveOperation<>(1L, testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).removed(eq(1L), supplierArgumentCaptor.capture());
+    verify(storeEventSink).removed(eq(1L), argThat(supplies("one")));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
   @Test
@@ -218,16 +218,13 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_ReplaceAfterPutFiresUpdatedEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     serverCallback.onAppend(beforeAppend, op(new ReplaceOperation<>(1L, "one-bis", testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).updated(eq(1L), supplierArgumentCaptor.capture(), eq("one-bis"));
+    verify(storeEventSink).updated(eq(1L), argThat(supplies("one")), eq("one-bis"));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
   @Test
@@ -255,16 +252,13 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_SuccessfulReplaceConditionalAfterPutFiresUpdatedEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     serverCallback.onAppend(beforeAppend, op(new ConditionalReplaceOperation<>(1L, "one", "one-bis", testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).updated(eq(1L), supplierArgumentCaptor.capture(), eq("one-bis"));
+    verify(storeEventSink).updated(eq(1L), argThat(supplies("one")), eq("one-bis"));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
   @Test
@@ -283,16 +277,13 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_SuccessfulRemoveConditionalAfterPutFiresUpdatedEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     serverCallback.onAppend(beforeAppend, op(new ConditionalRemoveOperation<>(1L, "one", testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).removed(eq(1L), supplierArgumentCaptor.capture());
+    verify(storeEventSink).removed(eq(1L), argThat(supplies("one")));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
   @Test
@@ -311,17 +302,14 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testOnAppend_timestampAfterExpiryFiresExpiredEvent() {
     Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "wrong-one", testTimeSource.getTimeMillis())), op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
     testTimeSource.advanceTime(1100L);
     serverCallback.onAppend(beforeAppend, op(new TimestampOperation<>(1L, testTimeSource.getTimeMillis())));
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).expired(eq(1L), supplierArgumentCaptor.capture());
+    verify(storeEventSink).expired(eq(1L), argThat(supplies("one")));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor.getValue().get(), is("one"));
   }
 
   @Test
@@ -341,19 +329,26 @@ public class ClusteredStoreEventsTest {
     verifyNoMoreInteractions(storeEventSink);
   }
 
-  @SuppressWarnings("unchecked")
+  @Test
+  public void testOnAppend_putIfAbsentAfterExpiredPutFiresCorrectly() {
+    Chain beforeAppend = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())));
+    testTimeSource.advanceTime(1100L);
+    serverCallback.onAppend(beforeAppend, op(new PutIfAbsentOperation<>(1L, "one-bis", testTimeSource.getTimeMillis())));
+
+    InOrder inOrder = inOrder(storeEventSink);
+    inOrder.verify(storeEventSink).expired(eq(1L), argThat(supplies("one")));
+    inOrder.verify(storeEventSink).created(1L, "one-bis");
+    inOrder.verifyNoMoreInteractions();
+  }
+
   @Test
   public void testOnInvalidateHash_chainFiresEvictedEvents() {
     Chain evictedChain = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())), op(new PutOperation<>(2L, "two", testTimeSource.getTimeMillis())));
     serverCallback.onInvalidateHash(1L, evictedChain);
 
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor1 = ArgumentCaptor.forClass(Supplier.class);
-    ArgumentCaptor<Supplier<String>> supplierArgumentCaptor2 = ArgumentCaptor.forClass(Supplier.class);
-    verify(storeEventSink).evicted(eq(1L), supplierArgumentCaptor1.capture());
-    verify(storeEventSink).evicted(eq(2L), supplierArgumentCaptor2.capture());
+    verify(storeEventSink).evicted(eq(1L), argThat(supplies("one")));
+    verify(storeEventSink).evicted(eq(2L), argThat(supplies("two")));
     verifyNoMoreInteractions(storeEventSink);
-    assertThat(supplierArgumentCaptor1.getValue().get(), is("one"));
-    assertThat(supplierArgumentCaptor2.getValue().get(), is("two"));
   }
 
   @Test
@@ -361,5 +356,23 @@ public class ClusteredStoreEventsTest {
     serverCallback.onInvalidateHash(1L, null);
 
     verifyNoMoreInteractions(storeEventSink);
+  }
+
+  private static <T> Matcher<Supplier<T>> supplies(T value) {
+    return supplies(equalTo(value));
+  }
+
+  private static <T> Matcher<Supplier<T>> supplies(Matcher<? super T> matcher) {
+    return new TypeSafeMatcher<Supplier<T>>() {
+      @Override
+      protected boolean matchesSafely(Supplier<T> item) {
+        return matcher.matches(item.get());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendValue(" supplier of ").appendDescriptionOf(matcher);
+      }
+    };
   }
 }

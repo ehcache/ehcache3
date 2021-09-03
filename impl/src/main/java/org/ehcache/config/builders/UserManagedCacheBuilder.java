@@ -29,7 +29,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
@@ -112,7 +112,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Class<V> valueType;
   private String id;
   private final Set<Service> services = new HashSet<>();
-  private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
+  private final Set<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = new HashSet<>();
   private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -126,7 +126,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
   private int dispatcherConcurrency = 4;
-  private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<>();
+  private List<CacheEventListenerConfiguration<?>> eventListenerConfigurations = new ArrayList<>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
   private long objectGraphSize = DEFAULT_OBJECT_GRAPH_SIZE;
@@ -157,6 +157,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.valueSerializer = toCopy.valueSerializer;
     this.useKeySerializingCopier = toCopy.useKeySerializingCopier;
     this.useValueSerializingCopier = toCopy.useValueSerializingCopier;
+    this.dispatcherConcurrency = toCopy.dispatcherConcurrency;
     this.eventListenerConfigurations = toCopy.eventListenerConfigurations;
     this.unOrderedExecutor = toCopy.unOrderedExecutor;
     this.orderedExecutor = toCopy.orderedExecutor;
@@ -171,7 +172,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     ServiceLocator serviceLocator;
     try {
-      for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
+      for (ServiceCreationConfiguration<?, ?> serviceCreationConfig : serviceCreationConfigurations) {
         serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
       serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
@@ -181,7 +182,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
 
-    List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<>();
+    List<ServiceConfiguration<?, ?>> serviceConfigsList = new ArrayList<>();
 
     if (keyCopier != null) {
       serviceConfigsList.add(new DefaultCopierConfiguration<>(keyCopier, DefaultCopierConfiguration.Type.KEY));
@@ -237,7 +238,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultSerializerConfiguration<>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
+    ServiceConfiguration<?, ?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?, ?>[0]);
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     if (serialization != null) {
       try {
@@ -365,7 +366,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       } else {
         listenerProvider = new DefaultCacheEventListenerProvider();
       }
-      for (CacheEventListenerConfiguration config : eventListenerConfigurations) {
+      for (CacheEventListenerConfiguration<?> config : eventListenerConfigurations) {
         final CacheEventListener<K, V> listener = listenerProvider.createEventListener(id, config);
         if (listener != null) {
           cache.getRuntimeConfiguration().registerCacheEventListener(listener, config.orderingMode(), config.firingMode(), config.fireOn());
@@ -559,7 +560,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withEventExecutors(ExecutorService, ExecutorService)
    * @see #withEventListeners(CacheEventListenerConfigurationBuilder)
    */
-  public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration... cacheEventListenerConfigurations) {
+  public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration<?> ... cacheEventListenerConfigurations) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.eventListenerConfigurations.addAll(Arrays.asList(cacheEventListenerConfigurations));
     return otherBuilder;
@@ -813,7 +814,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    *
    * @see #using(Service)
    */
-  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
+  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);

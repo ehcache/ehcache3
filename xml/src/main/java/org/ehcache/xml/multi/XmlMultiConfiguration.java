@@ -23,11 +23,9 @@ import org.ehcache.xml.multi.model.Configurations;
 import org.ehcache.xml.multi.model.ObjectFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
@@ -41,16 +39,13 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -96,15 +91,13 @@ public class XmlMultiConfiguration {
 
       this.configurations = value.getConfiguration().stream().collect(toMap(Configurations.Configuration::getIdentity, c -> {
 
-        List<Object> configOrVariant = c.getConfigOrVariant();
-        if (configOrVariant.size() == 1 && configOrVariant.get(0) instanceof Node) {
+        Element configuration = c.getConfig();
+        if (configuration != null) {
           Document configDoc = domBuilder.newDocument();
-          configDoc.appendChild(configDoc.importNode((Element) configOrVariant.get(0), true));
+          configDoc.appendChild(configDoc.importNode(configuration, true));
           return new SingleConfig(configParser.apply(c.getIdentity(), configDoc));
         } else {
-          return new VariantConfig(configOrVariant.stream()
-            .map(e -> (JAXBElement<Configurations.Configuration.Variant>) e)
-            .map(JAXBElement::getValue)
+          return new VariantConfig(c.getVariant().stream()
             .collect(toMap(Configurations.Configuration.Variant::getType, v -> {
               Document configDoc = domBuilder.newDocument();
               configDoc.appendChild(configDoc.importNode(v.getConfig(), true));
@@ -125,8 +118,7 @@ public class XmlMultiConfiguration {
 
       ObjectFactory objectFactory = new ObjectFactory();
       Configurations jaxb = objectFactory.createConfigurations().withConfiguration(configurations.entrySet().stream().map(
-        entry -> objectFactory.createConfigurationsConfiguration().withIdentity(entry.getKey()).withConfigOrVariant(entry.getValue().unparse(objectFactory))
-      ).collect(toList()));
+        entry -> entry.getValue().unparse(objectFactory, objectFactory.createConfigurationsConfiguration().withIdentity(entry.getKey()))).collect(toList()));
 
       JAXBContext jaxbContext = JAXBContext.newInstance(Configurations.class);
       Marshaller marshaller = jaxbContext.createMarshaller();
@@ -245,7 +237,7 @@ public class XmlMultiConfiguration {
 
     Configuration configuration(String variant);
 
-    Collection<Object> unparse(ObjectFactory factory);
+    Configurations.Configuration unparse(ObjectFactory factory, Configurations.Configuration container);
 
     Set<String> variants();
   }
@@ -269,8 +261,8 @@ public class XmlMultiConfiguration {
     }
 
     @Override
-    public Collection<Object> unparse(ObjectFactory factory) {
-      return singleton(unparseEhcacheConfiguration(config));
+    public Configurations.Configuration unparse(ObjectFactory factory, Configurations.Configuration container) {
+      return container.withConfig(unparseEhcacheConfiguration(config));
     }
 
     @Override
@@ -310,12 +302,12 @@ public class XmlMultiConfiguration {
     }
 
     @Override
-    public Collection<Object> unparse(ObjectFactory factory) {
-      return configs.entrySet().stream()
-        .map(v -> factory.createConfigurationsConfigurationVariant().withType(v.getKey())
+    public Configurations.Configuration unparse(ObjectFactory factory, Configurations.Configuration container) {
+      return container.withVariant(configs.entrySet().stream()
+        .map(v -> factory.createConfigurationsConfigurationVariant()
+          .withType(v.getKey())
           .withConfig(unparseEhcacheConfiguration(v.getValue())))
-        .map(factory::createConfigurationsConfigurationVariant)
-        .collect(toList());
+        .collect(toList()));
     }
 
     @Override

@@ -48,7 +48,7 @@ public class ConnectionStateTest {
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
-          .autoCreate()
+          .autoCreate(c -> c)
           .build();
 
   @Rule

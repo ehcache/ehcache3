@@ -31,7 +31,7 @@ public class MandatoryHighRankServiceBFactory implements ServiceFactory<RankServ
   }
 
   @Override
-  public RankServiceB create(ServiceCreationConfiguration<RankServiceB> configuration) {
+  public RankServiceB create(ServiceCreationConfiguration<RankServiceB, ?> configuration) {
     return new RankServiceB("high-rank");
   }
 

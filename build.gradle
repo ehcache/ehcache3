@@ -19,18 +19,13 @@ import org.gradle.internal.jvm.Jvm
 plugins {
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
-  id 'io.codearte.nexus-staging' version '0.12.0'
-  // This adds the ability to print a taskTree
-  // ./gradlew <task1> ... <taskN> taskTree
-  id "com.dorongold.task-tree" version "1.3.1"
-  // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '1.6.9' apply false
-  // Declare osgi-ds at the top
-  id 'org.jayware.osgi-ds' version '0.5.6' apply false
+  id 'io.codearte.nexus-staging'
   //OWASP Security Vulnerability Detection
-  id 'org.owasp.dependencycheck' version '4.0.2' apply false
+  id 'org.owasp.dependencycheck'
+  // Declare spotbugs at the top
+  id 'com.github.spotbugs' apply false
   // Declare bnd at the top
-  id 'biz.aQute.bnd.builder' version '4.1.0' apply false
+  id 'biz.aQute.bnd.builder' apply false
 }
 
 wrapper {
@@ -87,13 +82,21 @@ if (hasProperty('testVM')) {
   println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
+dependencyCheck {
+  failBuildOnCVSS = 0
+  suppressionFile = 'config/owasp-supressions.xml'
+  skipConfigurations += ['checkstyle', 'spotbugs']
+  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+}
+tasks.register('check') {
+  dependsOn dependencyCheckAggregate
+}
+
 subprojects {
   apply plugin: 'java-library'
-  apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
   apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
-  apply plugin: 'org.owasp.dependencycheck'
 
   group = 'org.ehcache.modules'
   version = baseVersion
@@ -122,8 +125,8 @@ subprojects {
 
   dependencies {
     implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    compileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
-    testCompileOnly "com.github.spotbugs:spotbugs-annotations:$parent.spotbugsVersion"
+    compileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
+    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
     testImplementation "junit:junit:$junitVersion"
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
@@ -155,7 +158,7 @@ subprojects {
 
   task sourceJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allJava
-    classifier = 'sources'
+    archiveClassifier = 'sources'
   }
 
   javadoc {
@@ -165,7 +168,7 @@ subprojects {
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
   }
 
   artifacts {
@@ -176,15 +179,19 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = checkstyleVersion
   }
 
   spotbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    toolVersion = spotbugsVersion
+
   }
 
+  // Spotbugs itself has a divergence in it's slf4j dependencies.
+  // This version is independent of the version we use.
+  configurations.spotbugs.resolutionStrategy {
+    force 'org.slf4j:slf4j-api:1.8.0-beta4'
+  }
   spotbugsMain {
     reports {
       // Switch from xml to html by changing these flags
@@ -204,12 +211,6 @@ subprojects {
     }
   }
 
-  dependencyCheck {
-    failBuildOnCVSS = 0
-    skipConfigurations += ['checkstyle']
-  }
-  check.dependsOn(dependencyCheckAnalyze)
-
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
@@ -217,6 +218,7 @@ subprojects {
   }
   tasks.withType(Test) {
     executable = testJava.javaExecutable
+    maxParallelForks 64
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
@@ -253,14 +255,20 @@ subprojects {
       )
     }
     dependencies {
-      baseline(group: group, name: jar.archiveBaseName.get()) {
-        def baseVersion = fixedVersion.replaceAll(/-[a-zA-Z0-9]+$/, "")
-        version {
-          require "(,${fixedVersion}["
-          reject "${baseVersion}-internal+"
-        }
+      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
         force = true
         transitive = false
+      }
+    }
+    configurations.baseline {
+      resolutionStrategy {
+        componentSelection {
+          all { selection ->
+            if (!selection.candidate.version.matches(/\d+(?:\.\d+)*/)) {
+              selection.reject("Only full releases can be used as OSGi baselines")
+            }
+          }
+        }
       }
     }
   }

@@ -18,7 +18,6 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
@@ -31,6 +30,8 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import java.net.URI;
 import java.time.Duration;
@@ -42,7 +43,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class WriteBehindTestBase extends ClusteredTests {
+public class WriteBehindTestBase {
 
   static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -51,10 +52,12 @@ public class WriteBehindTestBase extends ClusteredTests {
     + "</ohr:offheap-resources>" +
     "</config>\n";
 
-  static final String CACHE_NAME = "cache-1";
   static final long KEY = 1L;
 
   private static final String FLUSH_QUEUE_MARKER = "FLUSH_QUEUE";
+
+  @Rule
+  public final TestName testName = new TestName();
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
 
@@ -102,15 +105,15 @@ public class WriteBehindTestBase extends ClusteredTests {
                                                                                  .offheap(1, MemoryUnit.MB)
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
-        .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
         .withResilienceStrategy(new ThrowingResilienceStrategy<>())
-        .add(new ClusteredStoreConfiguration(Consistency.STRONG))
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate())
-      .withCache(CACHE_NAME, cacheConfiguration)
+      .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
+      .withCache(testName.getMethodName(), cacheConfiguration)
       .build(true);
   }
 }

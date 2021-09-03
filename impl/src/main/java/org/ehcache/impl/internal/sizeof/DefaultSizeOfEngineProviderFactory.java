@@ -31,7 +31,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultSizeOfEngineProviderFactory implements ServiceFactory<SizeOfEngineProvider> {
 
   @Override
-  public SizeOfEngineProvider create(ServiceCreationConfiguration<SizeOfEngineProvider> configuration) {
+  public SizeOfEngineProvider create(ServiceCreationConfiguration<SizeOfEngineProvider, ?> configuration) {
     long maxTraversals = DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
     long maxSize = DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
     if(configuration != null) {

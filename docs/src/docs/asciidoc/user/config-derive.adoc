@@ -1,0 +1,302 @@
+---
+---
+= Configuration Derivation
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
+
+ifdef::notBuildingForSite[]
+include::{includedir}/menu.adoc[]
+endif::notBuildingForSite[]
+
+== Principles
+
+The configuration derivation features allows a new Ehcache configuration object to be derived via a transformation on
+an existing configuration object. This can be useful for:
+
+ * pre-processing an externally sourced configuration, adding additional settings before creating the cache manager.
+ * processing the configuration of an existing cache manager to generate a new configuration.
+
+The basis of the configuration derivation API is the `Configuration.derive()` method that generates a builder seeded
+with the configurations values
+
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=deriveContract]
+----
+<1> Creates a builder seeded with the configuration's state.
+<2> Configurations built using the builder are then functionally identical to the original configuration.
+
+== Core Configuration Changes
+
+The configuration builder returned by the derive method provide direct methods for modifying core configuration concepts:
+
+.setting a custom classloader:
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=customClassLoader]
+----
+
+.adding a cache:
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withCache]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <heap>10</heap>
+  </cache>
+</ehcache>
+----
+|===
+
+.removing a cache:
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withoutCache]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <heap>10</heap>
+  </cache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+</ehcache>
+----
+|===
+
+Updating a cache configuration uses a `UnaryOperator` that is run against a cache configuration
+builder seeded using the existing cache configuration.
+
+.updating a cache, by adding a resource:
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateCache]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <heap>10</heap>
+  </cache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <resources>
+      <heap>10</heap>
+      <offheap unit="MB">100</offheap>
+    </resources>
+  </cache>
+</ehcache>
+----
+|===
+
+== Extended Configuration Changes
+
+Ehcache is a pluggable system, so modifying many of the more complex configurations requires modifying both service
+creation configurations and service configurations:
+
+.adding a service creation configuration (constraining the default thread pool)
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withServiceCreation]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <thread-pools>
+    <thread-pool alias="default" default="true"
+                 min-size="1" max-size="16"/>
+  </thread-pools>
+</ehcache>
+----
+|===
+
+.updating a service creation configuration (changing the persistence path)
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=updateServiceCreation]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <persistence directory="/some/thing/else"/>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <persistence directory="/var/persistence/path"/>
+</ehcache>
+----
+|===
+
+.adding a service configuration (setting a resilience strategy)
+[source,java,indent=0]
+----
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/ConfigurationDerivation.java[tag=withService]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <heap>10</heap>
+  </cache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <key-type>Long.class</key-type>
+    <value-type>Object.class</value-type>
+    <heap>10</heap>
+    <resilience>
+      com.example.ThrowingResilienceStrategy
+    </resilience>
+  </cache>
+</ehcache>
+----
+|===
+
+.updating a service configuration (changing a clustered cache's consistency)
+[source,java,indent=0]
+----
+include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=updateService]
+----
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <service>
+    <tc:cluster>
+      <tc:connection url="terracotta://example.com/cachemanager"/>
+    </tc:cluster>
+  </service>
+
+  <cache alias="cache">
+    <resources>
+      <tc:clustered-dedicated unit="MB">50</tc:clustered-dedicated>
+    </resources>
+    <tc:clustered-store consistency="strong"/>
+  </cache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <service>
+    <tc:cluster>
+      <tc:connection url="terracotta://example.com/cachemanager"/>
+    </tc:cluster>
+  </service>
+
+  <cache alias="cache">
+    <resources>
+      <tc:clustered-dedicated unit="MB">50</tc:clustered-dedicated>
+    </resources>
+    <tc:clustered-store consistency="eventual"/>
+  </cache>
+</ehcache>
+----
+|===
+
+=== Removing a service
+Removing a service often involves removing both service creation and a service configuration instances since a service
+instance its configuration are usually strongly coupled:
+
+.removing a service (making a cache manager non-clustered)
+[source,java,indent=0]
+----
+include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/ConfigurationDerivation.java[tag=removeService]
+----
+<1> From all cache configurations...
+<2> remove any existing `ClusteredStoreConfiguration` instances.
+<3> Create a new resource pool builder...
+<4> From the existing resource pools...
+<5> filter out any clustered resources.
+<6> Add all remaining pools to the new resource pools instance
+<7> Finally remove the clustering service creation configuration
+
+[cols=".^~a,^.^~d,.^~a"]
+|===
+|[source,xml]
+----
+<ehcache>
+  <service>
+    <tc:cluster>
+      <tc:connection url="terracotta://example.com/cachemanager"/>
+    </tc:cluster>
+  </service>
+
+  <cache alias="cache">
+    <resources>
+      <heap>100</heap>
+      <tc:clustered-dedicated unit="MB">50</tc:clustered-dedicated>
+    </resources>
+    <tc:clustered-store consistency="strong"/>
+  </cache>
+</ehcache>
+----
+|&rarr;
+|[source,xml]
+----
+<ehcache>
+  <cache alias="cache">
+    <resources>
+      <heap>100</heap>
+    </resources>
+  </cache>
+</ehcache>
+----
+|===

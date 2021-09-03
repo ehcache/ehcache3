@@ -14,53 +14,48 @@
  * limitations under the License.
  */
 
+import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
+import org.asciidoctor.gradle.jvm.AsciidoctorTask
+
 plugins {
-  id 'org.asciidoctor.convert' version '1.6.0'
-  id 'org.kordamp.gradle.livereload' version '0.2.1'
-  id 'com.github.jruby-gradle.base' version '1.6.0'
+  id 'org.asciidoctor.jvm.base'
 }
 
-dependencies {
-  gems 'rubygems:asciidoctor-diagram:1.5.15'
-}
-
-configurations.asciidoctor {
-  resolutionStrategy {
-    force 'com.github.jnr:jnr-enxio:0.19'
-    force 'com.github.jnr:jnr-posix:3.0.49'
-    force 'com.github.jnr:jnr-constants:0.9.12'
-  }
-}
-
-task copyCSS(type: Copy) {
-  from ('css') {
-    include '**'
-  }
-  into("${buildDir}/asciidoc/user/css")
-}
-
-asciidoctor.dependsOn copyCSS
-
-asciidoctor {
-  dependsOn jrubyPrepare
-  gemPath = jrubyPrepare.outputDir
-  requires = ['asciidoctor-diagram']
-  separateOutputDirs = false
+asciidoctorj {
+  safeMode 'UNSAFE'
   attributes 'skip-front-matter': 'true'
+  fatalWarnings ~/.*/
+  modules {
+    diagram.version '1.5.18'
+  }
+}
 
+def createCopyCssTask(def asciidocTask) {
+  return tasks.register("copy${asciidocTask.name}CSS", Copy) {
+    from ('css') {
+      include '**'
+    } into("${asciidocTask.outputDir}/css")
+  }
+}
+
+tasks.withType(AsciidoctorTask) {
+  group = AsciidoctorJBasePlugin.TASK_GROUP
   resources {
     from('fonts') {
       include '*'
-      into('./user/fonts')
-    }
+    } into('./fonts')
   }
+  dependsOn createCopyCssTask(it)
 }
 
-liveReload {
-  docRoot asciidoctor.outputDir.canonicalPath
+tasks.register('userDoc', AsciidoctorTask) {
+  description = 'Generate the user documentation'
+  sourceDir file('src/docs/asciidoc/user')
+  outputDir file("$buildDir/asciidoc/user")
 }
 
-dependencyCheck {
-  skip = true
+tasks.register('developerDoc', AsciidoctorTask) {
+  description = 'Generate the developer documentation'
+  sourceDir file('src/docs/asciidoc/developer')
+  outputDir file("$buildDir/asciidoc/developer")
 }
-

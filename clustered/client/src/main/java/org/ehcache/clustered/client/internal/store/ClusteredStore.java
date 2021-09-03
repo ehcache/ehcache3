@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -36,6 +37,7 @@ import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperati
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.TimestampOperation;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
@@ -46,10 +48,15 @@ import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
+import org.ehcache.impl.store.BaseStore;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -58,13 +65,10 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes.EvictionOutcome;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
-import org.ehcache.impl.store.BaseStore;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.Service;
@@ -73,9 +77,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.observer.OperationObserver;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -130,8 +131,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
-    super(config);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    super(config, statisticsService);
 
     this.chainCompactionLimit = Integer.getInteger(CHAIN_COMPACTION_THRESHOLD_PROP, DEFAULT_CHAIN_COMPACTION_THRESHOLD);
     this.codec = codec;
@@ -153,8 +154,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   /**
    * For tests
    */
-  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher) {
-    this(config, codec, resolver, timeSource, storeEventDispatcher);
+  protected ClusteredStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, TimeSource timeSource, StoreEventDispatcher<K, V> storeEventDispatcher, StatisticsService statisticsService) {
+    this(config, codec, resolver, timeSource, storeEventDispatcher, statisticsService);
     this.storeProxy = proxy;
   }
 
@@ -207,27 +208,37 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
-    PutStatus status = silentPut(key, value);
-    switch (status) {
-      case PUT:
-        putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
-        break;
-      case NOOP:
-        putObserver.end(StoreOperationOutcomes.PutOutcome.NOOP);
-        break;
-      default:
-        throw new AssertionError("Invalid put status: " + status);
-    }
-    return status;
+    silentPut(key, value);
+    putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+    return PutStatus.PUT;
   }
 
-  protected PutStatus silentPut(final K key, final V value) throws StoreAccessException {
+  protected void silentPut(final K key, final V value) throws StoreAccessException {
     try {
       PutOperation<K, V> operation = new PutOperation<>(key, value, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       storeProxy.append(extractedKey, payload);
-      return PutStatus.PUT;
+    } catch (Exception re) {
+      throw handleException(re);
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    putObserver.begin();
+    ValueHolder<V> oldValue = silentGetAndPut(key, value);
+    putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+    return oldValue;
+  }
+
+  protected ValueHolder<V> silentGetAndPut(final K key, final V value) throws StoreAccessException {
+    try {
+      PutOperation<K, V> operation = new PutOperation<>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      long extractedKey = extractLongKey(key);
+      ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      return resolver.resolve(chain, key, timeSource.getTimeMillis());
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -261,7 +272,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   @Override
   public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
-    if(silentRemove(key)) {
+    if(silentRemove(key) != null) {
       removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
       return true;
     } else {
@@ -270,13 +281,24 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
   }
 
-  protected boolean silentRemove(K key) throws StoreAccessException {
+  public ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    removeObserver.begin();
+    ValueHolder<V> value = silentRemove(key);
+    if(value != null) {
+      removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
+    } else {
+      removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
+    }
+    return value;
+  }
+
+  protected ValueHolder<V> silentRemove(final K key) throws StoreAccessException {
     try {
       RemoveOperation<K, V> operation = new RemoveOperation<>(key, timeSource.getTimeMillis());
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
-      return resolver.resolve(chain, key, timeSource.getTimeMillis()) != null;
+      return resolver.resolve(chain, key, timeSource.getTimeMillis());
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -407,37 +429,34 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
         private java.util.Iterator<? extends Cache.Entry<K, ValueHolder<V>>> nextChain() {
-          try {
-            while (true) {
-              Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
-              if (!chainContents.isEmpty()) {
-                return chainContents.entrySet().stream().map(entry -> {
-                  K key = entry.getKey();
+          while (chainIterator.hasNext()) {
+            Map<K, ValueHolder<V>> chainContents = resolver.resolveAll(chainIterator.next(), timeSource.getTimeMillis());
+            if (!chainContents.isEmpty()) {
+              return chainContents.entrySet().stream().map(entry -> {
+                K key = entry.getKey();
 
-                  ValueHolder<V> valueHolder = entry.getValue();
-                  return new Cache.Entry<K, ValueHolder<V>>() {
+                ValueHolder<V> valueHolder = entry.getValue();
+                return new Cache.Entry<K, ValueHolder<V>>() {
 
-                    @Override
-                    public K getKey() {
-                      return key;
-                    }
+                  @Override
+                  public K getKey() {
+                    return key;
+                  }
 
-                    @Override
-                    public ValueHolder<V> getValue() {
-                      return valueHolder;
-                    }
+                  @Override
+                  public ValueHolder<V> getValue() {
+                    return valueHolder;
+                  }
 
-                    @Override
-                    public String toString() {
-                      return getKey() + "=" + getValue();
-                    }
-                  };
-                }).iterator();
-              }
+                  @Override
+                  public String toString() {
+                    return getKey() + "=" + getValue();
+                  }
+                };
+              }).iterator();
             }
-          } catch (NoSuchElementException e) {
-            return emptyIterator();
           }
+          return emptyIterator();
         }
       };
     } catch (Exception e) {
@@ -488,16 +507,14 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction<K, V>)remappingFunction;
       Map<K, V> entriesToRemap = putAllFunction.getEntriesToRemap();
       for(Map.Entry<K, V> entry: entriesToRemap.entrySet()) {
-        PutStatus putStatus = silentPut(entry.getKey(), entry.getValue());
-        if(putStatus == PutStatus.PUT) {
-          putAllFunction.getActualPutCount().incrementAndGet();
-          valueHolderMap.put(entry.getKey(), new ClusteredValueHolder<>(entry.getValue()));
-        }
+        silentPut(entry.getKey(), entry.getValue());
+        putAllFunction.getActualPutCount().incrementAndGet();
+        valueHolderMap.put(entry.getKey(), new ClusteredValueHolder<>(entry.getValue()));
       }
     } else if(remappingFunction instanceof Ehcache.RemoveAllFunction) {
       Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction<K, V>)remappingFunction;
       for (K key : keys) {
-        boolean removed = silentRemove(key);
+        boolean removed = silentRemove(key) != null;
         if(removed) {
           removeAllFunction.getActualRemoveCount().incrementAndGet();
         }
@@ -594,7 +611,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       CLUSTER_RESOURCES = Collections.unmodifiableSet(resourceTypes);
     }
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
     protected volatile ExecutionService executionService;
 
@@ -609,7 +625,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> ClusteredStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -623,15 +639,11 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     private <K, V> ClusteredStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, Object[] serviceConfigs) {
       connectLock.lock();
       try {
-        CacheEventListenerConfiguration eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
+        CacheEventListenerConfiguration<?> eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, serviceConfigs);
         if (eventListenerConfiguration != null) {
           if (eventListenerConfiguration.firingMode() == EventFiring.SYNCHRONOUS) {
             // Forget it. Never.
             throw new IllegalStateException("Synchronous CacheEventListener is not supported with clustered tiers");
-          }
-          if (eventListenerConfiguration.orderingMode() == EventOrdering.ORDERED) {
-            // this could be supported, but at least expiration events would need to be reordered
-            throw new IllegalStateException("Ordered CacheEventListener is not supported with clustered tiers");
           }
         }
 
@@ -656,7 +668,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, serviceConfigs);
 
-        TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+        TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
 
         OperationsCodec<K, V> codec = new OperationsCodec<>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
 
@@ -684,7 +696,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
       StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
-      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher);
+      return new ClusteredStore<>(storeConfig, codec, resolver, timeSource, storeEventDispatcher, getServiceProvider().getService(StatisticsService.class));
     }
 
     @Override
@@ -696,7 +708,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, false);
-        StatisticsManager.nodeFor(clusteredStore).clean();
+        getServiceProvider().getService(StatisticsService.class).cleanForNode(clusteredStore);
         tierOperationStatistics.remove(clusteredStore);
       } finally {
         connectLock.unlock();
@@ -705,6 +717,14 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
 
     @Override
     public void initStore(Store<?, ?> resource) {
+      try {
+        initStoreInternal(resource);
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void initStoreInternal(Store<?, ?> resource) throws CachePersistenceException {
       connectLock.lock();
       try {
         StoreConfig storeConfig = createdStores.get(resource);
@@ -713,52 +733,44 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
         ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
-        try {
-          ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
-                                                                              getServerCallback(clusteredStore));
-          ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
-            Runnable reconnectTask = () -> {
-              connectLock.lock();
+        ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
+                                                                            getServerCallback(clusteredStore));
+        ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
+          Runnable reconnectTask = () -> {
+            String cacheId = cacheIdentifier.getId();
+            connectLock.lock();
+            try {
               try {
                 //TODO: handle race between disconnect event and connection closed exception being thrown
                 // this guy should wait till disconnect event processing is complete.
-                String cacheId = cacheIdentifier.getId();
                 LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
                 clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
-                initStore(clusteredStore);
+                initStoreInternal(clusteredStore);
                 LOGGER.info("Cache {} got reconnected to cluster", cacheId);
-              } finally {
-                connectLock.unlock();
+              } catch (PerpetualCachePersistenceException t) {
+                LOGGER.error("Cache {} failed reconnecting to cluster (failure is perpetual)", cacheId, t);
+                clusteredStore.setStoreProxy(new FailedReconnectStoreProxy(cacheId, t));
               }
-            };
-            CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
-          });
-          clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Unable to create cluster tier proxy - " + cacheIdentifier, e);
-        }
+            } catch (CachePersistenceException e) {
+              throw new RuntimeException(e);
+            } finally {
+              connectLock.unlock();
+            }
+          };
+          CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
+        });
+        clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
 
         Serializer<?> keySerializer = clusteredStore.codec.getKeySerializer();
         if (keySerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
           ((StatefulSerializer) keySerializer).init(stateRepository);
         }
         Serializer<?> valueSerializer = clusteredStore.codec.getValueSerializer();
         if (valueSerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository;
-          try {
-            stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
-          } catch (CachePersistenceException e) {
-            throw new RuntimeException(e);
-          }
+          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
           ((StatefulSerializer) valueSerializer).init(stateRepository);
         }
-
       } finally {
         connectLock.unlock();
       }
@@ -774,30 +786,23 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
             K key = operation.getKey();
 
             PutOperation<K, V> resolvedBefore = clusteredStore.resolver.resolve(beforeAppend, key);
-            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedBefore, operation);
+            PutOperation<K, V> resolvedNow = clusteredStore.resolver.applyOperation(key, resolvedBefore,
+              new TimestampOperation<>(key, operation.timeStamp()));
+            PutOperation<K, V> resolvedAfter = clusteredStore.resolver.applyOperation(key, resolvedNow, operation);
 
-            if (resolvedBefore == null) {
-              if (resolvedAfter == null) {
-                //a non-event
-              } else {
-                sink.created(key, resolvedAfter.getValue());
-              }
-            } else {
-              if (resolvedAfter != null) {
-                if (resolvedAfter == resolvedBefore) {
-                  //non-event
-                } else {
-                  sink.updated(key, resolvedBefore::getValue, resolvedAfter.getValue());
-                }
-              } else {
-                switch (operation.getOpCode()) {
-                  case TIMESTAMP:
-                    sink.expired(key, resolvedBefore::getValue);
-                    break;
-                  default:
-                    sink.removed(key, resolvedBefore::getValue);
-                }
-              }
+            /*
+             * If the old value was expired then we *must* fire expiry before the other event
+             */
+            if (resolvedBefore != null && resolvedNow == null) {
+              sink.expired(key, resolvedBefore::getValue);
+            }
+
+            if (resolvedNow == null && resolvedAfter != null) {
+              sink.created(key, resolvedAfter.getValue());
+            } else if (resolvedNow != null && resolvedAfter == null) {
+              sink.removed(key, resolvedNow::getValue);
+            } else if (resolvedAfter != resolvedNow) {
+              sink.updated(key, resolvedNow::getValue, resolvedAfter.getValue());
             }
             clusteredStore.storeEventDispatcher.releaseEventSink(sink);
           } catch (Exception e) {
@@ -854,7 +859,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       if (clusteringService == null || resourceTypes.size() > 1 || Collections.disjoint(resourceTypes, CLUSTER_RESOURCES)) {
         // A ClusteredStore requires a ClusteringService *and* ClusteredResourcePool instances
         return 0;
@@ -863,7 +868,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       if (clusteringService == null) {
         return 0;
       } else {
@@ -875,9 +880,9 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void start(final ServiceProvider<Service> serviceProvider) {
       connectLock.lock();
       try {
-        this.serviceProvider = serviceProvider;
-        this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
-        this.executionService = this.serviceProvider.getService(ExecutionService.class);
+        super.start(serviceProvider);
+        this.clusteringService = getServiceProvider().getService(ClusteringService.class);
+        this.executionService = getServiceProvider().getService(ExecutionService.class);
       } finally {
         connectLock.unlock();
       }
@@ -887,15 +892,15 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     public void stop() {
       connectLock.lock();
       try {
-        this.serviceProvider = null;
         createdStores.clear();
       } finally {
         connectLock.unlock();
+        super.stop();
       }
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {

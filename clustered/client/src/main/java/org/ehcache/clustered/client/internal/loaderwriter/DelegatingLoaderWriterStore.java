@@ -22,7 +22,6 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.terracotta.context.ContextManager;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +38,6 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   public DelegatingLoaderWriterStore(Store<K, V> store) {
     this.delegate = store;
-    ContextManager.associate(delegate).withParent(this);
   }
 
   @Override
@@ -58,6 +56,11 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   }
 
   @Override
+  public ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    return delegate.getAndPut(key, value);
+  }
+
+  @Override
   public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     return delegate.putIfAbsent(key, value, put);
   }
@@ -65,6 +68,11 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   @Override
   public boolean remove(K key) throws StoreAccessException {
     return delegate.remove(key);
+  }
+
+  @Override
+  public ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    return delegate.getAndRemove(key);
   }
 
   @Override
@@ -94,7 +102,7 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    throw new UnsupportedOperationException("Implement me");
+    return delegate.iterator();
   }
 
   @Override

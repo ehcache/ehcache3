@@ -21,7 +21,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 public class LowRankServiceBFactory implements ServiceFactory<RankServiceB> {
 
   @Override
-  public RankServiceB create(ServiceCreationConfiguration<RankServiceB> configuration) {
+  public RankServiceB create(ServiceCreationConfiguration<RankServiceB, ?> configuration) {
     return new RankServiceB("low-rank");
   }
 

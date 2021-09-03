@@ -30,7 +30,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
@@ -91,7 +91,7 @@ public class ClusterStateRepositoryReplicationTest {
   public void testClusteredStateRepositoryReplication() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
+            .autoCreate(c -> c)
             .build();
 
     ClusteringService service = new ClusteringServiceFactory().create(configuration);
@@ -126,7 +126,7 @@ public class ClusterStateRepositoryReplicationTest {
   public void testClusteredStateRepositoryReplicationWithSerializableKV() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
+            .autoCreate(c -> c)
             .build();
 
     ClusteringService service = new ClusteringServiceFactory().create(configuration);

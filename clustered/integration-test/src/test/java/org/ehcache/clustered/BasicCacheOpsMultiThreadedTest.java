@@ -21,7 +21,6 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.ResourcePool;
@@ -46,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -154,30 +154,28 @@ public class BasicCacheOpsMultiThreadedTest {
   }
 
   private static PersistentCacheManager createCacheManager(URI clusterURI) {
-    ServerSideConfigurationBuilder serverSideConfigBuilder = ClusteringServiceConfigurationBuilder
-        .cluster(clusterURI.resolve(CACHE_MANAGER_NAME))
-          .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(30)))
-        .autoCreate()
-        .defaultServerResource(PRIMARY_SERVER_RESOURCE_NAME);
+    ClusteringServiceConfigurationBuilder clusteringConfig = cluster(clusterURI.resolve(CACHE_MANAGER_NAME))
+      .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(30)))
+      .autoCreate(server -> server.defaultServerResource(PRIMARY_SERVER_RESOURCE_NAME));
 
     ResourcePool resourcePool = ClusteredResourcePoolBuilder
       .clusteredDedicated(PRIMARY_SERVER_RESOURCE_NAME, PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(serverSideConfigBuilder)
+      .with(clusteringConfig)
       .withCache(CLUSTERED_CACHE_NAME,
         CacheConfigurationBuilder
           .newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(resourcePool))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)))
       .withCache(SYN_CACHE_NAME,
         CacheConfigurationBuilder
           .newCacheConfigurationBuilder(String.class, Boolean.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
               .with(resourcePool))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
     return clusteredCacheManagerBuilder.build(false);
   }
 

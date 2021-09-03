@@ -16,13 +16,13 @@
 
 package org.ehcache.clustered;
 
-import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -69,7 +69,7 @@ public class ResourcePoolAllocationFailureTest {
       cacheManagerBuilder.build(true);
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
-      Throwable cause = getCause(e, CachePersistenceException.class);
+      Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
       assertThat(cause, notNullValue());
       assertThat(cause.getMessage(), startsWith("Unable to create"));
     }
@@ -85,15 +85,14 @@ public class ResourcePoolAllocationFailureTest {
   private CacheManagerBuilder<PersistentCacheManager> getPersistentCacheManagerCacheManagerBuilder(DedicatedClusteredResourcePool resourcePool) {
 
     ClusteringServiceConfigurationBuilder clusteringServiceConfigurationBuilder = ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"));
-    ServerSideConfigurationBuilder serverSideConfigurationBuilder = clusteringServiceConfigurationBuilder.autoCreate()
-      .defaultServerResource("primary-server-resource");
+    ClusteringServiceConfiguration clusteringConfiguration = clusteringServiceConfigurationBuilder.autoCreate(server -> server.defaultServerResource("primary-server-resource")).build();
 
     return CacheManagerBuilder.newCacheManagerBuilder()
-      .with(serverSideConfigurationBuilder)
+      .with(clusteringConfiguration)
       .withCache("test-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(resourcePool)
-      ).add(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
+      ).withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
   }
 
   private static Throwable getCause(Throwable e, Class<? extends Throwable> causeClass) {

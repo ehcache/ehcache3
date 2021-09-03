@@ -27,7 +27,7 @@ import org.osgi.service.component.annotations.Component;
 public class TieredStoreProviderFactory implements ServiceFactory<TieredStore.Provider> {
 
   @Override
-  public TieredStore.Provider create(ServiceCreationConfiguration<TieredStore.Provider> configuration) {
+  public TieredStore.Provider create(ServiceCreationConfiguration<TieredStore.Provider, ?> configuration) {
     return new TieredStore.Provider();
   }
 

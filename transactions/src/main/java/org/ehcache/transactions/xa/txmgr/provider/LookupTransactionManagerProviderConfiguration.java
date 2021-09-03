@@ -23,7 +23,7 @@ import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.
  */
-public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider> {
+public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider, Class<? extends TransactionManagerLookup>> {
 
   private final Class<? extends TransactionManagerLookup> lookupClass;
 
@@ -47,5 +47,15 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
   @Override
   public Class<TransactionManagerProvider> getServiceType() {
     return TransactionManagerProvider.class;
+  }
+
+  @Override
+  public Class<? extends TransactionManagerLookup> derive() {
+    return getTransactionManagerLookup();
+  }
+
+  @Override
+  public LookupTransactionManagerProviderConfiguration build(Class<? extends TransactionManagerLookup> clazz) {
+    return new LookupTransactionManagerProviderConfiguration(clazz);
   }
 }

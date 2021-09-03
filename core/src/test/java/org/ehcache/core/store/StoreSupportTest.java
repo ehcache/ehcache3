@@ -80,7 +80,7 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
     final Store.Provider selectedProvider = StoreSupport.selectStoreProvider(serviceLocator,
         Collections.<ResourceType<?>>singleton(anyResourceType),
-        Collections.<ServiceConfiguration<?>>emptyList());
+        Collections.<ServiceConfiguration<?, ?>>emptyList());
 
     assertThat(selectedProvider, is(Matchers.<Store.Provider>sameInstance(expectedProvider)));
 
@@ -106,7 +106,7 @@ public class StoreSupportTest {
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
           Collections.<ResourceType<?>>singleton(anyResourceType),
-          Collections.<ServiceConfiguration<?>>emptyList());
+          Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
       // expected
@@ -123,7 +123,7 @@ public class StoreSupportTest {
     try {
       StoreSupport.selectStoreProvider(dependencySet().build(),
           Collections.<ResourceType<?>>singleton(anyResourceType),
-          Collections.<ServiceConfiguration<?>>emptyList());
+          Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
       // expected
@@ -163,7 +163,7 @@ public class StoreSupportTest {
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
           Collections.<ResourceType<?>>singleton(otherResourceType),
-          Collections.<ServiceConfiguration<?>>emptyList());
+          Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
       // expected
@@ -214,7 +214,7 @@ public class StoreSupportTest {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
       throw new UnsupportedOperationException("TestBaseProvider.createStore not implemented");
     }
 
@@ -229,7 +229,7 @@ public class StoreSupportTest {
     }
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       assertThat(resourceTypes, is(not(nullValue())));
       assertThat(serviceConfigs, is(not(nullValue())));
       rankAccessCount.incrementAndGet();

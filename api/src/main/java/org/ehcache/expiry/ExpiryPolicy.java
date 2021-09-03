@@ -49,6 +49,11 @@ public interface ExpiryPolicy<K, V> {
    */
   ExpiryPolicy<Object, Object> NO_EXPIRY = new ExpiryPolicy<Object, Object>() {
     @Override
+    public String toString() {
+      return "No Expiry";
+    }
+
+    @Override
     public Duration getExpiryForCreation(Object key, Object value) {
       return INFINITE;
     }

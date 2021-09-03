@@ -48,7 +48,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class IterationFailureBehaviorTest extends ClusteredTests {
+public class IterationFailureBehaviorTest {
 
   private static final int KEYS = 100;
 
@@ -79,8 +79,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -138,8 +137,7 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 

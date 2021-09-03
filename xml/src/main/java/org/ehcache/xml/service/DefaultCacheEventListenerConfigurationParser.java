@@ -56,7 +56,7 @@ public class DefaultCacheEventListenerConfigurationParser implements CoreService
           .newEventListenerConfiguration(cacheEventListenerClass, eventSetToFireOn)
           .firingMode(EventFiring.valueOf(listener.getEventFiringMode().value()))
           .eventOrdering(EventOrdering.valueOf(listener.getEventOrderingMode().value()));
-        cacheBuilder = cacheBuilder.add(listenerBuilder);
+        cacheBuilder = cacheBuilder.withService(listenerBuilder);
       }
     }
 

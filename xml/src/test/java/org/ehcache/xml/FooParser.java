@@ -46,7 +46,7 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<Service, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     return new FooConfiguration();
   }
 
@@ -56,7 +56,7 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<Service> serviceConfiguration) {
+  public Element unparseServiceConfiguration(ServiceConfiguration<Service, ?> serviceConfiguration) {
     try {
       Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
       return document.createElementNS(NAMESPACE.toString(), "foo:foo");

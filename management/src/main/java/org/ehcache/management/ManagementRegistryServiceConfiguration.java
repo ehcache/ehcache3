@@ -15,7 +15,7 @@
  */
 package org.ehcache.management;
 
-import org.ehcache.management.providers.statistics.LatencyHistogramConfiguration;
+import org.ehcache.core.statistics.LatencyHistogramConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.terracotta.management.model.context.Context;
 
@@ -24,7 +24,7 @@ import java.util.Collection;
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
  */
-public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
+public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService, Void> {
 
   /**
    * The context used to identify this cache manager

@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -58,7 +59,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher());
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @SuppressWarnings("unchecked")
@@ -73,7 +74,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     Store.Configuration<Number, Number> configuration = config;
 
     OnHeapStore<Number, Number> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher());
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);

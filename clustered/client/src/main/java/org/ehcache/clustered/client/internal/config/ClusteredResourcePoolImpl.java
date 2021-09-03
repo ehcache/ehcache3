@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
-import org.ehcache.core.config.AbstractResourcePool;
+import org.ehcache.impl.config.AbstractResourcePool;
 
 /**
  * Implementation for {@link ClusteredResourcePool}.

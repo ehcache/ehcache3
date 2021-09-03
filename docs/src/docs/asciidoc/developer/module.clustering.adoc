@@ -68,5 +68,5 @@ _HA_?
 
 [plantuml]
 ....
-include::../../uml/putIfAbsentUml.puml[]
+include::{includedir}/../../uml/putIfAbsentUml.puml[]
 ....

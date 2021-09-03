@@ -354,7 +354,7 @@ public class ChainMapTest {
     UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
     OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
 
-    ReadWriteLockedOffHeapClockCache<String, InternalChain> heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(callable -> {}, source, chainStorage);
+    OffHeapChainMap.HeadMap<String> heads = new OffHeapChainMap.HeadMap<>(callable -> {}, source, chainStorage);
 
     OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
 
@@ -382,7 +382,7 @@ public class ChainMapTest {
     UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
     OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
 
-    ReadWriteLockedOffHeapClockCache<String, InternalChain> heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(callable -> {}, source, chainStorage);
+    OffHeapChainMap.HeadMap<String> heads = new OffHeapChainMap.HeadMap<>(callable -> {}, source, chainStorage);
 
     OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
 

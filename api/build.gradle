@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-apply plugin: 'biz.aQute.bnd.builder'
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'biz.aQute.bnd.builder'
+}
 
 checkstyle {
   configFile = file("$projectDir/config/checkstyle.xml")

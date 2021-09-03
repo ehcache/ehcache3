@@ -18,7 +18,6 @@ package org.ehcache.clustered.reconnect;
 import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
@@ -58,7 +57,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class EventsReconnectTest extends ClusteredTests {
+public class EventsReconnectTest {
   private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
   public static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -100,7 +99,7 @@ public class EventsReconnectTest extends ClusteredTests {
   private static CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
       .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-    .add(CacheEventListenerConfigurationBuilder
+    .withService(CacheEventListenerConfigurationBuilder
       .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
       .unordered().asynchronous())
     .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
@@ -121,8 +120,7 @@ public class EventsReconnectTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"));
+                    .autoCreate(s -> s.defaultServerResource("primary-server-resource")));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

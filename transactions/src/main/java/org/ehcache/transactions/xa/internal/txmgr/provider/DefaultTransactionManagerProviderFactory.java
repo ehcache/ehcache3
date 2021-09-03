@@ -36,7 +36,7 @@ public class DefaultTransactionManagerProviderFactory implements ServiceFactory<
    * {@inheritDoc}
    */
   @Override
-  public TransactionManagerProvider create(ServiceCreationConfiguration<TransactionManagerProvider> configuration) {
+  public TransactionManagerProvider create(ServiceCreationConfiguration<TransactionManagerProvider, ?> configuration) {
     return new LookupTransactionManagerProvider((LookupTransactionManagerProviderConfiguration) configuration);
   }
 

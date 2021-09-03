@@ -36,12 +36,12 @@ public class DefaultSerializerConfigurationParser implements CoreServiceConfigur
                                                                           CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     if (cacheDefinition.keySerializer() != null) {
       Class keySerializer = getClassForName(cacheDefinition.keySerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
+      cacheBuilder = cacheBuilder.withService(new DefaultSerializerConfiguration(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
 
     if (cacheDefinition.valueSerializer() != null) {
       Class valueSerializer = getClassForName(cacheDefinition.valueSerializer(), cacheClassLoader);
-      cacheBuilder = cacheBuilder.add(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
+      cacheBuilder = cacheBuilder.withService(new DefaultSerializerConfiguration(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
     return cacheBuilder;

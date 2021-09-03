@@ -55,7 +55,7 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
   }
 
   @Override
-  public ServiceConfiguration<Jsr107Service> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<Jsr107Service, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("mbeans".equals(localName)) {
       ConfigurationElementState managementEnabled = ConfigurationElementState.UNSPECIFIED;
@@ -79,7 +79,7 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<Jsr107Service> serviceConfiguration) {
+  public Element unparseServiceConfiguration(ServiceConfiguration<Jsr107Service, ?> serviceConfiguration) {
     throw new XmlConfigurationException("XML translation of JSR-107 cache elements are not supported");
   }
 

@@ -21,6 +21,8 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.reconnect.ThrowingResiliencyStrategy;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -33,8 +35,12 @@ import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
@@ -53,7 +59,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class EventsFailureBehaviorTest extends ClusteredTests {
+@RunWith(Parallel.class)
+public class EventsFailureBehaviorTest {
 
   private static final int KEYS = 500;
   private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
@@ -65,9 +72,11 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
   @Rule
-  public Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public final TestName testName = new TestName();
+
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
 
@@ -77,14 +86,12 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(testName.getMethodName()))
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/event-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")).build(true);
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(testName.getMethodName()))
+        .autoCreate(s -> s.defaultServerResource("primary-server-resource"))).build(true);
   }
 
   @After
@@ -101,7 +108,7 @@ public class EventsFailureBehaviorTest extends ClusteredTests {
       ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
       .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
-      .add(CacheEventListenerConfigurationBuilder
+      .withService(CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
         .unordered().asynchronous())
       .withExpiry(expiryPolicy)

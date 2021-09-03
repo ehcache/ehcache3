@@ -35,7 +35,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   private final List<WriteBehind<K, V>> stripes = new ArrayList<>();
 
-  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       if (config.getBatchingConfiguration() == null) {

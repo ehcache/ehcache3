@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
@@ -52,7 +53,6 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -68,7 +68,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -105,8 +104,8 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
   public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
-                 TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId) {
-    super(keyType, valueType, true);
+                 TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId, StatisticsService statisticsService) {
+    super(keyType, valueType, true, statisticsService);
     this.underlyingStore = underlyingStore;
     this.transactionManagerWrapper = transactionManagerWrapper;
     this.timeSource = timeSource;
@@ -116,7 +115,6 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     this.recoveryXaResource = new EhcacheXAResource<>(underlyingStore, journal, transactionContextFactory);
     this.eventSourceWrapper = new StoreEventSourceWrapper<>(underlyingStore.getStoreEventSource());
 
-    ContextManager.associate(underlyingStore).withParent(this);
   }
 
   private static boolean isInDoubt(SoftLock<?> softLock) {
@@ -769,12 +767,12 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       Set<ResourceType.Core> supportedTypes = EnumSet.allOf(ResourceType.Core.class);
 
       Set<ResourceType<?>> configuredTypes = storeConfig.getResourcePools().getResourceTypeSet();
@@ -790,13 +788,13 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
         throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
-      List<ServiceConfiguration<?>> serviceConfigList = Arrays.asList(serviceConfigs);
+      List<ServiceConfiguration<?, ?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
       Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
               storeConfig.getResourcePools().getResourceTypeSet(), serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
-      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
+      List<ServiceConfiguration<?, ?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
       underlyingServiceConfigs.addAll(serviceConfigList);
 
       // eviction advisor
@@ -935,12 +933,14 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
       Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
         storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig
         .getKeySerializer(), softLockValueCombinedSerializer);
-      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?>[0]));
+      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?, ?>[0]));
 
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
       Store<K, V> store = new XAStore<>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
-        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
+        transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, serviceProvider.getService(StatisticsService.class));
+
+      serviceProvider.getService(StatisticsService.class).registerWithParent(underlyingStore, store);
 
       // create the softLockSerializer lifecycle helper
       SoftLockValueCombinedSerializerLifecycleHelper<V> helper =
@@ -1014,7 +1014,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     }
 
     @Override
-    public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
       if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use

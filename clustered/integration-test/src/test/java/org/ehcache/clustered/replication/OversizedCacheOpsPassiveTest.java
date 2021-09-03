@@ -72,8 +72,7 @@ public class OversizedCacheOpsPassiveTest {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CountDownLatch syncLatch = new CountDownLatch(2);
 
     CompletableFuture<Void> f1 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));

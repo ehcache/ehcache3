@@ -28,7 +28,7 @@ public class TestMandatoryServiceFactory implements ServiceFactory<TestMandatory
   }
 
   @Override
-  public TestMandatoryService create(ServiceCreationConfiguration<TestMandatoryService> configuration) {
+  public TestMandatoryService create(ServiceCreationConfiguration<TestMandatoryService, ?> configuration) {
     if (configuration == null) {
       return new TestMandatoryService(null);
     } else {
@@ -41,7 +41,7 @@ public class TestMandatoryServiceFactory implements ServiceFactory<TestMandatory
     return TestMandatoryService.class;
   }
 
-  public static class TestMandatoryServiceConfiguration implements ServiceCreationConfiguration<TestMandatoryService> {
+  public static class TestMandatoryServiceConfiguration implements ServiceCreationConfiguration<TestMandatoryService, Void> {
 
     private final String config;
 

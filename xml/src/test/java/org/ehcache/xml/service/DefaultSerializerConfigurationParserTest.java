@@ -61,8 +61,8 @@ public class DefaultSerializerConfigurationParserTest {
   public void unparseServiceConfiguration() {
     @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(new DefaultSerializerConfiguration(TestSerializer3.class, DefaultSerializerConfiguration.Type.KEY))
-      .add(new DefaultSerializerConfiguration(TestSerializer4.class, DefaultSerializerConfiguration.Type.VALUE))
+      .withService(new DefaultSerializerConfiguration(TestSerializer3.class, DefaultSerializerConfiguration.Type.KEY))
+      .withService(new DefaultSerializerConfiguration(TestSerializer4.class, DefaultSerializerConfiguration.Type.VALUE))
       .build();
 
     CacheType cacheType = new CacheType();
@@ -87,7 +87,7 @@ public class DefaultSerializerConfigurationParserTest {
     DefaultSerializerConfiguration<Integer> config1 = new DefaultSerializerConfiguration<>(testSerializer3, DefaultSerializerConfiguration.Type.KEY);
     DefaultSerializerConfiguration<Integer> config2 = new DefaultSerializerConfiguration<>(testSerializer4, DefaultSerializerConfiguration.Type.VALUE);
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(config1).add(config2).build();
+      .withService(config1).withService(config2).build();
 
     CacheType cacheType = new CacheType();
     CacheEntryType keyType = new CacheEntryType();

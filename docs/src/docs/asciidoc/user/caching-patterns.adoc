@@ -1,12 +1,12 @@
 ---
 ---
 = Cache Usage Patterns
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 There are several common access patterns when using a cache.

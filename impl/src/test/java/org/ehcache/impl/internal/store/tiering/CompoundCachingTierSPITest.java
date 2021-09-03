@@ -21,6 +21,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -80,10 +81,10 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
 
         StoreEventDispatcher<String, String> eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
-        OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024);
+        OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024, new DefaultStatisticsService());
         OffHeapStoreLifecycleHelper.init(offHeapStore);
         IdentityCopier<String> copier = new IdentityCopier<>();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher);
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;
@@ -118,8 +119,8 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override

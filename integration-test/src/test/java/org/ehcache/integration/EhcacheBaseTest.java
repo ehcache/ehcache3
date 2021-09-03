@@ -28,7 +28,7 @@ import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.integration.statistics.AbstractCacheCalculationTest;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;
@@ -81,8 +81,8 @@ public class EhcacheBaseTest extends AbstractCacheCalculationTest {
 
   private void createNotAtomicCacheManager() throws IOException {
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new TimeSourceConfiguration(timeSource))
-      .addService(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .withService(new TimeSourceConfiguration(timeSource))
+      .withService(new DefaultPersistenceConfiguration(diskPath.newFolder()))
       .build();
 
     Collection<Service> services = Collections.singleton(statisticsService);

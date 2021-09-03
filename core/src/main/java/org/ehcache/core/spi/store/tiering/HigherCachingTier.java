@@ -77,7 +77,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
      *
      * @return the new higher caching tier
      */
-    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link HigherCachingTier}.

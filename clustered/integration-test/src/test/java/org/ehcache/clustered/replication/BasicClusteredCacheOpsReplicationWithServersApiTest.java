@@ -71,8 +71,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest {
         .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
           .read(Duration.ofMinutes(1))
           .write(Duration.ofMinutes(1)))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CACHE_MANAGER = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)

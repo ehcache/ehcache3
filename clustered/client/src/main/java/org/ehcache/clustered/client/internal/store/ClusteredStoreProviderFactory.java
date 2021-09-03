@@ -26,7 +26,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class ClusteredStoreProviderFactory implements ServiceFactory<ClusteredStore.Provider> {
   @Override
-  public ClusteredStore.Provider create(final ServiceCreationConfiguration<ClusteredStore.Provider> configuration) {
+  public ClusteredStore.Provider create(final ServiceCreationConfiguration<ClusteredStore.Provider, ?> configuration) {
     return new ClusteredStore.Provider();
   }
 

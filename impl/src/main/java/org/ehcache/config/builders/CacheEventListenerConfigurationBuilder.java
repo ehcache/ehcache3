@@ -35,7 +35,7 @@ import java.util.Set;
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
-public class CacheEventListenerConfigurationBuilder implements Builder<CacheEventListenerConfiguration> {
+public class CacheEventListenerConfigurationBuilder implements Builder<CacheEventListenerConfiguration<?>> {
   private EventOrdering eventOrdering;
   private EventFiring eventFiringMode;
   private Object[] listenerArguments = new Object[0];

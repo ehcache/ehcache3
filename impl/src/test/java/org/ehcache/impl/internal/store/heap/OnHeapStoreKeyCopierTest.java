@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -101,7 +102,8 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(),
+      new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @Test

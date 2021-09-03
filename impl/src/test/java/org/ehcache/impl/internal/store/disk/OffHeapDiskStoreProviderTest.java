@@ -26,8 +26,10 @@ import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -65,7 +67,8 @@ public class OffHeapDiskStoreProviderTest {
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class))
+    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class)).with(new DefaultStatisticsService())
+      .with(mock(CacheManagerProviderService.class))
       .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 

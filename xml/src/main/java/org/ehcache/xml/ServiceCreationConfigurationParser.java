@@ -17,7 +17,7 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.Configuration;
-import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ServiceType;
@@ -59,7 +59,7 @@ public class ServiceCreationConfigurationParser {
     this.extensionParsers = extensionParsers;
   }
 
-  ConfigurationBuilder parseServiceCreationConfiguration(ConfigType configRoot, ClassLoader classLoader, ConfigurationBuilder managerBuilder) throws ClassNotFoundException {
+  FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType configRoot, ClassLoader classLoader, FluentConfigurationBuilder<?> managerBuilder) throws ClassNotFoundException {
     for (CoreServiceCreationConfigurationParser parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
       managerBuilder = parser.parseServiceCreationConfiguration(configRoot, classLoader, managerBuilder);
     }
@@ -73,8 +73,8 @@ public class ServiceCreationConfigurationParser {
       if(cacheManagerServiceConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      ServiceCreationConfiguration<?> serviceConfiguration = cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element, classLoader);
-      managerBuilder = managerBuilder.addService(serviceConfiguration);
+      ServiceCreationConfiguration<?, ?> serviceConfiguration = cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element, classLoader);
+      managerBuilder = managerBuilder.withService(serviceConfiguration);
     }
 
     return managerBuilder;

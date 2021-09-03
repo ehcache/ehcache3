@@ -62,7 +62,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   }
 
   @Override
-  public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<ClusteredStore.Provider, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
       if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
         return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));
@@ -80,7 +80,7 @@ public class ClusteringCacheServiceConfigurationParser extends BaseConfigParser<
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<ClusteredStore.Provider> serviceConfiguration) {
+  public Element unparseServiceConfiguration(ServiceConfiguration<ClusteredStore.Provider, ?> serviceConfiguration) {
     return unparseConfig(serviceConfiguration);
   }
 

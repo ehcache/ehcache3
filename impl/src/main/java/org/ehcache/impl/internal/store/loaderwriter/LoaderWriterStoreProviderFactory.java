@@ -22,7 +22,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class LoaderWriterStoreProviderFactory implements ServiceFactory<LoaderWriterStoreProvider> {
   @Override
-  public LoaderWriterStoreProvider create(ServiceCreationConfiguration<LoaderWriterStoreProvider> configuration) {
+  public LoaderWriterStoreProvider create(ServiceCreationConfiguration<LoaderWriterStoreProvider, ?> configuration) {
     return new LoaderWriterStoreProvider();
   }
 

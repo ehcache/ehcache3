@@ -24,7 +24,7 @@
   <service>
     <tc:cluster>
       <tc:connection url="example.com"/>
-      <tc:server-side-config auto-create="true">
+      <tc:server-side-config client-mode="auto-create">
         <tc:default-resource from="main"/>
       </tc:server-side-config>
     </tc:cluster>

@@ -54,8 +54,7 @@ public class CacheManagerDestroyReconnectTest {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"));
+              .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }
