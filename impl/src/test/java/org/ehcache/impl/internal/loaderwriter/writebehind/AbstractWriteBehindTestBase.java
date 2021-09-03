@@ -33,13 +33,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -52,7 +49,6 @@ import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -64,7 +60,7 @@ import static org.mockito.Mockito.when;
  */
 public abstract class AbstractWriteBehindTestBase {
 
-  protected abstract CacheManagerBuilder managerBuilder();
+  protected abstract CacheManagerBuilder<CacheManager> managerBuilder();
 
   protected abstract CacheConfigurationBuilder<String, String> configurationBuilder();
 
@@ -168,7 +164,7 @@ public abstract class AbstractWriteBehindTestBase {
   }
 
   @Test
-  public void testThatAllGetsReturnLatestData() throws BulkCacheWritingException, Exception {
+  public void testThatAllGetsReturnLatestData() throws Exception {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -260,7 +256,7 @@ public abstract class AbstractWriteBehindTestBase {
 
   @Test
   public void testUnBatchedDeletedKeyReturnsNull() throws Exception {
-    final Semaphore semaphore = new Semaphore(0);
+    Semaphore semaphore = new Semaphore(0);
 
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
@@ -523,16 +519,16 @@ public abstract class AbstractWriteBehindTestBase {
 
     class TestWriteBehindProvider extends WriteBehindProviderFactory.Provider {
 
-      private WriteBehind writeBehind = null;
+      private WriteBehind<?, ?> writeBehind = null;
 
       @Override
       @SuppressWarnings("unchecked")
-      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(final CacheLoaderWriter<K, V> cacheLoaderWriter, final WriteBehindConfiguration configuration) {
+      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration) {
         this.writeBehind = super.createWriteBehindLoaderWriter(cacheLoaderWriter, configuration);
-        return writeBehind;
+        return (WriteBehind<K, V>) writeBehind;
       }
 
-      public WriteBehind getWriteBehind() {
+      public WriteBehind<?, ?> getWriteBehind() {
         return writeBehind;
       }
     }
@@ -553,10 +549,10 @@ public abstract class AbstractWriteBehindTestBase {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  protected CacheLoaderWriterProvider getMockedCacheLoaderWriterProvider(CacheLoaderWriter loaderWriter) {
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  protected CacheLoaderWriterProvider getMockedCacheLoaderWriterProvider(CacheLoaderWriter<String, String> loaderWriter) {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
-    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)any())).thenReturn(loaderWriter);
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)any())).thenReturn((CacheLoaderWriter) loaderWriter);
     return cacheLoaderWriterProvider;
   }
 

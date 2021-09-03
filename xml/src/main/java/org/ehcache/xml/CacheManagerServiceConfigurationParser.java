@@ -34,4 +34,8 @@ public interface CacheManagerServiceConfigurationParser<T extends Service> {
   URI getNamespace();
 
   ServiceCreationConfiguration<T> parseServiceCreationConfiguration(Element fragment);
+
+  Class<T> getServiceType();
+
+  Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<T> serviceCreationConfiguration);
 }

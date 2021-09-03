@@ -24,7 +24,6 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -39,6 +38,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Collection;
 
+import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
@@ -111,8 +111,8 @@ public class ConfigurationMergerTest {
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("Cache", configuration);
 
     assertThat(factory.called, is(true));
-    org.ehcache.expiry.ExpiryPolicy resourcesExpiry = configHolder.cacheResources.getExpiryPolicy();
-    org.ehcache.expiry.ExpiryPolicy configExpiry = configHolder.cacheConfiguration.getExpiryPolicy();
+    org.ehcache.expiry.ExpiryPolicy<Object, Object> resourcesExpiry = configHolder.cacheResources.getExpiryPolicy();
+    org.ehcache.expiry.ExpiryPolicy<Object, Object> configExpiry = configHolder.cacheConfiguration.getExpiryPolicy();
     assertThat(configExpiry, sameInstance(resourcesExpiry));
   }
 
@@ -215,7 +215,7 @@ public class ConfigurationMergerTest {
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        DefaultCopierConfiguration<Object> copierConfig = (DefaultCopierConfiguration<Object>)serviceConfiguration;
         if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
           storeByValue = false;
         break;
@@ -237,7 +237,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
     }
   }
@@ -256,7 +256,7 @@ public class ConfigurationMergerTest {
     try {
       merger.mergeConfigurations("cache", configuration);
       fail("Loader factory should have thrown");
-    } catch (MultiCacheException mce) {
+    } catch (CacheException mce) {
       verify((Closeable) expiryPolicy).close();
       verify((Closeable) loader).close();
     }
@@ -308,7 +308,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypes() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-copiers-immutable-types.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
@@ -346,7 +346,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypesWithCMLevelDefaults() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-immutable-types-cm-level-copiers.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<>();
@@ -383,7 +383,7 @@ public class ConfigurationMergerTest {
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         noCopierConfigPresent = true;
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        DefaultCopierConfiguration<Object> copierConfig = (DefaultCopierConfiguration<Object>)serviceConfiguration;
         assertThat(copierConfig.getClazz().isAssignableFrom(Eh107IdentityCopier.class), is(true));
       }
     }
@@ -403,6 +403,7 @@ public class ConfigurationMergerTest {
   }
 
   private static class RecordingFactory<T> implements Factory<T> {
+    private static final long serialVersionUID = 1L;
     private final T instance;
     boolean called;
 
@@ -418,6 +419,8 @@ public class ConfigurationMergerTest {
   }
 
   private static class ThrowingCacheEntryListenerConfiguration implements CacheEntryListenerConfiguration<Object, Object> {
+    private static final long serialVersionUID = 1L;
+
     @Override
     public Factory<CacheEntryListener<? super Object, ? super Object>> getCacheEntryListenerFactory() {
       throw new UnsupportedOperationException("BOOM");

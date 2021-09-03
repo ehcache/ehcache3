@@ -42,8 +42,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
@@ -63,8 +61,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
-  private final URI clusterUri;
-  private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final ConnectionState connectionState;
 
@@ -75,12 +71,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   DefaultClusteringService(ClusteringServiceConfiguration configuration) {
     this.configuration = configuration;
-    URI ehcacheUri = configuration.getClusterUri();
-    this.clusterUri = extractClusterUri(ehcacheUri);
-    this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     Properties properties = configuration.getProperties();
-    this.connectionState = new ConnectionState(clusterUri, configuration.getTimeouts(),
-            entityIdentifier, properties, configuration);
+    this.connectionState = new ConnectionState(configuration.getTimeouts(), properties, configuration);
     this.connectionState.setConnectionRecoveryListener(() -> connectionRecoveryListeners.forEach(Runnable::run));
   }
 
@@ -92,14 +84,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public void removeConnectionRecoveryListener(Runnable runnable) {
     connectionRecoveryListeners.remove(runnable);
-  }
-
-  private static URI extractClusterUri(URI uri) {
-    try {
-      return new URI(uri.getScheme(), uri.getAuthority(), null, null, null);
-    } catch (URISyntaxException e) {
-      throw new AssertionError(e);
-    }
   }
 
   @Override
@@ -142,7 +126,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void stop() {
-    LOGGER.info("Closing connection to cluster {}", this.clusterUri);
+    LOGGER.info("Closing connection to cluster {}", configuration.getConnectionSource());
 
     /*
      * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
@@ -151,7 +135,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
      * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
      * take care of server-side cleanup in the event the server is connected.
      */
-    connectionState.destroyState();
+    connectionState.destroyState(true);
     inMaintenance = false;
     connectionState.closeConnection();
   }
@@ -170,7 +154,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;
@@ -287,12 +271,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       storeClientEntity.validate(clientStoreConfiguration);
     } catch (ClusterTierException e) {
       serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
+      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+                                          + configuration.getConnectionSource().getClusterTierManager() + "'", e);
     } catch (TimeoutException e) {
       serverStoreProxy.close();
-      throw new CachePersistenceException("Unable to create cluster tier proxy '"
-          + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
-          + "'; validate operation timed out", e);
+      throw new CachePersistenceException("Unable to create cluster tier proxy '" + cacheIdentifier.getId() + "' for entity '"
+                                          + configuration.getConnectionSource().getClusterTierManager() + "'; validate operation timed out", e);
     }
 
     return serverStoreProxy;

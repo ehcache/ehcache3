@@ -119,7 +119,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -150,7 +150,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
     };
   }
 
-  public static void closeStore(OnHeapStore store) {
+  public static void closeStore(OnHeapStore<?, ?> store) {
     OnHeapStore.Provider.close(store);
   }
 

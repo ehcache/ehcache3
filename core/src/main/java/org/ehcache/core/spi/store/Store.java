@@ -502,20 +502,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     long lastAccessTime(TimeUnit unit);
 
     /**
-     * Accessor to the hit rate of the value held in this {@code ValueHolder}.
-     *
-     * @param now the time in {@link TimeUnit#MILLISECONDS} upto which the rate needs to be calculated
-     * @param unit the {@link TimeUnit} in which the rate is to returned
-     * @return the hit rate in the given unit
-     */
-    float hitRate(long now, TimeUnit unit);
-
-    /**
-     * @return hit counter of the Value held in this ValueHolder
-     */
-    long hits();
-
-    /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be
      * unique at a given time.
      *
@@ -629,6 +615,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The concurrency level of the dispatcher that processes events
      */
     int getDispatcherConcurrency();
+
+    /**
+     * If operation statistics (e.g. get/put count) should be enabled. It is
+     * a default method to keep the original behavior which was enabled all the time.
+     */
+    default boolean isOperationStatisticsEnabled() {
+      return true;
+    }
   }
 
   /**

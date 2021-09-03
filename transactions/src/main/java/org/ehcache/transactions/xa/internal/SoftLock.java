@@ -34,6 +34,7 @@ import java.nio.ByteBuffer;
  */
 public class SoftLock<V> implements Serializable {
 
+  private static final long serialVersionUID = -7281781343721739009L;
   private final TransactionId transactionId;
   private final V oldValue;
   private final byte[] oldValueSerialized;

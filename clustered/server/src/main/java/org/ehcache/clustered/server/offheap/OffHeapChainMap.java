@@ -214,6 +214,10 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
+  void remove(K key) {
+    heads.removeNoReturn(key);
+  }
+
   public void clear() {
     heads.writeLock().lock();
     try {

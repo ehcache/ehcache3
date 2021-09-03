@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
 public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   private static ClusterTierClientEntity createClientEntity(String name) throws Exception {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),

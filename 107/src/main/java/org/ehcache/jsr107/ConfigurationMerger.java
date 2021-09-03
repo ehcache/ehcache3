@@ -27,7 +27,6 @@ import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
-import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.xml.XmlConfiguration;
@@ -39,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
@@ -49,6 +49,7 @@ import javax.cache.integration.CacheWriter;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.jsr107.CloseUtil.closeAllAfter;
 
 /**
  * ConfigurationMerger
@@ -110,7 +111,7 @@ class ConfigurationMerger {
       if (ehcacheLoaderWriterConfiguration == null) {
         useEhcacheLoaderWriter = false;
         // No template loader/writer - let's activate the JSR-107 one if any
-        loaderWriter = initCacheLoaderWriter(jsr107Configuration, new MultiCacheException());
+        loaderWriter = initCacheLoaderWriter(jsr107Configuration);
         if (loaderWriter != null && (jsr107Configuration.isReadThrough() || jsr107Configuration.isWriteThrough())) {
           cacheLoaderWriterFactory.registerJsr107Loader(cacheName, loaderWriter);
         }
@@ -135,29 +136,21 @@ class ConfigurationMerger {
         new Eh107CompleteConfiguration<>(jsr107Configuration, cacheConfiguration, hasConfiguredExpiry, useEhcacheLoaderWriter),
         cacheConfiguration, useEhcacheLoaderWriter);
     } catch (Throwable throwable) {
-      MultiCacheException mce = new MultiCacheException();
-      CacheResources.close(expiryPolicy, mce);
-      CacheResources.close(loaderWriter, mce);
-
       if (throwable instanceof IllegalArgumentException) {
-        String message = throwable.getMessage();
-        if (mce.getMessage() != null) {
-          message = message + "\nSuppressed " + mce.getMessage();
-        }
-        throw new IllegalArgumentException(message, throwable);
+        throw closeAllAfter((IllegalArgumentException) throwable, expiryPolicy, loaderWriter);
+      } else {
+        throw closeAllAfter(new CacheException(throwable), expiryPolicy, loaderWriter);
       }
-      mce.addFirstThrowable(throwable);
-      throw mce;
     }
   }
 
   private <K, V> CacheConfigurationBuilder<K, V> handleStoreByValue(Eh107CompleteConfiguration<K, V> jsr107Configuration, CacheConfigurationBuilder<K, V> builder, String cacheName) {
-    DefaultCopierConfiguration copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
+    DefaultCopierConfiguration<?> copierConfig = builder.getExistingServiceConfiguration(DefaultCopierConfiguration.class);
     if(copierConfig == null) {
       if(jsr107Configuration.isStoreByValue()) {
         if (xmlConfiguration != null) {
           DefaultCopyProviderConfiguration defaultCopyProviderConfiguration = findSingletonAmongst(DefaultCopyProviderConfiguration.class,
-              xmlConfiguration.getServiceCreationConfigurations().toArray());
+              xmlConfiguration.getServiceCreationConfigurations());
           if (defaultCopyProviderConfiguration != null) {
             Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = defaultCopyProviderConfiguration.getDefaults();
             handleCopierDefaultsforImmutableTypes(defaults);
@@ -188,8 +181,8 @@ class ConfigurationMerger {
   }
 
   @SuppressWarnings("unchecked")
-  private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class keyType, Class valueType ) {
-    Set<Class> immutableTypes = new HashSet<>();
+  private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class<K> keyType, Class<V> valueType ) {
+    Set<Class<?>> immutableTypes = new HashSet<>();
     immutableTypes.add(String.class);
     immutableTypes.add(Long.class);
     immutableTypes.add(Float.class);
@@ -219,7 +212,7 @@ class ConfigurationMerger {
     addIdentityCopierIfNoneRegistered(defaults, Character.class);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class<?> clazz) {
     if (!defaults.containsKey(clazz)) {
       defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
@@ -228,9 +221,8 @@ class ConfigurationMerger {
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {
     Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<>();
-    MultiCacheException mce = new MultiCacheException();
     for (CacheEntryListenerConfiguration<K, V> listenerConfig : config.getCacheEntryListenerConfigurations()) {
-      listenerResources.put(listenerConfig, ListenerResources.createListenerResources(listenerConfig, mce));
+      listenerResources.put(listenerConfig, ListenerResources.createListenerResources(listenerConfig));
     }
     return listenerResources;
   }
@@ -239,7 +231,7 @@ class ConfigurationMerger {
     return new ExpiryPolicyToEhcacheExpiry<>(config.getExpiryPolicyFactory().create());
   }
 
-  private <K, V> Jsr107CacheLoaderWriter<K, V> initCacheLoaderWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
+  private <K, V> Jsr107CacheLoaderWriter<K, V> initCacheLoaderWriter(CompleteConfiguration<K, V> config) {
     Factory<CacheLoader<K, V>> cacheLoaderFactory = config.getCacheLoaderFactory();
     @SuppressWarnings("unchecked")
     Factory<CacheWriter<K, V>> cacheWriterFactory = (Factory<CacheWriter<K, V>>) (Object) config.getCacheWriterFactory();
@@ -256,11 +248,7 @@ class ConfigurationMerger {
     try {
       cacheWriter = cacheWriterFactory == null ? null : cacheWriterFactory.create();
     } catch (Throwable t) {
-      if (t != mce) {
-        mce.addThrowable(t);
-      }
-      CacheResources.close(cacheLoader, mce);
-      throw mce;
+      throw closeAllAfter(new CacheException(t), cacheLoader);
     }
 
     if (cacheLoader == null && cacheWriter == null) {

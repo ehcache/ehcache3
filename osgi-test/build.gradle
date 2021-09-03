@@ -16,37 +16,32 @@
 
 dependencies {
   ext {
-    paxExamVersion = '3.5.0'
-    felixVersion = '4.4.0'
+    paxExamVersion = '4.11.0'
+    felixVersion = '5.6.10'
   }
 
-  testCompile project(':impl'), project(':xml'), project(':107'),
-          "org.apache.felix:org.apache.felix.framework:$felixVersion",
-          "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
-    exclude group:'junit', module:'junit'
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':107')
+  testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
+  testImplementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
+  testImplementation ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 
-  testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
-  testRuntime ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
+  testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion",
+  testRuntimeOnly ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testRuntime ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
+  testRuntimeOnly ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 }
 
 configurations.all {
    resolutionStrategy {
-     force 'org.apache.maven.wagon:wagon-provider-api:2.5'
-     force 'org.codehaus.plexus:plexus-utils:3.0.15'
-     force 'org.eclipse.aether:aether-api:0.9.0.M4'
-     force 'org.eclipse.aether:aether-impl:0.9.0.M4'
-     force 'org.eclipse.aether:aether-spi:0.9.0.M4'
-     force 'org.eclipse.aether:aether-util:0.9.0.M4'
-     force 'org.sonatype.plexus:plexus-cipher:1.7'
-     force 'org.sonatype.plexus:plexus-sec-dispatcher:1.4'
+     force 'org.ops4j.base:ops4j-base-lang:1.5.0'
+     force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
    }
 }
 

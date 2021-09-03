@@ -225,6 +225,9 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
   }
 
   private static class BlobValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final byte[] data = new byte[10 * 1024];
   }
 }

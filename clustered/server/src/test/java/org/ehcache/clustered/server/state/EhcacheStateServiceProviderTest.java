@@ -44,6 +44,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class EhcacheStateServiceProviderTest {
 
@@ -63,21 +64,8 @@ public class EhcacheStateServiceProviderTest {
     configuration.getResource().add(resource);
     OffHeapResources offheapResources = new OffHeapResourcesProvider(configuration);
 
-    platformConfiguration = new PlatformConfiguration() {
-      @Override
-      public String getServerName() {
-        return "Server1";
-      }
-
-      @Override
-      public <T> Collection<T> getExtendedConfiguration(Class<T> type) {
-        if (OffHeapResources.class.isAssignableFrom(type)) {
-          return Collections.singletonList(type.cast(offheapResources));
-        }
-        throw new UnsupportedOperationException("TODO Implement me!");
-      }
-    };
-
+    platformConfiguration = mock(PlatformConfiguration.class);
+    when(platformConfiguration.getExtendedConfiguration(OffHeapResources.class)).thenReturn(Collections.singletonList(offheapResources));
     serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
 
     tierManagerConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));

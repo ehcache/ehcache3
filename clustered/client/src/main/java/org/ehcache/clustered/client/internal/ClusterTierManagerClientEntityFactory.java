@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierUserData;
 import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -55,6 +56,7 @@ public class ClusterTierManagerClientEntityFactory {
 
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<>();
+  private final Map<String, Hold> fetchHolds = new ConcurrentHashMap<>();
 
   private final Timeouts entityTimeouts;
 
@@ -79,13 +81,30 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public void abandonLeadership(String entityIdentifier) {
+  public boolean abandonAllHolds(String entityIdentifier) {
+    return abandonLeadership(entityIdentifier) | abandonFetchHolds(entityIdentifier);
+  }
+
+  /**
+   * Proactively abandon leadership before closing connection.
+   *
+   * @param entityIdentifier the master entity identifier
+   * @return true of abandoned false otherwise
+   */
+  public boolean abandonLeadership(String entityIdentifier) {
     Hold hold = maintenanceHolds.remove(entityIdentifier);
-    if (hold == null) {
-      throw new IllegalMonitorStateException("Leadership was never held");
-    } else {
-      hold.unlock();
-    }
+    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
+  }
+
+  /**
+   * Proactively abandon any READ holds before closing connection.
+   *
+   * @param entityIdentifier the master entity identifier
+   * @return true of abandoned false otherwise
+   */
+  private boolean abandonFetchHolds(String entityIdentifier) {
+    Hold hold = fetchHolds.remove(entityIdentifier);
+    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
   }
 
   /**
@@ -109,7 +128,7 @@ public class ClusterTierManagerClientEntityFactory {
         throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
       }
 
-      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> ref = getEntityRef(identifier);
       try {
         ref.create(new ClusterTierManagerConfiguration(identifier, config));
       } catch (EntityConfigurationException e) {
@@ -162,6 +181,9 @@ public class ClusterTierManagerClientEntityFactory {
       if (!validated) {
         silentlyClose(entity, identifier);
         silentlyUnlock(fetchHold, identifier);
+      } else {
+        // track read holds as well so that we can explicitly abandon
+        fetchHolds.put(identifier, fetchHold);
       }
     }
   }
@@ -174,7 +196,7 @@ public class ClusterTierManagerClientEntityFactory {
         throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
       }
 
-      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> ref = getEntityRef(identifier);
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
@@ -192,7 +214,8 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) {
+  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity,
+    ClusterTierManagerConfiguration, ClusterTierUserData> ref, String identifier) {
     ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity(null);
@@ -224,11 +247,13 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  private void silentlyUnlock(Hold localMaintenance, String identifier) {
+  private boolean silentlyUnlock(Hold localMaintenance, String identifier) {
     try {
       localMaintenance.unlock();
+      return true;
     } catch(Exception e) {
       LOGGER.error("Failed to unlock for id {}", identifier, e);
+      return false;
     }
   }
 
@@ -236,7 +261,7 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
+  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, ClusterTierUserData> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(ClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
@@ -248,7 +273,7 @@ public class ClusterTierManagerClientEntityFactory {
   public ClusterTierClientEntity fetchOrCreateClusteredStoreEntity(String clusterTierManagerIdentifier,
                                                                    String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
                                                                    boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -267,10 +292,7 @@ public class ClusterTierManagerClientEntityFactory {
           throw new AssertionError(e);
         }
         try {
-          InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-          entity.setStoreIdentifier(storeIdentifier);
-          entity.setTimeouts(entityTimeouts);
-          return entity;
+          return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
         } catch (EntityNotFoundException e) {
           // Ignore - will try to create again
         } catch (EntityException e) {
@@ -283,7 +305,7 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   public ClusterTierClientEntity getClusterTierClientEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException {
-    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef;
     try {
       entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
     } catch (EntityNotProvidedException e) {
@@ -294,12 +316,10 @@ public class ClusterTierManagerClientEntityFactory {
   }
 
   private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,
-                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef) throws EntityNotFoundException {
+                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, ClusterTierUserData> entityRef)
+    throws EntityNotFoundException {
     try {
-      InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-      entity.setStoreIdentifier(storeIdentifier);
-      entity.setTimeouts(entityTimeouts);
-      return entity;
+      return entityRef.fetchEntity(new ClusterTierUserData(entityTimeouts, storeIdentifier));
     } catch (EntityNotFoundException e) {
       throw e;
     } catch (EntityException e) {

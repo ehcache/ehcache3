@@ -16,13 +16,13 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -59,7 +59,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @Before
   public void setUp() {
     timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(TestExpiries.tTL(Duration.ofMillis(1)), timeSource);
+    kvStore = factory.newStoreWithExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)), timeSource);
   }
 
   @After

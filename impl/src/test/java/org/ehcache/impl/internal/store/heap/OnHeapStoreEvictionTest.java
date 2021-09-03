@@ -32,7 +32,6 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
@@ -176,16 +175,12 @@ public class OnHeapStoreEvictionTest {
 
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
-    private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
-    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
-    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     private boolean enforceCapacityWasCalled = false;

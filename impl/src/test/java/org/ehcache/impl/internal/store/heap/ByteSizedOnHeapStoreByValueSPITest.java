@@ -114,7 +114,7 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -145,7 +145,7 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
     };
   }
 
-  public static void closeStore(OnHeapStore store) {
+  public static void closeStore(OnHeapStore<?, ?> store) {
     OnHeapStore.Provider.close(store);
   }
 

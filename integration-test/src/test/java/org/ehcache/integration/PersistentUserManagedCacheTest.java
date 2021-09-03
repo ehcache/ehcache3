@@ -77,6 +77,8 @@ public class PersistentUserManagedCacheTest {
 
   private static class Foo implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final int i;
 
     Foo(int i) {

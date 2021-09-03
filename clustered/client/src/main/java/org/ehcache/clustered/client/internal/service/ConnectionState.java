@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
+import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -35,10 +36,8 @@ import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.exception.ConnectionShutdownException;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.lease.connection.LeasedConnectionFactory;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,18 +58,17 @@ class ConnectionState {
   private final AtomicInteger reconnectCounter = new AtomicInteger();
   private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
   private final Timeouts timeouts;
-  private final URI clusterUri;
+  private final ConnectionSource connectionSource;
   private final String entityIdentifier;
   private final Properties connectionProperties;
   private final ClusteringServiceConfiguration serviceConfiguration;
 
   private Runnable connectionRecoveryListener = () -> {};
 
-  ConnectionState(URI clusterUri, Timeouts timeouts, String entityIdentifier,
-                         Properties connectionProperties, ClusteringServiceConfiguration serviceConfiguration) {
+  ConnectionState(Timeouts timeouts, Properties connectionProperties, ClusteringServiceConfiguration serviceConfiguration) {
     this.timeouts = timeouts;
-    this.clusterUri = clusterUri;
-    this.entityIdentifier = entityIdentifier;
+    this.connectionSource = serviceConfiguration.getConnectionSource();
+    this.entityIdentifier = connectionSource.getClusterTierManager();
     this.connectionProperties = connectionProperties;
     connectionProperties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
     connectionProperties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT, Long.toString(timeouts.getConnectionTimeout().toMillis()));
@@ -144,7 +142,7 @@ class ConnectionState {
   }
 
   private void connect() throws ConnectionException {
-    clusterConnection = LeasedConnectionFactory.connect(clusterUri, connectionProperties);
+    clusterConnection = connectionSource.connect(connectionProperties);
     entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
   }
 
@@ -210,7 +208,11 @@ class ConnectionState {
     }
   }
 
-  public void destroyState() {
+  public void destroyState(boolean healthyConnection) {
+    if (entityFactory != null && healthyConnection) {
+      // proactively abandon any acquired read or write locks on a healthy connection
+      entityFactory.abandonAllHolds(entityIdentifier);
+    }
     entityFactory = null;
 
     clusterTierEntities.clear();
@@ -218,14 +220,14 @@ class ConnectionState {
   }
 
   public void destroyAll() throws CachePersistenceException {
-    LOGGER.info("destroyAll called for cluster tiers on {}", clusterUri);
+    LOGGER.info("destroyAll called for cluster tiers on {}", connectionSource);
 
     while (true) {
       try {
         entityFactory.destroy(entityIdentifier);
         break;
       } catch (EntityBusyException e) {
-        throw new CachePersistenceException("Cannot delete cluster tiers on " + clusterUri, e);
+        throw new CachePersistenceException("Cannot delete cluster tiers on " + connectionSource, e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         handleConnectionClosedException();
       }
@@ -303,7 +305,7 @@ class ConnectionState {
   private void handleConnectionClosedException() {
     while (true) {
       try {
-        destroyState();
+        destroyState(false);
         reconnect();
         retrieveEntity();
         connectionRecoveryListener.run();

@@ -16,7 +16,9 @@
 
 package org.ehcache.clustered.common.internal.exceptions;
 
-public class UnknownClusterException extends ClusterException{
+public class UnknownClusterException extends ClusterException {
+
+  private static final long serialVersionUID = -2612856483315331382L;
 
   public UnknownClusterException(String message) {
     super(message);

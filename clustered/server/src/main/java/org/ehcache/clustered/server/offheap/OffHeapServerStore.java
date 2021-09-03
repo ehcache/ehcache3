@@ -95,7 +95,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     try {
       segmentFor(key).append(key, payLoad);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
     }
   }
 
@@ -113,15 +113,18 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     try {
       segmentFor(key).replaceAtHead(key, expect, update);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).replaceAtHead(k, expect, update));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).replaceAtHead(k, expect, update));
     }
   }
 
   public void put(long key, Chain chain) {
     try {
-      segmentFor(key).put(key, chain);
+      try {segmentFor(key).put(key, chain);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));}
+    } catch (Throwable t) {
+      segmentFor(key).remove(key);
+      throw t;
     }
   }
 
@@ -149,7 +152,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
-  private void handleOversizeMappingException(long key, LongConsumer operation) {
+  private void consumeOversizeMappingException(long key, LongConsumer operation) {
     handleOversizeMappingException(key, k -> {
       operation.accept(k);
       return null;

@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.config.builders;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -22,8 +23,10 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 
@@ -34,7 +37,7 @@ import static org.ehcache.clustered.client.config.ClusteringServiceConfiguration
  */
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
-  private final URI clusterUri;
+  private final ConnectionSource connectionSource;
   private final Timeouts timeouts;
   private final boolean autoCreate;
 
@@ -46,11 +49,23 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public static ClusteringServiceConfigurationBuilder cluster(URI clusterUri) {
-    return new ClusteringServiceConfigurationBuilder(clusterUri, TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ClusterUri(clusterUri), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
   }
 
-  private ClusteringServiceConfigurationBuilder(URI clusterUri, Timeouts timeouts, boolean autoCreate) {
-    this.clusterUri = Objects.requireNonNull(clusterUri, "Cluster URI can't be null");
+  /**
+   * Creates a new builder connecting to the given cluster.
+   *
+   * @param servers the non-{@code null} iterable of servers in the cluster
+   * @param clusterTierManager the non-{@code null} cluster tier manager identifier
+   *
+   * @return a clustering service configuration builder
+   */
+  public static ClusteringServiceConfigurationBuilder cluster(Iterable<InetSocketAddress> servers, String clusterTierManager) {
+    return new ClusteringServiceConfigurationBuilder(new ConnectionSource.ServerList(servers, clusterTierManager), TimeoutsBuilder.timeouts().build(), DEFAULT_AUTOCREATE);
+  }
+
+  private ClusteringServiceConfigurationBuilder(ConnectionSource connectionSource, Timeouts timeouts, boolean autoCreate) {
+    this.connectionSource = connectionSource;
     this.timeouts = Objects.requireNonNull(timeouts, "Timeouts can't be null");
     this.autoCreate = autoCreate;
   }
@@ -61,7 +76,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder autoCreate() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.clusterUri, this.timeouts, true));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, true));
   }
 
   /**
@@ -70,7 +85,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder expecting() {
-    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.clusterUri, this.timeouts, false));
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this.connectionSource, this.timeouts, false));
   }
 
   /**
@@ -86,7 +101,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
   public ClusteringServiceConfigurationBuilder timeouts(Timeouts timeouts) {
-    return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeouts, this.autoCreate);
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, timeouts, this.autoCreate);
   }
 
   /**
@@ -102,7 +117,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @throws NullPointerException if {@code timeouts} is {@code null}
    */
   public ClusteringServiceConfigurationBuilder timeouts(Builder<? extends Timeouts> timeoutsBuilder) {
-    return new ClusteringServiceConfigurationBuilder(this.clusterUri, timeoutsBuilder.build(), this.autoCreate);
+    return new ClusteringServiceConfigurationBuilder(this.connectionSource, timeoutsBuilder.build(), this.autoCreate);
   }
 
   /**
@@ -128,7 +143,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri, timeouts, autoCreate, null);
+    return build(null);
   }
 
   /**
@@ -140,7 +155,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    *        {@code ClusteringServiceConfigurationBuilder} and the {@code serverSideConfiguration} provided
    */
   ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
-    return new ClusteringServiceConfiguration(clusterUri, timeouts, autoCreate, serverSideConfiguration);
+    return new ClusteringServiceConfiguration(connectionSource, timeouts, autoCreate, serverSideConfiguration, new Properties());
   }
 
   private static ChronoUnit toChronoUnit(TimeUnit unit) {

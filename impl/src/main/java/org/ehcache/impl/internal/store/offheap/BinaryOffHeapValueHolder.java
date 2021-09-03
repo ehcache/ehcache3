@@ -30,12 +30,11 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   private final ByteBuffer binaryValue;
   private final V value;
 
-  BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime, long hits) {
+  BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime) {
     super(id, creationTime, expireTime);
     this.value = value;
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.binaryValue = binaryValue;
-    this.setHits(hits);
   }
 
 

@@ -160,7 +160,7 @@ public class XAStoreTest {
       });
     try {
       Set<ResourceType<?>> resources = emptySet();
-      provider.rank(resources, Collections.<ServiceConfiguration<?>>singleton(mock(XAStoreConfiguration.class)));
+      provider.rank(resources, Collections.singleton(mock(XAStoreConfiguration.class)));
       fail("Expected exception");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
@@ -301,20 +301,17 @@ public class XAStoreTest {
     assertMapping(xaStore, 1L, null);
   }
 
-  private void executeWhileIn2PC(final AtomicReference<Throwable> exception, final Callable callable) {
+  private void executeWhileIn2PC(AtomicReference<Throwable> exception, Callable<?> callable) {
     testTransactionManager.getCurrentTransaction().registerTwoPcListener(() -> {
       try {
-        Thread t = new Thread() {
-          @Override
-          public void run() {
-            try {
-              // this runs while the committing TX is in-doubt
-              callable.call();
-            } catch (Throwable t) {
-              exception.set(t);
-            }
+        Thread t = new Thread(() -> {
+          try {
+            // this runs while the committing TX is in-doubt
+            callable.call();
+          } catch (Throwable t1) {
+            exception.set(t1);
           }
-        };
+        });
         t.start();
         t.join();
       } catch (Throwable e) {
@@ -957,12 +954,12 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
+      public Duration getExpiryForAccess(Object key, Supplier<?> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<?> oldValue, Object newValue) {
         throw new AssertionError();
       }
     };
@@ -997,7 +994,7 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
+      public Duration getExpiryForAccess(Object key, Supplier<?> value) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -1005,7 +1002,7 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<?> oldValue, Object newValue) {
         return ExpiryPolicy.INFINITE;
       }
     };
@@ -1047,12 +1044,12 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
+      public Duration getExpiryForAccess(Object key, Supplier<?> value) {
         return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<?> oldValue, Object newValue) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -1087,7 +1084,6 @@ public class XAStoreTest {
 
   @Test
   public void testBulkCompute() throws Exception {
-    String uniqueXAResourceId = "testBulkCompute";
     ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
@@ -1120,7 +1116,6 @@ public class XAStoreTest {
       assertThat(computedMap.get(1L).get(), equalTo("stuff#1"));
       assertThat(computedMap.get(2L).get(), equalTo("stuff#2"));
       assertThat(computedMap.get(3L).get(), equalTo("stuff#3"));
-
 
       computedMap = xaStore.bulkCompute(asSet(0L, 1L, 3L), entries -> {
         Map<Long, String> result = new HashMap<>();
@@ -1230,7 +1225,7 @@ public class XAStoreTest {
   public void testCustomEvictionAdvisor() throws Exception {
     final AtomicBoolean invoked = new AtomicBoolean();
 
-    EvictionAdvisor<Long, SoftLock> evictionAdvisor = (key, value) -> {
+    EvictionAdvisor<Long, SoftLock<String>> evictionAdvisor = (key, value) -> {
       invoked.set(true);
       return false;
     };
@@ -1270,7 +1265,7 @@ public class XAStoreTest {
 
     serviceLocator.startAllServices();
 
-    final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
+    Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.singleton(configuration);
     assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.HEAP);
     assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.OFFHEAP);
     assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.DISK);
@@ -1279,10 +1274,10 @@ public class XAStoreTest {
     assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
     assertRank(provider, 1003, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
+    Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
     assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
+    ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
       @Override
       public Class<ResourcePool> getResourcePoolClass() {
         return ResourcePool.class;
@@ -1343,7 +1338,7 @@ public class XAStoreTest {
     int counter = 0;
     Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = xaStore.iterator();
     while (iterator.hasNext()) {
-      Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
+      iterator.next();
       counter++;
     }
     assertThat(counter, is(expectedSize));
@@ -1472,12 +1467,12 @@ public class XAStoreTest {
     }
 
     @Override
-    public boolean delistResource(XAResource xaRes, int flag) throws IllegalStateException, SystemException {
+    public boolean delistResource(XAResource xaRes, int flag) {
       return true;
     }
 
     @Override
-    public boolean enlistResource(XAResource xaRes) throws RollbackException, IllegalStateException, SystemException {
+    public boolean enlistResource(XAResource xaRes) throws IllegalStateException, SystemException {
       TestXid testXid = xids.get(xaRes);
       if (testXid == null) {
         testXid = new TestXid(gtrid, bqualGenerator.incrementAndGet());
@@ -1493,7 +1488,7 @@ public class XAStoreTest {
     }
 
     @Override
-    public int getStatus() throws SystemException {
+    public int getStatus() {
       return 0;
     }
 
@@ -1502,7 +1497,7 @@ public class XAStoreTest {
     }
 
     @Override
-    public void registerSynchronization(Synchronization sync) throws RollbackException, IllegalStateException, SystemException {
+    public void registerSynchronization(Synchronization sync) {
       synchronizations.add(sync);
     }
 
@@ -1552,7 +1547,7 @@ public class XAStoreTest {
     }
 
     @Override
-    public void setRollbackOnly() throws IllegalStateException, SystemException {
+    public void setRollbackOnly() {
 
     }
   }

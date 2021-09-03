@@ -21,6 +21,8 @@ package org.ehcache.clustered.client.internal;
  */
 public class ClusterTierManagerValidationException extends RuntimeException {
 
+  private static final long serialVersionUID = -428725072152588216L;
+
   public ClusterTierManagerValidationException(String message) {
     super(message);
   }

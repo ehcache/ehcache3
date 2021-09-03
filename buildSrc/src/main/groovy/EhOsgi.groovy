@@ -37,7 +37,7 @@ class EhOsgi implements Plugin<Project> {
                             project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
     hashsetOfProjects += project  //self also, in case the invoking project defines osgi properties
 
-    project.plugins.apply 'java'
+    project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
 

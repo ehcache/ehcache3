@@ -39,12 +39,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TieredStoreFlushWhileShutdownTest {
@@ -110,11 +111,11 @@ public class TieredStoreFlushWhileShutdownTest {
 
     tieredStoreProvider.start(serviceLocator);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Number, String> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace);
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
@@ -127,6 +128,12 @@ public class TieredStoreFlushWhileShutdownTest {
       }
     }
 
+    // Keep the creation time to make sure we have them at restart
+    long[] creationTimes = new long[20];
+    for (int i = 0; i < 20; i++) {
+      creationTimes[i] = tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS);
+    }
+
     tieredStoreProvider.releaseStore(tieredStore);
     tieredStoreProvider.stop();
 
@@ -137,12 +144,12 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.start(serviceLocator1);
 
     DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace1);
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(tieredStore.get(i).hits(), is(21L));
+      assertThat(tieredStore.get(i).creationTime(TimeUnit.MILLISECONDS), is(creationTimes[i]));
     }
   }
 

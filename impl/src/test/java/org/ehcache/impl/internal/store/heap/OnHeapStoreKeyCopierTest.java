@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -73,15 +74,14 @@ public class OnHeapStoreKeyCopierTest {
 
   private OnHeapStore<Key, String> store;
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    Store.Configuration<Key, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Key.class);
     when(configuration.getValueType()).thenReturn(String.class);
-    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
-    @SuppressWarnings("unchecked")
-    Store.Configuration<Key, String> config = configuration;
+    when(configuration.getExpiry()).thenReturn((ExpiryPolicy) ExpiryPolicyBuilder.noExpiration());
 
     Copier<Key> keyCopier = new Copier<Key>() {
       @Override
@@ -101,7 +101,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
   }
 
   @Test

@@ -386,6 +386,9 @@ public class ServerStoreCompatibilityTest {
       Consistency.STRONG);
 
     PoolAllocation extendedPoolAllocation = new PoolAllocation.DedicatedPoolAllocation() {
+
+      private static final long serialVersionUID = 1L;
+
       @Override
       public long getSize() {
         return 4;

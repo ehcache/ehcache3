@@ -294,7 +294,7 @@ public class EhcacheLoaderWriterTest {
       function.apply((Number)invocation.getArguments()[0], oldValue);
       return null;
     });
-    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(oldValue);
+    when(cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(oldValue);
 
     assertThat(cache.replace(1, newValue), is(oldValue));
     verify(cache.getCacheLoaderWriter()).write(1, newValue);
@@ -321,7 +321,7 @@ public class EhcacheLoaderWriterTest {
       }
       return null;
     });
-    when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
+    when(cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
     doThrow(new Exception()).when(cache.getCacheLoaderWriter()).write(any(Number.class), anyString());
     cache.replace(1, "bar");
   }

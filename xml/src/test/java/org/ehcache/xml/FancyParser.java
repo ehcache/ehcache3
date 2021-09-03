@@ -51,4 +51,14 @@ public class FancyParser implements CacheServiceConfigurationParser<Service> {
     return NAMESPACE;
   }
 
+  @Override
+  public Class<Service> getServiceType() {
+    return null;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<Service> serviceConfiguration) {
+    return null;
+  }
+
 }

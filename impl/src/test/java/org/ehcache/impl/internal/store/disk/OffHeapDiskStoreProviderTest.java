@@ -42,7 +42,6 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 
-import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -74,11 +73,11 @@ public class OffHeapDiskStoreProviderTest {
     @SuppressWarnings("unchecked")
     Query storeQuery = queryBuilder()
       .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+      .filter(context(attributes(Matchers.allOf(
         hasAttribute("tags", new Matcher<Set<String>>() {
           @Override
           protected boolean matchesSafely(Set<String> object) {
-            return object.containsAll(singleton("Disk"));
+            return object.contains("Disk");
           }
         })))))
       .build();
@@ -129,7 +128,7 @@ public class OffHeapDiskStoreProviderTest {
            public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
              return (P) new SizedResourcePool() {
                @Override
-               public ResourceType getType() {
+               public ResourceType<SizedResourcePool> getType() {
                  return ResourceType.Core.DISK;
                }
 

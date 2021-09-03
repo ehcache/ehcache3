@@ -22,7 +22,7 @@ import java.lang.reflect.Field;
 /**
  * @author Ludovic Orban
  */
-final class JaxbHelper {
+public final class JaxbHelper {
 
   public static String findDefaultValue(Object jaxbObject, String fieldName) {
     Field declaredField = null;

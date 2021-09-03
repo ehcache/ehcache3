@@ -157,7 +157,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   @Test(timeout=180000)
   public void testCRUD() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -198,7 +198,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   @Test(timeout=180000)
   public void testBulkOps() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -244,7 +244,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
           "dealing with in-flight invalidation reconstructed from reconnect data")
   @Test(timeout=180000)
   public void testClear() throws Exception {
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
 
     caches.forEach(cache -> {
@@ -264,7 +264,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
       CACHE2.get(x);
     });
 
-    Future clearFuture = executorService.submit(() -> CACHE1.clear());
+    Future<?> clearFuture = executorService.submit(() -> CACHE1.clear());
 
     CLUSTER.getClusterControl().terminateActive();
 
@@ -274,7 +274,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  private void drainTasks(List<Future> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
+  private void drainTasks(List<Future<?>> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
     for (int i = 0; i < futures.size(); i++) {
       try {
         futures.get(i).get(60, TimeUnit.SECONDS);
@@ -285,6 +285,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   }
 
   private static class BlobValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final byte[] data = new byte[10 * 1024];
   }
 

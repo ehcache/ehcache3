@@ -52,6 +52,7 @@ import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
 import java.util.concurrent.TimeoutException;
 
@@ -161,6 +162,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
   }
 
+  @SuppressWarnings("try")
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
     if (message instanceof EhcacheOperationMessage) {
       EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -175,7 +177,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
-      } catch (ClusterException e) {
+      } catch (ClusterException | OversizeMappingException e) {
         // The above operations are not critical enough to fail a passive, so just log the exception
         LOGGER.error("Unexpected exception raised during operation: " + message, e);
       }

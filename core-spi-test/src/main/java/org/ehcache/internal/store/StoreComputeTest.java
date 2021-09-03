@@ -15,11 +15,11 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -42,19 +42,12 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      @SuppressWarnings("unchecked")
-      Store<K, V> kvStore2 = this.kvStore2;
-      factory.close(kvStore2);
-      this.kvStore2 = null;
     }
   }
 
@@ -90,7 +83,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings("unchecked")
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
@@ -106,7 +99,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       // wrong key type
-      kvStore2.compute(key, (key1, oldValue) -> {
+      kvStore.compute((K) key, (key1, oldValue) -> {
         throw new AssertionError();
       });
       throw new AssertionError();
@@ -262,7 +255,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, Duration.ZERO, null), timeSource);
+    kvStore = factory.newStoreWithExpiry(ExpiryPolicyBuilder.expiry().access(Duration.ZERO).build(), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);
@@ -280,7 +273,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeExpiresOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource(10042L);
-    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, null, Duration.ZERO), timeSource);
+    kvStore = factory.newStoreWithExpiry(ExpiryPolicyBuilder.expiry().update(Duration.ZERO).build(), timeSource);
 
     final K key = factory.createKey(1042L);
     final V value = factory.createValue(1340142L);

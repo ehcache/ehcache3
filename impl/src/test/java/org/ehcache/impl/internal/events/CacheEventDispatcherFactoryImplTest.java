@@ -92,7 +92,7 @@ public class CacheEventDispatcherFactoryImplTest {
     cacheEventDispatcherFactory.start(serviceProvider);
 
     Store<Object, Object> store = mock(Store.class);
-    CacheEventDispatcher dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
+    CacheEventDispatcher<Object, Object> dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
     assertThat(dispatcher, instanceOf(CacheEventDispatcherImpl.class));
   }
 }

@@ -27,7 +27,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  */
 public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> implements ServiceCreationConfiguration<ResilienceStrategyProvider> {
 
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_RESILIENCE = RobustResilienceStrategy.class;
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_LOADER_WRITER_RESILIENCE = RobustLoaderWriterResilienceStrategy.class;
 
   private DefaultResilienceStrategyConfiguration defaultRegularConfiguration;
@@ -73,6 +75,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration setDefaultResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultRegularConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
@@ -102,6 +105,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration setDefaultLoaderWriterResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultLoaderWriterConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
@@ -132,6 +136,7 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
+  @SuppressWarnings("rawtypes")
   public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     getDefaults().put(alias, new DefaultResilienceStrategyConfiguration(clazz, arguments));
     return this;

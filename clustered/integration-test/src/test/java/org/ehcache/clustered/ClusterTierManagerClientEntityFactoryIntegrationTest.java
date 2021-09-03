@@ -36,7 +36,9 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
@@ -154,12 +156,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest {
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
-    try {
-      factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
-      fail("Expected IllegalMonitorStateException");
-    } catch (IllegalMonitorStateException e) {
-      //expected
-    }
+    assertFalse(factory.abandonLeadership("testAbandonLeadershipWhenNotOwning"));
   }
 
   @Test
@@ -183,7 +180,7 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest {
   public void testAcquireLeadershipAfterAbandoned() throws Exception {
     ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
-    factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned");
+    assertTrue(factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned"));
 
     try (Connection clientB = CLUSTER.newConnection()) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);

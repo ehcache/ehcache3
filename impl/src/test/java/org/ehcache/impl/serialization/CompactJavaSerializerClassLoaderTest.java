@@ -36,8 +36,7 @@ public class CompactJavaSerializerClassLoaderTest {
 
   @Test
   public void testThreadContextLoader() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
     serializer.init(new TransientStateRepository());
 
     ClassLoader loader = newLoader();
@@ -54,8 +53,7 @@ public class CompactJavaSerializerClassLoaderTest {
   @Test
   public void testExplicitLoader() throws Exception {
     ClassLoader loader = newLoader();
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(loader);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(loader);
     serializer.init(new TransientStateRepository());
 
     ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).newInstance());

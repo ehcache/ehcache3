@@ -38,12 +38,11 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
   private ByteBuffer binaryValue;
   private V value;
 
-  public LazyOffHeapValueHolder(long id, ByteBuffer binaryValue, Serializer<V> serializer, long creationTime, long expireTime, long lastAccessTime, long hits, WriteContext writeContext) {
+  public LazyOffHeapValueHolder(long id, ByteBuffer binaryValue, Serializer<V> serializer, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
     super(id, creationTime, expireTime);
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.binaryValue = binaryValue;
     this.valueSerializer = serializer;
-    this.setHits(hits);
     this.writeContext = writeContext;
     this.mode = Mode.ATTACHED;
   }
@@ -75,7 +74,6 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
     }
     this.setLastAccessTime(valueFlushed.lastAccessTime(LazyOffHeapValueHolder.TIME_UNIT), LazyOffHeapValueHolder.TIME_UNIT);
     this.setExpirationTime(valueFlushed.expirationTime(LazyOffHeapValueHolder.TIME_UNIT), LazyOffHeapValueHolder.TIME_UNIT);
-    this.setHits(valueFlushed.hits());
   }
 
   /**
@@ -85,7 +83,6 @@ public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> imple
   void writeBack() {
     writeContext.setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, lastAccessTime(TimeUnit.MILLISECONDS));
     writeContext.setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, expirationTime(TimeUnit.MILLISECONDS));
-    writeContext.setLong(OffHeapValueHolderPortability.HITS_OFFSET, hits());
     writeContext.flush();
   }
 

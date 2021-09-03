@@ -56,6 +56,8 @@ public class EhcacheServerCodecTest {
   public void testDelegatesToEhcacheCodeForEncoding() throws Exception {
     LifecycleMessage lifecycleMessage = new LifecycleMessage() {
 
+      private static final long serialVersionUID = 1L;
+
       @Override
       public EhcacheMessageType getMessageType() {
         return EhcacheMessageType.APPEND;

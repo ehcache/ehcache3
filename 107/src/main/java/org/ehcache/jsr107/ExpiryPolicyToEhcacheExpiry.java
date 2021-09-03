@@ -43,11 +43,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public java.time.Duration getExpiryForAccess(K key, Supplier<? extends V> value) {
-    if (isShortCircuitAccessCalls()) {
-      return null;
-    }
-
+  protected java.time.Duration getExpiryForAccessInternal(K key, Supplier<? extends V> value) {
     try {
       Duration duration = expiryPolicy.getExpiryForAccess();
       if (duration == null) {

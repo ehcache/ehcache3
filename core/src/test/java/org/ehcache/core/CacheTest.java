@@ -249,16 +249,6 @@ public abstract class CacheTest {
         }
 
         @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
         public long getId() {
           throw new UnsupportedOperationException("Implement me!");
         }
@@ -292,16 +282,6 @@ public abstract class CacheTest {
 
         @Override
         public long lastAccessTime(final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
           throw new UnsupportedOperationException("Implement me!");
         }
 

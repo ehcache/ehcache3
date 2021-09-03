@@ -145,6 +145,7 @@ public class BasicEntityInteractionTest {
 
   @Test
   @Ignore
+  @SuppressWarnings("try")
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
     try (Connection client = CLUSTER.newConnection()) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);

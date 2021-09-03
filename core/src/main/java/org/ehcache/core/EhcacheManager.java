@@ -28,6 +28,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
@@ -77,7 +78,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findOptionalAmongst;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
@@ -119,7 +120,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   private void validateServicesConfigs() {
-    HashSet<Class> classes = new HashSet<>();
+    Set<Class<?>> classes = new HashSet<>();
     for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
       if (!classes.add(service.getServiceType())) {
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
@@ -301,8 +302,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                         final Class<K> keyType, final Class<V> valueType) {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<>();
-    for (ServiceConfiguration serviceConfig : adjustedServiceConfigs) {
+    List<ServiceConfiguration<?>> unknownServiceConfigs = new ArrayList<>();
+    for (ServiceConfiguration<?> serviceConfig : adjustedServiceConfigs) {
       if (!serviceLocator.knowsServiceFor(serviceConfig)) {
         unknownServiceConfigs.add(serviceConfig);
       }
@@ -321,7 +322,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       final CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
-          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {
@@ -351,7 +352,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     final CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
     final CacheEventDispatcher<K, V> evtService =
-        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration[adjustedServiceConfigs.size()]));
+        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?>[adjustedServiceConfigs.size()]));
     lifeCycledList.add(new LifeCycledAdapter() {
       @Override
       public void close() {
@@ -454,7 +455,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
+    ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?>[serviceConfigs.size()]);
     if (serialization != null) {
       try {
         final Serializer<K> keySer = serialization.createKeySerializer(keyType, config.getClassLoader(), serviceConfigArray);
@@ -492,18 +493,20 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = findSingletonAmongst(StoreEventSourceConfiguration.class, config
-        .getServiceConfigurations()
-        .toArray());
-    if (eventSourceConfiguration != null) {
-      dispatcherConcurrency = eventSourceConfiguration.getDispatcherConcurrency();
-    } else {
-      dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
-    }
+    Collection<ServiceConfiguration<?>> serviceConfigurations = config.getServiceConfigurations();
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency, keySerializer, valueSerializer);
-    final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
+    int dispatcherConcurrency = findOptionalAmongst(StoreEventSourceConfiguration.class, serviceConfigurations)
+      .map(StoreEventSourceConfiguration::getDispatcherConcurrency)
+      .orElse(StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY);
+
+    boolean operationStatisticsEnabled = findOptionalAmongst(StoreStatisticsConfiguration.class, serviceConfigurations)
+      .map(StoreStatisticsConfiguration::isOperationStatisticsEnabled)
+      // By default, we enable statistics only in a tiered environment
+      .orElseGet(() -> config.getResourcePools().getResourceTypeSet().size() > 1);
+
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
+      operationStatisticsEnabled, keySerializer, valueSerializer);
+    Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
       @Override

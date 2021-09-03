@@ -76,8 +76,8 @@ public class OversizedCacheOpsPassiveTest {
             .defaultServerResource("primary-server-resource"));
     CountDownLatch syncLatch = new CountDownLatch(2);
 
-    CompletableFuture f1 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));
-    CompletableFuture f2 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));
+    CompletableFuture<Void> f1 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));
+    CompletableFuture<Void> f2 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));
 
     syncLatch.await();
     for (int i = 0; i < MAX_SWITCH_OVER; i++) {

@@ -333,7 +333,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   }
 
-  private Logger getLoggerFor(Class clazz) {
+  private Logger getLoggerFor(Class<?> clazz) {
     String loggerName;
     if (id != null) {
       loggerName = clazz.getName() + "-" + id;
@@ -395,7 +395,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(dependencySet().with(services));
+    final T build = build(dependencySet().withoutMandatoryServices().with(services));
     if (init) {
       build.init();
     }
@@ -817,7 +817,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     return otherBuilder;
   }
 
-  private static void removeAnySizeOfEngine(UserManagedCacheBuilder builder) {
+  private static void removeAnySizeOfEngine(UserManagedCacheBuilder<?, ?, ?> builder) {
     builder.services.remove(findSingletonAmongst(SizeOfEngineProvider.class, builder.services));
     builder.serviceCreationConfigurations.remove(findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
   }

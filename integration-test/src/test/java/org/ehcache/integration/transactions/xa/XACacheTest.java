@@ -266,6 +266,7 @@ public class XACacheTest {
   }
 
   static class AbortError extends Error {
+    private static final long serialVersionUID = 1L;
   }
 
   @Test

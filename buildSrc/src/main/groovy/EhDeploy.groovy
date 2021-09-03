@@ -36,17 +36,11 @@ class EhDeploy implements Plugin<Project> {
     project.plugins.apply EhPomGenerate // for generating pom.*
 
     project.configurations {
-        provided
-    }
+      providedApi
+      providedImplementation
 
-    project.sourceSets {
-        main {
-          compileClasspath += project.configurations.provided
-        }
-        test {
-          compileClasspath += project.configurations.provided
-          runtimeClasspath += project.configurations.provided
-        }
+      api.extendsFrom providedApi
+      implementation.extendsFrom providedImplementation
     }
 
     project.signing {
@@ -55,9 +49,11 @@ class EhDeploy implements Plugin<Project> {
     }
 
     def artifactFiltering = {
-      pom.scopeMappings.mappings.remove(project.configurations.testCompile)
-      pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.provided, Conf2ScopeMappingContainer.PROVIDED)
+      project.configurations.matching {it.name.startsWith('test')}.forEach {
+        pom.scopeMappings.mappings.remove(it)
+      }
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedApi, Conf2ScopeMappingContainer.PROVIDED)
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedImplementation, Conf2ScopeMappingContainer.PROVIDED)
 
       utils.pomFiller(pom, project.subPomName, project.subPomDesc)
 

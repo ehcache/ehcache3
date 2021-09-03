@@ -175,7 +175,7 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
     assertThat(spaceIdentifier, is(instanceOf(ClusteredCacheIdentifier.class)));
     assertThat(((ClusteredCacheIdentifier)spaceIdentifier).getId(), is("cacheAlias"));
     assertThat(service.getPersistenceSpaceIdentifier("cacheAlias", null), sameInstance(spaceIdentifier));
@@ -193,7 +193,7 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
         .build());
     assertThat(spaceIdentifier, instanceOf(ClusteredCacheIdentifier.class));
     assertThat(((ClusteredCacheIdentifier) spaceIdentifier).getId(), is("cacheAlias"));
@@ -1996,7 +1996,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
     StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
     StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
     assertThat(repository1, sameInstance(repository2));
@@ -2007,8 +2007,8 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier1 = service.getPersistenceSpaceIdentifier("myCache1", null);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier2 = service.getPersistenceSpaceIdentifier("myCache2", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier1 = service.getPersistenceSpaceIdentifier("myCache1", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier2 = service.getPersistenceSpaceIdentifier("myCache2", null);
     StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier1, "myRepo");
     StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier2, "myRepo");
     assertThat(repository1, not(sameInstance(repository2)));
@@ -2045,7 +2045,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
     try {
       service.releasePersistenceSpaceIdentifier(cacheIdentifier);
     } catch (CachePersistenceException e) {

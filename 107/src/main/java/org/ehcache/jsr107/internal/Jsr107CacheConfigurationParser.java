@@ -16,9 +16,10 @@
 
 package org.ehcache.jsr107.internal;
 
+
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
-import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -69,4 +70,15 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<Jsr107Service> getServiceType() {
+    return Jsr107Service.class;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<Jsr107Service> serviceConfiguration) {
+    throw new XmlConfigurationException("XML translation of JSR-107 cache elements are not supported");
+  }
+
 }
