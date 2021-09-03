@@ -39,7 +39,7 @@ public class DefaultSerializationProviderFactory implements ServiceFactory<Seria
   }
 
   @Override
-  public Class<SerializationProvider> getServiceType() {
-    return SerializationProvider.class;
+  public Class<? extends SerializationProvider> getServiceType() {
+    return DefaultSerializationProvider.class;
   }
 }

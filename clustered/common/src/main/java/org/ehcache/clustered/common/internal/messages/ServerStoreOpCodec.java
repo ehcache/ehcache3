@@ -30,10 +30,10 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
@@ -128,8 +128,8 @@ public class ServerStoreOpCodec {
         final ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage) message;
         return encodeMandatoryFields(REPLACE_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, replaceAtHeadMessage.getKey())
-          .struct("expect", replaceAtHeadMessage.getExpect(), ChainCodec::encode)
-          .struct("update", replaceAtHeadMessage.getUpdate(), ChainCodec::encode)
+          .struct("expect", replaceAtHeadMessage.getExpect(), ChainCodec::encodeChain)
+          .struct("update", replaceAtHeadMessage.getUpdate(), ChainCodec::encodeChain)
           .encode().array();
       case CLIENT_INVALIDATION_ACK:
         ClientInvalidationAck clientInvalidationAckMessage = (ClientInvalidationAck) message;
@@ -199,8 +199,8 @@ public class ServerStoreOpCodec {
       case REPLACE: {
         StructDecoder<Void> decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
-        Chain expect = ChainCodec.decode(decoder.struct("expect"));
-        Chain update = ChainCodec.decode(decoder.struct("update"));
+        Chain expect = ChainCodec.decodeChain(decoder.struct("expect"));
+        Chain update = ChainCodec.decodeChain(decoder.struct("update"));
         return new ReplaceAtHeadMessage(key, expect, update);
       }
       case CLIENT_INVALIDATION_ACK: {

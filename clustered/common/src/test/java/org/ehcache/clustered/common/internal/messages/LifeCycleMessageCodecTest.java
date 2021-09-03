@@ -26,9 +26,9 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static java.nio.ByteBuffer.wrap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * LifeCycleMessageCodecTest

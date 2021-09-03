@@ -1,7 +1,7 @@
 = Ehcache {version} Documentation Overview
-ifndef::sourcedir38[]
+ifndef::sourcedir39[]
 include::{includedir}/common.adoc[]
-endif::sourcedir38[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -9,7 +9,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.8 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.9 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics

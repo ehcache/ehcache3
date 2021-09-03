@@ -15,41 +15,45 @@
  */
 package org.ehcache.clustered.reconnect;
 
-import com.tc.net.proxy.TCPProxy;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
-import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
 
-import static org.ehcache.clustered.reconnect.BasicCacheReconnectTest.RESOURCE_CONFIG;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static java.time.Duration.ofSeconds;
+
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class CacheManagerDestroyReconnectTest {
 
-
+  private static TCPProxyManager proxyManager;
   private static PersistentCacheManager cacheManager;
 
-  private static final List<TCPProxy> proxies = new ArrayList<>();
-
-  @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+  public static void initializeCacheManager() throws Exception {
+    proxyManager = TCPProxyManager.create(CLUSTER.get().getConnectionURI());
+    URI connectionURI = proxyManager.getURI();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
@@ -59,20 +63,27 @@ public class CacheManagerDestroyReconnectTest {
     cacheManager.init();
   }
 
+  @AfterClass
+  public static void stopProxies() {
+    proxyManager.close();
+  }
+
   @Test
   public void testDestroyCacheManagerReconnects() throws Exception {
 
-    setDelay(6000, proxies);
-    Thread.sleep(6000);
-
-    setDelay(0L, proxies);
+    long delay = CLUSTER.input().plusSeconds(1L).toMillis();
+    proxyManager.setDelay(delay);
+    try {
+      Thread.sleep(delay);
+    } finally {
+      proxyManager.setDelay(0);
+    }
 
     cacheManager.close();
 
     cacheManager.destroy();
 
     System.out.println(cacheManager.getStatus());
-
   }
 
 }

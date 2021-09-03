@@ -29,7 +29,7 @@ public class FancyCacheProviderFactory implements ServiceFactory<FancyCacheProvi
   }
 
   @Override
-  public Class<FancyCacheProvider> getServiceType() {
+  public Class<? extends FancyCacheProvider> getServiceType() {
     return FancyCacheProvider.class;
   }
 }

@@ -27,21 +27,15 @@ import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.Expiry;
 import org.ehcache.xml.model.ExpiryType;
-import org.ehcache.xml.model.TimeType;
-import org.ehcache.xml.model.TimeUnit;
+import org.ehcache.xml.model.ObjectFactory;
+import org.ehcache.xml.model.TimeTypeWithPropSubst;
 
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.core.config.ExpiryUtils.jucTimeUnitToTemporalUnit;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;
@@ -113,12 +107,12 @@ public class CoreCacheConfigurationParser {
     return cacheType;
   }
 
-  private static TimeType convertToTimeType(Duration duration) {
+  private static TimeTypeWithPropSubst convertToTimeType(Duration duration) {
     return Stream.of(java.util.concurrent.TimeUnit.values())
       .sorted(comparing(unit -> unit.convert(duration.toNanos(), NANOSECONDS)))
       .filter(unit -> duration.equals(Duration.of(unit.convert(duration.toNanos(), NANOSECONDS), jucTimeUnitToTemporalUnit(unit))))
       .findFirst()
-      .map(unit -> new TimeType()
+      .map(unit -> new ObjectFactory().createTimeTypeWithPropSubst()
         .withValue(BigInteger.valueOf(unit.convert(duration.toNanos(), NANOSECONDS)))
         .withUnit(convertToXmlTimeUnit(unit))
       ).orElseThrow(AssertionError::new);

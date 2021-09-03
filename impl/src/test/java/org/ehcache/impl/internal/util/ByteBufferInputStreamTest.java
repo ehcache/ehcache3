@@ -20,11 +20,10 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.ehcache.core.util.ByteBufferInputStream;
-import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class ByteBufferInputStreamTest {
@@ -108,7 +107,7 @@ public class ByteBufferInputStreamTest {
     byte[] read = new byte[32];
     stream.read(read, 0, 32);
     for (int i = 0; i < read.length; i++) {
-      Assert.assertThat(read[i], is((byte) i));
+      assertThat(read[i], is((byte) i));
     }
   }
 
@@ -118,7 +117,7 @@ public class ByteBufferInputStreamTest {
     byte[] read = new byte[32];
     stream.read(read, 32, 0);
     for (int i = 0; i < read.length; i++) {
-      Assert.assertThat(read[i], is((byte) 0));
+      assertThat(read[i], is((byte) 0));
     }
   }
 
@@ -139,13 +138,13 @@ public class ByteBufferInputStreamTest {
     byte[] read = new byte[32];
     stream.read(read, 4, 16);
     for (int i = 0; i < 4; i++) {
-      Assert.assertThat(read[i], is((byte) 0));
+      assertThat(read[i], is((byte) 0));
     }
     for (int i = 4; i < 20; i++) {
-      Assert.assertThat(read[i], is((byte) (i - 4)));
+      assertThat(read[i], is((byte) (i - 4)));
     }
     for (int i = 20; i < read.length; i++) {
-      Assert.assertThat(read[i], is((byte) 0));
+      assertThat(read[i], is((byte) 0));
     }
   }
 
@@ -154,9 +153,9 @@ public class ByteBufferInputStreamTest {
     ByteBufferInputStream stream = createStream();
     byte[] read = new byte[32];
     stream.read(read, 1, 31);
-    Assert.assertThat(read[0], is((byte) 0));
+    assertThat(read[0], is((byte) 0));
     for (int i = 1; i < read.length; i++) {
-      Assert.assertThat(read[i], is((byte) (i - 1)));
+      assertThat(read[i], is((byte) (i - 1)));
     }
   }
 
@@ -166,7 +165,7 @@ public class ByteBufferInputStreamTest {
     byte[] read = new byte[32];
     stream.read(read, 0, 0);
     for (int i = 0; i < read.length; i++) {
-      Assert.assertThat(read[i], is((byte) 0));
+      assertThat(read[i], is((byte) 0));
     }
   }
 

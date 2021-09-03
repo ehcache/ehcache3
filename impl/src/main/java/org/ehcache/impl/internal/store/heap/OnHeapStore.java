@@ -30,6 +30,7 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.internal.concurrent.EvictingConcurrentMap;
@@ -60,6 +61,7 @@ import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
@@ -71,7 +73,6 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.model.stats.StatisticType;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -1616,6 +1617,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
+  @OptionalServiceDependencies("org.ehcache.core.spi.service.Statis" +
+    "ticsService")
   public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
 
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -1672,7 +1675,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       }
       OnHeapStore<?, ?> onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
-      getServiceProvider().getService(StatisticsService.class).cleanForNode(onHeapStore);
+      getStatisticsService().ifPresent(s -> s.cleanForNode(onHeapStore));
       tierOperationStatistics.remove(onHeapStore);
 
       CopyProvider copyProvider = getServiceProvider().getService(CopyProvider.class);

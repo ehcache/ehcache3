@@ -19,4 +19,21 @@
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-16370</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[file name: TC Tripwire is unrelated to the other Tripwire]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.terracotta/tc\-tripwire\-plugin@.*$</packageUrl>
+    <cpe>cpe:/a:tripwire:tripwire</cpe>
+  </suppress>
+
+  <suppress>
+    <notes>Ehcache 3 builds require with Java 8+ : 4.13.1 is safe</notes>
+    <packageUrl>pkg:maven/junit/junit@4.13.1</packageUrl>
+    <vulnerabilityName>CVE-2020-15250</vulnerabilityName>
+  </suppress>
+
+  <suppress>
+    <notes>PAX URL Aether repackages httpclient and isn't (yet) fixed</notes>
+    <sha1>db40edda8b95d880d2a810560fd5e46eb4fa6909</sha1>
+    <cve>CVE-2020-13956</cve>
+  </suppress>
 </suppressions>

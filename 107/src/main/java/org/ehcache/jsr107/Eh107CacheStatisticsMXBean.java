@@ -18,7 +18,7 @@ package org.ehcache.jsr107;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.CacheStatistics;
-import org.ehcache.core.statistics.Jsr107LatencyMonitor;
+import org.ehcache.jsr107.internal.Jsr107LatencyMonitor;
 
 import java.net.URI;
 

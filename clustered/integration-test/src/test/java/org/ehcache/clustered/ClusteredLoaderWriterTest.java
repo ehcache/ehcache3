@@ -40,7 +40,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,20 +50,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @RunWith(Parameterized.class)
 public class ClusteredLoaderWriterTest {
-
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-            + "<ohr:offheap-resources>"
-            + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-            + "</ohr:offheap-resources>" +
-            "</config>\n";
 
   @Parameterized.Parameters(name = "consistency={0}")
   public static Consistency[] data() {
@@ -81,12 +76,11 @@ public class ClusteredLoaderWriterTest {
   private ConcurrentMap<Long, String> sor;
 
   @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  public static void initCacheManager() throws Exception {
     cacheManager = newCacheManager();
   }
 

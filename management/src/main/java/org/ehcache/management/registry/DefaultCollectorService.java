@@ -23,7 +23,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.core.statistics.StatsUtils;
+import org.ehcache.core.internal.statistics.StatsUtils;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;

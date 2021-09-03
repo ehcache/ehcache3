@@ -16,7 +16,6 @@
 package org.ehcache.clustered.util;
 
 import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.Connection;
@@ -29,7 +28,7 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class ParallelTestCluster extends Cluster {
+public class ParallelTestCluster implements TestRule {
 
   private final Cluster cluster;
   private final IClusterControl control;
@@ -70,18 +69,8 @@ public class ParallelTestCluster extends Cluster {
       }
 
       @Override
-      public void startOneServerWithConsistency() {
-        request(ClusterTask.START_ONE_SERVER_WITH_CONSISTENCY);
-      }
-
-      @Override
       public void startAllServers() {
         request(ClusterTask.START_ALL_SERVERS);
-      }
-
-      @Override
-      public void startAllServersWithConsistency() {
-        request(ClusterTask.START_ALL_SERVERS_WITH_CONSISTENCY);
       }
 
       @Override
@@ -121,22 +110,18 @@ public class ParallelTestCluster extends Cluster {
     };
   }
 
-  @Override
   public URI getConnectionURI() {
     return cluster.getConnectionURI();
   }
 
-  @Override
   public String[] getClusterHostPorts() {
     return cluster.getClusterHostPorts();
   }
 
-  @Override
   public Connection newConnection() throws ConnectionException {
     return cluster.newConnection();
   }
 
-  @Override
   public IClusterControl getClusterControl() {
     return control;
   }
@@ -171,9 +156,7 @@ public class ParallelTestCluster extends Cluster {
 
   enum ClusterTask implements Consumer<IClusterControl> {
     START_ONE_SERVER(IClusterControl::startOneServer),
-    START_ONE_SERVER_WITH_CONSISTENCY(IClusterControl::startOneServerWithConsistency),
     START_ALL_SERVERS(IClusterControl::startAllServers),
-    START_ALL_SERVERS_WITH_CONSISTENCY(IClusterControl::startAllServersWithConsistency),
     TERMINATE_ACTIVE(IClusterControl::terminateActive),
     TERMINATE_ONE_PASSIVE(IClusterControl::terminateOnePassive),
     TERMINATE_ALL_SERVERS(IClusterControl::terminateAllServers);
@@ -183,6 +166,7 @@ public class ParallelTestCluster extends Cluster {
     ClusterTask(Task task) {
       this.task = task;
     }
+
     public void accept(IClusterControl control) {
       try {
         task.run(control);

@@ -38,7 +38,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 public class EntityServiceTest {
@@ -58,41 +58,40 @@ public class EntityServiceTest {
     UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
-  @Test
+  @Test @SuppressWarnings("try")
   public void test() throws Exception {
     ClusteredManagementService clusteredManagementService = new ClusteredManagementService();
 
-    CacheManager cacheManager = newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
         .using(clusteredManagementService)
         .with(cluster(CLUSTER_URI).autoCreate(c -> c))
-        .build(true);
+        .build(true)) {
 
-    assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));
+      assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));
 
-    clusteredManagementService.clientEntityFactory.create();
-
-    try {
       clusteredManagementService.clientEntityFactory.create();
-      fail();
-    } catch (Exception e) {
-      assertThat(e, instanceOf(EntityAlreadyExistsException.class));
-    }
 
-    VoltronReadWriteLockClient entity = clusteredManagementService.clientEntityFactory.retrieve();
-    assertThat(entity, is(notNullValue()));
+      try {
+        clusteredManagementService.clientEntityFactory.create();
+        fail();
+      } catch (Exception e) {
+        assertThat(e, instanceOf(EntityAlreadyExistsException.class));
+      }
 
-    try {
+      VoltronReadWriteLockClient entity = clusteredManagementService.clientEntityFactory.retrieve();
+      assertThat(entity, is(notNullValue()));
+
+      try {
+        clusteredManagementService.clientEntityFactory.destroy();
+        fail();
+      } catch (Exception e) {
+        assertThat(e, instanceOf(EntityBusyException.class));
+      }
+
+      entity.close();
+
       clusteredManagementService.clientEntityFactory.destroy();
-      fail();
-    } catch (Exception e) {
-      assertThat(e, instanceOf(EntityBusyException.class));
     }
-
-    entity.close();
-
-    clusteredManagementService.clientEntityFactory.destroy();
-
-    cacheManager.close();
   }
 
   @ServiceDependencies(EntityService.class)

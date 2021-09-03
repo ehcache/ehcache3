@@ -24,15 +24,15 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBase {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
@@ -45,7 +45,6 @@ public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBas
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
     cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());

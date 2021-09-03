@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -84,8 +86,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
         entity.invokeAndWaitForSend(new ClientInvalidationAck(key, invalidationId), false);
-      } catch (Exception e) {
-        //TODO: what should be done here?
+      } catch (ClusterException e) {
         LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
       }
     });
@@ -98,8 +99,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
         entity.invokeAndWaitForSend(new ClientInvalidationAllAck(invalidationId), false);
-      } catch (Exception e) {
-        //TODO: what should be done here?
+      } catch (ClusterException e) {
         LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
       }
     });
@@ -199,16 +199,16 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Iterator<Chain> iterator() throws TimeoutException {
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
     EhcacheEntityResponse.IteratorBatch iteratorBatch = openIterator();
     if (iteratorBatch.isLast()) {
       return iteratorBatch.getChains().iterator();
     } else {
       UUID iteratorId = iteratorBatch.getIdentity();
-      return new Iterator<Chain>() {
+      return new Iterator<Map.Entry<Long, Chain>>() {
 
         private boolean lastBatch = false;
-        private Iterator<Chain> batch = iteratorBatch.getChains().iterator();
+        private Iterator<Map.Entry<Long, Chain>> batch = iteratorBatch.getChains().iterator();
 
         @Override
         public boolean hasNext() {
@@ -216,7 +216,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
 
         @Override
-        public Chain next() {
+        public Map.Entry<Long, Chain> next() {
           if (lastBatch || batch.hasNext()) {
             return batch.next();
           } else {

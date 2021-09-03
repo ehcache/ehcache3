@@ -34,40 +34,37 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assume.assumeThat;
 
 public class DuplicateTest {
-
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">512</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   private PersistentCacheManager cacheManager;
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath())
+    .withServerHeap(512)
+    .withServiceFragment(offheapResource("primary-server-resource", 512)).build();
 
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
   }
 
   @After
@@ -82,7 +79,7 @@ public class DuplicateTest {
   public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
+        .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(60)))
         .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -95,31 +92,43 @@ public class DuplicateTest {
     Cache<Integer, String> cache = cacheManager.getCache("cache", Integer.class, String.class);
 
     int numEntries = 3000;
-    AtomicInteger currentEntry = new AtomicInteger();
 
     //Perform put operations in another thread
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     try {
+      Semaphore failoverAllowed = new Semaphore(0);
+      Semaphore failoverComplete = new Semaphore(0);
       Future<?> puts = executorService.submit(() -> {
-        while (true) {
-          int i = currentEntry.getAndIncrement();
-          if (i >= numEntries) {
-            break;
+        try {
+          for (int i = 0; i < numEntries; i++) {
+            if (i == 100) {
+              failoverAllowed.release();
+            }
+            if (i == (numEntries - 100)) {
+              failoverComplete.acquire();
+            }
+            cache.put(i, "value:" + i);
           }
-          cache.put(i, "value:" + i);
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
         }
       });
 
-      while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
-
       // Failover to mirror when put & replication are in progress
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+      assertThat(failoverAllowed.tryAcquire(1, MINUTES), is(true));
       CLUSTER.getClusterControl().terminateActive();
+      failoverComplete.release();
 
-      puts.get(30, TimeUnit.SECONDS);
+      assertThat(puts::isDone, eventually().is(true));
+      puts.get();
+
+      //if failover didn't interrupt puts then the test is 'moot'
+      assumeThat(cache.get(0), is(notNullValue()));
 
       //Verify cache entries on mirror
       for (int i = 0; i < numEntries; i++) {
-        assertThat(cache.get(i)).isEqualTo("value:" + i);
+        assertThat(cache.get(i), is("value:" + i));
       }
     } finally {
       executorService.shutdownNow();
@@ -128,14 +137,13 @@ public class DuplicateTest {
   }
 
   @SuppressWarnings("unchecked")
-  private ResilienceStrategy<Integer, String> failingResilienceStrategy() throws Exception {
+  private ResilienceStrategy<Integer, String> failingResilienceStrategy() {
     return (ResilienceStrategy<Integer, String>)
       Proxy.newProxyInstance(getClass().getClassLoader(),
         new Class<?>[] { ResilienceStrategy.class},
         (proxy, method, args) -> {
           if(method.getName().endsWith("Failure")) {
-            fail("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
-            return null;
+            throw new AssertionError("Failure on " + method.getName(), findStoreAccessException(args)); // one param is always a SAE
           }
 
           switch(method.getName()) {
@@ -144,8 +152,7 @@ public class DuplicateTest {
             case "equals":
               return proxy == args[0];
             default:
-              fail("Unexpected method call: " + method.getName());
-              return null;
+              throw new AssertionError("Unexpected method call: " + method.getName());
           }
         });
   }
@@ -156,7 +163,6 @@ public class DuplicateTest {
         return (StoreAccessException) o;
       }
     }
-    fail("There should be an exception somewhere in " + Arrays.toString(objects));
-    return null;
+    throw new AssertionError("There should be an exception somewhere in " + Arrays.toString(objects));
   }
 }

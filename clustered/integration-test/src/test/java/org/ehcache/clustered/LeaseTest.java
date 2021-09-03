@@ -15,82 +15,60 @@
  */
 package org.ehcache.clustered;
 
-import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
-import java.io.File;
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.time.Duration.ofSeconds;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 @RunWith(Parameterized.class)
 public class LeaseTest {
 
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-                  + "<ohr:offheap-resources>"
-                  + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "</ohr:offheap-resources>"
-                  + "</config>\n"
-                  + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-                  + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-                  + "</lease:connection-leasing>"
-                  + "</service>";
-
   @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  private final List<TCPProxy> proxies = new ArrayList<>();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
-  @After
-  public void after() {
-    proxies.forEach(TCPProxy::stop);
-  }
+  @Rule
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   @Parameterized.Parameters
   public static ResourcePoolsBuilder[] data() {
     return new ResourcePoolsBuilder[]{
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)),
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
-                    .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))
+      ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)),
+      ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(10, EntryUnit.ENTRIES)
+        .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))
     };
   }
 
@@ -99,56 +77,40 @@ public class LeaseTest {
 
   @Test
   public void leaseExpiry() throws Exception {
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    try (TCPProxyManager proxyManager = TCPProxyManager.create(CLUSTER.get().getConnectionURI())) {
+      URI connectionURI = proxyManager.getURI();
 
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-        .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(20)))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
+      CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
+        .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
+          .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(20)))
+          .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+      PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+      cacheManager.init();
 
-    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            resourcePoolsBuilder).build();
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        resourcePoolsBuilder).build();
 
-    Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
-    cache.put(1L, "The one");
-    cache.put(2L, "The two");
-    cache.put(3L, "The three");
-    assertThat(cache.get(1L), equalTo("The one"));
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(1L, "The one");
+      cache.put(2L, "The two");
+      cache.put(3L, "The three");
+      assertThat(cache.get(1L), equalTo("The one"));
+      assertThat(cache.get(2L), equalTo("The two"));
+      assertThat(cache.get(3L), equalTo("The three"));
 
-    setDelay(6000, proxies);
-    Thread.sleep(6000);
-    // We will now have lost the lease
-
-    setDelay(0L, proxies);
-
-    AtomicBoolean timedout = new AtomicBoolean(false);
-
-    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-      while (!timedout.get()) {
-        try {
-          Thread.sleep(200);
-        } catch (InterruptedException e) {
-          throw new AssertionError(e);
-        }
-        String result = cache.get(1L);
-        if (result != null) {
-          return result;
-        }
+      long delay = CLUSTER.input().plusSeconds(1L).toMillis();
+      proxyManager.setDelay(delay);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        proxyManager.setDelay(0);
       }
-      return null;
-    });
 
-    assertThat(future.get(30, TimeUnit.SECONDS), is("The one"));
-
-    timedout.set(true);
-
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
-
+      eventually().runsCleanly(() -> {
+        assertThat(cache.get(1L), equalTo("The one"));
+        assertThat(cache.get(2L), equalTo("The two"));
+        assertThat(cache.get(3L), equalTo("The three"));
+      });
+    }
   }
-
 }

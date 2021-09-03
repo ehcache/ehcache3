@@ -43,7 +43,6 @@ import org.hamcrest.core.IsInstanceOf;
 import org.hamcrest.core.IsNot;
 import org.hamcrest.core.IsNull;
 import org.hamcrest.core.IsSame;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
@@ -51,6 +50,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Date;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ConfigurationDerivation {
 
@@ -81,8 +82,8 @@ public class ConfigurationDerivation {
       .build();
     // end::customClassLoader[]
 
-    Assert.assertThat(configuration.getClassLoader(), Is.is(IsSame.sameInstance(ClassLoading.getDefaultClassLoader())));
-    Assert.assertThat(withClassLoader.getClassLoader(), Is.is(IsSame.sameInstance(classLoader)));
+    assertThat(configuration.getClassLoader(), Is.is(IsSame.sameInstance(ClassLoading.getDefaultClassLoader())));
+    assertThat(withClassLoader.getClassLoader(), Is.is(IsSame.sameInstance(classLoader)));
   }
 
   @Test
@@ -96,8 +97,8 @@ public class ConfigurationDerivation {
       .build();
     //end::withCache[]
 
-    Assert.assertThat(configuration.getCacheConfigurations().keySet(), Is.is(IsEmptyCollection.empty()));
-    Assert.assertThat(withCache.getCacheConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("cache"));
+    assertThat(configuration.getCacheConfigurations().keySet(), Is.is(IsEmptyCollection.empty()));
+    assertThat(withCache.getCacheConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("cache"));
   }
 
   @Test
@@ -112,8 +113,8 @@ public class ConfigurationDerivation {
       .build();
     //end::withoutCache[]
 
-    Assert.assertThat(configuration.getCacheConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("cache"));
-    Assert.assertThat(withoutCache.getCacheConfigurations().keySet(), Is.is(IsEmptyCollection.empty()));
+    assertThat(configuration.getCacheConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("cache"));
+    assertThat(withoutCache.getCacheConfigurations().keySet(), Is.is(IsEmptyCollection.empty()));
   }
 
   @Test
@@ -131,8 +132,8 @@ public class ConfigurationDerivation {
       .build();
     //end::updateCache[]
 
-    Assert.assertThat(configuration.getCacheConfigurations().get("cache").getResourcePools().getResourceTypeSet(), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP));
-    Assert.assertThat(withOffHeap.getCacheConfigurations().get("cache").getResourcePools().getResourceTypeSet(), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
+    assertThat(configuration.getCacheConfigurations().get("cache").getResourcePools().getResourceTypeSet(), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP));
+    assertThat(withOffHeap.getCacheConfigurations().get("cache").getResourcePools().getResourceTypeSet(), IsIterableContainingInAnyOrder.containsInAnyOrder(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
   }
 
   @Test
@@ -148,13 +149,13 @@ public class ConfigurationDerivation {
       .build();
     //end::withServiceCreation[]
 
-    Assert.assertThat(configuration.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(IsInstanceOf.instanceOf(PooledExecutionServiceConfiguration.class))));
+    assertThat(configuration.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(IsInstanceOf.instanceOf(PooledExecutionServiceConfiguration.class))));
     PooledExecutionServiceConfiguration serviceCreationConfiguration = ServiceUtils.findSingletonAmongst(PooledExecutionServiceConfiguration.class, withBoundedThreads.getServiceCreationConfigurations());
-    Assert.assertThat(serviceCreationConfiguration.getDefaultPoolAlias(), Is.is("default"));
-    Assert.assertThat(serviceCreationConfiguration.getPoolConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("default"));
+    assertThat(serviceCreationConfiguration.getDefaultPoolAlias(), Is.is("default"));
+    assertThat(serviceCreationConfiguration.getPoolConfigurations().keySet(), IsIterableContainingInAnyOrder.containsInAnyOrder("default"));
     PooledExecutionServiceConfiguration.PoolConfiguration pool = serviceCreationConfiguration.getPoolConfigurations().get("default");
-    Assert.assertThat(pool.minSize(), Is.is(1));
-    Assert.assertThat(pool.maxSize(), Is.is(16));
+    assertThat(pool.minSize(), Is.is(1));
+    assertThat(pool.maxSize(), Is.is(16));
   }
 
   @Test
@@ -173,10 +174,10 @@ public class ConfigurationDerivation {
     //end::updateServiceCreation[]
 
     DefaultPersistenceConfiguration initialPersistenceConfiguration = ServiceUtils.findSingletonAmongst(DefaultPersistenceConfiguration.class, configuration.getServiceCreationConfigurations());
-    Assert.assertThat(initialPersistenceConfiguration.getRootDirectory(), Is.is(new File("temp")));
+    assertThat(initialPersistenceConfiguration.getRootDirectory(), Is.is(new File("temp")));
 
     DefaultPersistenceConfiguration revisedPersistenceConfiguration = ServiceUtils.findSingletonAmongst(DefaultPersistenceConfiguration.class, withUpdatedPersistence.getServiceCreationConfigurations());
-    Assert.assertThat(revisedPersistenceConfiguration.getRootDirectory(), Is.is(new File("/var/persistence/path")));
+    assertThat(revisedPersistenceConfiguration.getRootDirectory(), Is.is(new File("/var/persistence/path")));
   }
 
   @Test
@@ -194,13 +195,13 @@ public class ConfigurationDerivation {
     //end::withService[]
 
 
-    Assert.assertThat(configuration.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
+    assertThat(configuration.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
       IsInstanceOf.instanceOf(DefaultResilienceStrategyConfiguration.class))));
 
     DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration =
       ServiceUtils.findSingletonAmongst(DefaultResilienceStrategyConfiguration.class,
         withThrowingStrategy.getCacheConfigurations().get("cache").getServiceConfigurations());
-    Assert.assertThat(resilienceStrategyConfiguration.getInstance(), IsInstanceOf.instanceOf(ThrowingResilienceStrategy.class));
+    assertThat(resilienceStrategyConfiguration.getInstance(), IsInstanceOf.instanceOf(ThrowingResilienceStrategy.class));
   }
 
   public static final class OptimizedDateSerializer implements Serializer<Date> {

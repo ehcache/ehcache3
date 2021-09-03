@@ -22,12 +22,12 @@ import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
 
 import static org.ehcache.test.MockitoUtil.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class DefaultResilienceStrategyConfigurationTest {

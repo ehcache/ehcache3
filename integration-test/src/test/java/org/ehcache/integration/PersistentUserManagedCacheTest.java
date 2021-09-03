@@ -32,8 +32,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.Serializable;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 
 /**
  * PersistentUserManagedCacheTest

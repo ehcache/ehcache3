@@ -24,10 +24,10 @@ public class ParallelParameterized extends Parameterized {
 
   public ParallelParameterized(Class<?> klass) throws Throwable {
     super(klass);
-    setScheduler(new ExecutorScheduler(newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + klass))));
+    setScheduler(new ExecutorScheduler(() -> newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + klass))));
     getChildren().forEach(child -> {
       if (child instanceof ParentRunner<?>) {
-        ((ParentRunner) child).setScheduler(new ExecutorScheduler(newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + r.toString()))));
+        ((ParentRunner) child).setScheduler(new ExecutorScheduler(() -> newCachedThreadPool(r -> new Thread(r, "TestRunner-Thread-" + r.toString()))));
       }
     });
   }

@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.lock;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -33,20 +32,17 @@ import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.testing.rules.Cluster;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class VoltronReadWriteLockIntegrationTest {
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
+  public static Cluster CLUSTER = newCluster().in(clusterPath()).build();
 
   @Test
   public void testSingleThreadSingleClientInteraction() throws Throwable {

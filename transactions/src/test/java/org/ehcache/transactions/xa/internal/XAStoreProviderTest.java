@@ -21,7 +21,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.persistence.StateRepository;

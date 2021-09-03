@@ -28,9 +28,7 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.terracotta.connection.Connection;
 
 import java.io.IOException;
@@ -38,21 +36,20 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Properties;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
 
 public class ConnectionStateTest {
 
-  private static URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
           .autoCreate(c -> c)
           .build();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void definePassthroughServer() {
@@ -65,7 +62,6 @@ public class ConnectionStateTest {
 
   @After
   public void removePassthrough() {
-    expectedException.expect(IllegalStateException.class);
     UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
@@ -73,17 +69,18 @@ public class ConnectionStateTest {
   public void testInitializeStateAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     closeConnection();
 
-    expectedException.expect(IllegalStateException.class);
-    connectionState.getConnection().close();
+    Connection connection = connectionState.getConnection();
+    assertThat(connection::close, threw(instanceOf(IllegalStateException.class)));
 
     connectionState.initializeState();
 
     assertThat(connectionState.getConnection(), notNullValue());
     assertThat(connectionState.getEntityFactory(), notNullValue());
+    assertThat(connectionState.getEntity(), notNullValue());
 
     connectionState.getConnection().close();
 
@@ -93,7 +90,7 @@ public class ConnectionStateTest {
   public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
     connectionState.initializeState();
 
     closeConnection();
@@ -105,7 +102,7 @@ public class ConnectionStateTest {
     ClusterTierClientEntity clientEntity = connectionState.createClusterTierClientEntity("cache1", serverStoreConfiguration, false);
 
     assertThat(clientEntity, notNullValue());
-
+    assertThat(connectionState.getEntity(), notNullValue());
   }
 
   //For test to simulate connection close as result of lease expiry
@@ -114,9 +111,7 @@ public class ConnectionStateTest {
 
     assertThat(connections.size(), is(1));
 
-    Connection connection = connections.iterator().next();
-
-    connection.close();
+    connections.iterator().next().close();
   }
 
 }

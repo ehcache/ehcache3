@@ -16,13 +16,13 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.Cache;
-import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTest {
 
@@ -80,10 +80,10 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
             (cacheMissCount != CACHE_MISS_COUNT) || (clusteredMissCount != CLUSTERED_MISS_COUNT)));
 
 
-    Assert.assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
-    Assert.assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));
-    Assert.assertThat(cacheMissCount,is(CACHE_MISS_COUNT));
-    Assert.assertThat(clusteredMissCount,is(CLUSTERED_MISS_COUNT));
+    assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
+    assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));
+    assertThat(cacheMissCount,is(CACHE_MISS_COUNT));
+    assertThat(clusteredMissCount,is(CLUSTERED_MISS_COUNT));
 
   }
 

@@ -20,8 +20,6 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
-import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
@@ -38,8 +36,6 @@ import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
@@ -60,9 +56,7 @@ import org.ehcache.spi.service.MaintainableService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.exception.EntityNotFoundException;
 
@@ -85,17 +79,20 @@ import static org.ehcache.clustered.client.internal.service.TestServiceProvider.
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -107,9 +104,6 @@ public class DefaultClusteringServiceTest {
   private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
   private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
   private ObservableClusterTierServerEntityService observableClusterTierServerEntityService;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -1260,10 +1254,8 @@ public class DefaultClusteringServiceTest {
         .build();
     DefaultClusteringService creationService = new DefaultClusteringService(configuration);
 
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage(endsWith(" should be started to call destroy"));
-
-    creationService.destroy(cacheAlias);
+    IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> creationService.destroy(cacheAlias));
+    assertThat(thrown, hasProperty("message", endsWith(" should be started to call destroy")));
   }
 
   @Test
@@ -1945,7 +1937,7 @@ public class DefaultClusteringServiceTest {
     // Initial setup end
 
     service.start(null);
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource2", 1L, MemoryUnit.MB));
     try {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));
       fail("Server store proxy creation should have failed");
@@ -1984,7 +1976,7 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier otherCacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-other-cache", null);
     service.getServerStoreProxy(otherCacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));  // Creates one more store
 
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource2", 1L, MemoryUnit.MB));
     try {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG, mock(ServerCallback.class));
       fail("Server store proxy creation should have failed");
@@ -2023,8 +2015,6 @@ public class DefaultClusteringServiceTest {
 
   @Test
   public void testGetStateRepositoryWithinWithNonExistentPersistenceSpaceIdentifier() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Clustered space not found for identifier");
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
         .autoCreate(s -> s)
@@ -2032,13 +2022,13 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
     doReturn("foo").when(cacheIdentifier).getId();
-    service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
+
+    CachePersistenceException thrown = assertThrows(CachePersistenceException.class, () -> service.getStateRepositoryWithin(cacheIdentifier, "myRepo"));
+    assertThat(thrown, hasProperty("message", startsWith("Clustered space not found for identifier")));
   }
 
   @Test
   public void testReleaseNonExistentPersistenceSpaceIdentifierTwice() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Unknown identifier");
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
         .autoCreate(s -> s)
@@ -2046,13 +2036,13 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
     doReturn("foo").when(cacheIdentifier).getId();
-    service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+
+    CachePersistenceException thrown = assertThrows(CachePersistenceException.class, () -> service.releasePersistenceSpaceIdentifier(cacheIdentifier));
+    assertThat(thrown, hasProperty("message", startsWith("Unknown identifier")));
   }
 
   @Test
   public void testReleasePersistenceSpaceIdentifierTwice() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Unknown identifier");
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
         .autoCreate(s -> s)
@@ -2064,7 +2054,8 @@ public class DefaultClusteringServiceTest {
     } catch (CachePersistenceException e) {
       fail("First invocation of releasePersistenceSpaceIdentifier should not have failed");
     }
-    service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+    CachePersistenceException thrown = assertThrows(CachePersistenceException.class, () -> service.releasePersistenceSpaceIdentifier(cacheIdentifier));
+    assertThat(thrown, hasProperty("message", startsWith("Unknown identifier")));
   }
 
   @Test

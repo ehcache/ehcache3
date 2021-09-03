@@ -37,8 +37,8 @@ public class DefaultResilienceStrategyProviderFactory implements ServiceFactory<
   }
 
   @Override
-  public Class<ResilienceStrategyProvider> getServiceType() {
-    return ResilienceStrategyProvider.class;
+  public Class<? extends ResilienceStrategyProvider> getServiceType() {
+    return DefaultResilienceStrategyProvider.class;
   }
 
 }

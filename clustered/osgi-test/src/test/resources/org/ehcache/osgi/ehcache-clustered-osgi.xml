@@ -23,7 +23,7 @@
 
   <service>
     <tc:cluster>
-      <tc:connection url="example.com"/>
+      <tc:connection url="protocol://example.com"/>
       <tc:server-side-config client-mode="auto-create">
         <tc:default-resource from="main"/>
       </tc:server-side-config>

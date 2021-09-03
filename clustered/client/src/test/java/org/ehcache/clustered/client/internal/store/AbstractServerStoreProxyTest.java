@@ -80,7 +80,7 @@ public abstract class AbstractServerStoreProxyTest {
 
     // Create ClusterTierManagerClientEntity if needed
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(
-      connection,
+      connection, Runnable::run,
       TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)).build());
     if (create) {
       entityFactory.create(name, new ServerSideConfiguration("defaultResource", Collections.emptyMap()));

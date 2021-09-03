@@ -98,6 +98,11 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void setSynchronous(boolean synchronous) {
+    // Do nothing
+  }
+
+  @Override
   public boolean isEventOrdering() {
     return false;
   }

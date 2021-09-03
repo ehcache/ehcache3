@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultCacheLoaderWriterProviderFactory implements ServiceFactory<CacheLoaderWriterProvider> {
 
   @Override
-  public DefaultCacheLoaderWriterProvider create(ServiceCreationConfiguration<CacheLoaderWriterProvider, ?> configuration) {
+  public CacheLoaderWriterProvider create(ServiceCreationConfiguration<CacheLoaderWriterProvider, ?> configuration) {
     if (configuration != null && !(configuration instanceof DefaultCacheLoaderWriterProviderConfiguration)) {
       throw new IllegalArgumentException("Expected a configuration of type DefaultCacheLoaderWriterProviderConfiguration but got " + configuration
           .getClass()
@@ -39,7 +39,7 @@ public class DefaultCacheLoaderWriterProviderFactory implements ServiceFactory<C
   }
 
   @Override
-  public Class<CacheLoaderWriterProvider> getServiceType() {
-    return CacheLoaderWriterProvider.class;
+  public Class<? extends CacheLoaderWriterProvider> getServiceType() {
+    return DefaultCacheLoaderWriterProvider.class;
   }
 }

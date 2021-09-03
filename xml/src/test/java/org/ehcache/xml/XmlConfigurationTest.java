@@ -49,15 +49,11 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
-import org.xmlunit.diff.DefaultNodeMatcher;
-import org.xmlunit.diff.ElementSelectors;
 
 import com.pany.ehcache.copier.AnotherPersonCopier;
 import com.pany.ehcache.copier.Description;
@@ -95,10 +91,14 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
+import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
+import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -111,19 +111,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  *
  * @author Chris Dennis
  */
 public class XmlConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -260,10 +256,11 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
       fail();
-    } catch (XmlConfigurationException xce) {
-      SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(5));
-      assertThat(e.getColumnNumber(), is(29));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getCause().getMessage(),
+        either(containsString("'ehcache:cach'"))
+          .or(containsString("'{\"http://www.ehcache.org/v3\":cach}'"))
+          .or(containsString("<Q{.../v3}cach>")));
     }
   }
 
@@ -272,10 +269,11 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
       fail();
-    } catch (XmlConfigurationException xce) {
-      SAXParseException e = (SAXParseException) xce.getCause();
-      assertThat(e.getLineNumber(), is(6));
-      assertThat(e.getColumnNumber(), is(15));
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getCause().getMessage(),
+        either(containsString("'foo:bar'"))
+          .or(containsString("'{\"http://www.example.com/foo\":bar}'"))
+          .or(containsString("<Q{.../foo}bar>")));
     }
   }
 
@@ -623,23 +621,20 @@ public class XmlConfigurationTest {
 
   @Test
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The url can not be null");
-    new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock());
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock()));
+    assertThat(thrown, hasProperty("message", Matchers.is("The url can not be null")));
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The classLoader can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock()));
+    assertThat(thrown, hasProperty("message", Matchers.is("The classLoader can not be null")));
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The cacheClassLoaders map can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null));
+    assertThat(thrown, hasProperty("message", Matchers.is("The cacheClassLoaders map can not be null")));
   }
 
   @Test
@@ -732,30 +727,6 @@ public class XmlConfigurationTest {
   }
 
   @Test
-  public void testSysPropReplace() {
-    System.getProperties().setProperty("ehcache.match", Number.class.getName());
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/systemprops.xml"));
-
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
-
-    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(persistenceConfiguration.getRootDirectory(), is(new File(System.getProperty("user.home") + "/ehcache")));
-  }
-
-  @Test
-  public void testSysPropReplaceRegExp() {
-    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}"), equalTo("foo" + File.separator));
-    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}"), equalTo(File.separator + "foo" + File.separator));
-    try {
-      ConfigurationParser.replaceProperties("${bar}foo");
-      fail("Should have thrown!");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage().contains("${bar}"), is(true));
-    }
-    assertThat(ConfigurationParser.replaceProperties("foo"), nullValue());
-  }
-
-  @Test
   public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
     Callable<Configuration> parserTask = () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
 
@@ -774,7 +745,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(xmlConfig.toString(), isSameConfigurationAs(resource));
   }
 
   @Test

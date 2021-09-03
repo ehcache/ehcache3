@@ -37,7 +37,6 @@ import org.ehcache.management.ManagementRegistryService;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.terracotta.management.model.call.ContextualReturn;
@@ -51,6 +50,7 @@ import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery.Builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
@@ -63,9 +63,6 @@ public class DefaultManagementRegistryServiceTest {
   private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> DISK_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
@@ -406,8 +403,7 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(results.size()).isEqualTo(1);
       assertThat(results.getSingleResult().hasExecuted()).isFalse();
 
-      expectedException.expect(NoSuchElementException.class);
-      results.getSingleResult().getValue();
+      assertThatThrownBy(() -> results.getSingleResult().getValue()).isInstanceOf(NoSuchElementException.class);
     }
   }
 

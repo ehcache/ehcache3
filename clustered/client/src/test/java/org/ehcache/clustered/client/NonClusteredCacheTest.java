@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.CacheConfiguration;
@@ -33,8 +34,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.assertThat;
 
 /**
  * Ensures that a non-clustered {@code CacheManager} can be created when clustered classes are
@@ -49,7 +50,7 @@ public class NonClusteredCacheTest {
      * Ensure the cluster provider classes are loadable through the ServiceLoader mechanism.
      */
     assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(f -> f.getServiceType()).collect(Collectors.toList()),
-      hasItems(ClusteredStore.Provider.class, ClusteringService.class));
+      hasItems(ClusteredStore.Provider.class, DefaultClusteringService.class));
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class,
@@ -61,11 +62,9 @@ public class NonClusteredCacheTest {
         .build();
 
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
-
-    cacheManager.createCache("cache-1", cacheConfiguration);
-    cacheManager.createCache("cache-2", cacheConfiguration);
-
-    cacheManager.close();
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true)) {
+      cacheManager.createCache("cache-1", cacheConfiguration);
+      cacheManager.createCache("cache-2", cacheConfiguration);
+    }
   }
 }

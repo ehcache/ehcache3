@@ -36,7 +36,7 @@ public class DefaultLocalPersistenceServiceFactory implements ServiceFactory<Loc
   }
 
   @Override
-  public Class<LocalPersistenceService> getServiceType() {
-    return LocalPersistenceService.class;
+  public Class<? extends LocalPersistenceService> getServiceType() {
+    return DefaultLocalPersistenceService.class;
   }
 }

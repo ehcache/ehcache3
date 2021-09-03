@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
@@ -35,6 +35,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.terracotta.statistics.StatisticsManager;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
@@ -130,6 +131,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       @Override
       public void close(final Store<String, String> store) {
         OnHeapStore.Provider.close((OnHeapStore)store);
+        StatisticsManager.nodeFor(store).clean();
       }
 
       @Override

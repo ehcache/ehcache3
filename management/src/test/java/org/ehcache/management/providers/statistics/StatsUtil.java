@@ -24,7 +24,7 @@ import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class StatsUtil {
 

@@ -187,7 +187,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       close(offHeapStore);
-      getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapStore);
+      getStatisticsService().ifPresent(s -> s.cleanForNode(offHeapStore));
       tierOperationStatistics.remove(offHeapStore);
     }
 

@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.lock;
 
-import java.io.File;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -29,27 +27,26 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @RunWith(Parallel.class)
 public class VoltronReadWriteLockPassiveIntegrationTest {
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).build());
   @Rule
   public final TestName testName = new TestName();
 
   @Before
-  public void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  public void startAllServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
   }
 
   @Test
@@ -59,8 +56,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
 
       Hold hold = lock.writeLock();
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       hold.unlock();
     }
@@ -85,8 +82,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
         //expected
       }
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);
@@ -121,8 +118,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
         //expected
       }
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);

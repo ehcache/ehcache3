@@ -17,10 +17,12 @@
 package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourcePools;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -28,34 +30,27 @@ import static org.mockito.Mockito.mock;
  */
 public class BaseCacheConfigurationTest {
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void testThrowsWithNullKeyType() {
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("keyType");
-
-    new BaseCacheConfiguration<>(null, String.class, null,
-      null, null, mock(ResourcePools.class));
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new BaseCacheConfiguration<>(null, String.class, null,
+        null, null, mock(ResourcePools.class)));
+    assertThat(thrown, hasProperty("message", startsWith("keyType")));
   }
 
   @Test
   public void testThrowsWithNullValueType() {
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("valueType");
-
-    new BaseCacheConfiguration<>(Long.class, null, null,
-      null, null, mock(ResourcePools.class));
+    NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new BaseCacheConfiguration<>(Long.class, null, null,
+        null, null, mock(ResourcePools.class)));
+    assertThat(thrown, hasProperty("message", startsWith("valueType")));
   }
 
   @Test
   public void testThrowsWithNullResourcePools() {
-    expectedException.expect(NullPointerException.class);
-    expectedException.expectMessage("resourcePools");
-
-    new BaseCacheConfiguration<>(Long.class, String.class, null,
-      null, null, null);
+    NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new BaseCacheConfiguration<>(Long.class, String.class, null,
+        null, null, null));
+    assertThat(thrown, hasProperty("message", startsWith("resourcePools")));
   }
 
 }

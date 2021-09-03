@@ -39,9 +39,10 @@ import org.junit.Test;
 
 import java.net.URI;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to
@@ -98,7 +99,8 @@ public class ClusterTierManagerClientEntityExceptionTest {
       accessService.start(null);
 
       fail("Expecting ClusterTierManagerValidationException");
-    } catch (ClusterTierManagerValidationException e) {
+    } catch (RuntimeException e) {
+      assertThat(e.getCause(), is(instanceOf(ClusterTierManagerValidationException.class)));
 
       /*
        * Find the last ClusterTierManagerClientEntity involved exception in the causal chain.  This

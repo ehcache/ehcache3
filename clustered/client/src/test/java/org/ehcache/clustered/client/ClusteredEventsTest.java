@@ -40,19 +40,19 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.EnumSet.allOf;
-import static org.awaitility.Awaitility.await;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ClusteredEventsTest {
 
@@ -75,7 +75,7 @@ public class ClusteredEventsTest {
   }
 
   @Test
-  public void testNonExpiringEventSequence() {
+  public void testNonExpiringEventSequence() throws TimeoutException {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
         .with(cluster(CLUSTER_URI).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
@@ -112,7 +112,7 @@ public class ClusteredEventsTest {
           updated(1L, "bat", "bag"),
           removed(1L, "bag"));
 
-        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+        within(Duration.ofSeconds(10)).runsCleanly(() -> {
           assertThat(driverEvents, expectedSequence);
           assertThat(observerEvents, expectedSequence);
         });
@@ -121,7 +121,7 @@ public class ClusteredEventsTest {
   }
 
   @Test
-  public void testExpiringEventSequence() {
+  public void testExpiringEventSequence() throws TimeoutException {
     TestTimeSource timeSource = new TestTimeSource();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
@@ -162,7 +162,7 @@ public class ClusteredEventsTest {
           created(1L, "baz"),
           expired(1L, "baz"));
 
-        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+        within(Duration.ofSeconds(10)).runsCleanly(() -> {
           assertThat(driverEvents, expectedSequence);
           assertThat(observerEvents, expectedSequence);
         });

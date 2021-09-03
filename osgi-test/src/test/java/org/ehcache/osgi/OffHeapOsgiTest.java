@@ -37,7 +37,6 @@ import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
-import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
@@ -54,12 +53,10 @@ public class OffHeapOsgiTest {
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
-      wrappedGradleBundle("org.terracotta:statistics"),
-      wrappedGradleBundle("org.ehcache:sizeof"),
-      wrappedGradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:statistics"),
+      gradleBundle("org.ehcache:sizeof"),
+      gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("OffHeapOsgiTest", "individualModules")
     );

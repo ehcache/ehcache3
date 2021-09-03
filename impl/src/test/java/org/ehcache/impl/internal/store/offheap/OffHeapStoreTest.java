@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -34,6 +34,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,8 +42,8 @@ import java.util.HashSet;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 
@@ -129,5 +130,6 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   @Override
   protected void destroyStore(AbstractOffHeapStore<?, ?> store) {
     OffHeapStore.Provider.close((OffHeapStore<?, ?>) store);
+    StatisticsManager.nodeFor(store).clean();
   }
 }

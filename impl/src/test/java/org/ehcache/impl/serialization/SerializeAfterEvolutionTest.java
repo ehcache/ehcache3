@@ -22,13 +22,14 @@ import java.util.Date;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
-import org.junit.Assert;
 import org.junit.Test;
 
 import static org.ehcache.impl.serialization.SerializerTestUtilities.createClassNameRewritingLoader;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class SerializeAfterEvolutionTest {
 
   @Test
@@ -45,11 +46,11 @@ public class SerializeAfterEvolutionTest {
     pushTccl(loaderB);
     try {
       Serializable outA = s.read(encodedA);
-      Assert.assertThat((Integer) outA.getClass().getField("integer").get(outA), Is.is(42));
+      assertThat((Integer) outA.getClass().getField("integer").get(outA), Is.is(42));
 
       Serializable b = (Serializable) loaderB.loadClass(newClassName(A_new.class)).newInstance();
       Serializable outB = s.read(s.serialize(b));
-      Assert.assertThat((Integer) outB.getClass().getField("integer").get(outB), Is.is(42));
+      assertThat((Integer) outB.getClass().getField("integer").get(outB), Is.is(42));
     } finally {
       popTccl();
     }

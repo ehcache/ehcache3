@@ -23,24 +23,25 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -57,8 +58,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Chain> store1InvalidatedChains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Chain> store2InvalidatedChains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testInvalidationsContainChains", clientEntity1, new ServerCallback() {
       @Override
@@ -75,7 +78,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -109,7 +112,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -139,7 +142,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
-      MatcherAssert.assertThat(elements1, Matchers.matchesChain(elements2));
+      assertThat(elements1, Matchers.matchesChain(elements2));
       if (!elements1.isEmpty()) {
         entryCount++;
       } else {
@@ -148,16 +151,18 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
 
     // there has to be server-side evictions, otherwise this test is useless
-    MatcherAssert.assertThat(store1InvalidatedHashes.size(), greaterThan(0));
+    assertThat(store1InvalidatedHashes.size(), greaterThan(0));
     // test that each time the server evicted, the originating client got notified
-    MatcherAssert.assertThat(store1InvalidatedHashes.size(), Is.is(ITERATIONS - entryCount));
+    assertThat(store1InvalidatedHashes.size(), Is.is(ITERATIONS - entryCount));
     // test that each time the server evicted, the other client got notified on top of normal invalidations
-    MatcherAssert.assertThat(store2InvalidatedHashes.size(), Is.is(ITERATIONS + evictionCount));
+    assertThat(store2InvalidatedHashes.size(), Is.is(ITERATIONS + evictionCount));
     // test that we got evicted chains
-    MatcherAssert.assertThat(store1InvalidatedChains.size(), greaterThan(0));
-    MatcherAssert.assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
+    assertThat(store1InvalidatedChains.size(), greaterThan(0));
+    assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testInvalidationsContainChains");
+    assertThat(store1InvalidatedAll.get(), is(false));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   @Test
@@ -167,8 +172,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final List<ByteBuffer> store1AppendedBuffers = new CopyOnWriteArrayList<>();
     final List<Chain> store1Chains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<ByteBuffer> store2AppendedBuffers = new CopyOnWriteArrayList<>();
     final List<Chain> store2Chains = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAppendFireEvents", clientEntity1, new ServerCallback() {
       @Override
@@ -178,7 +185,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -208,7 +215,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -242,19 +249,21 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(store1Chains.size(), is(2));
     assertThat(store1Chains.get(0).length(), is(0));
     assertThat(store1Chains.get(1).length(), is(1));
+    assertThat(store1InvalidatedAll.get(), is(false));
     assertThat(store2AppendedBuffers.size(), is(2));
     assertThat(store2AppendedBuffers.get(0).asLongBuffer().get(), is(1L));
     assertThat(store2AppendedBuffers.get(1).asLongBuffer().get(), is(2L));
     assertThat(store2Chains.size(), is(2));
     assertThat(store2Chains.get(0).length(), is(0));
     assertThat(store2Chains.get(1).length(), is(1));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   private static void assertThatClientsWaitingForInvalidationIsEmpty(String name) throws Exception {
     ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity = observableClusterTierService.getServedActiveEntitiesFor(name).get(0);
     long now = System.currentTimeMillis();
     while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
-    MatcherAssert.assertThat(activeEntity.getClientsWaitingForInvalidation().size(), Is.is(0));
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), Is.is(0));
   }
 
   @Test
@@ -390,7 +399,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     ClusterTierClientEntity clientEntity = createClientEntity("testEmptyStoreIteratorIsEmpty", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testEmptyStoreIteratorIsEmpty", clientEntity, mock(ServerCallback.class));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(false));
     try {
@@ -408,10 +417,12 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     serverStoreProxy.append(1L, createPayload(42L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(true));
-    assertThat(iterator.next(), hasPayloads(42L));
+    Map.Entry<Long, Chain> next = iterator.next();
+    assertThat(next.getKey(), is(1L));
+    assertThat(next.getValue(), hasPayloads(42L));
     assertThat(iterator.hasNext(), is(false));
     try {
       iterator.next();
@@ -429,10 +440,12 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(1L, createPayload(42L));
     serverStoreProxy.append(1L, createPayload(43L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(true));
-    assertThat(iterator.next(), hasPayloads(42L, 43L));
+    Map.Entry<Long, Chain> next = iterator.next();
+    assertThat(next.getKey(), is(1L));
+    assertThat(next.getValue(), hasPayloads(42L, 43L));
     assertThat(iterator.hasNext(), CoreMatchers.is(false));
     try {
       iterator.next();
@@ -450,23 +463,23 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.append(1L, createPayload(42L));
     serverStoreProxy.append(2L, createPayload(43L));
 
-    Iterator<Chain> iterator = serverStoreProxy.iterator();
+    Iterator<Map.Entry<Long, Chain>> iterator = serverStoreProxy.iterator();
 
     Matcher<Chain> chainOne = hasPayloads(42L);
     Matcher<Chain> chainTwo = hasPayloads(43L);
 
     assertThat(iterator.hasNext(), CoreMatchers.is(true));
 
-    Chain next = iterator.next();
+    Chain next = iterator.next().getValue();
     assertThat(next, either(chainOne).or(chainTwo));
 
     if (chainOne.matches(next)) {
       assertThat(iterator.hasNext(), is(true));
-      assertThat(iterator.next(), is(chainTwo));
+      assertThat(iterator.next().getValue(), is(chainTwo));
       assertThat(iterator.hasNext(), is(false));
     } else {
       assertThat(iterator.hasNext(), is(true));
-      assertThat(iterator.next(), is(chainOne));
+      assertThat(iterator.next().getValue(), is(chainOne));
       assertThat(iterator.hasNext(), is(false));
     }
 

@@ -35,7 +35,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -72,8 +72,9 @@ import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.ehcache.core.spi.store.Store.ValueHolder.NO_EXPIRE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -151,7 +152,7 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
+    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection, Runnable::run);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.emptyMap());
@@ -173,7 +174,7 @@ public class ClusteredStoreTest {
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   private void assertTimeoutOccurred(ThrowableAssert.ThrowingCallable throwingCallable) {

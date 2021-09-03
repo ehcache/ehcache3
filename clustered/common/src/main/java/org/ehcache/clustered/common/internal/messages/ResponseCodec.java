@@ -34,10 +34,15 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.RESPONSE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.RESPONSE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENTRY_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
@@ -52,9 +57,6 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverAppend;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
-import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec.WHITELIST_PREDICATE;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
@@ -125,7 +127,7 @@ public class ResponseCodec {
   private static final Struct ITERATOR_BATCH_STRUCT = newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
     .string("id", 20)
-    .structs("chains", 30, CHAIN_STRUCT)
+    .structs("chains", 30, CHAIN_ENTRY_STRUCT)
     .bool("last", 40)
     .build();
 
@@ -145,7 +147,7 @@ public class ResponseCodec {
         final EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
         return GET_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, getResponse.getResponseType())
-          .struct(CHAIN_FIELD, getResponse.getChain(), ChainCodec::encode)
+          .struct(CHAIN_FIELD, getResponse.getChain(), ChainCodec::encodeChain)
           .encode().array();
       case HASH_INVALIDATION_DONE: {
         EhcacheEntityResponse.HashInvalidationDone hashInvalidationDone = (EhcacheEntityResponse.HashInvalidationDone) response;
@@ -180,7 +182,7 @@ public class ResponseCodec {
         return SERVER_APPEND_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, serverAppend.getResponseType())
           .byteBuffer(APPENDED_FIELD, serverAppend.getAppended())
-          .struct(CHAIN_FIELD, serverAppend.getBeforeAppend(), ChainCodec::encode)
+          .struct(CHAIN_FIELD, serverAppend.getBeforeAppend(), ChainCodec::encodeChain)
           .encode().array();
       }
       case SERVER_INVALIDATE_HASH: {
@@ -189,7 +191,7 @@ public class ResponseCodec {
           .enm(RESPONSE_TYPE_FIELD_NAME, serverInvalidateHash.getResponseType())
           .int64(KEY_FIELD, serverInvalidateHash.getKey());
         if (serverInvalidateHash.getEvictedChain() != null) {
-          encoder.struct(CHAIN_FIELD, serverInvalidateHash.getEvictedChain(), ChainCodec::encode);
+          encoder.struct(CHAIN_FIELD, serverInvalidateHash.getEvictedChain(), ChainCodec::encodeChain);
         }
         return encoder.encode().array();
       }
@@ -217,14 +219,14 @@ public class ResponseCodec {
         return RESOLVE_REQUEST_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, resolve.getResponseType())
           .int64(KEY_FIELD, resolve.getKey())
-          .struct(CHAIN_FIELD, resolve.getChain(), ChainCodec::encode)
+          .struct(CHAIN_FIELD, resolve.getChain(), ChainCodec::encodeChain)
           .encode().array();
       }
       case LOCK_SUCCESS: {
         EhcacheEntityResponse.LockSuccess lockSuccess = (EhcacheEntityResponse.LockSuccess) response;
         return LOCK_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, lockSuccess.getResponseType())
-          .struct(CHAIN_FIELD, lockSuccess.getChain(), ChainCodec::encode)
+          .struct(CHAIN_FIELD, lockSuccess.getChain(), ChainCodec::encodeChain)
           .encode().array();
       }
       case LOCK_FAILURE: {
@@ -238,7 +240,7 @@ public class ResponseCodec {
         return ITERATOR_BATCH_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, iteratorBatch.getResponseType())
           .string("id", iteratorBatch.getIdentity().toString())
-          .structs("chains", iteratorBatch.getChains(), ChainCodec::encode)
+          .structs("chains", iteratorBatch.getChains(), ChainCodec::encodeChainEntry)
           .bool("last", iteratorBatch.isLast())
           .encode().array();
       }
@@ -271,7 +273,7 @@ public class ResponseCodec {
         return failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         decoder = GET_RESPONSE_STRUCT.decoder(buffer);
-        return getResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
+        return getResponse(ChainCodec.decodeChain(decoder.struct(CHAIN_FIELD)));
       case HASH_INVALIDATION_DONE: {
         decoder = HASH_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
@@ -284,7 +286,7 @@ public class ResponseCodec {
         decoder = SERVER_APPEND_RESPONSE_STRUCT.decoder(buffer);
         ByteBuffer appended = decoder.byteBuffer(APPENDED_FIELD);
         StructDecoder<StructDecoder<Void>> chainDecoder = decoder.struct(CHAIN_FIELD);
-        Chain chain = chainDecoder == null ? null : ChainCodec.decode(chainDecoder);
+        Chain chain = chainDecoder == null ? null : ChainCodec.decodeChain(chainDecoder);
         return serverAppend(appended, chain);
       }
       case CLIENT_INVALIDATE_HASH: {
@@ -302,7 +304,7 @@ public class ResponseCodec {
         decoder = SERVER_INVALIDATE_HASH_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
         StructDecoder<StructDecoder<Void>> chainDecoder = decoder.struct(CHAIN_FIELD);
-        Chain evictedChain = chainDecoder == null ? null : ChainCodec.decode(chainDecoder);
+        Chain evictedChain = chainDecoder == null ? null : ChainCodec.decodeChain(chainDecoder);
         return serverInvalidateHash(key, evictedChain);
       }
       case MAP_VALUE: {
@@ -322,12 +324,12 @@ public class ResponseCodec {
       case RESOLVE_REQUEST: {
         decoder = RESOLVE_REQUEST_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
-        Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
+        Chain chain = ChainCodec.decodeChain(decoder.struct(CHAIN_FIELD));
         return resolveRequest(key, chain);
       }
       case LOCK_SUCCESS: {
         decoder = LOCK_RESPONSE_STRUCT.decoder(buffer);
-        Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
+        Chain chain = ChainCodec.decodeChain(decoder.struct(CHAIN_FIELD));
         return new EhcacheEntityResponse.LockSuccess(chain);
       }
       case LOCK_FAILURE: {
@@ -337,12 +339,12 @@ public class ResponseCodec {
         decoder = ITERATOR_BATCH_STRUCT.decoder(buffer);
         UUID id = UUID.fromString(decoder.string("id"));
         StructArrayDecoder<StructDecoder<Void>> chainsDecoder = decoder.structs("chains");
-        List<Chain> chains = new ArrayList<>(chainsDecoder.length());
+        List<Map.Entry<Long, Chain>> chains = new ArrayList<>(chainsDecoder.length());
         while (chainsDecoder.hasNext()) {
-          chains.add(ChainCodec.decode(chainsDecoder.next()));
+          chains.add(ChainCodec.decodeChainEntry(chainsDecoder.next()));
         }
         boolean last = decoder.bool("last");
-        return new EhcacheEntityResponse.IteratorBatch(id, chains, last);
+        return EhcacheEntityResponse.iteratorBatchResponse(id, chains, last);
       }
 
       default:

@@ -27,7 +27,6 @@ class EhDistribute implements Plugin<Project> {
   @Override
   void apply(Project project) {
     def utils = new Utils(project.baseVersion, project.logger)
-    def hashsetOfProjects = project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
 
     project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
@@ -68,14 +67,16 @@ class EhDistribute implements Plugin<Project> {
 
       classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
 
-      utils.fillManifest(manifest, project.archivesBaseName)
+      utils.fillManifest(manifest, project.group, project.archivesBaseName)
     }
 
 
     project.sourceJar {
-      from hashsetOfProjects.flatten {
-        it.sourceSets.main.allSource
-      }
+      from project.configurations.named('compileOnly').map({
+        it.dependencies.withType(ProjectDependency).toSet().collect {
+          it.dependencyProject.sourceSets.main.allSource
+        }
+      })
     }
 
     project.signing {

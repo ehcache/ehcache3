@@ -19,7 +19,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;

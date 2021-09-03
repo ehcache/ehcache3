@@ -19,13 +19,14 @@ plugins {
 }
 
 dependencies {
+  implementation "org.terracotta:statistics:$statisticVersion"
   // optional: if we want xml config
   compileOnly project(':xml')
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
   compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
-  compileOnly ("org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion") {
+  compileOnly ("org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion") {
     // This is to avoid stats lib being directly used.
     exclude group:'org.terracotta', module:'statistics'
   }
@@ -37,6 +38,5 @@ dependencies {
   testImplementation project(':xml')
   testImplementation project(':impl')
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-  testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
-  testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
+  testImplementation testFixtures(project(':xml'))
 }

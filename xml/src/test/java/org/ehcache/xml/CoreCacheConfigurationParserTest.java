@@ -24,7 +24,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
-import org.ehcache.xml.model.TimeType;
+import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.ehcache.xml.model.TimeUnit;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -39,8 +39,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 public class CoreCacheConfigurationParserTest {
 
@@ -93,7 +93,7 @@ public class CoreCacheConfigurationParserTest {
   public void unparseConfigurationTtiExpiry() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(2500)));
     CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
-    TimeType tti = cacheType.getExpiry().getTti();
+    TimeTypeWithPropSubst tti = cacheType.getExpiry().getTti();
     assertThat(tti, notNullValue());
     assertThat(tti.getValue(), is(BigInteger.valueOf(2500)));
     assertThat(tti.getUnit(), is(TimeUnit.MILLIS));
@@ -103,7 +103,7 @@ public class CoreCacheConfigurationParserTest {
   public void unparseConfigurationTtlExpiry() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMinutes(60)));
     CacheType cacheType = parser.unparseConfiguration(cacheConfiguration, new CacheType());
-    TimeType ttl = cacheType.getExpiry().getTtl();
+    TimeTypeWithPropSubst ttl = cacheType.getExpiry().getTtl();
     assertThat(ttl, notNullValue());
     assertThat(ttl.getValue(), is(BigInteger.valueOf(1)));
     assertThat(ttl.getUnit(), is(TimeUnit.HOURS));

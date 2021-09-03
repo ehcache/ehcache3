@@ -21,16 +21,17 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
-import static java.util.Arrays.asList;
-import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -41,10 +42,10 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.prepareForDestroy;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 public class ResponseCodecTest {
 
@@ -200,19 +201,18 @@ public class ResponseCodecTest {
   @Test
   public void testIteratorBatchResponse() {
     UUID uuid = UUID.randomUUID();
-    List<Chain> chains = asList(
-      chainOf(createPayload(1L), createPayload(10L)),
-      chainOf(createPayload(2L), createPayload(20L))
-    );
-    EhcacheEntityResponse.IteratorBatch iteratorBatch = new EhcacheEntityResponse.IteratorBatch(uuid, chains, true);
+    List<Map.Entry<Long, Chain>> chains = asList(
+    new AbstractMap.SimpleImmutableEntry<>(1L, chainOf(createPayload(1L), createPayload(10L))),
+    new AbstractMap.SimpleImmutableEntry<>(2L, chainOf(createPayload(2L), createPayload(20L))));
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = EhcacheEntityResponse.iteratorBatchResponse(uuid, chains, true);
 
     byte[] encoded = RESPONSE_CODEC.encode(iteratorBatch);
     EhcacheEntityResponse.IteratorBatch batchDecoded = (EhcacheEntityResponse.IteratorBatch) RESPONSE_CODEC.decode(encoded);
 
     assertThat(batchDecoded.getResponseType(), is(EhcacheResponseType.ITERATOR_BATCH));
     assertThat(batchDecoded.getIdentity(), is(uuid));
-    assertThat(batchDecoded.getChains().get(0), hasPayloads(1L, 10L));
-    assertThat(batchDecoded.getChains().get(1), hasPayloads(2L, 20L));
+    assertThat(batchDecoded.getChains().get(0).getValue(), hasPayloads(1L, 10L));
+    assertThat(batchDecoded.getChains().get(1).getValue(), hasPayloads(2L, 20L));
     assertThat(batchDecoded.isLast(), is(true));
   }
 
