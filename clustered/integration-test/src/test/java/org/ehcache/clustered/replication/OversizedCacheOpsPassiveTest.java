@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.CacheConfiguration;
@@ -35,13 +34,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import org.junit.Ignore;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 
 
 /**
  * Test the effect of cache eviction during passive sync.
  */
 @Ignore("OOME on build slaves due to high memory requirements")
-public class OversizedCacheOpsPassiveTest extends ClusteredTests {
+public class OversizedCacheOpsPassiveTest {
   private static final int MAX_PUTS = 3000;
   private static final int MAX_SWITCH_OVER = 3;
   private static final int PER_ELEMENT_SIZE = 256 * 1024;

@@ -51,6 +51,10 @@ import java.util.Properties;
 
 import static java.time.Duration.ofSeconds;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -61,7 +65,7 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 /**
  * ReconnectDuringDestroyTest
  */
-public class ReconnectDuringDestroyTest extends ClusteredTests {
+public class ReconnectDuringDestroyTest {
 
   private static TCPProxyManager proxyManager;
   PersistentCacheManager cacheManager;

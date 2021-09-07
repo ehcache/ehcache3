@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -54,6 +53,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.LongStream;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -64,7 +66,7 @@ import static org.hamcrest.Matchers.nullValue;
  * The point of this test is to assert proper data read after fail-over handling.
  */
 @RunWith(ParallelParameterized.class)
-public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends ClusteredTests {
+public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;

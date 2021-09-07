@@ -53,12 +53,14 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-
-public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
+public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath())

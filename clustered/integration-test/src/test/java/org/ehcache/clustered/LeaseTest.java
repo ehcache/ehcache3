@@ -40,6 +40,10 @@ import java.time.Duration;
 import static java.time.Duration.ofSeconds;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,7 +52,7 @@ import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RUL
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 @RunWith(Parameterized.class)
-public class LeaseTest extends ClusteredTests {
+public class LeaseTest {
 
   @ClassRule
   @Rule

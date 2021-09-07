@@ -19,7 +19,6 @@ package org.ehcache.clustered.replication;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -64,6 +63,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -78,7 +80,7 @@ import static org.junit.Assert.fail;
  * Finally the same key set correctness is asserted.
  */
 @RunWith(ParallelParameterized.class)
-public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends ClusteredTests {
+public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   private static final int NUM_OF_THREADS = 10;
   private static final int JOB_SIZE = 100;

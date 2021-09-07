@@ -29,10 +29,12 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.junit.Assert.fail;
 
 
-public class NoOffheapTest extends ClusteredTests {
+public class NoOffheapTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath()).build();

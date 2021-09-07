@@ -16,7 +16,6 @@
 package org.ehcache.clustered.reconnect;
 
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -33,10 +32,14 @@ import java.time.Duration;
 
 import static java.time.Duration.ofSeconds;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
-public class CacheManagerDestroyReconnectTest extends ClusteredTests {
+public class CacheManagerDestroyReconnectTest {
 
   private static TCPProxyManager proxyManager;
   private static PersistentCacheManager cacheManager;

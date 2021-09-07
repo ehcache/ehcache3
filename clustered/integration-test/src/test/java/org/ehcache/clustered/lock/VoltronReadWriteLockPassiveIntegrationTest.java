@@ -18,8 +18,6 @@ package org.ehcache.clustered.lock;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.util.ParallelTestCluster;
@@ -33,11 +31,13 @@ import org.junit.runner.RunWith;
 import org.terracotta.connection.Connection;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.junit.Assert.fail;
 
 
 @RunWith(Parallel.class)
-public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
+public class VoltronReadWriteLockPassiveIntegrationTest {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).build());

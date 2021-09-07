@@ -31,7 +31,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
 import org.ehcache.management.statistics.DefaultExtendedStatisticsService;
 import org.hamcrest.Matchers;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -46,13 +45,15 @@ import org.terracotta.testing.rules.Cluster;
 import static java.util.Collections.emptyMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
-
-public class BasicEntityInteractionTest extends ClusteredTests {
+public class BasicEntityInteractionTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath())

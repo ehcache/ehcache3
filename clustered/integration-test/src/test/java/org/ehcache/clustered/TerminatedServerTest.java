@@ -64,6 +64,10 @@ import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
@@ -81,7 +85,7 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 // no side effects which can affect another test.
 // =============================================================================================
 @RunWith(Parallel.class)
-public class TerminatedServerTest extends ClusteredTests {
+public class TerminatedServerTest {
 
   private static final int CLIENT_MAX_PENDING_REQUESTS = 5;
 

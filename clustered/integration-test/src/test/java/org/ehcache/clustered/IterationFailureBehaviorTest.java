@@ -46,6 +46,10 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.LongStream.range;
 import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
@@ -55,7 +59,7 @@ import static org.junit.Assert.fail;
 
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 
-public class IterationFailureBehaviorTest extends ClusteredTests {
+public class IterationFailureBehaviorTest {
 
   private static final int KEYS = 100;
 

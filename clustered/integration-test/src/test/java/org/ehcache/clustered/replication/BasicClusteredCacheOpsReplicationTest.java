@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -49,6 +48,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -56,7 +58,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 
 @RunWith(ParallelParameterized.class)
-public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
+public class BasicClusteredCacheOpsReplicationTest {
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cacheOne;
