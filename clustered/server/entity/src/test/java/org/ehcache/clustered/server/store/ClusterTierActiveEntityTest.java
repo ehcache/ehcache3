@@ -24,14 +24,17 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
+import org.ehcache.clustered.server.CommunicatorServiceConfiguration;
 import org.ehcache.clustered.server.ConcurrencyStrategies;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.KeySegmentMapper;
@@ -56,6 +59,8 @@ import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ActiveInvokeContext;
+import org.mockito.ArgumentMatchers;
+import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
@@ -113,6 +118,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -939,11 +945,16 @@ public class ClusterTierActiveEntityTest {
     InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
 
     Random random = new Random();
-    random.ints(0, 100).limit(10).forEach(invalidationTracker::trackHashInvalidation);
+    random.ints(0, 100).distinct().limit(10).forEach(invalidationTracker::trackHashInvalidation);
 
-    activeEntity.loadExisting();
+    ClientDescriptor client = mock(ClientDescriptor.class);
+    try (ActiveServerEntity.ReconnectHandler reconnect = activeEntity.startReconnect()) {
+      reconnect.handleReconnect(client, new ReconnectMessageCodec().encode(new ClusterTierReconnectMessage(false)));
+    }
 
-    assertThat(activeEntity.getInflightInvalidations().isEmpty(), is(false));
+    ClientCommunicator clientCommunicator = defaultRegistry.getService(new CommunicatorServiceConfiguration());
+
+    verify(clientCommunicator, times(10)).sendNoResponse(ArgumentMatchers.eq(client), ArgumentMatchers.isA(EhcacheEntityResponse.ClientInvalidateHash.class));
   }
 
   @Test
