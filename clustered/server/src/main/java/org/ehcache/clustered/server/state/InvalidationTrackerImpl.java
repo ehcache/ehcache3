@@ -16,10 +16,13 @@
 
 package org.ehcache.clustered.server.state;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Collections.unmodifiableSet;
 
 public class InvalidationTrackerImpl implements InvalidationTracker {
 
@@ -67,7 +70,7 @@ public class InvalidationTrackerImpl implements InvalidationTracker {
 
   @Override
   public Set<Long> getTrackedKeys() {
-    return getInvalidationMap().keySet();
+    return unmodifiableSet(new HashSet<>(getInvalidationMap().keySet()));
   }
 
   @Override
