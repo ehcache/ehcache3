@@ -105,7 +105,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -157,14 +156,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler;
   private final IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger;
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
-  private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
   private final String managerIdentifier;
-  private final Object inflightInvalidationsMutex = new Object();
-  private volatile List<InvalidationTuple> inflightInvalidations;
   private final Set<ClientDescriptor> eventListeners = new HashSet<>(); // accesses are synchronized on eventListeners itself
   private final Map<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
   private final Map<ClientDescriptor, Map<UUID, Iterator<Map.Entry<Long, Chain>>>> liveIterators = new ConcurrentHashMap<>();
@@ -235,19 +231,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     management.entityCreated();
   }
 
-  List<InvalidationTuple> getInflightInvalidations() {
-    return this.inflightInvalidations;
-  }
-
   @Override
   public void loadExisting() {
-    inflightInvalidations = new ArrayList<>();
-    if (!isStrong()) {
-      LOGGER.debug("Preparing for handling inflight invalidations");
-      addInflightInvalidationsForEventualCaches();
-    }
     stateService.loadStore(storeIdentifier, configuration).setEventListener(new Listener());
-    reconnectComplete.set(false);
     management.entityPromotionCompleted();
   }
 
@@ -383,25 +369,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("cluster tier does not exist : '" + storeIdentifier + "'");
-    }
-
-    if (inflightInvalidations != null) {
-      synchronized (inflightInvalidationsMutex) {
-        // This logic totally counts on the fact that invokes will only happen
-        // after all handleReconnects are done, else this is flawed.
-        if (inflightInvalidations != null) {
-          List<InvalidationTuple> tmpInflightInvalidations = this.inflightInvalidations;
-          this.inflightInvalidations = null;
-          LOGGER.debug("Stalling all operations for cluster tier {} for firing inflight invalidations again.", storeIdentifier);
-          tmpInflightInvalidations.forEach(invalidationState -> {
-            if (invalidationState.isClearInProgress()) {
-              invalidateAll(invalidationState.getClientDescriptor());
-            }
-            invalidationState.getInvalidationsInProgress()
-                .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
-          });
-        }
-      }
     }
 
     switch (message.getMessageType()) {
@@ -750,14 +717,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
   }
 
-  private void addInflightInvalidationsForEventualCaches() {
-    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
-    if (invalidationTracker != null) {
-      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
-      invalidationTracker.clear();
-    }
-  }
-
   @Override
   public void notifyDestroyed(ClientSourceId sourceId) {
     messageHandler.untrackClient(sourceId);
@@ -770,32 +729,53 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } catch (MessageCodecException mce) {
       throw new AssertionError("Codec error", mce);
     }
-    return (clientDescriptor, bytes) -> {
-      if (inflightInvalidations == null) {
-        throw new AssertionError("Load existing was not invoked before handleReconnect");
-      }
 
-      ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
-      ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
-      addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
-      lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
-      if (reconnectMessage.isEventsEnabled()) {
-        addEventListener(clientDescriptor, serverStore);
-      }
+    List<InvalidationTuple> inflightInvalidations = new ArrayList<>();
 
-      LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-
-      connectedClients.put(clientDescriptor, Boolean.TRUE);
-    };
-  }
-
-  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
-    if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
-      Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
-      LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", clientDescriptor.getSourceId().toLong(), storeIdentifier, invalidationsInProgress
-          .size());
-      inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
+    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+    if (invalidationTracker != null) {
+      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
+      invalidationTracker.clear();
     }
+
+    return new ReconnectHandler() {
+
+      @Override
+      public void handleReconnect(ClientDescriptor clientDescriptor, byte[] bytes) {
+        ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
+        ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
+        addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
+        lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
+        if (reconnectMessage.isEventsEnabled()) {
+          addEventListener(clientDescriptor, serverStore);
+        }
+
+        LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
+
+        connectedClients.put(clientDescriptor, Boolean.TRUE);
+      }
+
+      private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
+        if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
+          Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
+          LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", clientDescriptor.getSourceId().toLong(), storeIdentifier, invalidationsInProgress
+            .size());
+          inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
+        }
+      }
+
+      @Override
+      public void close() {
+        LOGGER.debug("Stalling all operations for cluster tier {} for firing inflight invalidations again.", storeIdentifier);
+        inflightInvalidations.forEach(invalidationState -> {
+          if (invalidationState.isClearInProgress()) {
+            invalidateAll(invalidationState.getClientDescriptor());
+          }
+          invalidationState.getInvalidationsInProgress()
+            .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
+        });
+      }
+    };
   }
 
   @Override
