@@ -1,4 +1,4 @@
-= Ehcache {version} Documentation Overview
+= Ehcache 3.9 Documentation Overview
 ifndef::sourcedir39[]
 include::{includedir}/common.adoc[]
 endif::sourcedir39[]
