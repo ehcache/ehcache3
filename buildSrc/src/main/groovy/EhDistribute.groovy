@@ -72,11 +72,17 @@ class EhDistribute implements Plugin<Project> {
 
 
     project.sourceJar {
-      from project.configurations.named('compileOnly').map({
+      from(project.configurations.named('compileOnly').map({
         it.dependencies.withType(ProjectDependency).toSet().collect {
           it.dependencyProject.sourceSets.main.allSource
         }
-      })
+      })) {
+        exclude 'META-INF/**', 'LICENSE', 'NOTICE'
+      }
+      from(project.jar) {
+        include 'META-INF/**', 'LICENSE', 'NOTICE'
+      }
+      duplicatesStrategy = 'fail'
     }
 
     project.signing {
