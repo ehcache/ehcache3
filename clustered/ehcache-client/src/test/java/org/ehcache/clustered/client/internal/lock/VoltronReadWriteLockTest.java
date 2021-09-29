@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.lock;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -27,8 +26,8 @@ import org.terracotta.connection.entity.EntityRef;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;

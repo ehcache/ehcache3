@@ -21,10 +21,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -33,14 +31,11 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,21 +51,18 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic REMOVE_ALL operations on an {@code Ehcache}.
@@ -210,7 +202,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
-    assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
+    assertThat(this.getBulkComputeArgs(), everyItem(is(in(contentUpdates))));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
@@ -242,7 +234,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
-    assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
+    assertThat(this.getBulkComputeArgs(), everyItem(is(in(contentUpdates))));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));

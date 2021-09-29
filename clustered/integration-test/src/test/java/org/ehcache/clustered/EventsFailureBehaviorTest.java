@@ -68,8 +68,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.oneOf;
 
 
 /*
@@ -242,9 +242,9 @@ public class EventsFailureBehaviorTest {
         assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(CREATED)));
         assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
       } else {
-        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+        assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), is(oneOf(EVICTED, EXPIRED)))));
         //assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
-        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+        assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), is(oneOf(EVICTED, EXPIRED)))));
       }
     }));
 
@@ -256,9 +256,9 @@ public class EventsFailureBehaviorTest {
     });
 
     eventually().runsCleanly(() -> range(0, KEYS).forEach(k -> {
-      assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+      assertThat(accountingCacheEventListener1.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), is(oneOf(EVICTED, EXPIRED)))));
       //assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(accountingCacheEventListener1.events.get(k).toArray())));
-      assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), isOneOf(EVICTED, EXPIRED))));
+      assertThat(accountingCacheEventListener2.events, hasEntry(is(k), containsInAnyOrder(is(CREATED), is(oneOf(EVICTED, EXPIRED)))));
     }));
   }
 

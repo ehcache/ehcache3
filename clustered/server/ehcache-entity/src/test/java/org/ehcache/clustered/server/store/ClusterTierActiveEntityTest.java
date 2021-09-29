@@ -48,8 +48,8 @@ import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -99,9 +99,11 @@ import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.entry;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -109,8 +111,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.core.CombinableMatcher.both;
-import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -752,7 +752,7 @@ public class ClusterTierActiveEntityTest {
                                     storeConfiguration.getPoolAllocation();
 
     assertThat(activeEntity.invokeActive(client.invokeContext(), new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
-      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
+      failsWith(both(Matchers.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
   }
 
   @Test
@@ -780,7 +780,7 @@ public class ClusterTierActiveEntityTest {
                                     otherConfiguration.getPoolAllocation();
 
     assertThat(activeEntity.invokeActive(client.invokeContext(), new LifecycleMessage.ValidateServerStore(defaultStoreName, otherConfiguration)),
-      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
+      failsWith(both(Matchers.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
   }
 
   @Test

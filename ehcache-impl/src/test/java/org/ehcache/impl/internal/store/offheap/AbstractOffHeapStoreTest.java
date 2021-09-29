@@ -32,7 +32,6 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Test;
@@ -46,20 +45,19 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -405,7 +403,7 @@ public abstract class AbstractOffHeapStoreTest {
 
     offHeapStore.getAndCompute("key", (mappedKey, mappedValue) -> {
       assertThat(mappedKey, is("key"));
-      assertThat(mappedValue, Matchers.nullValue());
+      assertThat(mappedValue, nullValue());
       return "value2";
     });
     assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));

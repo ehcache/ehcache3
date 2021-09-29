@@ -20,8 +20,15 @@ public class JavaConvention implements Plugin<Project> {
 
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "junit:junit:" + project.property("junitVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.assertj:assertj-core:" + project.property("assertjVersion"));
-    dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.hamcrest:hamcrest-library:" + project.property("hamcrestVersion"));
+    dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.hamcrest:hamcrest:" + project.property("hamcrestVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.mockito:mockito-core:" + project.property("mockitoVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.terracotta:terracotta-utilities-test-tools:" + project.property("terracottaUtilitiesVersion"));
+
+    project.getConfigurations().all(config -> {
+      config.getResolutionStrategy().dependencySubstitution(subs -> {
+        subs.substitute(subs.module("org.hamcrest:hamcrest-core:1.3")).with(subs.module("org.hamcrest:hamcrest-core:" + project.property("hamcrestVersion")));
+        subs.substitute(subs.module("org.hamcrest:hamcrest-library:1.3")).with(subs.module("org.hamcrest:hamcrest-library:" + project.property("hamcrestVersion")));
+      });
+    });
   }
 }

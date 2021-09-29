@@ -28,7 +28,7 @@ import static org.ehcache.clustered.common.internal.store.operations.Operation.B
 import static org.ehcache.clustered.common.internal.store.operations.Operation.INT_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;

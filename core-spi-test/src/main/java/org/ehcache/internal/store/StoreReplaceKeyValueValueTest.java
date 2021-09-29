@@ -23,11 +23,10 @@ import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-
+import static org.hamcrest.Matchers.not;
 
 /**
  * Test the {@link Store#replace(Object, Object, Object)} contract of the

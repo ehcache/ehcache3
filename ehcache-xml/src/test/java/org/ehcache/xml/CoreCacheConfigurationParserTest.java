@@ -26,7 +26,6 @@ import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.ehcache.xml.model.TimeUnit;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import com.pany.ehcache.MyExpiry;
@@ -37,10 +36,11 @@ import java.time.Duration;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class CoreCacheConfigurationParserTest {
 
@@ -60,7 +60,7 @@ public class CoreCacheConfigurationParserTest {
     assertThat(expiry, is(value));
 
     expiry = configuration.getCacheConfigurations().get("class").getExpiryPolicy();
-    assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
+    assertThat(expiry, instanceOf(com.pany.ehcache.MyExpiry.class));
 
     expiry = configuration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
     assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));

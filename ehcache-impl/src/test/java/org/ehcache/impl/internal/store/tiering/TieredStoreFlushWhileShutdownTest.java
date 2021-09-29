@@ -48,7 +48,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 public class TieredStoreFlushWhileShutdownTest {

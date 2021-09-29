@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 

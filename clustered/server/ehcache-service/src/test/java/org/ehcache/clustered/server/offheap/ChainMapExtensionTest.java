@@ -39,11 +39,11 @@ import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static java.util.Collections.emptyList;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Test extensibility of chain map storage engine, including binary engine capabilities.

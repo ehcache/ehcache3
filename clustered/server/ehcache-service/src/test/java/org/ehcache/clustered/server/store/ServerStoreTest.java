@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -35,10 +34,10 @@ import static org.ehcache.clustered.ChainUtils.readPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static java.util.stream.LongStream.range;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 
 /**
@@ -193,7 +192,7 @@ public abstract class ServerStoreTest {
     ByteBuffer payload = createPayload(1L);
 
     store.append(1L, payload);
-    assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), is(8));
   }
 
   @Test
@@ -202,7 +201,7 @@ public abstract class ServerStoreTest {
     ByteBuffer payload = createPayload(1L);
 
     store.getAndAppend(1L, payload);
-    assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), is(8));
   }
 
   @Test
@@ -213,7 +212,7 @@ public abstract class ServerStoreTest {
     Chain expected = newChainBuilder().build(newElementBuilder().build(payload), newElementBuilder().build(payload));
     Chain update = newChainBuilder().build(newElementBuilder().build(payload));
     store.replaceAtHead(1L, expected, update);
-    assertThat(payload.remaining(), Is.is(8));
+    assertThat(payload.remaining(), is(8));
   }
 
   @Test
@@ -222,7 +221,7 @@ public abstract class ServerStoreTest {
 
     Iterator<Map.Entry<Long, Chain>> chainIterator = store.iterator();
 
-    assertThat(chainIterator.hasNext(), Is.is(false));
+    assertThat(chainIterator.hasNext(), is(false));
     try {
       chainIterator.next();
       fail("Expected NoSuchElementException");

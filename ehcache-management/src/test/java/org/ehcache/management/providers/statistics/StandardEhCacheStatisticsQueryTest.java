@@ -49,8 +49,8 @@ import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class StandardEhCacheStatisticsQueryTest {
@@ -152,11 +152,11 @@ public class StandardEhCacheStatisticsQueryTest {
 
     ContextualStatistics statisticsContext = counters.getResult(context);
 
-    assertThat(statName + " for " + resources.getResourceTypeSet(), counters.size(), Matchers.is(1));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counters.size(), is(1));
 
     Long counter = statisticsContext.<Long>getLatestSampleValue(statName).get();
 
-    assertThat(statName + " for " + resources.getResourceTypeSet(), counter, Matchers.is(expectedResult));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counter, is(expectedResult));
 
     return counter;
   }

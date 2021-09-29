@@ -62,8 +62,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResources;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 

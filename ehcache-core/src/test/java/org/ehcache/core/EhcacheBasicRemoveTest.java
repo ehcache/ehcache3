@@ -21,12 +21,11 @@ import java.util.EnumSet;
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -144,7 +143,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveTest"));
     ehcache.init();
-    assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
+    assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
   }
 }

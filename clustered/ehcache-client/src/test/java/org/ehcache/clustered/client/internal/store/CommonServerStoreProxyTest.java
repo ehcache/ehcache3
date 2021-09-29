@@ -21,9 +21,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -38,10 +36,9 @@ import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -158,10 +155,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     // there has to be server-side evictions, otherwise this test is useless
     assertThat(evictionCount, greaterThan(0));
     // test that each time the server evicted, all clients got notified with chains
-    assertThat(store1EvictInvalidatedChains.size(), Is.is(evictionCount));
-    assertThat(store2EvictInvalidatedChains.size(), Is.is(evictionCount));
+    assertThat(store1EvictInvalidatedChains.size(), is(evictionCount));
+    assertThat(store2EvictInvalidatedChains.size(), is(evictionCount));
     // test that each time the client mutated, the other client got notified
-    assertThat(store2AppendInvalidatedHashes.size(), Is.is(ITERATIONS));
+    assertThat(store2AppendInvalidatedHashes.size(), is(ITERATIONS));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testInvalidationsContainChains");
     assertThat(store1InvalidatedAll.get(), is(false));
@@ -276,7 +273,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity activeEntity = observableClusterTierService.getServedActiveEntitiesFor(name).get(0);
     long now = System.currentTimeMillis();
     while (System.currentTimeMillis() < now + 5000 && activeEntity.getClientsWaitingForInvalidation().size() != 0);
-    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), Is.is(0));
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
   }
 
   @Test
@@ -459,7 +456,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     Map.Entry<Long, Chain> next = iterator.next();
     assertThat(next.getKey(), is(1L));
     assertThat(next.getValue(), hasPayloads(42L, 43L));
-    assertThat(iterator.hasNext(), CoreMatchers.is(false));
+    assertThat(iterator.hasNext(), is(false));
     try {
       iterator.next();
       fail("Expected NoSuchElementException");
@@ -481,7 +478,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     Matcher<Chain> chainOne = hasPayloads(42L);
     Matcher<Chain> chainTwo = hasPayloads(43L);
 
-    assertThat(iterator.hasNext(), CoreMatchers.is(true));
+    assertThat(iterator.hasNext(), is(true));
 
     Chain next = iterator.next().getValue();
     assertThat(next, either(chainOne).or(chainTwo));

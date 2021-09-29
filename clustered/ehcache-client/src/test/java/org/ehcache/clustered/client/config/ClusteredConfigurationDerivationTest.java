@@ -24,7 +24,7 @@ import java.net.URI;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 public class ClusteredConfigurationDerivationTest {
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";

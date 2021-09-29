@@ -19,7 +19,6 @@ package org.ehcache.clustered.client;
 import org.ehcache.CacheManager;
 import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
+import static org.hamcrest.Matchers.hasItems;
 
 /**
  * Ensures that a non-clustered {@code CacheManager} can be created when clustered classes are

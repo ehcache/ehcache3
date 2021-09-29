@@ -42,8 +42,8 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResource;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class DestroyLoopTest {
 

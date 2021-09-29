@@ -38,10 +38,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static junit.framework.TestCase.fail;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.is;
 
 public class PersistentCacheTest {
 
