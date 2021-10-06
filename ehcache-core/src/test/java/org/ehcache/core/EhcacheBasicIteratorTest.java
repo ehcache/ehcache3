@@ -222,7 +222,6 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeEntry).when(storeIterator).next();
 
     doReturn(storeIterator).when(this.store).iterator();
-    doReturn(valueHolder).when(this.store).get(eq("foo"));
 
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();

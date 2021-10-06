@@ -110,7 +110,7 @@ dependencies {
   testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
 
   xjcClasspathGlobal 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
-  xjcClasspathGlobal 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
+//  xjcClasspathGlobal 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
 
   xjcToolJakarta 'com.sun.xml.bind:jaxb-xjc:3.0.0-M4'
   xjcToolJakarta 'com.sun.xml.bind:jaxb-impl:3.0.0-M4'
@@ -136,11 +136,20 @@ tasks.named('jakartaJar', Jar) {
 
 xjc {
   extraArgs.add '-Xfluent-api'
-  extraArgs.add '-Xannotate'
+//  extraArgs.add '-Xannotate'
 
   // ehcache-multi.xsd references ehcache-core.xsd but we cannot control the order they get presented to XJC in.
   // Turning off strict checks prevents failing on when seeing the resultant schema parsing issues.
   strictCheck = false
+}
+
+compileJava {
+  //no -Werror due to jaxb generated sources
+  options.compilerArgs -= '-Werror'
+}
+compileJakartaJava {
+  //no -Werror due to jaxb generated sources
+  options.compilerArgs -= '-Werror'
 }
 
 xjcGenerateJakarta {

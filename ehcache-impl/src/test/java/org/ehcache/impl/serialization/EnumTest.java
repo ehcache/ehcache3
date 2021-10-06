@@ -79,9 +79,12 @@ public class EnumTest {
     }
   }
 
-  public static enum Foo_W { a, b, c { int i = 5; }, d { float f = 5.0f; } }
-  public static enum Foo_R { a, b { byte b = 3; }, c, d { double d = 6.0; } }
+
+
 }
+
+enum Foo_W { a, b, c { int i = 5; }, d { float f = 5.0f; } }
+enum Foo_R { a, b { byte b = 3; }, c, d { double d = 6.0; } }
 
 enum People { Alice, Bob, Eve }
 enum Dogs { Handel, Cassie { int i = 0; }, Penny { double d = 3.0; } }

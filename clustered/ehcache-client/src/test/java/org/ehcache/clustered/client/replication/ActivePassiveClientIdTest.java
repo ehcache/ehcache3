@@ -39,8 +39,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
+import org.terracotta.common.struct.Measure;
+import org.terracotta.common.struct.MemoryUnit;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
@@ -49,12 +50,12 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
-import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
 
@@ -91,7 +92,7 @@ public class ActivePassiveClientIdTest {
           server.registerClientEntityService(new ClusterTierClientEntityService());
           server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
           server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-          server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+          server.registerExtendedConfiguration(new OffHeapResourcesProvider(singletonMap("test", Measure.of(32, MemoryUnit.MB))));
 
           UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
         }

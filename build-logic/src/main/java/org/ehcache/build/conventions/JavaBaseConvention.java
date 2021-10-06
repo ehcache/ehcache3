@@ -33,8 +33,8 @@ public class JavaBaseConvention implements Plugin<Project> {
     project.getExtensions().getExtraProperties().set("testJava", testJava);
 
     project.getExtensions().configure(JavaPluginExtension.class, java -> {
-      java.setSourceCompatibility(JavaVersion.VERSION_1_8);
-      java.setTargetCompatibility(JavaVersion.VERSION_1_8);
+      java.setSourceCompatibility(JavaVersion.VERSION_11);
+      java.setTargetCompatibility(JavaVersion.VERSION_11);
     });
 
     project.getTasks().withType(Jar.class).configureEach(jar -> {

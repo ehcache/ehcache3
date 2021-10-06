@@ -40,7 +40,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.objectweb.asm.Opcodes.ASM6;
+import static org.objectweb.asm.Opcodes.ASM7;
 import static org.objectweb.asm.Type.getObjectType;
 import static org.objectweb.asm.Type.getType;
 import static org.objectweb.asm.commons.Method.getMethod;
@@ -135,11 +135,11 @@ public class AssertingOffHeapValueHolder<V> extends LazyOffHeapValueHolder<V> {
 
       NavigableMap<Integer, Integer> lockLevels = new TreeMap<>();
 
-      reader.accept(new ClassVisitor(ASM6) {
+      reader.accept(new ClassVisitor(ASM7) {
         @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
           if (ste.getMethodName().equals(name)) {
-            return new InstructionAdapter(ASM6, new MethodVisitor(ASM6) {}) {
+            return new InstructionAdapter(ASM7, new MethodVisitor(ASM7) {}) {
 
               private final Map<Label, Integer> levels = new HashMap<>();
 

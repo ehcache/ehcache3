@@ -36,8 +36,9 @@ import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.common.struct.Measure;
+import org.terracotta.common.struct.MemoryUnit;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
@@ -45,8 +46,8 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.net.URI;
 
+import static java.util.Collections.singletonMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
-import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -71,7 +72,7 @@ public class ClusterStateRepositoryReplicationTest {
         server.registerClientEntityService(new ClusterTierClientEntityService());
         server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-        server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+        server.registerExtendedConfiguration(new OffHeapResourcesProvider(singletonMap("test", Measure.of(32, MemoryUnit.MB))));
 
         UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
       }

@@ -51,6 +51,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
@@ -135,7 +136,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -194,7 +195,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -253,7 +254,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));

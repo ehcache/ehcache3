@@ -61,7 +61,7 @@ tasks.named('closeAndReleaseRepository') {
   enabled = false;
 }
 
-assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
+assert (JavaVersion.current().isJava11Compatible()) : 'The Ehcache 3 build requires Java 11+ to run'
 
 dependencyCheck {
   failBuildOnCVSS = 0

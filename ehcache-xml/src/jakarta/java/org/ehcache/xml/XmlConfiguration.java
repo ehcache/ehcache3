@@ -16,11 +16,11 @@
 
 package org.ehcache.xml;
 
-import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.Builder;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -44,7 +44,7 @@ import static org.ehcache.xml.ConfigurationParser.documentToText;
 import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
 
 /**
- * Exposes {@link Configuration} and {@link CacheConfigurationBuilder} expressed
+ * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
  * in a XML file that obeys the <a href="http://www.ehcache.org/v3" target="_blank">core Ehcache schema</a>.
  * <p>
  * Instances of this class are not thread-safe.
@@ -72,7 +72,7 @@ public class XmlConfiguration implements Configuration {
    * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url)
-      throws XmlConfigurationException {
+    throws XmlConfigurationException {
     this(url, ClassLoading.getDefaultClassLoader());
   }
 
@@ -86,15 +86,15 @@ public class XmlConfiguration implements Configuration {
    * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader)
-      throws XmlConfigurationException {
+    throws XmlConfigurationException {
     this(url, classLoader, Collections.emptyMap());
   }
 
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
-   * let you specify a different {@link ClassLoader} to use for each {@link org.ehcache.Cache} managed by
-   * the {@link org.ehcache.CacheManager} configured using this {@link XmlConfiguration}. Caches with
+   * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
+   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
    * aliases that do not appear in the map will use {@code classLoader} as a default.
    *
    * @param url URL pointing to the XML file's location
@@ -104,7 +104,7 @@ public class XmlConfiguration implements Configuration {
    * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
-      throws XmlConfigurationException {
+    throws XmlConfigurationException {
 
     this.source = requireNonNull(url, "The url can not be null");
     requireNonNull(classLoader, "The classLoader can not be null");
@@ -155,8 +155,8 @@ public class XmlConfiguration implements Configuration {
   /**
    * Constructs an instance of XmlConfiguration from the given XML DOM and using the provided {@code classLoader} to
    * load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will let you specify a
-   * different {@link ClassLoader} to use for each {@link org.ehcache.Cache} managed by the
-   * {@link org.ehcache.CacheManager} configured using this {@link XmlConfiguration}. Caches with
+   * different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by the
+   * {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}. Caches with
    * aliases that do not appear in the map will use {@code classLoader} as a default.
    *
    * @param xml XML Document Object Model
@@ -211,7 +211,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   /**
-   * Return this configuration as an XML {@link Document}.
+   * Return this configuration as an XML {@link org.w3c.dom.Document}.
    *
    * @return configuration XML DOM.
    */
@@ -261,15 +261,13 @@ public class XmlConfiguration implements Configuration {
    *
    * @throws IllegalStateException if the template does not configure resources.
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link Class} couldn't get instantiated
+   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -295,8 +293,8 @@ public class XmlConfiguration implements Configuration {
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link Class} couldn't get instantiated
+   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
+   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
   @SuppressWarnings("unchecked")
@@ -304,7 +302,7 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final ResourcePools resourcePools)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -330,8 +328,8 @@ public class XmlConfiguration implements Configuration {
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link Class} couldn't get instantiated
+   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
+   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
   @SuppressWarnings("unchecked")
@@ -339,7 +337,7 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final Builder<? extends ResourcePools> resourcePoolsBuilder)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    throws ReflectiveOperationException {
     return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
@@ -364,7 +362,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   public interface Template {
-    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
+    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ReflectiveOperationException;
   }
 
   public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {

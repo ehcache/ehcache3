@@ -53,8 +53,8 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
       throw new NullPointerException("LookupTransactionManagerProviderConfiguration cannot be null");
     }
     try {
-      lookup = config.getTransactionManagerLookup().newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      lookup = config.getTransactionManagerLookup().getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException("Could not instantiate lookup class", e);
     }
   }

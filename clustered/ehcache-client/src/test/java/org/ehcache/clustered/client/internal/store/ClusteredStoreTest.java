@@ -230,7 +230,7 @@ public class ClusteredStoreTest {
   @SuppressWarnings("unchecked")
   public void testGetTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
-    long longKey = HashUtils.intHashToLong(new Long(1L).hashCode());
+    long longKey = HashUtils.intHashToLong(Long.valueOf(1L).hashCode());
     when(proxy.get(longKey)).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config,null, null, proxy, null, null, new DefaultStatisticsService());
     assertThat(store.get(1L), nullValue());

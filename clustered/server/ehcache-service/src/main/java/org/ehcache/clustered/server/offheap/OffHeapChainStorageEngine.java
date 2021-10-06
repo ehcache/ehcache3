@@ -214,7 +214,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       detachedContiguousBuffer.reset();
       element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
     } while (element != chain);
-    return (ByteBuffer)detachedContiguousBuffer.flip();
+    return detachedContiguousBuffer.flip();
   }
 
   @Override
@@ -697,7 +697,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     }
 
     private Element element(ByteBuffer attachedBuffer, final long sequence) {
-      final ByteBuffer detachedBuffer = (ByteBuffer) ByteBuffer.allocate(attachedBuffer.remaining()).put(attachedBuffer).flip();
+      final ByteBuffer detachedBuffer = ByteBuffer.allocate(attachedBuffer.remaining()).put(attachedBuffer).flip();
 
       return new SequencedElement() {
 

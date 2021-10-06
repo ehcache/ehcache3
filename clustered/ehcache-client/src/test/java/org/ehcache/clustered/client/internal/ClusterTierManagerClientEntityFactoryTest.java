@@ -19,10 +19,10 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.terracotta.connection.Connection;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,6 +47,7 @@ import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ClusterTierManagerClientEntityFactoryTest {
 
   @Mock
@@ -55,11 +56,6 @@ public class ClusterTierManagerClientEntityFactoryTest {
   private ClusterTierManagerClientEntity entity;
   @Mock
   private Connection connection;
-
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
-  }
 
   @Test
   public void testCreate() throws Exception {
@@ -140,7 +136,6 @@ public class ClusterTierManagerClientEntityFactoryTest {
   @SuppressWarnings("unchecked")
   public void testRetrieveWhenNotExisting() throws Exception {
     when(entityRef.fetchEntity(null)).thenThrow(EntityNotFoundException.class);
-    doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
     when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");

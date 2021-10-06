@@ -42,6 +42,7 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_SMART_NULLS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -103,6 +104,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForUpdate(anyLong(), any(), any())).thenReturn(null);
 
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
@@ -127,6 +130,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForUpdate(anyLong(), any(), any())).thenReturn(null);
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
@@ -153,6 +158,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForUpdate(anyLong(), any(), any())).thenReturn(null);
 
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
@@ -172,21 +179,22 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedAfterRemoveOperations() {
-    TimeSource timeSource = new TestTimeSource();
     ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForUpdate(anyLong(), any(), any())).thenReturn(null);
 
 
     ServerStoreProxy.ChainEntry chainA = getEntryFromOperations(
-      new PutOperation<>(1L, "Replaced", 10L),
-      new PutOperation<>(1L, "SecondAfterReplace", 3L),
-      new RemoveOperation<>(1L, 4L),
-      new PutOperation<>(1L, "FourthAfterReplace", 5L)
+      new PutOperation<>(1L, "Replaced", 1L),
+      new PutOperation<>(1L, "SecondAfterReplace", 2L),
+      new RemoveOperation<>(1L, 3L),
+      new PutOperation<>(1L, "FourthAfterReplace", 4L)
     );
 
-    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chainA, 1L, timeSource.getTimeMillis());
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chainA, 1L, 5L);
 
     InOrder inOrder = inOrder(expiry);
 
@@ -196,29 +204,6 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
 
     verify(chainA).replaceAtHead(any());
-
-    reset(expiry);
-
-    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
-
-
-    ServerStoreProxy.ChainEntry chainB = getEntryFromOperations(
-      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
-      new PutOperation<>(1L, "Second", timeSource.getTimeMillis()),
-      new RemoveOperation<>(1L, timeSource.getTimeMillis()),
-      new PutOperation<>(1L, "Four", timeSource.getTimeMillis())
-    );
-
-    chainResolver.resolve(chainB, 1L, timeSource.getTimeMillis());
-
-    inOrder = inOrder(expiry);
-
-    verify(expiry, times(0)).getExpiryForAccess(anyLong(), any());
-    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
-    inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(), anyString());
-    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
-
-    verify(chainB).replaceAtHead(any());
   }
 
   @Test
@@ -229,6 +214,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForUpdate(anyLong(), any(), any())).thenReturn(null);
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutOperation<>(1L, "Replaced", 10L));
 
@@ -245,6 +232,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(null);
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
@@ -266,6 +255,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), any())).thenReturn(null);
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(ofMillis(2L));
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
@@ -288,6 +279,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
 
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenThrow(new RuntimeException("Test Create Expiry"));
+    when(expiry.getExpiryForAccess(anyLong(), any())).thenReturn(null);
 
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "One", -10L),
