@@ -4,7 +4,6 @@ import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
-import scripts.Utils
 
 /*
  * Copyright Terracotta, Inc.
@@ -30,14 +29,15 @@ class EhDocs implements Plugin<Project> {
 
   @Override
   void apply(Project project) {
-    def utils = new Utils(project.baseVersion, project.logger)
-    def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject +
-                            project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
+    def incomingProjects = project.provider {
+        project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject +
+        project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
+    }
 
     project.javadoc {
       title "$project.archivesBaseName $project.version API"
-      source hashsetOfProjects.javadoc.source
-      classpath = project.files(hashsetOfProjects.javadoc.classpath)
+      source incomingProjects.map { it*.javadoc.source }
+      classpath = project.files(incomingProjects.map { it*.javadoc.classpath })
       project.ext.properties.javadocExclude?.tokenize(',').each {
         exclude it.trim()
       }
@@ -47,8 +47,8 @@ class EhDocs implements Plugin<Project> {
 
       project.task('spiJavadoc', type: Javadoc) {
         title "$project.archivesBaseName $project.version API & SPI"
-        source hashsetOfProjects.javadoc.source
-        classpath = project.files(hashsetOfProjects.javadoc.classpath)
+        source incomingProjects.map { it*.javadoc.source }
+        classpath = project.files(incomingProjects.map { it*.javadoc.classpath })
         exclude '**/internal/**'
         destinationDir = project.file("$project.docsDir/spi-javadoc")
       }
