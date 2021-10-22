@@ -126,8 +126,8 @@ public abstract class ConnectionSource {
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
           public void onNodeRemoval(Cluster cluster, UID stripeUID, Node removedNode) {
-            servers.remove(removedNode.getInternalAddress());
-            removedNode.getPublicAddress().ifPresent(servers::remove);
+            servers.remove(removedNode.getInternalSocketAddress());
+            removedNode.getPublicSocketAddress().ifPresent(servers::remove);
           }
 
           @Override
