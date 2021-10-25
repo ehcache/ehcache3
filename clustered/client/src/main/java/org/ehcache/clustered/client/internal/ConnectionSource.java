@@ -126,17 +126,12 @@ public abstract class ConnectionSource {
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
           public void onNodeRemoval(Cluster cluster, UID stripeUID, Node removedNode) {
-            servers.remove(removedNode.getInternalSocketAddress());
-            removedNode.getPublicSocketAddress().ifPresent(servers::remove);
+            removedNode.getEndpoints().forEach(e -> servers.remove(e.getAddress()));
           }
 
           @Override
           public void onNodeAddition(Cluster cluster, UID addedNodeUID) {
-            InetSocketAddress anAddress = servers.iterator().next(); // a random address from the user provided URI
-            cluster.getEndpoints(anAddress).stream() // get the cluster node endpoints for this user address
-              .filter(endpoint -> endpoint.getNodeUID().equals(addedNodeUID))
-              .map(Node.Endpoint::getAddress)
-              .forEach(servers::add);
+            servers.add(cluster.determineEndpoint(addedNodeUID, servers).get().getAddress());
           }
         });
         return new LeasedConnection() {
