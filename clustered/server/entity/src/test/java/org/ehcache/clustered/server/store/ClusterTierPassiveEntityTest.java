@@ -143,36 +143,6 @@ public class ClusterTierPassiveEntityTest {
   }
 
   @Test
-  public void testPassiveTracksMessageDuplication() throws Exception {
-    ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    passiveEntity.createNew();
-
-    Chain chain = sequencedChainOf(createPayload(1L));
-    TestClientDescriptor client = TestClientDescriptor.newClient();
-
-    long clientId = 3;
-
-    PassiveReplicationMessage message1 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 2L, 1L, clientId);
-    passiveEntity.invokePassive(client.invokeContext(), message1);
-
-    // Should be added
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
-
-    Chain emptyChain = sequencedChainOf();
-    PassiveReplicationMessage message2 = new PassiveReplicationMessage.ChainReplicationMessage(2, emptyChain, 2L, 1L, clientId);
-    passiveEntity.invokePassive(client.invokeContext(), message2);
-
-    // Should not be cleared, message is a duplicate
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
-
-    PassiveReplicationMessage message3 = new PassiveReplicationMessage.ChainReplicationMessage(2, chain, 3L, 1L, clientId);
-    passiveEntity.invokePassive(client.invokeContext(), message3);
-
-    // Should be added as well, different message id
-    assertThat(passiveEntity.getStateService().getStore(passiveEntity.getStoreIdentifier()).get(2).isEmpty(), is(false));
-  }
-
-  @Test
   public void testOversizeReplaceAtHeadMessage() throws Exception {
     ClusterTierPassiveEntity passiveEntity = new ClusterTierPassiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     passiveEntity.createNew();
