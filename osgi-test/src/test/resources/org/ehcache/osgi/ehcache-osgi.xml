@@ -32,7 +32,7 @@
 
 <ehcache:config xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
                 xmlns:ehcache='http://www.ehcache.org/v3'
-                xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../../../xml/src/main/resources/ehcache-core.xsd">
+                xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../../../xml/src/common/schema/ehcache-core.xsd">
   <ehcache:cache alias="bar">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>org.ehcache.osgi.Person</ehcache:value-type>

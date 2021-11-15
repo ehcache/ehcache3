@@ -57,11 +57,11 @@ public class Jsr107OsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
-      gradleBundle("org.ehcache.modules:107"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:api"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
+      gradleBundle("org.ehcache.modules:ehcache-xml"), jaxbConfiguration(),
+      gradleBundle("org.ehcache.modules:ehcache-107"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
       gradleBundle("javax.cache:cache-api"),
 
       gradleBundle("org.terracotta:statistics"),
@@ -76,7 +76,7 @@ public class Jsr107OsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
       gradleBundle("javax.cache:cache-api"),
 
       baseConfiguration("Jsr107OsgiTest", "uberJar")

@@ -42,9 +42,9 @@ public class ByteSizedOnHeapOsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:api"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
 
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
@@ -58,7 +58,7 @@ public class ByteSizedOnHeapOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "uberJar")
     );

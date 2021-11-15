@@ -18,6 +18,7 @@ import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
 import org.asciidoctor.gradle.jvm.AsciidoctorTask
 
 plugins {
+  id 'org.ehcache.build.conventions.base'
   id 'org.asciidoctor.jvm.base'
 }
 

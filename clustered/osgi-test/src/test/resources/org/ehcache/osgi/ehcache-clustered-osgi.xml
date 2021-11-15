@@ -18,7 +18,7 @@
   xmlns='http://www.ehcache.org/v3'
   xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
   xmlns:tc='http://www.ehcache.org/v3/clustered'
-  xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../../../../xml/src/main/resources/ehcache-core.xsd
+  xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../../../../xml/src/common/schema/ehcache-core.xsd
                         http://www.ehcache.org/v3/clustered ../../../../../../../client/src/main/resources/ehcache-clustered-ext.xsd">
 
   <service>

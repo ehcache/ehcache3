@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+plugins {
+ id 'org.ehcache.build.conventions.java-library'
+}
+
 configurations {
+  modularOsgiModule
   osgiModule
   lowerBoundOsgiModule.extendsFrom osgiModule
   testCompileOnly.extendsFrom osgiModule
@@ -35,19 +40,19 @@ dependencies {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 
-  osgiModule project(':api')
-  osgiModule project(':core')
-  osgiModule project(':impl')
-  osgiModule project(':xml')
-  osgiModule project(':107')
-  osgiModule project(':transactions')
+  modularOsgiModule project(':ehcache-api')
+  modularOsgiModule project(':ehcache-core')
+  modularOsgiModule project(':ehcache-impl')
+  modularOsgiModule project(':ehcache-xml')
+  modularOsgiModule project(':ehcache-107')
 
+  osgiModule project(':ehcache-transactions')
   osgiModule "javax.cache:cache-api:$parent.jcacheVersion"
   osgiModule ('org.codehaus.btm:btm:2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 
-  osgiModule project(':dist')
+  osgiModule project(':ehcache')
 
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
@@ -95,9 +100,9 @@ if (testJava.javaVersion.isJava9Compatible()) {
 }
 
 test {
-  dependsOn configurations.osgiModule
+  dependsOn configurations.osgiModule, configurations.modularOsgiModule
   doFirst {
-    configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+    [configurations.modularOsgiModule, configurations.osgiModule]*.resolvedConfiguration*.resolvedArtifacts*.forEach({
       systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
     })
   }
@@ -114,11 +119,11 @@ dependencies {
   lowerBoundOsgiModule 'javax.xml.bind:jaxb-api:2.2.9'
 }
 
-tasks.register('lowerBoundTest', Test) {
+tasks.register('lowerBoundTest', Test) { test ->
   group = JavaBasePlugin.VERIFICATION_GROUP
-  dependsOn configurations.lowerBoundOsgiModule
+  dependsOn configurations.lowerBoundOsgiModule, configurations.modularOsgiModule
   doFirst {
-    configurations.lowerBoundOsgiModule.resolvedConfiguration.resolvedArtifacts.forEach {
+    [configurations.modularOsgiModule, configurations.lowerBoundOsgiModule]*.resolvedConfiguration*.resolvedArtifacts*.forEach {
       systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
     }
   }

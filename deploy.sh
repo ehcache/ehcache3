@@ -169,8 +169,8 @@ fi
 
 if [ $is_major ]; then
   echo "Adding XSDs since this is a major version"
-  cp xml/src/main/resources/ehcache-core.xsd $site_dir/schema/ehcache-core.xsd
-  cp xml/src/main/resources/ehcache-core.xsd $site_dir/schema/ehcache-core-${major_version}.xsd
+  cp xml/src/common/schema/ehcache-core.xsd $site_dir/schema/ehcache-core.xsd
+  cp xml/src/common/schema/ehcache-core.xsd $site_dir/schema/ehcache-core-${major_version}.xsd
   cp 107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext.xsd
   cp 107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext-${major_version}.xsd
   cp clustered/client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext.xsd

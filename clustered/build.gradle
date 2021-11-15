@@ -1,3 +1,0 @@
-subprojects {
-  group = 'org.ehcache.modules.clustered'
-}

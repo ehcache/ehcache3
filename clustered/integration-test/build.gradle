@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.conventions.java'
+}
+
 configurations {
   serverLibs
 }
 
 dependencies {
-  testImplementation project(':clustered:client')
-  testImplementation project(':clustered:common')
-  testImplementation project(':impl')
-  testImplementation project(':xml')
-  testImplementation project(':107')
+  testImplementation project(':clustered:ehcache-client')
+  testImplementation project(':clustered:ehcache-common')
+  testImplementation project(':ehcache-impl')
+  testImplementation project(':ehcache-xml')
+  testImplementation project(':ehcache-107')
   testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
   testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
@@ -34,28 +38,24 @@ dependencies {
     exclude group:'junit', module:'junit'
   }
 
-  testImplementation project(':management')
+  testImplementation project(':ehcache-management')
   testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-
-  testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
-  testRuntimeOnly project(':clustered:clustered-dist')
-
-  testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
-  testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
+  testImplementation "org.terracotta:galvan-platform-support:$terracottaPlatformVersion"
+  testImplementation "javax.cache:cache-api:$jcacheVersion"
 }
 
 task unzipKit(type: Copy) {
-  dependsOn project(':clustered:clustered-dist').distZip
-  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
+  dependsOn project(':clustered:ehcache-clustered').distZip
+  from zipTree(project(':clustered:ehcache-clustered').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
 task copyServerLibs(type: Copy) {
   dependsOn unzipKit
   from project.configurations.serverLibs
-  into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
+  into "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
 test {
@@ -64,7 +64,7 @@ test {
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
   //If this directory does not exist, tests will fail with a cryptic assert failure
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }

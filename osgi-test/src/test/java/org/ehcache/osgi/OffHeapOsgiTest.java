@@ -49,9 +49,9 @@ public class OffHeapOsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:api"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:impl"),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
 
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
@@ -65,7 +65,7 @@ public class OffHeapOsgiTest {
   @Configuration
   public Option[] uberJarWithOsgiServiceLoading() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
 
       baseConfiguration("OffHeapOsgiTest", "uberJarWithOsgiServiceLoading")
     );
@@ -76,7 +76,7 @@ public class OffHeapOsgiTest {
     return options(
       frameworkProperty(OSGI_LOADING).value("false"),
 
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
 
       baseConfiguration("OffHeapOsgiTest", "uberJarWithJdkServiceLoading")
     );
