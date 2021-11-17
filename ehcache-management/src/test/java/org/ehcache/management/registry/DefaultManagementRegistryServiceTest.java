@@ -119,7 +119,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
@@ -149,7 +149,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_NO_STATS_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
@@ -181,7 +181,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(CACHE_DESCRIPTORS);
       allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
@@ -215,7 +215,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
