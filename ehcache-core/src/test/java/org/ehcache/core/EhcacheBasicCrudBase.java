@@ -31,9 +31,9 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Before;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.statistics.OperationStatistic;
@@ -66,6 +66,7 @@ import static org.mockito.ArgumentMatchers.any;
  *
  * @author Clifford W. Johnson
  */
+@RunWith(MockitoJUnitRunner.class)
 public abstract class EhcacheBasicCrudBase {
 
   protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION = new TestCacheConfig<>(String.class, String.class);
@@ -76,11 +77,6 @@ public abstract class EhcacheBasicCrudBase {
   protected CacheEventDispatcher<String, String> cacheEventDispatcher;
   @Mock
   protected ResilienceStrategy<String, String> resilienceStrategy;
-
-  @Before
-  public void initMocks() {
-    MockitoAnnotations.initMocks(this);
-  }
 
   /**
    * Validates expected {@link org.terracotta.statistics.OperationStatistic} updates for the

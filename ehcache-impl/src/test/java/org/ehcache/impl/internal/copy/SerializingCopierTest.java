@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,8 +34,7 @@ public class SerializingCopierTest {
 
   @Test
   public void testCopy() throws Exception {
-    @SuppressWarnings("unchecked")
-    Serializer<String> serializer = mock(Serializer.class);
+    Serializer<String> serializer = uncheckedGenericMock(Serializer.class);
     String in = new String("foo");
     ByteBuffer buff = mock(ByteBuffer.class);
     when(serializer.serialize(in)).thenReturn(buff);

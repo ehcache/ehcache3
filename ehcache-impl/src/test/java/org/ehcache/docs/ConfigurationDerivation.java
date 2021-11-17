@@ -31,8 +31,8 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.test.MockitoUtil;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -69,7 +69,7 @@ public class ConfigurationDerivation {
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)))
       .build();
 
-    ClassLoader classLoader = MockitoUtil.mock(ClassLoader.class);
+    ClassLoader classLoader = Mockito.mock(ClassLoader.class);
 
     // tag::customClassLoader[]
     Configuration withClassLoader = configuration.derive()

@@ -51,6 +51,7 @@ import java.util.function.Supplier;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -63,7 +64,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -496,8 +496,7 @@ public abstract class AbstractOffHeapStoreTest {
   private void performEvictionTest(TestTimeSource timeSource, ExpiryPolicy<Object, Object> expiry, EvictionAdvisor<String, byte[]> evictionAdvisor) throws StoreAccessException {
     AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionAdvisor);
     try {
-      @SuppressWarnings("unchecked")
-      StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
+      StoreEventListener<String, byte[]> listener = uncheckedGenericMock(StoreEventListener.class);
       offHeapStore.getStoreEventSource().addEventListener(listener);
 
       byte[] value = getBytes(MemoryUnit.KB.toBytes(200));

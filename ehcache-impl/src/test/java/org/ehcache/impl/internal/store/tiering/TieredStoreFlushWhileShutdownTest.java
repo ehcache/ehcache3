@@ -40,15 +40,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
-import org.mockito.Mockito;
 
 import java.io.File;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.ehcache.test.MockitoUtil.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TieredStoreFlushWhileShutdownTest {
@@ -119,7 +119,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
     tieredStoreProvider.start(serviceLocator);
 
-    CacheConfiguration<Number, String> cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Number, String> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
@@ -170,7 +170,7 @@ public class TieredStoreFlushWhileShutdownTest {
     dependencySet.with(diskResourceService);
     dependencySet.with(new OnHeapStore.Provider());
     dependencySet.with(new OffHeapDiskStore.Provider());
-    dependencySet.with(Mockito.mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
+    dependencySet.with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
     return dependencySet.build();
   }
 }

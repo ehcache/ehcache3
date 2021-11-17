@@ -30,7 +30,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
-import static org.ehcache.test.MockitoUtil.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -49,7 +49,7 @@ public class FudgingInvocationScopedEventSinkTest {
   @Before
   public void setUp() {
     Set<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
-    listener = mock(StoreEventListener.class);
+    listener = uncheckedGenericMock(StoreEventListener.class);
     storeEventListeners.add(listener);
     @SuppressWarnings({"unchecked", "rawtypes"})
     BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };

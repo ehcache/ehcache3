@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -143,7 +143,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
@@ -163,7 +163,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
   }
@@ -183,7 +183,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("newValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }

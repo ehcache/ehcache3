@@ -48,7 +48,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class ClusteredLoaderWriterStoreTest {
@@ -118,7 +118,7 @@ public class ClusteredLoaderWriterStoreTest {
             timeSource, loaderWriter, new DefaultStatisticsService());
     assertThat(store.get(1L).get(), equalTo("one"));
     verify(loaderWriter, times(0)).load(anyLong());
-    verifyZeroInteractions(loaderWriter);
+    verifyNoInteractions(loaderWriter);
   }
 
   @Test

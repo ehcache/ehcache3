@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,8 +42,7 @@ public class DefaultDiskResourceServiceTest {
   public static abstract class AbstractDefaultDiskResourceServiceTest {
 
     protected DefaultDiskResourceService service = new DefaultDiskResourceService();
-    @SuppressWarnings("unchecked")
-    protected ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    protected ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
 
     @Before
     public void setup() {

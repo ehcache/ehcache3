@@ -51,11 +51,11 @@ import java.util.Arrays;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -494,8 +494,7 @@ public class ByteAccountingTest {
   @Test
   public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);
 
     store.put(KEY, VALUE);
