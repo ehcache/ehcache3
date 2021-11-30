@@ -38,6 +38,7 @@ import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.DefaultManagementRegistry;
 
@@ -62,7 +63,6 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   }
 
   public DefaultManagementRegistryService(ManagementRegistryServiceConfiguration configuration) {
-    super(null); // context container creation is overriden here
     this.configuration = configuration == null ? new DefaultManagementRegistryConfiguration() : configuration;
   }
 
@@ -161,4 +161,9 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
     return new ContextContainer("cacheManagerName", getConfiguration().getContext().get("cacheManagerName"), cacheCtx);
   }
 
+  @Override
+  public Context getContext() {
+    // contains instanceId + cacheManagerName keys
+    return configuration.getContext();
+  }
 }

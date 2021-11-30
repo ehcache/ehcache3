@@ -101,10 +101,13 @@ public class EhcacheStatisticsProviderTest {
 
     CapabilityContext capabilityContext = ehcacheStatisticsProvider.getCapabilityContext();
 
-    assertThat(capabilityContext.getAttributes().size(), is(2));
+    assertThat(capabilityContext.getAttributes().size(), is(3));
 
     Iterator<CapabilityContext.Attribute> iterator = capabilityContext.getAttributes().iterator();
     CapabilityContext.Attribute next = iterator.next();
+    assertThat(next.getName(), equalTo("instanceId"));
+    assertThat(next.isRequired(), is(true));
+    next = iterator.next();
     assertThat(next.getName(), equalTo("cacheManagerName"));
     assertThat(next.isRequired(), is(true));
     next = iterator.next();

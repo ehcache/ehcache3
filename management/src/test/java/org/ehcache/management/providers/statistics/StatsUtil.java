@@ -31,35 +31,7 @@ public class StatsUtil {
   public static Context createContext(ManagementRegistryService managementRegistry) {
     ContextContainer cacheManagerCtx = managementRegistry.getContextContainer();
     ContextContainer firstCacheCtx = cacheManagerCtx.getSubContexts().iterator().next();
-    return Context.empty()
-      .with(cacheManagerCtx.getName(), cacheManagerCtx.getValue())
+    return managementRegistry.getConfiguration().getContext()
       .with(firstCacheCtx.getName(), firstCacheCtx.getValue());
   }
-
-  /*
-  NOTE:  When using this method in other unit tests, make sure to declare a timeout as it is possible to get an infinite loop.
-         This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
-         change, the stats value isn't accessible or if you enter the wrong expectedResult.
-  */
-  public static long getAndAssertExpectedValueFromCounter(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
-
-    StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
-      .queryStatistics(singletonList(statName))
-      .on(context)
-      .build();
-
-    ResultSet<ContextualStatistics> counters = query.execute();
-
-    ContextualStatistics statisticsContext = counters.getResult(context);
-
-    assertThat(counters.size(), Matchers.is(1));
-
-    Number counter = statisticsContext.<Number>getLatestSampleValue(statName).get();
-    long value = counter.longValue();
-
-    assertThat(value, Matchers.is(expectedResult));
-
-    return value;
-  }
-
 }

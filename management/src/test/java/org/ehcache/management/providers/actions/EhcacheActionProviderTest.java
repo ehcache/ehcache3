@@ -45,10 +45,11 @@ import static org.mockito.Mockito.when;
 
 public class EhcacheActionProviderTest {
 
-  Context cmContext = Context.create("cacheManagerName", "myCacheManagerName");
-  Context cmContext_0 = Context.create("cacheManagerName", "cache-manager-0");
-  ManagementRegistryServiceConfiguration cmConfig = new DefaultManagementRegistryConfiguration().setContext(cmContext);
-  ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration().setContext(cmContext_0);
+  ManagementRegistryServiceConfiguration cmConfig = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManagerName");
+  ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("cache-manager-0");
+
+  Context cmContext = cmConfig.getContext();
+  Context cmContext_0 = cmConfig_0.getContext();
 
   @Test
   @SuppressWarnings("unchecked")
@@ -77,10 +78,13 @@ public class EhcacheActionProviderTest {
 
     CapabilityContext capabilityContext = ehcacheActionProvider.getCapabilityContext();
 
-    assertThat(capabilityContext.getAttributes().size(), is(2));
+    assertThat(capabilityContext.getAttributes().size(), is(3));
 
     Iterator<CapabilityContext.Attribute> iterator = capabilityContext.getAttributes().iterator();
     CapabilityContext.Attribute next = iterator.next();
+    assertThat(next.getName(), equalTo("instanceId"));
+    assertThat(next.isRequired(), is(true));
+    next = iterator.next();
     assertThat(next.getName(), equalTo("cacheManagerName"));
     assertThat(next.isRequired(), is(true));
     next = iterator.next();

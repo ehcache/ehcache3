@@ -101,7 +101,7 @@ public class XmlConfigTest {
 
       assertThat(registryConfiguration.getCacheManagerAlias(), equalTo(expectedConfiguration.getCacheManagerAlias()));
       assertThat(registryConfiguration.getCollectorExecutorAlias(), equalTo(expectedConfiguration.getCollectorExecutorAlias()));
-      assertThat(registryConfiguration.getContext(), equalTo(expectedConfiguration.getContext()));
+      assertThat(registryConfiguration.getContext().without("instanceId"), equalTo(expectedConfiguration.getContext().without("instanceId")));
       assertThat(registryConfiguration.getTags(), equalTo(expectedConfiguration.getTags()));
 
     } finally {

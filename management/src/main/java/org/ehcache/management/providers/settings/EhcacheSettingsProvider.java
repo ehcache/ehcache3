@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 @Named("SettingsCapability")
-@RequiredContext({@Named("cacheManagerName")})
+@RequiredContext({@Named("instanceId"), @Named("cacheManagerName")})
 public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
   private final ManagementRegistryServiceConfiguration configuration;

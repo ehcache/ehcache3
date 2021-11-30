@@ -126,14 +126,17 @@ public class ManagementTest {
       assertThat(capabilityDescriptions.isEmpty(), Matchers.is(false));
       CapabilityContext capabilityContext = capability.getCapabilityContext();
       Collection<CapabilityContext.Attribute> attributes = capabilityContext.getAttributes(); // <4>
-      assertThat(attributes.size(), Matchers.is(2));
+      assertThat(attributes.size(), Matchers.is(3));
       Iterator<CapabilityContext.Attribute> iterator = attributes.iterator();
       CapabilityContext.Attribute attribute1 = iterator.next();
-      assertThat(attribute1.getName(), Matchers.equalTo("cacheManagerName"));  // <5>
+      assertThat(attribute1.getName(), Matchers.equalTo("instanceId"));  // <5>
       assertThat(attribute1.isRequired(), Matchers.is(true));
       CapabilityContext.Attribute attribute2 = iterator.next();
-      assertThat(attribute2.getName(), Matchers.equalTo("cacheName")); // <6>
+      assertThat(attribute2.getName(), Matchers.equalTo("cacheManagerName"));  // <5>
       assertThat(attribute2.isRequired(), Matchers.is(true));
+      CapabilityContext.Attribute attribute3 = iterator.next();
+      assertThat(attribute3.getName(), Matchers.equalTo("cacheName")); // <6>
+      assertThat(attribute3.isRequired(), Matchers.is(true));
 
       ContextContainer contextContainer = managementRegistry.getContextContainer();  // <7>
       assertThat(contextContainer.getName(), Matchers.equalTo("cacheManagerName"));  // <8>

@@ -24,7 +24,7 @@ import java.util.Objects;
 /**
  * Class representing an association between an object and an alias, name, identifier
  */
-@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
+@RequiredContext({@Named("instanceId"), @Named("cacheManagerName"), @Named("cacheName")})
 public final class CacheBinding {
 
   private final String alias;

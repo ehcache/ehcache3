@@ -246,8 +246,8 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(capabilities.get(0).getDescriptors()).hasSize(4);
       assertThat(capabilities.get(3).getDescriptors()).hasSize(ONHEAP_DESCRIPTORS.size() + CACHE_DESCRIPTORS.size());
 
-      assertThat(capabilities.get(0).getCapabilityContext().getAttributes()).hasSize(2);
-      assertThat(capabilities.get(3).getCapabilityContext().getAttributes()).hasSize(2);
+      assertThat(capabilities.get(0).getCapabilityContext().getAttributes()).hasSize(3);
+      assertThat(capabilities.get(3).getCapabilityContext().getAttributes()).hasSize(3);
     }
   }
 
@@ -266,12 +266,10 @@ public class DefaultManagementRegistryServiceTest {
         .using(managementRegistry)
         .build(true)) {
 
-      Context context1 = Context.empty()
-        .with("cacheManagerName", "myCM")
+      Context context1 = managementRegistry.getConfiguration().getContext()
         .with("cacheName", "aCache1");
 
-      Context context2 = Context.empty()
-        .with("cacheManagerName", "myCM")
+      Context context2 = managementRegistry.getConfiguration().getContext()
         .with("cacheName", "aCache2");
 
       Cache<Long, String> cache1 = cacheManager.getCache("aCache1", Long.class, String.class);
@@ -355,8 +353,7 @@ public class DefaultManagementRegistryServiceTest {
         .using(managementRegistry)
         .build(true)) {
 
-      Context context = Context.empty()
-        .with("cacheManagerName", "myCM")
+      Context context = managementRegistry.getConfiguration().getContext()
         .with("cacheName", "aCache1");
 
       cacheManager.getCache("aCache1", Long.class, String.class).put(1L, "1");
@@ -390,9 +387,8 @@ public class DefaultManagementRegistryServiceTest {
           .using(managementRegistry)
           .build(true)) {
 
-      Context inexisting = Context.empty()
-          .with("cacheManagerName", "myCM2")
-          .with("cacheName", "aCache2");
+      Context inexisting = managementRegistry.getConfiguration().getContext()
+          .with("cacheName", "aCache3");
 
       ResultSet<? extends ContextualReturn<?>> results = managementRegistry.withCapability("ActionsCapability")
           .call("clear")

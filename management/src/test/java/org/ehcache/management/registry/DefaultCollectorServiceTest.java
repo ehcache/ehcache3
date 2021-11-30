@@ -95,7 +95,7 @@ public class DefaultCollectorServiceTest {
         .call("startStatisticCollector",
           new Parameter(1L, long.class.getName()),
           new Parameter(TimeUnit.SECONDS, TimeUnit.class.getName()))
-        .on(Context.create("cacheManagerName", "my-cm-1"))
+        .on(managementRegistry.getConfiguration().getContext())
         .build()
         .execute()
         .getSingleResult();

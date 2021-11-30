@@ -20,7 +20,7 @@ import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.registry.collect.StatisticCollectorProvider;
 
-@RequiredContext(@Named("cacheManagerName"))
+@RequiredContext({@Named("instanceId"), @Named("cacheManagerName")})
 public class EhcacheStatisticCollectorProvider extends StatisticCollectorProvider {
   public EhcacheStatisticCollectorProvider(ManagementRegistryServiceConfiguration configuration) {
     super(configuration.getContext());

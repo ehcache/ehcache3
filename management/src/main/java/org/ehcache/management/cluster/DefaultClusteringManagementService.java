@@ -36,6 +36,7 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.management.entity.nms.agent.client.DefaultNmsAgentService;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentEntity;
 import org.terracotta.management.entity.nms.agent.client.NmsAgentService;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
@@ -144,7 +145,9 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   }
 
   private NmsAgentService createNmsAgentService() {
-    DefaultNmsAgentService nmsAgentService = new DefaultNmsAgentService(() -> {
+    // root context will contain: instanceId=... and cacheManagerName=...
+    final Context rootContext = managementRegistryService.getConfiguration().getContext();
+    DefaultNmsAgentService nmsAgentService = new DefaultNmsAgentService(rootContext, () -> {
       try {
         return nmsAgentFactory.retrieve();
       } catch (EntityNotFoundException e) {
