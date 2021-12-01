@@ -34,10 +34,12 @@ import java.util.Collections;
 class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvider<ServerStoreBinding> {
 
   private final String clusterTierManagerIdentifier;
+  private final String defaultServerResource;
 
-  ServerStoreSettingsManagementProvider(String clusterTierManagerIdentifier) {
+  ServerStoreSettingsManagementProvider(String clusterTierManagerIdentifier, String defaultServerResource) {
     super(ServerStoreBinding.class);
     this.clusterTierManagerIdentifier = clusterTierManagerIdentifier;
+    this.defaultServerResource = defaultServerResource;
   }
 
   @Override
@@ -46,12 +48,16 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
     descriptors.add(new Settings()
       .set("type", getCapabilityName())
       .set("clusterTierManager", clusterTierManagerIdentifier)
-      .set("time", System.currentTimeMillis()));
+      .set("time", System.currentTimeMillis())
+      .set("defaultServerResource", defaultServerResource));
     return descriptors;
   }
 
   @Override
   protected ExposedServerStoreBinding internalWrap(Context context, ServerStoreBinding managedObject) {
+    if (defaultServerResource != null) {
+      context = context.with("defaultServerResource", defaultServerResource);
+    }
     return new ExposedServerStoreBinding(context, managedObject);
   }
 
@@ -84,7 +90,8 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
           .set("dataVitalMemoryAtTime", internals.getDataVitalMemory());
       }
       if (poolAllocation instanceof PoolAllocation.DedicatedPoolAllocation) {
-        settings.set("resourcePoolDedicatedResourceName", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getResourceName());
+        String resourceName = ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getResourceName();
+        settings.set("resourcePoolDedicatedResourceName", resourceName != null ? resourceName : settings.getString("defaultServerResource"));
         settings.set("resourcePoolDedicatedSize", ((PoolAllocation.DedicatedPoolAllocation) poolAllocation).getSize());
       } else if (poolAllocation instanceof PoolAllocation.SharedPoolAllocation) {
         settings.set("resourcePoolSharedPoolName", ((PoolAllocation.SharedPoolAllocation) poolAllocation).getResourcePoolName());
