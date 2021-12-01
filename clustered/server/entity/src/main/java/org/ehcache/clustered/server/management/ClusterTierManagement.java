@@ -53,7 +53,7 @@ public class ClusterTierManagement implements Closeable {
 
     if (managementRegistry != null) {
       // expose settings about server stores
-      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider(clusterTierManagerIdentifier));
+      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider(clusterTierManagerIdentifier, ehcacheStateService.getDefaultServerResource()));
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
