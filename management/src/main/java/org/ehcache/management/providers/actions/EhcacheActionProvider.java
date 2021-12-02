@@ -23,7 +23,7 @@ import org.terracotta.management.registry.action.AbstractActionManagementProvide
 import org.terracotta.management.registry.ExposedObject;
 
 @Named("ActionsCapability")
-@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
+@RequiredContext({@Named("instanceId"), @Named("cacheManagerName"), @Named("cacheName")})
 public class EhcacheActionProvider extends AbstractActionManagementProvider<CacheBinding> {
 
   private final ManagementRegistryServiceConfiguration registryServiceConfiguration;

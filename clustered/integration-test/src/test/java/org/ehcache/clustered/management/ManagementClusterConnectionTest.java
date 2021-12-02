@@ -30,7 +30,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
@@ -54,7 +53,6 @@ import static org.ehcache.testing.StandardCluster.offheapResources;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
@@ -179,12 +177,6 @@ public class ManagementClusterConnectionTest {
   private String getInstanceId() throws Exception {
     return CLUSTER.get().getNmsService().readTopology().clientStream()
       .filter(client -> client.getName().startsWith("Ehcache:") && client.isManageable())
-      .findFirst().get()
-      .getManagementRegistry().get()
-      .getCapability("SettingsCapability").get()
-      .getDescriptors(Settings.class).stream()
-      .filter(settings -> settings.containsKey("instanceId"))
-      .map(settings -> settings.getString("instanceId"))
-      .findFirst().get();
+      .findFirst().get().getContext().get("instanceId");
   }
 }

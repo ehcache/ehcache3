@@ -158,15 +158,9 @@ public class DefaultSharedManagementServiceTest {
     String statisticName = "Cache:MissCount";
 
     List<Context> contextList = Arrays.asList(
-        Context.empty()
-            .with("cacheManagerName", "myCM1")
-            .with("cacheName", "aCache1"),
-        Context.empty()
-            .with("cacheManagerName", "myCM2")
-            .with("cacheName", "aCache2"),
-        Context.empty()
-            .with("cacheManagerName", "myCM2")
-            .with("cacheName", "aCache3"));
+        config1.getContext().with("cacheName", "aCache1"),
+        config2.getContext().with("cacheName", "aCache2"),
+        config2.getContext().with("cacheName", "aCache3"));
 
     cacheManager1.getCache("aCache1", Long.class, String.class).get(1L);
     cacheManager2.getCache("aCache2", Long.class, String.class).get(2L);
@@ -210,15 +204,9 @@ public class DefaultSharedManagementServiceTest {
   @Test
   public void testCall() throws ExecutionException {
     List<Context> contextList = Arrays.asList(
-        Context.empty()
-            .with("cacheManagerName", "myCM1")
-            .with("cacheName", "aCache1"),
-        Context.empty()
-            .with("cacheManagerName", "myCM1")
-            .with("cacheName", "aCache4"),
-        Context.empty()
-            .with("cacheManagerName", "myCM2")
-            .with("cacheName", "aCache2"),
+        config1.getContext().with("cacheName", "aCache1"),
+        config1.getContext().with("cacheName", "aCache4"),
+        config2.getContext().with("cacheName", "aCache2"),
         Context.empty()
             .with("cacheManagerName", "myCM55")
             .with("cacheName", "aCache55"));

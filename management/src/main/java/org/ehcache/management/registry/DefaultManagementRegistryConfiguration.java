@@ -32,7 +32,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   private final Collection<String> tags = new TreeSet<>();
   private final String instanceId = UUID.randomUUID().toString();
-  private Context context = Context.empty();
+  private Context context = Context.empty().with("instanceId", instanceId);
   private String collectorExecutorAlias = "collectorExecutor";
   private LatencyHistogramConfiguration latencyHistogramConfiguration = LatencyHistogramConfiguration.DEFAULT;
 
@@ -47,6 +47,9 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   public DefaultManagementRegistryConfiguration setContext(Context context) {
     if (!this.context.contains("cacheManagerName") && !context.contains("cacheManagerName")) {
       throw new IllegalArgumentException("'cacheManagerName' is missing from context");
+    }
+    if (context.contains("instanceId") && !Objects.equals(context.get("instanceId"), instanceId)) {
+      throw new IllegalArgumentException("Cannot override instanceId in context " + this.context + " by " + context);
     }
     this.context = this.context.with(context);
     return this;
