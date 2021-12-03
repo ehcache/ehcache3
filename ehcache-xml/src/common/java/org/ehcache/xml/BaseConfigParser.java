@@ -54,7 +54,7 @@ public abstract class BaseConfigParser<T> {
 
   private Document createDocument() {
     try {
-      return DomUtil.createDocumentRoot(getXmlSchema());
+      return XmlUtil.createDocumentRoot(getXmlSchema());
     } catch (SAXException | ParserConfigurationException | IOException e) {
       throw new XmlConfigurationException(e);
     }

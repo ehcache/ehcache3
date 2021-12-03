@@ -62,7 +62,7 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   @Override
   public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service, ?> serviceCreationConfiguration) {
     try {
-      Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
+      Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
       return document.createElementNS(NAMESPACE.toString(), "bar:bar");
     } catch (SAXException | ParserConfigurationException | IOException e) {
       throw new XmlConfigurationException(e);

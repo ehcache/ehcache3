@@ -21,44 +21,38 @@ import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CoreServiceCreationConfigurationParser;
-import org.ehcache.xml.model.ConfigType;
 
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationConfiguration<?, ?>> implements CoreServiceCreationConfigurationParser {
+class SimpleCoreServiceCreationConfigurationParser<CONFIG, OUT, U extends ServiceCreationConfiguration<?, ?>> implements CoreServiceCreationConfigurationParser<CONFIG> {
 
   private final Class<U> configType;
 
-  private final Function<ConfigType, T> getter;
-  private final BiConsumer<ConfigType, T> setter;
+  private final Function<CONFIG, OUT> getter;
+  private final BiConsumer<CONFIG, OUT> setter;
 
-  private final Parser<T, U> parser;
-  private final Function<U, T> unparser;
+  private final Parser<OUT, U> parser;
+  private final Function<U, OUT> unparser;
 
-  private final BinaryOperator<T> merger;
+  private final BinaryOperator<OUT> merger;
 
   SimpleCoreServiceCreationConfigurationParser(Class<U> configType,
-                                               Function<ConfigType, T> getter, BiConsumer<ConfigType, T> setter,
-                                               Function<T, U> parser, Function<U, T> unparser) {
+                                               Function<CONFIG, OUT> getter, BiConsumer<CONFIG, OUT> setter,
+                                               Function<OUT, U> parser, Function<U, OUT> unparser) {
     this(configType, getter, setter, (config, loader) -> parser.apply(config), unparser, (a, b) -> { throw new IllegalStateException(); });
   }
 
-  SimpleCoreServiceCreationConfigurationParser(Class<U> configType, Function<ConfigType, T> getter, BiConsumer<ConfigType, T> setter,
-                                               Function<T, U> parser, Function<U, T> unparser, BinaryOperator<T> merger) {
-    this(configType, getter, setter, (config, loader) -> parser.apply(config), unparser, merger);
-  }
-
   SimpleCoreServiceCreationConfigurationParser(Class<U> configType,
-                                               Function<ConfigType, T> getter, BiConsumer<ConfigType, T> setter,
-                                               Parser<T, U> parser, Function<U, T> unparser) {
+                                               Function<CONFIG, OUT> getter, BiConsumer<CONFIG, OUT> setter,
+                                               Parser<OUT, U> parser, Function<U, OUT> unparser) {
     this(configType, getter, setter, parser, unparser, (a, b) -> { throw new IllegalStateException(); });
   }
 
   SimpleCoreServiceCreationConfigurationParser(Class<U> configType,
-                                               Function<ConfigType, T> getter, BiConsumer<ConfigType, T> setter,
-                                               Parser<T, U> parser, Function<U, T> unparser, BinaryOperator<T> merger) {
+                                               Function<CONFIG, OUT> getter, BiConsumer<CONFIG, OUT> setter,
+                                               Parser<OUT, U> parser, Function<U, OUT> unparser, BinaryOperator<OUT> merger) {
     this.configType = configType;
     this.getter = getter;
     this.setter = setter;
@@ -68,8 +62,8 @@ class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationC
   }
 
   @Override
-  public final FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, FluentConfigurationBuilder<?> builder) throws ClassNotFoundException {
-    T config = getter.apply(root);
+  public final FluentConfigurationBuilder<?> parseServiceCreationConfiguration(CONFIG root, ClassLoader classLoader, FluentConfigurationBuilder<?> builder) throws ClassNotFoundException {
+    OUT config = getter.apply(root);
     if (config == null) {
       return builder;
     } else {
@@ -78,12 +72,12 @@ class SimpleCoreServiceCreationConfigurationParser<T, U extends ServiceCreationC
   }
 
   @Override
-  public ConfigType unparseServiceCreationConfiguration(Configuration configuration, ConfigType configType) {
+  public CONFIG unparseServiceCreationConfiguration(Configuration configuration, CONFIG configType) {
     U config = ServiceUtils.findSingletonAmongst(this.configType, configuration.getServiceCreationConfigurations());
     if (config == null) {
       return configType;
     } else {
-      T foo = getter.apply(configType);
+      OUT foo = getter.apply(configType);
       if (foo == null) {
         setter.accept(configType, unparser.apply(config));
       } else {

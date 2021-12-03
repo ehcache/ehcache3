@@ -1,7 +1,7 @@
 = XML Configuration
 
 Let's you configure a `CacheManager` at creation time, using a XML file, according to
-link:src/main/resources/ehcache-core.xsd[this schema definition], namely:
+link:src/common/schema/ehcache-core.xsd[this schema definition], namely:
 
 == `<config>` root element
 

@@ -71,7 +71,7 @@ include::{sourcedir39}/ehcache-107/src/test/resources/org/ehcache/docs/public-xs
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir39}/ehcache-xml/src/main/schema/ehcache-core.xsd[lines=18..-1]
+include::{sourcedir39}/ehcache-xml/src/common/schema/ehcache-core.xsd[lines=18..-1]
 ----
 
 [[jsr-107-extension]]
