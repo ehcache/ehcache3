@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import scripts.*
-import org.gradle.internal.jvm.Jvm
 
 plugins {
   // This adds tasks to auto close or release nexus staging repos
@@ -22,14 +20,14 @@ plugins {
   id 'io.codearte.nexus-staging'
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck'
-  // Declare spotbugs at the top
-  id 'com.github.spotbugs' apply false
-  // Declare bnd at the top
-  id 'biz.aQute.bnd.builder' apply false
 }
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
+}
+
+allprojects {
+  version = findProperty('overrideVersion') ?: ehcacheVersion
 }
 
 if (deployUrl.contains('nexus')) {
@@ -52,238 +50,25 @@ if (deployUrl.contains('nexus')) {
   }
 }
 
-project.nexusStaging {
+nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
   logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
-// Disable automatic promotion for added safety
-closeAndReleaseRepository.enabled = false
-
-
-ext {
-
-  baseVersion = findProperty('overrideVersion') ?: ehcacheVersion
-
-  utils = new Utils(baseVersion, logger)
-  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
+tasks.named('closeAndReleaseRepository') {
+  // Disable automatic promotion for added safety
+  enabled = false;
 }
-
 
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
-ext {
-  testJava = Jvm.current()
-}
-
-if (hasProperty('testVM')) {
-  File jvmHome = new File(testVM)
-  if (!jvmHome.exists() && hasProperty(testVM)) {
-    jvmHome = new File(project.property(testVM).toString())
-  }
-  testJava = Utils.jvmForHome(jvmHome)
-  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
-}
 
 dependencyCheck {
   failBuildOnCVSS = 0
   suppressionFile = 'config/owasp-supressions.xml'
-  skipConfigurations += ['checkstyle', 'spotbugs']
+  skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath']
   skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
 }
 tasks.register('check') {
   dependsOn dependencyCheckAggregate
-}
-
-subprojects {
-  apply plugin: 'java-library'
-  apply plugin: 'checkstyle'
-  apply plugin: 'com.github.spotbugs'
-  apply plugin: 'jacoco'
-
-  group = 'org.ehcache.modules'
-  version = baseVersion
-
-  archivesBaseName = "ehcache-${project.name}"
-
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
-
-  repositories {
-    if (project.hasProperty('mvnlocal')) {
-      mavenLocal()
-    }
-    mavenCentral()
-    maven { url "https://repo.terracotta.org/maven2" }
-  }
-
-  sourceSets {
-    slowTest {
-      java.srcDir 'src/slow-test/java'
-      resources.srcDir 'src/slow-test/resources'
-      compileClasspath += sourceSets.test.compileClasspath
-      runtimeClasspath += sourceSets.test.runtimeClasspath
-    }
-  }
-
-  dependencies {
-    implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    compileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
-    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
-    testImplementation "junit:junit:$junitVersion"
-    testImplementation "org.assertj:assertj-core:$assertjVersion"
-    testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
-    testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
-    testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
-  }
-
-  jar {
-    utils.fillManifest(manifest,"${project.group}","ehcache-${project.name}")
-    from "$rootDir/LICENSE"
-  }
-
-  test {
-    jacoco {
-      excludes += "org.terracotta.tripwire.*"
-    }
-  }
-
-  task slowTest(type: Test) {
-    testClassesDirs = sourceSets.slowTest.output.classesDirs
-    classpath += sourceSets.slowTest.runtimeClasspath
-
-    binResultsDir file("$buildDir/slow-tests-results/binary/$name")
-    reports.junitXml.destination = file("$buildDir/slow-tests-results")
-    reports.html.destination = file("$buildDir/reports/slow-tests")
-  }
-
-  task sourceJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
-  }
-
-  javadoc {
-    title "$project.archivesBaseName $project.version API"
-    exclude '**/internal/**'
-  }
-
-  task javadocJar(type: Jar, dependsOn: javadoc) {
-    from javadoc.destinationDir
-    archiveClassifier = 'javadoc'
-  }
-
-  artifacts {
-    archives javadocJar
-    archives sourceJar
-  }
-
-  checkstyle {
-    configFile = file("$rootDir/config/checkstyle.xml")
-    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-  }
-
-  spotbugs {
-    ignoreFailures = false
-    sourceSets = [sourceSets.main]
-
-  }
-
-  // Spotbugs itself has a divergence in it's slf4j dependencies.
-  // This version is independent of the version we use.
-  configurations.spotbugs.resolutionStrategy {
-    force 'org.slf4j:slf4j-api:1.8.0-beta4'
-  }
-  spotbugsMain {
-    reports {
-      // Switch from xml to html by changing these flags
-      xml.enabled = true
-      html.enabled = false
-    }
-  }
-
-  jacoco {
-    toolVersion = jacocoVersion
-  }
-
-  jacocoTestReport {
-    reports {
-      xml.enabled false
-      csv.enabled false
-    }
-  }
-
-  tasks.withType(AbstractCompile) {
-    options.with {
-      fork = true
-    }
-  }
-  tasks.withType(Test) {
-    executable = testJava.javaExecutable
-    maxHeapSize = "256m"
-    maxParallelForks 16
-    systemProperty 'java.awt.headless', 'true'
-  }
-  tasks.withType(Javadoc) {
-    options.addStringOption('Xdoclint:none', '-quiet')
-  }
-
-  configurations.all {
-    resolutionStrategy {
-      failOnVersionConflict()
-      // If you want to override a dependency, instead of changing gradle.properties, use something like below
-      // force 'org.terracotta:statistics:2.0-SNAPSHOT'
-    }
-  }
-
-  plugins.withId('biz.aQute.bnd.builder') {
-    /*
-     * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
-     * to `x.y.0.SNAPSHOT`. This is bad since `x.y.0.SNAPSHOT` is considered to be less than *all* `x.y.z`. This means
-     * the baseline version range expression `(,x.y.0.SNAPSHOT[` will always pick the last release from the previous
-     * minor line. To fix this we manually map to a 3-digit snapshot version where the 3rd digit is a number chosen
-     * to be higher than we would ever release ('All the worlds a VAX').
-     */
-    def fixedVersion = project.version.asType(String).replaceAll(/^(\d+.\d+)-SNAPSHOT$/, "\$1.999-SNAPSHOT")
-
-    jar {
-      bnd(
-        'Bundle-Name': project.properties.subPomName,
-        'Bundle-Description': project.properties.subPomDesc,
-        'Bundle-SymbolicName': "org.ehcache.modules.$project.archivesBaseName",
-        'Bundle-DocURL': 'http://ehcache.org',
-        'Bundle-License': 'LICENSE',
-        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
-        'Bundle-Version': fixedVersion,
-        'Service-Component': 'OSGI-INF/*.xml'
-      )
-    }
-    dependencies {
-      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
-        force = true
-        transitive = false
-      }
-    }
-    configurations.baseline {
-      resolutionStrategy {
-        componentSelection {
-          all { selection ->
-            if (!selection.candidate.version.matches(/\d+(?:\.\d+)*/)) {
-              selection.reject("Only full releases can be used as OSGi baselines")
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-allprojects {
-  tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Werror', '-Xlint:all']
-  }
-  tasks.withType(Javadoc) {
-    options.encoding = 'UTF-8'
-  }
 }

@@ -14,11 +14,8 @@
   ~ limitations under the License.
   -->
 <config
-    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
     xmlns='http://www.ehcache.org/v3'
-    xmlns:tx='http://www.ehcache.org/v3/tx'
-    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../../xml/src/main/resources/ehcache-core.xsd
-                        http://www.ehcache.org/v3/tx ../../../main/resources/ehcache-tx-ext.xsd">
+    xmlns:tx='http://www.ehcache.org/v3/tx'>
 
   <service>
     <tx:jta-tm transaction-manager-lookup-class="org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup"/>

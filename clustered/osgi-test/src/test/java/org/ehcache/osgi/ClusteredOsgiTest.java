@@ -84,11 +84,11 @@ public class ClusteredOsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:api"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
-      gradleBundle("org.ehcache:clustered-dist"),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
+      gradleBundle("org.ehcache.modules:ehcache-xml"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache-clustered"),
 
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
@@ -104,8 +104,8 @@ public class ClusteredOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
-      gradleBundle("org.ehcache:clustered-dist"),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache-clustered"),
 
       baseConfiguration("ClusteredOsgiTest", "uberJar"),
       gradleBundle("org.terracotta:terracotta-utilities-tools"),

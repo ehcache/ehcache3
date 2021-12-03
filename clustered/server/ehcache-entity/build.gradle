@@ -1,0 +1,40 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.clustered-server-module'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 Clustering Server Entity module'
+    description = 'The Server Entity module of Ehcache 3'
+  }
+}
+
+dependencies {
+  service project(':clustered:server:ehcache-service-api')
+  service "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
+  service "org.terracotta.management:management-registry:$terracottaPlatformVersion"
+
+  api project(':clustered:ehcache-common')
+  implementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  implementation "org.terracotta:offheap-store:$offheapVersion"
+  implementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
+
+  testImplementation project(':clustered:server:ehcache-service')
+  testImplementation project(':clustered:test-utils')
+}

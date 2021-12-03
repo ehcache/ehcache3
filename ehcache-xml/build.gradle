@@ -1,0 +1,97 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.internal-module'
+  id 'org.unbroken-dome.xjc'
+  id 'java-test-fixtures'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 XML Parsing module'
+    description = 'The module containing all XML parsing logic Ehcache 3'
+  }
+}
+
+components.java {
+  withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
+  withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
+}
+
+sourceSets {
+  main {
+    resources.source(xjcSchema)
+  }
+}
+tasks.named('sourcesJar') {
+  filesMatching('*.xsd') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  }
+}
+
+configurations {
+  lowerBoundTestRuntimeClasspath {
+    extendsFrom testRuntimeClasspath
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime') using module('com.sun.xml.bind:jaxb-impl:2.2.8-b01')
+    }
+  }
+}
+
+dependencies {
+  api project(':ehcache-api')
+  implementation project(':ehcache-core')
+  implementation project(':ehcache-impl')
+
+  api 'javax.xml.bind:jaxb-api:[2.2,3)'
+  runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:[2.2,3)'
+
+  testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
+
+  xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
+  xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
+
+  lowerBoundTestRuntimeClasspath 'com.sun.activation:javax.activation:1.2.0'
+}
+
+jar {
+  bnd (
+    'Export-Package': 'org.ehcache.xml, org.ehcache.xml.exceptions, org.ehcache.xml.model',
+    'Import-Package': "javax.xml.bind*;version=\"[2.2,3)\", *"
+  )
+}
+
+xjc {
+  extraArgs.add '-Xfluent-api'
+  extraArgs.add '-Xannotate'
+
+  // ehcache-multi.xsd references ehcache-core.xsd but we cannot control the order they get presented to XJC in.
+  // Turning off strict checks prevents failing on when seeing the resultant schema parsing issues.
+  strictCheck = false
+}
+
+tasks.register('lowerBoundTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  //remove the original runtime classpath
+  classpath -= configurations.testRuntimeClasspath
+  //add the classpath we want
+  classpath += configurations.lowerBoundTestRuntimeClasspath
+}
+
+tasks.named('check') {
+  dependsOn tasks.lowerBoundTest
+}
