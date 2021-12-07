@@ -13,11 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+plugins {
+  id 'org.ehcache.build.conventions.java-library'
+}
 
 dependencies {
   api project(':spi-tester')
-  implementation project(':core')
-  implementation project(':impl')
+  implementation project(':ehcache-core')
+  implementation project(':ehcache-impl')
   implementation "junit:junit:$junitVersion"
   implementation "org.mockito:mockito-core:$mockitoVersion"
   implementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
